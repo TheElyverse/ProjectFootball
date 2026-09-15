@@ -1,0 +1,11 @@
+build/
+out/
+.cache/
+compile_commands.json
+CMakeUserPresets.json
+*.o
+*.obj
+.vs/
+.vscode/
+.idea/
+replay_metadata.json
