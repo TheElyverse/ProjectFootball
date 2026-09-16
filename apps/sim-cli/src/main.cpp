@@ -12,7 +12,6 @@
 #include "sim_core/version.hpp"
 
 namespace {
-
 struct CliOptions {
   std::optional<std::uint64_t> seed;
   std::string replay_out = "replay_metadata.json";
@@ -55,7 +54,6 @@ std::string iso8601_now() {
   std::strftime(buffer, sizeof(buffer), "%Y-%m-%dT%H:%M:%SZ", &utc_tm);
   return buffer;
 }
-
 }  // namespace
 
 int main(int argc, char** argv) {
@@ -66,8 +64,8 @@ int main(int argc, char** argv) {
   // state yet. This proves the core + CLI + replay-metadata wiring per the
   // P0 exit criteria without pretending real simulation content exists.
   const ElyverseFootball::SimCore::SimClock clock(1.0 / 30.0);
-  ElyverseFootball::SimCore::Rng execution_rng(
-      ElyverseFootball::SimCore::derive_seed(seed, ElyverseFootball::SimCore::RngDomain::kExecution));
+  ElyverseFootball::SimCore::Rng execution_rng(ElyverseFootball::SimCore::derive_seed(
+      seed, ElyverseFootball::SimCore::RngDomain::kExecution));
   (void)execution_rng.next_u64();
 
   std::ofstream out(options.replay_out);
