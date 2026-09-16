@@ -5,9 +5,9 @@
 
 namespace ElyverseFootball::SimCore {
 
-// Per-domain RNG streams, so that e.g. adding a new injury-roll call site
-// doesn't perturb the execution-noise sequence for existing replays. See
-// docs/implementation-plan.md section 5.2.
+// Per-domain random number generator streams, so that e.g. adding a new injury-
+// roll call site doesn't perturb the execution-noise sequence for existing
+// replays. See docs/implementation-plan.md section 5.2.
 enum class RandomNumberGeneratorDomain : std::uint32_t {
   kExecution,
   kInjuries,
@@ -24,9 +24,9 @@ enum class RandomNumberGeneratorDomain : std::uint32_t {
 // Thin wrapper around a deterministic PRNG. Never seed this from a
 // non-deterministic source (e.g. std::random_device) inside the simulation
 // core -- see docs/implementation-plan.md section 5.2.
-class Rng {
+class RandomNumberGenerator {
  public:
-  explicit Rng(const std::uint64_t seed) noexcept : engine_(seed) {}
+  explicit RandomNumberGenerator(const std::uint64_t seed) noexcept : engine_(seed) {}
 
   [[nodiscard]] std::uint64_t nextU64() noexcept { return engine_(); }
 

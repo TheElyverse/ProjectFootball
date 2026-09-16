@@ -5,11 +5,11 @@
 
 using ElyverseFootball::SimCore::deriveSeed;
 using ElyverseFootball::SimCore::RandomNumberGeneratorDomain;
-using ElyverseFootball::SimCore::Rng;
+using ElyverseFootball::SimCore::RandomNumberGenerator;
 
 TEST_CASE("Rng is deterministic for a given seed", "[rng]") {
-  Rng a(42);
-  Rng b(42);
+  RandomNumberGenerator a(42);
+  RandomNumberGenerator b(42);
 
   for (int i = 0; i < 100; ++i) {
     REQUIRE(a.nextU64() == b.nextU64());

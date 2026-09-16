@@ -45,7 +45,7 @@ std::uint64_t resolveSeed(const CliOptions& options) {
 std::string iso8601Now() {
   const std::time_t now = std::time(nullptr);
   std::tm utcTm{};
-#if defined(_WIN32)
+#ifdef _WIN32
   gmtime_s(&utcTm, &now);
 #else
   gmtime_r(&now, &utcTm);
@@ -63,8 +63,8 @@ int main(int argc, char** argv) {
   // "Empty simulation": a clock that exists and could tick, with no domain
   // state yet. This proves the core + CLI + replay-metadata wiring per the
   // P0 exit criteria without pretending real simulation content exists.
-  const ElyverseFootball::SimCore::SimClock clock(1.0 / 30.0);
-  ElyverseFootball::SimCore::Rng executionRng(ElyverseFootball::SimCore::deriveSeed(
+  constexpr ElyverseFootball::SimCore::SimClock clock(1.0 / 30.0);
+  ElyverseFootball::SimCore::RandomNumberGenerator executionRng(ElyverseFootball::SimCore::deriveSeed(
       seed, ElyverseFootball::SimCore::RandomNumberGeneratorDomain::kExecution));
   (void)executionRng.nextU64();
 
@@ -76,8 +76,8 @@ int main(int argc, char** argv) {
 
   out << "{\n"
       << "  \"schemaVersion\": 1,\n"
-      << "  \"coreVersion\": \"" << ElyverseFootball::SimCore::coreVersion() << "\",\n"
-      << "  \"createdAt\": \"" << iso8601Now() << "\",\n"
+      << R"(  "coreVersion": ")" << ElyverseFootball::SimCore::coreVersion() << "\",\n"
+      << R"(  "createdAt": ")" << iso8601Now() << "\",\n"
       << "  \"seed\": " << seed << ",\n"
       << "  \"gameTime\": " << clock.tick().value() << "\n"
       << "}\n";
