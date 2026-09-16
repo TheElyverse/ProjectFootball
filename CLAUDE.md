@@ -56,7 +56,7 @@ data/            schemas, tactics, competitions, fixtures (JSON/YAML, schema-val
 tests/unit/      Catch2 tests, mirrors libs/ by subdirectory                   [exists, sim-core only]
 ```
 
-Stack in use: C++20, CMake + Ninja presets, CPM.cmake for dependencies (see `cmake/get_cpm.cmake`),
+Stack in use: C++23, CMake + Ninja presets, CPM.cmake for dependencies (see `cmake/get_cpm.cmake`),
 Catch2 v3 for tests, GitHub Actions for CI (`.github/workflows/ci.yml`, Linux + Windows). New libs follow
 the same pattern as `libs/sim-core`: a `CMakeLists.txt` building a static lib aliased as `ElyverseFootball::<name>`,
 public headers under `include/<name>/`, and a matching `tests/unit/<name>/` directory added to
