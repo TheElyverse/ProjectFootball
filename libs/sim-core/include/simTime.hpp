@@ -33,13 +33,12 @@ class SimTick {
 // docs/implementation-plan.md section 5.1/5.3.
 class SimClock {
  public:
-  constexpr explicit SimClock(double seconds_per_tick) noexcept
-      : seconds_per_tick_(seconds_per_tick) {}
+  constexpr explicit SimClock(double secondsPerTick) noexcept : secondsPerTick_(secondsPerTick) {}
 
   [[nodiscard]] constexpr SimTick tick() const noexcept { return current_; }
-  [[nodiscard]] constexpr double seconds_per_tick() const noexcept { return seconds_per_tick_; }
-  [[nodiscard]] constexpr double elapsed_seconds() const noexcept {
-    return static_cast<double>(current_.value()) * seconds_per_tick_;
+  [[nodiscard]] constexpr double secondsPerTick() const noexcept { return secondsPerTick_; }
+  [[nodiscard]] constexpr double elapsedSeconds() const noexcept {
+    return static_cast<double>(current_.value()) * secondsPerTick_;
   }
 
   constexpr SimTick advance() noexcept {
@@ -49,7 +48,7 @@ class SimClock {
 
  private:
   SimTick current_{};
-  double seconds_per_tick_;
+  double secondsPerTick_;
 };
 
 }  // namespace ElyverseFootball::SimCore

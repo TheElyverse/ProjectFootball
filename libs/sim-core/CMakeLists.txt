@@ -1,11 +1,11 @@
 add_library(sim-core STATIC
-  src/rng.cpp
-  src/version.cpp
+        src/random.cpp
+        src/version.cpp
 )
 add_library(ElyverseFootball::sim-core ALIAS sim-core)
 
 target_include_directories(sim-core PUBLIC
-  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
 )
 
 target_compile_features(sim-core PUBLIC cxx_std_23)

@@ -8,7 +8,7 @@ namespace ElyverseFootball::SimCore {
 // Per-domain RNG streams, so that e.g. adding a new injury-roll call site
 // doesn't perturb the execution-noise sequence for existing replays. See
 // docs/implementation-plan.md section 5.2.
-enum class RngDomain : std::uint32_t {
+enum class RandomNumberGeneratorDomain : std::uint32_t {
   kExecution,
   kInjuries,
   kGeneration,
@@ -18,23 +18,24 @@ enum class RngDomain : std::uint32_t {
 
 // Deterministically derives a per-domain seed from a master seed, so a single
 // master seed fully determines every stream without them being correlated.
-[[nodiscard]] std::uint64_t derive_seed(std::uint64_t master_seed, RngDomain domain) noexcept;
+[[nodiscard]] std::uint64_t deriveSeed(std::uint64_t masterSeed,
+                                       RandomNumberGeneratorDomain domain) noexcept;
 
 // Thin wrapper around a deterministic PRNG. Never seed this from a
 // non-deterministic source (e.g. std::random_device) inside the simulation
 // core -- see docs/implementation-plan.md section 5.2.
 class Rng {
  public:
-  explicit Rng(std::uint64_t seed) noexcept : engine_(seed) {}
+  explicit Rng(const std::uint64_t seed) noexcept : engine_(seed) {}
 
-  [[nodiscard]] std::uint64_t next_u64() noexcept { return engine_(); }
+  [[nodiscard]] std::uint64_t nextU64() noexcept { return engine_(); }
 
-  [[nodiscard]] double next_uniform() noexcept {
+  [[nodiscard]] double nextUniform() noexcept {
     return std::uniform_real_distribution<double>(0.0, 1.0)(engine_);
   }
 
-  [[nodiscard]] int next_int(int min_inclusive, int max_inclusive) noexcept {
-    return std::uniform_int_distribution<int>(min_inclusive, max_inclusive)(engine_);
+  [[nodiscard]] int nextInt(int minInclusive, int maxInclusive) noexcept {
+    return std::uniform_int_distribution<int>(minInclusive, maxInclusive)(engine_);
   }
 
  private:

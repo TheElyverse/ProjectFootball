@@ -20,7 +20,7 @@ class StrongId {
   constexpr explicit StrongId(Value value) noexcept : value_(value) {}
 
   [[nodiscard]] constexpr Value value() const noexcept { return value_; }
-  [[nodiscard]] constexpr bool is_valid() const noexcept { return value_ != kInvalid; }
+  [[nodiscard]] constexpr bool isValid() const noexcept { return value_ != kInvalid; }
 
   [[nodiscard]] static constexpr StrongId invalid() noexcept { return StrongId{}; }
 

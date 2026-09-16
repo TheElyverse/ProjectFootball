@@ -2,7 +2,7 @@
 
 #include <cstdint>
 
-#include "sim_core/strong_id.hpp"
+#include "strongId.hpp"
 
 namespace ElyverseFootball::SimCore {
 

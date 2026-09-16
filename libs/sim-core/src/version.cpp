@@ -1,8 +1,8 @@
-#include "sim_core/version.hpp"
+#include "version.hpp"
 
 namespace ElyverseFootball::SimCore {
 
-std::string_view core_version() noexcept {
+std::string_view coreVersion() noexcept {
   return "0.1.0";
 }
 
