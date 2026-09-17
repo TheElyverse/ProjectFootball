@@ -1,0 +1,6 @@
+Diagnostics:
+  Suppress:
+    # Catch2's TEST_CASE/SECTION macros use __COUNTER__ internally to generate
+    # unique identifiers; it's not standard C++ but is supported everywhere we
+    # build (GCC, Clang, MSVC) and doesn't fail the -Wpedantic -Werror CI build.
+    - c2y-extensions

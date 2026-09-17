@@ -1,3 +1,4 @@
+#include <array>
 #include <cstdlib>
 #include <ctime>
 #include <fstream>
@@ -17,7 +18,7 @@ struct CliOptions {
   std::string replayOut = "replay_metadata.json";
 };
 
-CliOptions parseArgs(int argc, char** argv) {
+CliOptions parseArgs(const int argc, char** argv) {
   CliOptions options;
   for (int i = 1; i < argc; ++i) {
     const std::string_view arg = argv[i];
@@ -38,8 +39,8 @@ std::uint64_t resolveSeed(const CliOptions& options) {
   if (options.seed) {
     return *options.seed;
   }
-  std::random_device rd;
-  return (static_cast<std::uint64_t>(rd()) << 32) | rd();
+  std::random_device randomDevice;
+  return (static_cast<std::uint64_t>(randomDevice()) << 32U) | randomDevice();
 }
 
 std::string iso8601Now() {
@@ -50,9 +51,9 @@ std::string iso8601Now() {
 #else
   gmtime_r(&now, &utcTm);
 #endif
-  char buffer[32];
-  std::strftime(buffer, sizeof(buffer), "%Y-%m-%dT%H:%M:%SZ", &utcTm);
-  return buffer;
+  std::array<char, 32> buffer{};
+  std::strftime(buffer.data(), buffer.size(), "%Y-%m-%dT%H:%M:%SZ", &utcTm);
+  return buffer.data();
 }
 }  // namespace
 
@@ -64,8 +65,9 @@ int main(int argc, char** argv) {
   // state yet. This proves the core + CLI + replay-metadata wiring per the
   // P0 exit criteria without pretending real simulation content exists.
   constexpr ElyverseFootball::SimCore::SimClock clock(1.0 / 30.0);
-  ElyverseFootball::SimCore::RandomNumberGenerator executionRng(ElyverseFootball::SimCore::deriveSeed(
-      seed, ElyverseFootball::SimCore::RandomNumberGeneratorDomain::kExecution));
+  ElyverseFootball::SimCore::RandomNumberGenerator executionRng(
+      ElyverseFootball::SimCore::deriveSeed(
+          seed, ElyverseFootball::SimCore::RandomNumberGeneratorDomain::kExecution));
   (void)executionRng.nextU64();
 
   std::ofstream out(options.replayOut);

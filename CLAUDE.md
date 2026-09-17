@@ -86,7 +86,7 @@ ctest --preset debug --output-on-failure
 Run a single test (Catch2 tag or exact name), after building:
 ```
 ./build/debug/tests/unit/sim-core-tests "[rng]"
-./build/debug/tests/unit/sim-core-tests "Rng is deterministic for a given seed"
+./build/debug/tests/unit/sim-core-tests "RandomNumberGenerator is deterministic for a given seed"
 ```
 
 Run the CLI (writes `replay_metadata.json` to the given path):

@@ -4,20 +4,20 @@
 #include "random.hpp"
 
 using ElyverseFootball::SimCore::deriveSeed;
-using ElyverseFootball::SimCore::RandomNumberGeneratorDomain;
 using ElyverseFootball::SimCore::RandomNumberGenerator;
+using ElyverseFootball::SimCore::RandomNumberGeneratorDomain;
 
-TEST_CASE("Rng is deterministic for a given seed", "[rng]") {
-  RandomNumberGenerator a(42);
-  RandomNumberGenerator b(42);
+TEST_CASE("RandomNumberGenerator is deterministic for a given seed", "[rng][random]") {
+  RandomNumberGenerator rngA(42);
+  RandomNumberGenerator rngB(42);
 
   for (int i = 0; i < 100; ++i) {
-    REQUIRE(a.nextU64() == b.nextU64());
+    REQUIRE(rngA.nextU64() == rngB.nextU64());
   }
 }
 
-TEST_CASE("deriveSeed produces distinct streams per domain", "[rng]") {
-  const auto master = std::uint64_t{123456789};
+TEST_CASE("deriveSeed produces distinct streams per domain", "[rng][random]") {
+  constexpr auto master = std::uint64_t{123456789};
 
   const auto executionSeed = deriveSeed(master, RandomNumberGeneratorDomain::kExecution);
   const auto injuriesSeed = deriveSeed(master, RandomNumberGeneratorDomain::kInjuries);
@@ -25,8 +25,8 @@ TEST_CASE("deriveSeed produces distinct streams per domain", "[rng]") {
   REQUIRE(executionSeed != injuriesSeed);
 }
 
-TEST_CASE("deriveSeed is itself deterministic", "[rng]") {
-  const auto master = std::uint64_t{7};
+TEST_CASE("deriveSeed is itself deterministic", "[rng][random]") {
+  constexpr auto master = std::uint64_t{7};
   REQUIRE(deriveSeed(master, RandomNumberGeneratorDomain::kMarket) ==
           deriveSeed(master, RandomNumberGeneratorDomain::kMarket));
 }

@@ -14,7 +14,7 @@ TEST_CASE("EventBus delivers published events to all subscribers", "[eventBus]")
   int calls = 0;
   int lastPlayerId = -1;
 
-  bus.subscribe([&](const PlayerJoinedClub& event) {
+  bus.subscribe([&calls, &lastPlayerId](const PlayerJoinedClub& event) {
     ++calls;
     lastPlayerId = event.playerId;
   });
