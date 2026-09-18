@@ -26,10 +26,25 @@ TEST_CASE("deriveSeed produces distinct streams per domain", "[rng][random]") {
   REQUIRE(executionSeed != injuriesSeed);
 }
 
-TEST_CASE("deriveSeed is itself deterministic", "[rng][random]") {
+// Golden vectors for deriveSeed(). Calling the same pure function twice and
+// comparing the results (as a prior version of this test did) is tautological
+// -- it passes even if the mixing algorithm changes, which would silently
+// change every derived stream and invalidate existing replays without any
+// test catching it. These checked-in expected seeds are the compatibility
+// baseline: a change to any of them means deriveSeed()'s algorithm changed
+// and every recorded replay is now invalid (see docs/implementation-plan.md
+// section 5.2).
+TEST_CASE("deriveSeed matches golden vectors", "[rng][random]") {
   constexpr auto master = std::uint64_t{7};
-  REQUIRE(deriveSeed(master, RandomNumberGeneratorDomain::kMarket) ==
-          deriveSeed(master, RandomNumberGeneratorDomain::kMarket));
+  REQUIRE(deriveSeed(master, RandomNumberGeneratorDomain::kExecution) == 7191089600892374487ULL);
+  REQUIRE(deriveSeed(master, RandomNumberGeneratorDomain::kInjuries) == 309689372594955804ULL);
+  REQUIRE(deriveSeed(master, RandomNumberGeneratorDomain::kGeneration) == 16616101746815609346ULL);
+  REQUIRE(deriveSeed(master, RandomNumberGeneratorDomain::kMarket) == 10753165928301472203ULL);
+  REQUIRE(deriveSeed(master, RandomNumberGeneratorDomain::kAi) == 8346079845500723674ULL);
+
+  REQUIRE(deriveSeed(0, RandomNumberGeneratorDomain::kExecution) == 16294208416658607535ULL);
+  REQUIRE(deriveSeed(0xFFFFFFFFFFFFFFFFULL, RandomNumberGeneratorDomain::kAi) ==
+          13015481187462834606ULL);
 }
 
 // Golden vectors for RandomNumberGenerator::nextUniform(seed = 1234567). These
