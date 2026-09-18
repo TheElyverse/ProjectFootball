@@ -34,14 +34,16 @@ TEST_CASE("deriveSeed produces distinct streams per domain", "[rng][random]") {
 // baseline: a change to any of them means deriveSeed()'s algorithm changed
 // and every recorded replay is now invalid (see docs/implementation-plan.md
 // section 5.2).
-TEST_CASE("deriveSeed matches golden vectors", "[rng][random]") {
+TEST_CASE("deriveSeed matches golden vectors for master seed 7", "[rng][random]") {
   constexpr auto master = std::uint64_t{7};
   REQUIRE(deriveSeed(master, RandomNumberGeneratorDomain::kExecution) == 7191089600892374487ULL);
   REQUIRE(deriveSeed(master, RandomNumberGeneratorDomain::kInjuries) == 309689372594955804ULL);
   REQUIRE(deriveSeed(master, RandomNumberGeneratorDomain::kGeneration) == 16616101746815609346ULL);
   REQUIRE(deriveSeed(master, RandomNumberGeneratorDomain::kMarket) == 10753165928301472203ULL);
   REQUIRE(deriveSeed(master, RandomNumberGeneratorDomain::kAi) == 8346079845500723674ULL);
+}
 
+TEST_CASE("deriveSeed matches golden vectors for boundary master seeds", "[rng][random]") {
   REQUIRE(deriveSeed(0, RandomNumberGeneratorDomain::kExecution) == 16294208416658607535ULL);
   REQUIRE(deriveSeed(0xFFFFFFFFFFFFFFFFULL, RandomNumberGeneratorDomain::kAi) ==
           13015481187462834606ULL);
@@ -104,7 +106,7 @@ TEST_CASE("RandomNumberGenerator::nextInt stays within [min, max] and is unbiase
     const int value = rng.nextInt(0, 6);
     REQUIRE(value >= 0);
     REQUIRE(value <= 6);
-    ++counts[static_cast<std::size_t>(value)];
+    ++counts.at(static_cast<std::size_t>(value));
   }
   for (const int count : counts) {
     REQUIRE(count > 8000);

@@ -47,7 +47,7 @@ class SimClock {
   }
 
  private:
-  SimTick current_{};
+  SimTick current_;
   double secondsPerTick_;
 };
 

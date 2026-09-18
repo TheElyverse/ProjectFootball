@@ -8,7 +8,7 @@ namespace ElyverseFootball::SimCore {
 // Per-domain random number generator streams, so that e.g. adding a new injury-
 // roll call site doesn't perturb the execution-noise sequence for existing
 // replays. See docs/implementation-plan.md section 5.2.
-enum class RandomNumberGeneratorDomain : std::uint32_t {
+enum class RandomNumberGeneratorDomain : std::uint8_t {
   kExecution,
   kInjuries,
   kGeneration,
@@ -90,7 +90,7 @@ class RandomNumberGenerator {
 
     const std::uint64_t high = hiHi + (hiLo >> 32U) + (loHi >> 32U) + (cross >> 32U);
     const std::uint64_t low = (cross << 32U) | static_cast<std::uint32_t>(loLo);
-    return {high, low};
+    return {.high = high, .low = low};
   }
 
   // Lemire's unbiased bounded-random-integer method: maps a raw 64-bit draw

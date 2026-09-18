@@ -7,6 +7,8 @@
 #include <iostream>
 #include <optional>
 #include <random>
+#include <span>
+#include <stdexcept>
 #include <string>
 #include <string_view>
 
@@ -22,33 +24,49 @@ struct CliOptions {
 
 constexpr std::string_view kUsage = "usage: sim-cli [--seed <u64>] [--replay-out <path>]";
 
+// std::span has no bounds-checked at() (unlike std::vector/std::array), so this
+// is span's missing at(): the one place a bounds check plus the actual element
+// access happen together, instead of trusting every call site to have checked
+// first. Mirrors what std::vector::at()/gsl::at() do internally.
+[[nodiscard]] char* checkedAt(const std::span<char* const> args, const std::size_t index) {
+  if (index >= args.size()) {
+    throw std::out_of_range("sim-cli: argument index out of range");
+  }
+  return args[index];  // NOLINT(cppcoreguidelines-pro-bounds-avoid-unchecked-container-access)
+}
+
 std::expected<std::uint64_t, std::string> parseSeed(const std::string_view token) {
   std::uint64_t value = 0;
+  // NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic) -- std::from_chars only takes a
+  // raw [begin, end) pointer range, there is no std::string_view overload.
   const auto [ptr, ec] = std::from_chars(token.data(), token.data() + token.size(), value);
   if (ec != std::errc{} || ptr != token.data() + token.size()) {
+    // NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
     return std::unexpected("invalid --seed value '" + std::string(token) + "'");
   }
   return value;
 }
 
-std::expected<CliOptions, std::string> parseArgs(const int argc, char** argv) {
+// Takes a span instead of (argc, char**) so indexing goes through
+// std::span::operator[] rather than raw pointer arithmetic on argv.
+std::expected<CliOptions, std::string> parseArgs(const std::span<char* const> args) {
   CliOptions options;
-  for (int i = 1; i < argc; ++i) {
-    const std::string_view arg = argv[i];
+  for (std::size_t i = 1; i < args.size(); ++i) {
+    const std::string_view arg = checkedAt(args, i);
     if (arg == "--seed") {
-      if (i + 1 >= argc) {
+      if (i + 1 >= args.size()) {
         return std::unexpected("--seed requires a value");
       }
-      const auto seed = parseSeed(argv[++i]);
+      const auto seed = parseSeed(checkedAt(args, ++i));
       if (!seed) {
         return std::unexpected(seed.error());
       }
       options.seed = *seed;
     } else if (arg == "--replay-out") {
-      if (i + 1 >= argc) {
+      if (i + 1 >= args.size()) {
         return std::unexpected("--replay-out requires a value");
       }
-      options.replayOut = argv[++i];
+      options.replayOut = checkedAt(args, ++i);
     } else {
       return std::unexpected("unknown argument '" + std::string(arg) + "'");
     }
@@ -83,7 +101,16 @@ std::string iso8601Now() {
 }  // namespace
 
 int main(int argc, char** argv) {
-  const std::expected<CliOptions, std::string> parsed = parseArgs(argc, argv);
+  std::expected<CliOptions, std::string> parsed;
+  try {
+    parsed = parseArgs(std::span<char* const>(argv, static_cast<std::size_t>(argc)));
+  } catch (const std::out_of_range&) {
+    // checkedAt()'s bounds check should be unreachable given parseArgs()'s own
+    // guards; if it ever fires (e.g. a future refactor drops a guard), report
+    // it the same way as any other malformed input instead of letting the
+    // exception escape main() and std::terminate().
+    parsed = std::unexpected("internal error: argument index out of range");
+  }
   if (!parsed) {
     std::cerr << "sim-cli: " << parsed.error() << "\n" << kUsage << "\n";
     return EXIT_FAILURE;
