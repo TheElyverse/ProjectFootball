@@ -20,8 +20,7 @@ struct CliOptions {
   std::string replayOut = "replay_metadata.json";
 };
 
-constexpr std::string_view kUsage =
-    "usage: sim-cli [--seed <u64>] [--replay-out <path>]";
+constexpr std::string_view kUsage = "usage: sim-cli [--seed <u64>] [--replay-out <path>]";
 
 std::expected<std::uint64_t, std::string> parseSeed(const std::string_view token) {
   std::uint64_t value = 0;

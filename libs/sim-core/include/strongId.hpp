@@ -42,7 +42,8 @@ ostream& operator<<(ostream& outputStream, const StrongId<Tag, Value>& strongId)
 
 template <typename Tag, typename Value>
 struct hash<ElyverseFootball::SimCore::StrongId<Tag, Value>> {
-  size_t operator()(const ElyverseFootball::SimCore::StrongId<Tag, Value>& strongId) const noexcept {
+  size_t operator()(
+      const ElyverseFootball::SimCore::StrongId<Tag, Value>& strongId) const noexcept {
     return hash<Value>{}(strongId.value());
   }
 };
