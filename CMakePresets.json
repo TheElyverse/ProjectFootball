@@ -40,15 +40,34 @@
     }
   ],
   "buildPresets": [
-    { "name": "debug", "configurePreset": "debug" },
-    { "name": "relwithdebinfo", "configurePreset": "relwithdebinfo" },
-    { "name": "release", "configurePreset": "release" },
-    { "name": "sanitize", "configurePreset": "sanitize" },
-    { "name": "ci", "configurePreset": "ci" }
+    { "name": "debug", "configurePreset": "debug", "configuration": "Debug" },
+    {
+      "name": "relwithdebinfo",
+      "configurePreset": "relwithdebinfo",
+      "configuration": "RelWithDebInfo"
+    },
+    { "name": "release", "configurePreset": "release", "configuration": "Release" },
+    { "name": "sanitize", "configurePreset": "sanitize", "configuration": "Debug" },
+    { "name": "ci", "configurePreset": "ci", "configuration": "Debug" }
   ],
   "testPresets": [
-    { "name": "debug", "configurePreset": "debug", "output": { "outputOnFailure": true } },
-    { "name": "sanitize", "configurePreset": "sanitize", "output": { "outputOnFailure": true } },
-    { "name": "ci", "configurePreset": "ci", "output": { "outputOnFailure": true } }
+    {
+      "name": "debug",
+      "configurePreset": "debug",
+      "configuration": "Debug",
+      "output": { "outputOnFailure": true }
+    },
+    {
+      "name": "sanitize",
+      "configurePreset": "sanitize",
+      "configuration": "Debug",
+      "output": { "outputOnFailure": true }
+    },
+    {
+      "name": "ci",
+      "configurePreset": "ci",
+      "configuration": "Debug",
+      "output": { "outputOnFailure": true }
+    }
   ]
 }
