@@ -1,6 +1,8 @@
 #include <array>
+#include <charconv>
 #include <cstdlib>
 #include <ctime>
+#include <expected>
 #include <fstream>
 #include <iostream>
 #include <optional>
@@ -18,14 +20,38 @@ struct CliOptions {
   std::string replayOut = "replay_metadata.json";
 };
 
-CliOptions parseArgs(const int argc, char** argv) {
+constexpr std::string_view kUsage =
+    "usage: sim-cli [--seed <u64>] [--replay-out <path>]";
+
+std::expected<std::uint64_t, std::string> parseSeed(const std::string_view token) {
+  std::uint64_t value = 0;
+  const auto [ptr, ec] = std::from_chars(token.data(), token.data() + token.size(), value);
+  if (ec != std::errc{} || ptr != token.data() + token.size()) {
+    return std::unexpected("invalid --seed value '" + std::string(token) + "'");
+  }
+  return value;
+}
+
+std::expected<CliOptions, std::string> parseArgs(const int argc, char** argv) {
   CliOptions options;
   for (int i = 1; i < argc; ++i) {
     const std::string_view arg = argv[i];
-    if (arg == "--seed" && i + 1 < argc) {
-      options.seed = std::stoull(argv[++i]);
-    } else if (arg == "--replay-out" && i + 1 < argc) {
+    if (arg == "--seed") {
+      if (i + 1 >= argc) {
+        return std::unexpected("--seed requires a value");
+      }
+      const auto seed = parseSeed(argv[++i]);
+      if (!seed) {
+        return std::unexpected(seed.error());
+      }
+      options.seed = *seed;
+    } else if (arg == "--replay-out") {
+      if (i + 1 >= argc) {
+        return std::unexpected("--replay-out requires a value");
+      }
       options.replayOut = argv[++i];
+    } else {
+      return std::unexpected("unknown argument '" + std::string(arg) + "'");
     }
   }
   return options;
@@ -58,7 +84,12 @@ std::string iso8601Now() {
 }  // namespace
 
 int main(int argc, char** argv) {
-  const CliOptions options = parseArgs(argc, argv);
+  const std::expected<CliOptions, std::string> parsed = parseArgs(argc, argv);
+  if (!parsed) {
+    std::cerr << "sim-cli: " << parsed.error() << "\n" << kUsage << "\n";
+    return EXIT_FAILURE;
+  }
+  const CliOptions& options = *parsed;
   const std::uint64_t seed = resolveSeed(options);
 
   // "Empty simulation": a clock that exists and could tick, with no domain
