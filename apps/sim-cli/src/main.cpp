@@ -115,6 +115,12 @@ int main(int argc, char** argv) {
       << "  \"gameTime\": " << clock.tick().value() << "\n"
       << "}\n";
 
+  out.close();
+  if (!out) {
+    std::cerr << "Failed to write replay metadata to " << options.replayOut << "\n";
+    return EXIT_FAILURE;
+  }
+
   std::cout << "Started empty simulation. Wrote replay metadata to " << options.replayOut << "\n";
   return EXIT_SUCCESS;
 }
