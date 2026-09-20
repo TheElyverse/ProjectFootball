@@ -39,10 +39,22 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
+      # clang-tidy-18 (the version bundled with ubuntu-latest) reports
+      # __cpp_concepts as 201907L instead of 202002L, so libstdc++'s <expected>
+      # header self-disables under it (guarded on __cpp_concepts >= 202002L) --
+      # unrelated to libstdc++ version. Fixed in Clang 19; install it from the
+      # official LLVM repo instead of relying on the distro package.
+      - name: Install clang-tidy-19
+        run: |
+          wget -q https://apt.llvm.org/llvm.sh -O /tmp/llvm.sh
+          chmod +x /tmp/llvm.sh
+          sudo /tmp/llvm.sh 19
+          sudo apt-get install -y clang-tidy-19
+
       - name: Configure
         run: cmake --preset ci
 
       - name: Run clang-tidy
         run: |
           find libs apps tests -name '*.hpp' -o -name '*.cpp' \
-            | xargs run-clang-tidy -p build/ci
+            | xargs run-clang-tidy-19 -p build/ci
