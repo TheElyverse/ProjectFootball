@@ -14,15 +14,17 @@
 
 #include "random.hpp"
 #include "simTime.hpp"
+#include "terminalUi.hpp"
 #include "version.hpp"
 
 namespace {
 struct CliOptions {
+  bool tui = false;
   std::optional<std::uint64_t> seed;
   std::string replayOut = "replay_metadata.json";
 };
 
-constexpr std::string_view kUsage = "usage: sim-cli [--seed <u64>] [--replay-out <path>]";
+constexpr std::string_view kUsage = "usage: sim-cli [--tui] [--seed <u64>] [--replay-out <path>]";
 
 // std::span has no bounds-checked at() (unlike std::vector/std::array), so this
 // is span's missing at(): the one place a bounds check plus the actual element
@@ -53,7 +55,9 @@ std::expected<CliOptions, std::string> parseArgs(const std::span<char* const> ar
   CliOptions options;
   for (std::size_t i = 1; i < args.size(); ++i) {
     const std::string_view arg = checkedAt(args, i);
-    if (arg == "--seed") {
+    if (arg == "--tui") {
+      options.tui = true;
+    } else if (arg == "--seed") {
       if (i + 1 >= args.size()) {
         return std::unexpected("--seed requires a value");
       }
@@ -116,6 +120,10 @@ int main(int argc, char** argv) {
     return EXIT_FAILURE;
   }
   const CliOptions& options = *parsed;
+  if (options.tui && !ElyverseFootball::Cli::hasInteractiveTerminal()) {
+    std::cerr << "sim-cli: --tui requires an interactive terminal on stdin and stdout\n";
+    return EXIT_FAILURE;
+  }
   const std::uint64_t seed = resolveSeed(options);
 
   // "Empty simulation": a clock that exists and could tick, with no domain
@@ -147,6 +155,10 @@ int main(int argc, char** argv) {
     return EXIT_FAILURE;
   }
 
-  std::cout << "Started empty simulation. Wrote replay metadata to " << options.replayOut << "\n";
+  if (options.tui) {
+    ElyverseFootball::Cli::showSimulationSummary(seed, clock.tick(), options.replayOut);
+  } else {
+    std::cout << "Started empty simulation. Wrote replay metadata to " << options.replayOut << "\n";
+  }
   return EXIT_SUCCESS;
 }
