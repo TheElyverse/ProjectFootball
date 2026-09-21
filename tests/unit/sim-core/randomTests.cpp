@@ -98,19 +98,29 @@ TEST_CASE("RandomNumberGenerator::nextInt matches golden vectors for a negative 
   }
 }
 
-TEST_CASE("RandomNumberGenerator::nextInt stays within [min, max] and is unbiased enough",
+TEST_CASE("RandomNumberGenerator::nextInt stays within [min, max] and fits a uniform distribution",
           "[rng][random]") {
   RandomNumberGenerator rng(2024);
+  constexpr int sampleCount = 70000;
   std::array<int, 7> counts{};
-  for (int i = 0; i < 70000; ++i) {
+  for (int i = 0; i < sampleCount; ++i) {
     const int value = rng.nextInt(0, 6);
     REQUIRE(value >= 0);
     REQUIRE(value <= 6);
     ++counts.at(static_cast<std::size_t>(value));
   }
+  // Pearson's chi-squared goodness-of-fit test detects both overrepresented
+  // and underrepresented outcomes. With 7 buckets and no fitted parameters,
+  // there are 6 degrees of freedom; the 0.999 quantile is 22.457744...
+  // This gives a significance level of 0.001 (expected count: 10000 per bucket).
+  constexpr double criticalChiSquared = 22.4577444848253;
+  constexpr double expectedCount = static_cast<double>(sampleCount) / counts.size();
+  double chiSquared = 0.0;
   for (const int count : counts) {
-    REQUIRE(count > 8000);
+    const double deviation = count - expectedCount;
+    chiSquared += deviation * deviation / expectedCount;
   }
+  REQUIRE(chiSquared < criticalChiSquared);
 }
 
 TEST_CASE("RandomNumberGenerator::nextInt handles a singleton range", "[rng][random]") {
