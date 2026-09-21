@@ -2,6 +2,8 @@
 
 #include <compare>
 #include <cstdint>
+#include <limits>
+#include <stdexcept>
 
 namespace ElyverseFootball::SimCore {
 
@@ -33,7 +35,14 @@ class SimTick {
 // docs/implementation-plan.md section 5.1/5.3.
 class SimClock {
  public:
-  constexpr explicit SimClock(double secondsPerTick) noexcept : secondsPerTick_(secondsPerTick) {}
+  // Throws std::invalid_argument unless the duration is positive and finite.
+  constexpr explicit SimClock(const double secondsPerTick) : secondsPerTick_(secondsPerTick) {
+    const bool validDuration =
+        secondsPerTick > 0.0 && secondsPerTick <= std::numeric_limits<double>::max();
+    if (!validDuration) {
+      throw std::invalid_argument("SimClock: secondsPerTick must be positive and finite");
+    }
+  }
 
   [[nodiscard]] constexpr SimTick tick() const noexcept { return current_; }
   [[nodiscard]] constexpr double secondsPerTick() const noexcept { return secondsPerTick_; }
