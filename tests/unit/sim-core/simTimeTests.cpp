@@ -1,5 +1,8 @@
+#include <array>
 #include <catch2/catch_approx.hpp>
 #include <catch2/catch_test_macros.hpp>
+#include <limits>
+#include <stdexcept>
 
 #include "simTime.hpp"
 
@@ -62,6 +65,3 @@ TEST_CASE("SimClock elapsedSeconds tracks ticks * secondsPerTick", "[simTime]") 
 
   REQUIRE(clock.elapsedSeconds() == Catch::Approx(1.5));
 }
-#include <array>
-#include <limits>
-#include <stdexcept>
