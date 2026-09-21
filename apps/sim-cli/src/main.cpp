@@ -145,7 +145,7 @@ int main(int argc, char** argv) {
       << "  \"schemaVersion\": 1,\n"
       << R"(  "coreVersion": ")" << ElyverseFootball::SimCore::coreVersion() << "\",\n"
       << R"(  "createdAt": ")" << iso8601Now() << "\",\n"
-      << "  \"seed\": " << seed << ",\n"
+      << R"(  "seed": ")" << seed << "\",\n"
       << "  \"gameTime\": " << clock.tick().value() << "\n"
       << "}\n";
 

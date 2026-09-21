@@ -24,6 +24,11 @@ The screen displays the empty simulation's core version, seed, game time, and sa
 replay metadata path. Press Enter on Close, `q`, or Escape to exit. Replay metadata
 is written before the screen opens. The simulation currently has no domain state.
 
+Replay metadata schema version 1 stores `seed` as an unsigned decimal JSON string
+(for example, `"18446744073709551615"` for `UINT64_MAX`). Consumers must preserve
+the string or parse it as an unsigned 64-bit integer, without conversion through
+floating point.
+
 Omit `--tui` for the existing one-shot command, suitable for scripts and redirected
 output. `--tui` requires both stdin and stdout to be terminals. On Windows, run
 `sim-cli.exe` from the CMake build output directory with the same arguments.
