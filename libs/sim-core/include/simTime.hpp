@@ -18,7 +18,11 @@ class SimTick {
 
   [[nodiscard]] constexpr ValueType value() const noexcept { return value_; }
 
-  constexpr SimTick& operator++() noexcept {
+  // Throws std::overflow_error at the maximum tick, leaving the value unchanged.
+  constexpr SimTick& operator++() {
+    if (value_ == std::numeric_limits<ValueType>::max()) {
+      throw std::overflow_error("SimTick: cannot increment the maximum tick");
+    }
     ++value_;
     return *this;
   }
@@ -50,7 +54,8 @@ class SimClock {
     return static_cast<double>(current_.value()) * secondsPerTick_;
   }
 
-  constexpr SimTick advance() noexcept {
+  // Propagates tick overflow without advancing the clock.
+  constexpr SimTick advance() {
     ++current_;
     return current_;
   }

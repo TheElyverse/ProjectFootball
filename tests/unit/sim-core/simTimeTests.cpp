@@ -7,9 +7,29 @@
 #include "simTime.hpp"
 
 using ElyverseFootball::SimCore::SimClock;
+using ElyverseFootball::SimCore::SimTick;
+
+static_assert(!noexcept(++SimTick{}));
+
+TEST_CASE("SimTick increments to the maximum tick", "[simTime]") {
+  constexpr auto maxTick = std::numeric_limits<SimTick::ValueType>::max();
+  SimTick tick(maxTick - 1);
+
+  const auto& incremented = ++tick;
+  REQUIRE(&incremented == &tick);
+  REQUIRE(tick.value() == maxTick);
+}
+
+TEST_CASE("SimTick rejects overflow without mutation", "[simTime]") {
+  constexpr auto maxTick = std::numeric_limits<SimTick::ValueType>::max();
+  SimTick tick(maxTick);
+  REQUIRE_THROWS_AS(++tick, std::overflow_error);
+  REQUIRE(tick.value() == maxTick);
+}
 
 static_assert([] {
   SimClock clock(0.5);
+  static_assert(!noexcept(clock.advance()));
   clock.advance();
   return clock.tick().value() == 1 && clock.elapsedSeconds() == 0.5;
 }());
