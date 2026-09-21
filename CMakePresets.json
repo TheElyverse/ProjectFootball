@@ -1,0 +1,73 @@
+{
+  "version": 6,
+  "cmakeMinimumRequired": { "major": 3, "minor": 25, "patch": 0 },
+  "configurePresets": [
+    {
+      "name": "debug",
+      "displayName": "Debug",
+      "binaryDir": "${sourceDir}/build/debug",
+      "cacheVariables": { "CMAKE_BUILD_TYPE": "Debug" }
+    },
+    {
+      "name": "relwithdebinfo",
+      "displayName": "RelWithDebInfo",
+      "binaryDir": "${sourceDir}/build/relwithdebinfo",
+      "cacheVariables": { "CMAKE_BUILD_TYPE": "RelWithDebInfo" }
+    },
+    {
+      "name": "release",
+      "displayName": "Release",
+      "binaryDir": "${sourceDir}/build/release",
+      "cacheVariables": { "CMAKE_BUILD_TYPE": "Release" }
+    },
+    {
+      "name": "sanitize",
+      "displayName": "Debug + ASan/UBSan",
+      "binaryDir": "${sourceDir}/build/sanitize",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug",
+        "PF_ENABLE_SANITIZERS": "ON"
+      }
+    },
+    {
+      "name": "ci",
+      "displayName": "CI (warnings as errors)",
+      "binaryDir": "${sourceDir}/build/ci",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug",
+        "PF_WARNINGS_AS_ERRORS": "ON"
+      }
+    }
+  ],
+  "buildPresets": [
+    { "name": "debug", "configurePreset": "debug", "configuration": "Debug" },
+    {
+      "name": "relwithdebinfo",
+      "configurePreset": "relwithdebinfo",
+      "configuration": "RelWithDebInfo"
+    },
+    { "name": "release", "configurePreset": "release", "configuration": "Release" },
+    { "name": "sanitize", "configurePreset": "sanitize", "configuration": "Debug" },
+    { "name": "ci", "configurePreset": "ci", "configuration": "Debug" }
+  ],
+  "testPresets": [
+    {
+      "name": "debug",
+      "configurePreset": "debug",
+      "configuration": "Debug",
+      "output": { "outputOnFailure": true }
+    },
+    {
+      "name": "sanitize",
+      "configurePreset": "sanitize",
+      "configuration": "Debug",
+      "output": { "outputOnFailure": true }
+    },
+    {
+      "name": "ci",
+      "configurePreset": "ci",
+      "configuration": "Debug",
+      "output": { "outputOnFailure": true }
+    }
+  ]
+}

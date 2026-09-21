@@ -1,0 +1,68 @@
+#pragma once
+
+#include <compare>
+#include <cstdint>
+#include <limits>
+#include <stdexcept>
+
+namespace ElyverseFootball::SimCore {
+
+// A single discrete simulation step. Whether it represents a match tick or a
+// world-simulation step depends on which SimClock produced it.
+class SimTick {
+ public:
+  using ValueType = std::int64_t;
+
+  constexpr SimTick() noexcept = default;
+  constexpr explicit SimTick(ValueType value) noexcept : value_(value) {}
+
+  [[nodiscard]] constexpr ValueType value() const noexcept { return value_; }
+
+  // Throws std::overflow_error at the maximum tick, leaving the value unchanged.
+  constexpr SimTick& operator++() {
+    if (value_ == std::numeric_limits<ValueType>::max()) {
+      throw std::overflow_error("SimTick: cannot increment the maximum tick");
+    }
+    ++value_;
+    return *this;
+  }
+
+  friend constexpr auto operator<=>(const SimTick&, const SimTick&) = default;
+
+ private:
+  ValueType value_ = 0;
+};
+
+// Fixed-step simulation clock. Advancing the clock is the only way simulation
+// time moves forward -- there is no wall-clock/delta-time coupling, so
+// replays stay deterministic regardless of host performance. See
+// docs/implementation-plan.md section 5.1/5.3.
+class SimClock {
+ public:
+  // Throws std::invalid_argument unless the duration is positive and finite.
+  constexpr explicit SimClock(const double secondsPerTick) : secondsPerTick_(secondsPerTick) {
+    const bool validDuration =
+        secondsPerTick > 0.0 && secondsPerTick <= std::numeric_limits<double>::max();
+    if (!validDuration) {
+      throw std::invalid_argument("SimClock: secondsPerTick must be positive and finite");
+    }
+  }
+
+  [[nodiscard]] constexpr SimTick tick() const noexcept { return current_; }
+  [[nodiscard]] constexpr double secondsPerTick() const noexcept { return secondsPerTick_; }
+  [[nodiscard]] constexpr double elapsedSeconds() const noexcept {
+    return static_cast<double>(current_.value()) * secondsPerTick_;
+  }
+
+  // Propagates tick overflow without advancing the clock.
+  constexpr SimTick advance() {
+    ++current_;
+    return current_;
+  }
+
+ private:
+  SimTick current_;
+  double secondsPerTick_;
+};
+
+}  // namespace ElyverseFootball::SimCore
