@@ -59,8 +59,10 @@ tests/unit/      Catch2 tests, mirrors libs/ by subdirectory                   [
 Stack in use: C++23, CMake + Ninja presets, CPM.cmake for dependencies (see `cmake/get_cpm.cmake`),
 Catch2 v3 for tests, GitHub Actions for CI (`.github/workflows/ci.yml`, Linux + Windows). New libs follow
 the same pattern as `libs/sim-core`: a `CMakeLists.txt` building a static lib aliased as `ElyverseFootball::<name>`,
-public headers under `include/<name>/`, and a matching `tests/unit/<name>/` directory added to
-`tests/unit/CMakeLists.txt`.
+public headers directly under `libs/<name>/include/`, and a matching `tests/unit/<name>/` directory
+added to `tests/unit/CMakeLists.txt`. Export that `include/` directory with
+`target_include_directories(... PUBLIC ...)`; consumers include headers by filename, for example
+`#include "simTime.hpp"` for `libs/sim-core/include/simTime.hpp`.
 
 ### Testing strategy (planned)
 
@@ -94,10 +96,10 @@ Run the CLI (writes `replay_metadata.json` to the given path):
 ./build/debug/apps/sim-cli/sim-cli --seed 42 --replay-out /tmp/replay.json
 ```
 
-Same checks CI runs (warnings-as-errors preset + format check):
+Run the complete local CI target (warnings-as-errors build, tests, format check, and clang-tidy):
+
 ```
-cmake --preset ci && cmake --build --preset ci && ctest --preset ci
-find libs apps tests -name '*.hpp' -o -name '*.cpp' | xargs clang-format --dry-run --Werror
+make ci
 ```
 
 Sanitizer build (ASan+UBSan, GCC/Clang only, not MSVC):
