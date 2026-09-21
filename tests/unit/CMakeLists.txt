@@ -11,6 +11,7 @@ add_executable(sim-core-tests
         sim-core/simTimeTests.cpp
         sim-core/randomTests.cpp
         sim-core/eventBusTests.cpp
+        sim-core/vec2Tests.cpp
 )
 
 target_link_libraries(sim-core-tests PRIVATE
@@ -22,6 +23,16 @@ target_link_libraries(sim-core-tests PRIVATE
 include(CTest)
 include(Catch)
 catch_discover_tests(sim-core-tests)
+
+add_executable(sim-match-tests
+        sim-match/pitchTests.cpp
+)
+target_link_libraries(sim-match-tests PRIVATE
+        ElyverseFootball::sim-match
+        Catch2::Catch2WithMain
+        pf_compiler_warnings
+)
+catch_discover_tests(sim-match-tests)
 
 add_test(NAME sim-cli-smoke
         COMMAND ${CMAKE_COMMAND}
