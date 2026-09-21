@@ -1,0 +1,98 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="1060" viewBox="0 0 1280 1060" role="img" aria-labelledby="title desc">
+  <title id="title">Pitch construction and vector calculations</title>
+  <desc id="desc">A 60 by 40 meter pitch with origin at its lower left corner, x along the length and y along the width. All four edges are included. Point A at 10,10 moves by displacement 30,20 to B at 40,30. The distance is approximately 36.06 meters. A point at 64,20 is outside. Construction rejects nonpositive or nonfinite dimensions.</desc>
+  <defs>
+    <marker id="axis" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0 0 L6 3 L0 6" fill="none" stroke="#34485d" stroke-width="1.3"/></marker>
+    <marker id="move" markerWidth="9" markerHeight="9" refX="7" refY="4" orient="auto"><path d="M0 0 L7 4 L0 8 Z" fill="#215ec9"/></marker>
+    <pattern id="grid" width="100" height="100" patternUnits="userSpaceOnUse" x="110" y="205"><path d="M100 0 H0 V100" fill="none" stroke="#c8ded2" stroke-width="1"/></pattern>
+    <style>
+      text { font-family: Arial, Helvetica, sans-serif; fill: #183044; }
+      .title { font-size: 32px; font-weight: 700; }
+      .heading { font-size: 20px; font-weight: 700; }
+      .body { font-size: 18px; }
+      .small { font-size: 16px; fill: #486074; }
+      .code { font-family: Consolas, 'DejaVu Sans Mono', monospace; font-size: 16px; }
+      .point { font-size: 18px; font-weight: 700; }
+    </style>
+  </defs>
+  <rect width="1280" height="1060" fill="#ffffff"/>
+  <text x="48" y="56" class="title">Pitch geometry · from coordinates to calculations</text>
+  <text x="48" y="89" class="body">A concrete example of the current Pitch and Vec2 APIs. All positions are in meters.</text>
+
+  <text x="48" y="144" class="heading">01 / Coordinate system</text>
+  <text x="120" y="190" class="body">(0, 40)</text>
+  <text x="710" y="190" class="body">(60, 40)</text>
+  <rect x="110" y="205" width="600" height="400" fill="#edf7f0" stroke="#307b55" stroke-width="2"/>
+  <rect x="110" y="205" width="600" height="400" fill="url(#grid)"/>
+  <line x1="410" y1="205" x2="410" y2="605" stroke="#8eaf9c" stroke-width="1.5"/>
+  <line x1="110" y1="605" x2="786" y2="605" stroke="#34485d" stroke-width="2" marker-end="url(#axis)"/>
+  <line x1="110" y1="605" x2="110" y2="159" stroke="#34485d" stroke-width="2" marker-end="url(#axis)"/>
+  <text x="796" y="611" class="point">+x</text>
+  <text x="69" y="164" class="point">+y</text>
+  <text x="110" y="625" class="body">(0, 0) origin</text>
+  <text x="710" y="625" class="body">(60, 0)</text>
+  <text x="410" y="650" text-anchor="middle" class="code">Length = 60 m · x ∈ [0, 60]</text>
+  <text transform="translate(75 405) rotate(-90)" text-anchor="middle" class="body">Width = 40 m · y ∈ [0, 40]</text>
+  <text x="410" y="231" text-anchor="middle" class="small">Touchline: y = width</text>
+  <text x="410" y="588" text-anchor="middle" class="small">Touchline: y = 0</text>
+  <text transform="translate(136 405) rotate(-90)" text-anchor="middle" class="small">Goal line: x = 0</text>
+  <text transform="translate(687 405) rotate(-90)" text-anchor="middle" class="small">Goal line: x = length</text>
+
+  <path d="M210 505 H510 V305" fill="none" stroke="#215ec9" stroke-width="1.5" stroke-dasharray="6 5"/>
+  <line x1="210" y1="505" x2="504" y2="309" stroke="#215ec9" stroke-width="3" marker-end="url(#move)"/>
+  <circle cx="210" cy="505" r="6" fill="#215ec9"/>
+  <circle cx="510" cy="305" r="6" fill="#215ec9"/>
+  <text x="181" y="537" class="point">A (10, 10)</text>
+  <text x="518" y="289" class="point">B (40, 30)</text>
+  <text x="345" y="529" class="body">Δx = 30 m</text>
+  <text x="526" y="403" class="body">Δy = 20 m</text>
+  <text x="250" y="450" class="point" transform="rotate(-33.69 261 388)">displacement B − A</text>
+  <path d="M405 405 H415 M410 400 V410" stroke="#183044" stroke-width="2"/>
+  <path d="M410 414 V449" fill="none" stroke="#486074" stroke-width="1"/>
+  <text x="370" y="430" class="small">Center (30, 20)</text>
+  <rect x="704" y="479" width="12" height="12" fill="#307b55"/>
+  <text x="586" y="465" class="small">E (60, 12)</text>
+  <path d="M744 399 L756 411 M756 399 L744 411" stroke="#b34238" stroke-width="3"/>
+  <text x="732" y="375" class="small">Outside</text>
+  <text x="732" y="441" class="small">(64, 20)</text>
+
+  <rect x="852" y="126" width="380" height="247" rx="12" fill="#f2f5f8"/>
+  <text x="876" y="163" class="heading">02 / Construct the rectangle</text>
+  <text x="876" y="203" class="code">Pitch(60.0, 40.0)</text>
+  <text x="876" y="241" class="body">Require, for each dimension:</text>
+  <text x="876" y="274" class="code">isfinite(value) &amp;&amp; value &gt; 0</text>
+  <text x="876" y="315" class="body">Otherwise throw</text>
+  <text x="876" y="344" class="code">std::invalid_argument</text>
+
+  <rect x="852" y="391" width="380" height="304" rx="12" fill="#f2f5f8"/>
+  <text x="876" y="428" class="heading">03 / Test a point</text>
+  <text x="876" y="465" class="code">contains({x, y})</text>
+  <text x="876" y="500" class="body">Both coordinates must be finite.</text>
+  <text x="876" y="533" class="code">0 ≤ x ≤ 60 &amp;&amp; 0 ≤ y ≤ 40</text>
+  <text x="876" y="574" class="body">A and B: true</text>
+  <text x="876" y="604" class="body">E (60, 12): true — on the edge</text>
+  <text x="876" y="634" class="body">(64, 20): false — x exceeds 60</text>
+  <text x="876" y="667" class="small">All edges and corners are included.</text>
+
+  <text x="48" y="749" class="heading">04 / Vec2 calculations using A and B above</text>
+  <rect x="48" y="771" width="380" height="208" rx="12" fill="#edf3fc"/>
+  <text x="70" y="809" class="heading">Displacement &amp; scaling</text>
+  <text x="70" y="847" class="code">B − A = (30, 20) m</text>
+  <text x="70" y="881" class="code">v = (6, 4) m/s; Δt = 5 s</text>
+  <text x="70" y="915" class="code">v × Δt = (30, 20) m</text>
+  <text x="70" y="949" class="code">A + v × Δt = B</text>
+  <rect x="450" y="771" width="380" height="208" rx="12" fill="#edf3fc"/>
+  <text x="472" y="809" class="heading">Length &amp; distance</text>
+  <text x="472" y="847" class="code">distance(A, B)</text>
+  <text x="472" y="881" class="code">= (B − A).length()</text>
+  <text x="472" y="915" class="code">= hypot(30, 20)</text>
+  <text x="472" y="949" class="code">= √(30² + 20²) ≈ 36.06 m</text>
+  <rect x="852" y="771" width="380" height="208" rx="12" fill="#edf3fc"/>
+  <text x="874" y="809" class="heading">Dot product</text>
+  <text x="874" y="847" class="code">a.dot(b) = ax·bx + ay·by</text>
+  <text x="874" y="881" class="code">d = B − A; eₓ = (1, 0)</text>
+  <text x="874" y="915" class="code">d.dot(eₓ) = 30·1 + 20·0</text>
+  <text x="874" y="949" class="code">= 30 m along the x axis</text>
+  <text x="48" y="1014" class="small">Grid: 10 m. Pitch stores only length and width; grid, center and markings above are explanatory.</text>
+  <text x="48" y="1041" class="small">Point geometry only: ball radius, out-of-play rules and movement simulation are separate concerns.</text>
+</svg>
