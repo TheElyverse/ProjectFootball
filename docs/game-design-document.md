@@ -174,6 +174,12 @@ Es gibt keine einzelne sichtbare Potential-Zahl. Entwicklung ist eine Kurve mit 
 - Mentale Reifung und taktische Entwicklung können länger anhalten als körperliche Entwicklung.
 - Leihen werden zu einer echten Entwicklungsentscheidung statt zu einem simplen Spielzeitbonus.
 
+### 6.4 Prozedurale Spielergenerierung
+
+Spieler für die Kader zum Karrierestart und spätere Nachwuchsgenerationen werden prozedural erzeugt. Jeder Spieler besitzt eine eigene Identität, ein individuelles Fähigkeitsprofil, eine Persönlichkeit und Entwicklungsmöglichkeiten. Alter sowie nationale und clubbezogene Rahmenbedingungen prägen plausible, vielfältige Profile.
+
+Dadurch bieten unterschiedliche Karrieren neue Talente und Kaderkonstellationen, die der Manager durch Scouting und Beobachtung entdecken und einschätzen muss. Generierte Spieler unterliegen demselben Beobachtungs- und Entwicklungsmodell wie alle anderen Spieler: Ihre Fähigkeiten sind nicht unmittelbar vollständig bekannt, und ihr Werdegang hängt von Training, Spielzeit, Gesundheit und Umfeld ab.
+
 ## 7. Taktiksystem
 
 Taktik wird als Hierarchie aus Team Principles, Phase Instructions und Player Responsibilities modelliert. Klassische Rollen können als Presets angeboten werden, sind aber nicht die eigentliche Datenstruktur.
@@ -412,4 +418,3 @@ Drei Teams mit identischer Spielerstärke: Possession, Counter, Pressing. Nach t
 - Wie stark dürfen Clubidentitäten driften, ohne ihre historische Glaubwürdigkeit zu verlieren?
 - Wie werden echte Lizenzen / Daten später optional integriert, ohne das Kernsystem davon abhängig zu machen?
 - Welche Teile der Match-Engine benötigen echte 3D-Physik und welche sollten deterministisch im Core bleiben?
-

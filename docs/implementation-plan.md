@@ -310,6 +310,15 @@ Interne Fähigkeiten werden kontinuierlich (z. B. 0..1) gespeichert. UI-Werte od
 
 Scouting speichert Evidence statt sofort finaler Werte. Ein Assessment aggregiert Beobachtungen und erzeugt estimate + confidence + freshness. Eigene Trainer kennen Spieler besser, aber nicht perfekt.
 
+### 8.4 Prozedurale Spielergenerierung
+
+- M0 und die frühe Match Sandbox verwenden feste Spieler-Fixtures mit stabilen IDs; prozedurale Generierung liegt außerhalb ihres Scopes.
+- P4 implementiert einen ersten Generator für Identität, Fähigkeitsprofile und latente Entwicklungsparameter auf Basis des Spielermodells. Profile berücksichtigen plausible Zusammenhänge statt ausschließlich unabhängiger Zufallswerte.
+- P5 nutzt den Generator zum Aufbau der initialen Mini-League-Kader. Wiederkehrende Nachwuchsgenerationen mit nationalen und clubbezogenen Einflüssen werden bis P9 ausgebaut.
+- Gleicher Seed, gleiche Eingaben und gleiche Generatorversion erzeugen dieselben Profile. Ein eigener RNG-Stream isoliert Generierung von der Matchsimulation.
+- Jeder erzeugte Spieler erhält eine eindeutige, persistente PlayerId. Die ID identifiziert den Spieler; sie bestimmt nicht seine Eigenschaften. Savegames speichern die erzeugten Zustände und IDs, statt sie beim Laden neu zu generieren.
+- Tests prüfen Reproduzierbarkeit, eindeutige IDs, gültige Wertebereiche und plausible Profilverteilungen.
+
 ## 9. Training, Entwicklung und Fitness
 
 ### 9.1 Training Session Contract
@@ -532,12 +541,12 @@ Statistische Tests verwenden Bandbreiten statt exakte Werte. Änderungen außerh
 | P1 – 7v7 Sandbox           | Movement, ball, perception, passing, 2D debug viewer      | P0               |
 | P2 – Tactical Sandbox      | off-ball, pitch control, pressing, 3 tactical identities  | P1               |
 | P3 – 11v11 Baseline        | shots, GK, duels, rules baseline, full matches            | P2               |
-| P4 – Player Layer          | capabilities, observation, fitness, development skeleton  | P3               |
-| P5 – Mini League           | 4 clubs, calendar, training, contracts, simple transfers  | P4               |
+| P4 – Player Layer          | capabilities, observation, fitness, development skeleton, player generator | P3               |
+| P5 – Mini League           | 4 clubs with generated squads, calendar, training, contracts, simple transfers | P4               |
 | P6 – Delegation            | staff agents, policies, action queue, shared workflows    | P5               |
 | P7 – Club AI               | squad planning, recruitment, coach adaptation             | P6               |
 | P8 – Unreal Vertical Slice | 3D presentation, core UI workflows, one polished matchday | P3–P7            |
-| P9 – Pre-Alpha World       | mehr Clubs/Ligen, simulation levels, savegame hardening   | P8               |
+| P9 – Pre-Alpha World       | mehr Clubs/Ligen, youth generation, simulation levels, savegame hardening | P8               |
 
 ### 19.1 Reihenfolge ist bewusst risk-driven
 
