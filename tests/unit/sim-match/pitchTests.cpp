@@ -18,8 +18,8 @@ TEST_CASE("Pitch preserves configurable dimensions in meters", "[pitch]") {
   REQUIRE(smallPitch.widthMeters() == 40.0);
   REQUIRE(largePitch.lengthMeters() == 105.0);
   REQUIRE(largePitch.widthMeters() == 68.0);
-  REQUIRE_FALSE(smallPitch.contains({80.0, 50.0}));
-  REQUIRE(largePitch.contains({80.0, 50.0}));
+  REQUIRE_FALSE(smallPitch.contains({.x = 80.0, .y = 50.0}));
+  REQUIRE(largePitch.contains({.x = 80.0, .y = 50.0}));
 }
 
 TEST_CASE("Pitch includes its interior, edges and corners", "[pitch]") {
@@ -68,8 +68,8 @@ TEST_CASE("Pitch excludes nonfinite positions", "[pitch]") {
   };
   for (const double value : invalidValues) {
     CAPTURE(value);
-    REQUIRE_FALSE(pitch.contains({value, 20.0}));
-    REQUIRE_FALSE(pitch.contains({30.0, value}));
+    REQUIRE_FALSE(pitch.contains({.x = value, .y = 20.0}));
+    REQUIRE_FALSE(pitch.contains({.x = 30.0, .y = value}));
   }
 }
 
@@ -82,7 +82,7 @@ TEST_CASE("Pitch supports positive finite dimension extremes", "[pitch]") {
   for (const double dimension : dimensions) {
     CAPTURE(dimension);
     const Pitch pitch(dimension, dimension);
-    REQUIRE(pitch.contains({0.0, 0.0}));
-    REQUIRE(pitch.contains({dimension, dimension}));
+    REQUIRE(pitch.contains({.x = 0.0, .y = 0.0}));
+    REQUIRE(pitch.contains({.x = dimension, .y = dimension}));
   }
 }
