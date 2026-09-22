@@ -25,6 +25,8 @@ before starting a change.
   engineering requirements (German).
 - [Match geometry](docs/match-geometry.md): pitch coordinates, units, and numeric
   contracts.
+- [Match state](docs/match-state.md): players, ball, and the rules a valid
+  state has to satisfy.
 - [Replay metadata](docs/replay-metadata.md): the file `sim-cli` writes and its
   seed encoding contract.
 
@@ -33,7 +35,7 @@ Unreal will consume simulation state for presentation. Keep simulation behavior
 in the core and rendering or input handling in adapters.
 
 `sim-core` contains shared types and utilities. `sim-match` provides configurable
-metric pitch geometry and depends on `sim-core`. New libraries follow the existing
+metric pitch geometry and the validated match state; it depends on `sim-core`. New libraries follow the existing
 CMake target pattern and expose an `ElyverseFootball::<name>` alias. Unit tests live
 under `tests/unit/`, grouped by module.
 

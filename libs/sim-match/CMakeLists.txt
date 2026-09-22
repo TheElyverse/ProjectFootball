@@ -1,5 +1,6 @@
 add_library(sim-match STATIC
         src/pitch.cpp
+        src/matchState.cpp
 )
 add_library(ElyverseFootball::sim-match ALIAS sim-match)
 
