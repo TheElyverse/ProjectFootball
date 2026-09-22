@@ -535,18 +535,18 @@ Statistische Tests verwenden Bandbreiten statt exakte Werte. Änderungen außerh
 
 ## 19. Roadmap und Meilensteine
 
-| **Meilenstein**            | **Ergebnis**                                              | **Abhängigkeit** |
-| -------------------------- | --------------------------------------------------------- | ---------------- |
-| P0 – Foundation            | Repo, CMake, CI, strong IDs, clock, RNG, events, CLI      | keine            |
-| P1 – 7v7 Sandbox           | Movement, ball, perception, passing, 2D debug viewer      | P0               |
-| P2 – Tactical Sandbox      | off-ball, pitch control, pressing, 3 tactical identities  | P1               |
-| P3 – 11v11 Baseline        | shots, GK, duels, rules baseline, full matches            | P2               |
-| P4 – Player Layer          | capabilities, observation, fitness, development skeleton, player generator | P3               |
+| **Meilenstein**            | **Ergebnis**                                                                   | **Abhängigkeit** |
+|----------------------------|--------------------------------------------------------------------------------|------------------|
+| P0 – Foundation            | Repo, CMake, CI, strong IDs, clock, RNG, events, CLI                           | keine            |
+| P1 – 7v7 Sandbox           | Movement, ball, perception, passing, 2D debug viewer                           | P0               |
+| P2 – Tactical Sandbox      | off-ball, pitch control, pressing, 3 tactical identities                       | P1               |
+| P3 – 11v11 Baseline        | shots, GK, duels, rules baseline, full matches                                 | P2               |
+| P4 – Player Layer          | capabilities, observation, fitness, development skeleton, player generator     | P3               |
 | P5 – Mini League           | 4 clubs with generated squads, calendar, training, contracts, simple transfers | P4               |
-| P6 – Delegation            | staff agents, policies, action queue, shared workflows    | P5               |
-| P7 – Club AI               | squad planning, recruitment, coach adaptation             | P6               |
-| P8 – Unreal Vertical Slice | 3D presentation, core UI workflows, one polished matchday | P3–P7            |
-| P9 – Pre-Alpha World       | mehr Clubs/Ligen, youth generation, simulation levels, savegame hardening | P8               |
+| P6 – Delegation            | staff agents, policies, action queue, shared workflows                         | P5               |
+| P7 – Club AI               | squad planning, recruitment, coach adaptation                                  | P6               |
+| P8 – Unreal Vertical Slice | 3D presentation, core UI workflows, one polished matchday                      | P3–P7            |
+| P9 – Pre-Alpha World       | mehr Clubs/Ligen, youth generation, simulation levels, savegame hardening      | P8               |
 
 ### 19.1 Reihenfolge ist bewusst risk-driven
 

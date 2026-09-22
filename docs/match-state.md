@@ -10,12 +10,12 @@ separate concerns.
 
 ## What a state holds
 
-| Type | Contents |
-| --- | --- |
-| `MatchState` | the `Pitch`, the players in order, the `BallState`, and the squad size per side |
-| `PlayerMatchState` | `playerId`, `side`, `position`, `velocity` |
-| `BallState` | `position`, `velocity` |
-| `TeamSide` | `kHome` or `kAway` |
+| Type               | Contents                                                                        |
+|--------------------|---------------------------------------------------------------------------------|
+| `MatchState`       | the `Pitch`, the players in order, the `BallState`, and the squad size per side |
+| `PlayerMatchState` | `playerId`, `side`, `position`, `velocity`                                      |
+| `BallState`        | `position`, `velocity`                                                          |
+| `TeamSide`         | `kHome` or `kAway`                                                              |
 
 Positions are meters in pitch coordinates, velocities are meters per second, in
 the plane described by [match geometry](match-geometry.md). The pitch
@@ -39,18 +39,18 @@ so every instance that exists has passed every rule below. It returns
 `std::expected<MatchState, std::vector<MatchStateError>>`: on success the
 state, on failure every rule the spec breaks, not just the first one.
 
-| Rule | Error code |
-| --- | --- |
-| `playersPerSide` is at least 1 | `kInvalidPlayersPerSide` |
+| Rule                                              | Error code                 |
+|---------------------------------------------------|----------------------------|
+| `playersPerSide` is at least 1                    | `kInvalidPlayersPerSide`   |
 | each side fields exactly `playersPerSide` players | `kWrongPlayerCountPerSide` |
-| every player has a valid id | `kInvalidPlayerId` |
-| player ids are unique | `kDuplicatePlayerId` |
-| player positions are finite | `kNonFinitePlayerPosition` |
-| player positions are on the pitch | `kPlayerOutsidePitch` |
-| player velocities are finite | `kNonFinitePlayerVelocity` |
-| the ball position is finite | `kNonFiniteBallPosition` |
-| the ball is on the pitch | `kBallOutsidePitch` |
-| the ball velocity is finite | `kNonFiniteBallVelocity` |
+| every player has a valid id                       | `kInvalidPlayerId`         |
+| player ids are unique                             | `kDuplicatePlayerId`       |
+| player positions are finite                       | `kNonFinitePlayerPosition` |
+| player positions are on the pitch                 | `kPlayerOutsidePitch`      |
+| player velocities are finite                      | `kNonFinitePlayerVelocity` |
+| the ball position is finite                       | `kNonFiniteBallPosition`   |
+| the ball is on the pitch                          | `kBallOutsidePitch`        |
+| the ball velocity is finite                       | `kNonFiniteBallVelocity`   |
 
 Errors arrive in a fixed order — squad size, then players by index, then the
 ball — so a rejection reads the same way on every run and on every platform.
@@ -83,16 +83,16 @@ section 5.3).
 Home defends `x = 0` and attacks `+x`. Positions are fractions of the pitch
 dimensions rather than fixed meters, so the fixture fits any valid pitch:
 
-| Id | Side | Role | x | y |
-| --- | --- | --- | --- | --- |
-| 1 | home | goalkeeper | 0.05 · length | 0.50 · width |
-| 2 | home | left back | 0.22 · length | 0.22 · width |
-| 3 | home | right back | 0.22 · length | 0.78 · width |
-| 4 | home | center midfield | 0.35 · length | 0.50 · width |
-| 5 | home | left midfield | 0.42 · length | 0.25 · width |
-| 6 | home | right midfield | 0.42 · length | 0.75 · width |
-| 7 | home | forward | 0.47 · length | 0.50 · width |
-| 8–14 | away | mirror of 1–7 | length − x | unchanged |
+| Id   | Side | Role            | x             | y            |
+|------|------|-----------------|---------------|--------------|
+| 1    | home | goalkeeper      | 0.05 · length | 0.50 · width |
+| 2    | home | left back       | 0.22 · length | 0.22 · width |
+| 3    | home | right back      | 0.22 · length | 0.78 · width |
+| 4    | home | center midfield | 0.35 · length | 0.50 · width |
+| 5    | home | left midfield   | 0.42 · length | 0.25 · width |
+| 6    | home | right midfield  | 0.42 · length | 0.75 · width |
+| 7    | home | forward         | 0.47 · length | 0.50 · width |
+| 8–14 | away | mirror of 1–7   | length − x    | unchanged    |
 
 Away is home's mirror image through the halfway line, so each side starts in
 its own half. The ball rests on the center spot and every velocity is zero.

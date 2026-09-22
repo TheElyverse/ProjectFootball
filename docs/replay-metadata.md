@@ -22,13 +22,13 @@ this file will grow into.
 }
 ```
 
-| Field | JSON type | Meaning |
-| --- | --- | --- |
-| `schemaVersion` | number | Version of this schema. Currently `1`. |
-| `coreVersion` | string | The `sim-core` version that produced the file. |
-| `createdAt` | string | Creation time in UTC, formatted `%Y-%m-%dT%H:%M:%SZ`. |
-| `seed` | string | Unsigned 64-bit master seed, in decimal. |
-| `gameTime` | number | Simulation tick at the time of writing. |
+| Field           | JSON type | Meaning                                               |
+|-----------------|-----------|-------------------------------------------------------|
+| `schemaVersion` | number    | Version of this schema. Currently `1`.                |
+| `coreVersion`   | string    | The `sim-core` version that produced the file.        |
+| `createdAt`     | string    | Creation time in UTC, formatted `%Y-%m-%dT%H:%M:%SZ`. |
+| `seed`          | string    | Unsigned 64-bit master seed, in decimal.              |
+| `gameTime`      | number    | Simulation tick at the time of writing.               |
 
 ## The seed is a string on purpose
 
@@ -78,6 +78,6 @@ behavior -- a different random mapping, a different update order -- invalidates
 recorded replays without changing the file format, and surfaces as a new
 `coreVersion` value rather than a new `schemaVersion`.
 
-| Version | Change |
-| --- | --- |
-| 1 | Initial schema. |
+| Version | Change          |
+|---------|-----------------|
+| 1       | Initial schema. |

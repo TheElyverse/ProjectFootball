@@ -115,6 +115,22 @@ Auto-format:
 find libs apps tests -name '*.hpp' -o -name '*.cpp' | xargs clang-format -i
 ```
 
+## Commit messages
+
+A commit message is a short imperative subject, an optional body explaining why, and the
+issue number as its only trailer:
+
+```
+Add validated match state
+
+Introduce MatchState with two teams, their players and one ball.
+
+#3
+```
+
+Never add attribution trailers such as `Co-Authored-By:` or `Claude-Session:`, in commit
+messages or in pull request descriptions.
+
 ## Language note
 
 Design/planning docs are written primarily in German with English technical terms. Match that convention
