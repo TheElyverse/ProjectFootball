@@ -1,5 +1,7 @@
 #pragma once
 
+#include <stdexcept>
+
 #include "vec2.hpp"
 
 namespace ElyverseFootball::SimMatch {
