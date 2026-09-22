@@ -86,3 +86,11 @@ TEST_CASE("Pitch supports positive finite dimension extremes", "[pitch]") {
     REQUIRE(pitch.contains({.x = dimension, .y = dimension}));
   }
 }
+
+TEST_CASE("Pitch compares both dimensions exactly", "[pitch]") {
+  const Pitch pitch(60.0, 40.0);
+
+  REQUIRE(pitch == Pitch(60.0, 40.0));
+  REQUIRE_FALSE(pitch == Pitch(40.0, 60.0));
+  REQUIRE_FALSE(pitch == Pitch(std::nextafter(60.0, 61.0), 40.0));
+}

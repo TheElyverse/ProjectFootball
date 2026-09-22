@@ -22,6 +22,10 @@ class Pitch {
   // Tests a point only; ball radius and out-of-play rules belong elsewhere.
   [[nodiscard]] bool contains(SimCore::Vec2 position) const noexcept;
 
+  // Compares both dimensions exactly, like Vec2 does. Two pitches built from
+  // the same numbers are the same pitch; nothing here applies a tolerance.
+  friend bool operator==(const Pitch&, const Pitch&) = default;
+
  private:
   double lengthMeters_;
   double widthMeters_;
