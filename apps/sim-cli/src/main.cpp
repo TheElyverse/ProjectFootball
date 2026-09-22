@@ -141,6 +141,9 @@ int main(int argc, char** argv) {
     return EXIT_FAILURE;
   }
 
+  // seed is quoted deliberately: a JSON number may be decoded as a double and
+  // rounded above 2^53, which would silently change the simulation. See
+  // docs/replay-metadata.md.
   out << "{\n"
       << "  \"schemaVersion\": 1,\n"
       << R"(  "coreVersion": ")" << ElyverseFootball::SimCore::coreVersion() << "\",\n"

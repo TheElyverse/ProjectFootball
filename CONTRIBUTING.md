@@ -4,6 +4,19 @@ This is the developer entry point for building, testing, and extending the proje
 The game is in early development; check the relevant issue and planning documents
 before starting a change.
 
+## Contents
+
+- [Design and architecture](#design-and-architecture)
+- [Build and test](#build-and-test)
+- [Run the CLI](#run-the-cli)
+- [Check a change](#check-a-change)
+- [Coding style](#coding-style)
+  - [Language](#language)
+  - [Naming](#naming)
+  - [Aggregate initialization](#aggregate-initialization)
+  - [Tests](#tests)
+  - [Determinism](#determinism)
+
 ## Design and architecture
 
 - [Game design document](docs/game-design-document.md): game mechanics and product
@@ -12,6 +25,8 @@ before starting a change.
   engineering requirements (German).
 - [Match geometry](docs/match-geometry.md): pitch coordinates, units, and numeric
   contracts.
+- [Replay metadata](docs/replay-metadata.md): the file `sim-cli` writes and its
+  seed encoding contract.
 
 The simulation uses standard C++23 and runs independently of Unreal Engine.
 Unreal will consume simulation state for presentation. Keep simulation behavior
@@ -66,17 +81,11 @@ arguments.
 The CLI currently starts an empty simulation and writes replay metadata. It does
 not yet run a match. The terminal screen displays the core version, seed, game
 time, and metadata path. Press Enter on Close, `q`, or Escape to exit. Metadata is
-written before the screen opens.
+written before the screen opens; [replay metadata](docs/replay-metadata.md)
+describes the file's schema.
 
 Omit `--tui` for one-shot execution suitable for scripts and redirected output.
 `--tui` requires both stdin and stdout to be terminals.
-
-### Replay metadata
-
-Schema version 1 stores `seed` as an unsigned decimal JSON string, for example
-`"18446744073709551615"` for `UINT64_MAX`. Consumers must preserve the string or
-parse it as an unsigned 64-bit integer, without conversion through floating point.
-The current file contains metadata only, not a complete replayable match state.
 
 ## Check a change
 
@@ -100,7 +109,48 @@ cmake --build --preset sanitize
 ctest --preset sanitize
 ```
 
-Follow the existing naming and formatting rules in `.clang-format` and
-`.clang-tidy`. Write code and comments in English. Add focused tests for new
-behavior, invalid inputs, and relevant boundary cases. Keep randomness explicit
-and seeded, and preserve deterministic update ordering as simulation systems grow.
+## Coding style
+
+`.clang-format` and `.clang-tidy` hold the mechanical rules: `make format`
+applies the formatting, `make lint` reports the rest. The sections below record
+the conventions behind those files, including the ones no tool can check.
+
+### Language
+
+Write code and comments in English, also in modules whose design documents are
+German.
+
+### Naming
+
+Types, namespaces, and template parameters are PascalCase. Functions, methods,
+variables, parameters, and public data members are camelCase. Enum values and
+static class constants are kPascalCase. Private and protected data members are
+camelCase with a trailing underscore. `readability-identifier-naming` is treated
+as an error, so a violation fails `make lint` and CI.
+
+### Aggregate initialization
+
+Use designated initializers rather than positional ones:
+
+```cpp
+Vec2{.x = 3.0, .y = -4.0}  // yes
+Vec2{3.0, -4.0}            // no
+```
+
+Naming each member at the point of use survives field reordering, and it makes a
+swapped pair of same-typed values visible where a human writes it. This applies
+to test data as much as to library code.
+
+`modernize-use-designated-initializers` enforces the rule and is treated as an
+error. It exempts `std::array` and single-member aggregates, and it skips macro
+expansions, so an initializer inside an assertion macro is not covered by the
+tool and needs review instead.
+
+### Tests
+
+Add focused tests for new behavior, invalid inputs, and relevant boundary cases.
+
+### Determinism
+
+Keep randomness explicit and seeded, and preserve deterministic update ordering
+as simulation systems grow.

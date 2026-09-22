@@ -9,7 +9,7 @@ Checks: >
   -readability-magic-numbers,
   -cppcoreguidelines-avoid-magic-numbers,
   -cppcoreguidelines-non-private-member-variables-in-classes
-WarningsAsErrors: 'readability-identifier-naming'
+WarningsAsErrors: 'readability-identifier-naming,modernize-use-designated-initializers'
 HeaderFilterRegex: '(libs|apps)/.*'
 CheckOptions:
   # Types: PascalCase.

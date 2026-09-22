@@ -16,6 +16,12 @@ struct Vec2 {
 
   [[nodiscard]] double length() const noexcept { return std::hypot(x, y); }
 
+  // Squared magnitude, in the square of the component unit (m² for a position
+  // in meters). Prefer this over length() when comparing magnitudes: it avoids
+  // a square root and is exact for values whose squares stay finite. Compare
+  // against a squared threshold, never against a length.
+  [[nodiscard]] constexpr double lengthSquared() const noexcept { return (x * x) + (y * y); }
+
   [[nodiscard]] constexpr double dot(const Vec2 other) const noexcept {
     return (x * other.x) + (y * other.y);
   }
@@ -40,7 +46,8 @@ struct Vec2 {
 };
 
 [[nodiscard]] inline double distance(const Vec2 start, const Vec2 end) noexcept {
-  return (end - start).length();
+  const auto vector = end - start;
+  return vector.length();
 }
 
 }  // namespace ElyverseFootball::SimCore

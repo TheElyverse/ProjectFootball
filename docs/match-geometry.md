@@ -43,16 +43,24 @@ are not part of this geometry API.
 ## Vector operations
 
 `Vec2` stores two doubles by value and defaults to zero. It supports addition,
-subtraction, scalar multiplication, dot product, length, distance, and explicit
-finite-value checks. It has no owning pointers, dynamic allocation, or indexed
-component access. Units follow the context: a position uses meters, a velocity
-uses meters per second, and velocity multiplied by seconds yields displacement.
+subtraction, scalar multiplication, dot product, length, squared length,
+distance, and explicit finite-value checks. It has no owning pointers, dynamic
+allocation, or indexed component access. Units follow the context: a position
+uses meters, a velocity uses meters per second, and velocity multiplied by
+seconds yields displacement.
 
 Equality compares components exactly. Geometric tolerance checks should use an
 explicit, context-specific tolerance. Arithmetic follows floating-point rules
 and may produce non-finite results for extreme inputs; `isFinite()` allows those
 results to be detected. Length uses `std::hypot` to avoid unnecessary intermediate
 overflow or underflow when squaring components.
+
+`lengthSquared()` returns the squared magnitude without the square root. Its unit
+is the square of the component unit: meters squared for a position in meters.
+Compare it against a squared threshold, never against a length. It orders
+magnitudes exactly as `length()` does, and is exact where `length()` rounds, which
+suits proximity and radius comparisons. Unlike `length()`, it squares the
+components directly, so extreme inputs can overflow to infinity.
 
 These primitives introduce no randomness. They do not promise bitwise-identical
 floating-point results across different compilers or platforms.

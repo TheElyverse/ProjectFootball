@@ -1,6 +1,7 @@
 #include <array>
 #include <catch2/catch_approx.hpp>
 #include <catch2/catch_test_macros.hpp>
+#include <cmath>
 #include <limits>
 
 #include "vec2.hpp"
@@ -44,14 +45,6 @@ TEST_CASE("Vec2 computes Euclidean distances", "[vec2]") {
   REQUIRE(distance(first, first) == 0.0);
 }
 
-TEST_CASE("Vec2 length avoids overflow and underflow from squaring components", "[vec2]") {
-  constexpr Vec2 large{.x = 3.0e200, .y = 4.0e200};
-  constexpr Vec2 small{.x = 3.0e-200, .y = 4.0e-200};
-
-  REQUIRE(large.length() / 1.0e200 == Catch::Approx(5.0));
-  REQUIRE(small.length() / 1.0e-200 == Catch::Approx(5.0));
-}
-
 TEST_CASE("Vec2 identifies nonfinite components", "[vec2]") {
   REQUIRE(Vec2{}.isFinite());
   REQUIRE(Vec2{.x = std::numeric_limits<double>::max(), .y = std::numeric_limits<double>::lowest()}
@@ -67,4 +60,30 @@ TEST_CASE("Vec2 identifies nonfinite components", "[vec2]") {
     REQUIRE_FALSE(Vec2{.x = value, .y = 0.0}.isFinite());
     REQUIRE_FALSE(Vec2{.x = 0.0, .y = value}.isFinite());
   }
+}
+
+TEST_CASE("Vec2 computes squared length", "[vec2]") {
+  constexpr Vec2 position{.x = 3.0, .y = -4.0};
+
+  STATIC_REQUIRE(position.lengthSquared() == 25.0);
+  REQUIRE(Vec2{}.lengthSquared() == 0.0);
+  REQUIRE(Vec2{.x = 0.0, .y = -7.0}.lengthSquared() == 49.0);
+  REQUIRE(position.lengthSquared() == position.dot(position));
+  REQUIRE((-1.0 * position).lengthSquared() == position.lengthSquared());
+
+  // Exact where length() rounds: the square is representable, the root is not.
+  REQUIRE(Vec2{.x = 1.0, .y = 1.0}.lengthSquared() == 2.0);
+}
+
+TEST_CASE("Vec2 length survives extreme components, squared length does not", "[vec2]") {
+  constexpr Vec2 large{.x = 3.0e200, .y = 4.0e200};
+  constexpr Vec2 small{.x = 3.0e-200, .y = 4.0e-200};
+
+  // length() uses std::hypot and never forms the intermediate square.
+  REQUIRE(large.length() / 1.0e200 == Catch::Approx(5.0));
+  REQUIRE(small.length() / 1.0e-200 == Catch::Approx(5.0));
+
+  // lengthSquared() squares directly: the documented trade for exactness.
+  REQUIRE(std::isinf(large.lengthSquared()));
+  REQUIRE(small.lengthSquared() == 0.0);
 }
