@@ -2,7 +2,7 @@
 
 `MatchState` is the smallest complete picture of a match the simulation works
 on: a pitch, two teams of players, and one ball. It lives in `sim-match`
-(`matchState.hpp`) and depends only on `sim-core`.
+(`matchState.hpp`, `kickoffScenario.hpp`) and depends only on `sim-core`.
 
 Nothing in this document advances time. The state is what the fixed-timestep
 loop reads and writes; the loop itself, player movement, and ball physics are
@@ -71,6 +71,41 @@ follows from the two side counts. `playersPerSide` defaults to
 `kDefaultPlayersPerSide` (7), the M0 iteration stage; 11 players a side is a
 valid spec today, so growing past seven-a-side is a different argument, not a
 different type.
+
+## The seven-a-side kickoff fixture
+
+`makeSevenASideKickoff(pitch)` builds the fixed starting scenario. It is a pure
+function of the pitch: no seed, no random number generator, no clock. The same
+pitch always produces the same state, which is what makes it usable as the
+`InitialSnapshot` of a replay ([implementation plan](implementation-plan.md)
+section 5.3).
+
+Home defends `x = 0` and attacks `+x`. Positions are fractions of the pitch
+dimensions rather than fixed meters, so the fixture fits any valid pitch:
+
+| Id | Side | Role | x | y |
+| --- | --- | --- | --- | --- |
+| 1 | home | goalkeeper | 0.05 · length | 0.50 · width |
+| 2 | home | left back | 0.22 · length | 0.22 · width |
+| 3 | home | right back | 0.22 · length | 0.78 · width |
+| 4 | home | center midfield | 0.35 · length | 0.50 · width |
+| 5 | home | left midfield | 0.42 · length | 0.25 · width |
+| 6 | home | right midfield | 0.42 · length | 0.75 · width |
+| 7 | home | forward | 0.47 · length | 0.50 · width |
+| 8–14 | away | mirror of 1–7 | length − x | unchanged |
+
+Away is home's mirror image through the halfway line, so each side starts in
+its own half. The ball rests on the center spot and every velocity is zero.
+Role names describe the layout; they are not a field of the state, because
+responsibilities belong to the tactics module.
+
+Every fraction lies strictly between zero and one, so the fixture cannot fall
+outside the pitch it was built for. It still goes through
+`MatchState::create()`, so there is exactly one validated way to build a state.
+
+The unit tests pin the resulting coordinates. Changing a fraction changes the
+fixture, and a changed fixture invalidates every replay recorded against it —
+treat the table above as a contract, not a default.
 
 ## What this is not
 

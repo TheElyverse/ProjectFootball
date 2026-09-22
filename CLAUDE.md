@@ -6,8 +6,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 This repository is in **early bootstrap stage**. The P0 Foundation milestone (repo, CMake, CI, strong
 IDs, sim clock, deterministic RNG, a minimal event bus, and a CLI) exists under `libs/sim-core` and
-`apps/sim-cli`, and `libs/sim-match` has started with pitch geometry and the validated match state;
-almost everything described in the design/implementation docs below is still unbuilt.
+`apps/sim-cli`, and `libs/sim-match` has started with pitch geometry, the validated match state, and
+the seven-a-side kickoff fixture; almost everything described in the design/implementation docs below
+is still unbuilt.
 When implementing a new system, check whether it belongs in an existing module (see layout below) before
 adding a new one.
 
