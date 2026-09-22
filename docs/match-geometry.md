@@ -35,6 +35,9 @@ and reject a point beyond it, without applying ball radius or football rules.
 dimensions, not a mandated 7v7 size. Both dimensions must be positive and finite;
 invalid dimensions throw `std::invalid_argument`.
 
+Two `Pitch` values compare equal when both dimensions match exactly; like `Vec2`,
+the comparison applies no tolerance.
+
 `Pitch::contains()` includes the edges and corners, without an implicit epsilon.
 It returns false for positions containing NaN or infinity. It tests a point,
 not the full ball: out-of-play rules, ball radius, and player movement constraints
