@@ -85,3 +85,47 @@ TEST_CASE("SimClock elapsedSeconds tracks ticks * secondsPerTick", "[simTime]") 
 
   REQUIRE(clock.elapsedSeconds() == Catch::Approx(1.5));
 }
+
+static_assert([] {
+  SimClock clock = SimClock::withTicksPerSecond(4);
+  clock.advance();
+  return clock.elapsedSeconds() == 0.25;
+}());
+
+TEST_CASE("A 30 Hz clock reaches ten seconds after 300 ticks", "[simTime]") {
+  SimClock clock = SimClock::withTicksPerSecond(30);
+  REQUIRE(clock.ticksPerSecond() == 30);
+  REQUIRE(clock.secondsPerTick() == 1.0 / 30.0);
+
+  for (int step = 0; step < 300; ++step) {
+    clock.advance();
+  }
+
+  REQUIRE(clock.tick().value() == 300);
+  REQUIRE(clock.elapsedSeconds() == 10.0);
+}
+
+TEST_CASE("A rate-based clock divides instead of multiplying", "[simTime]") {
+  // 23 * (1.0 / 30.0) is one ulp away from 23.0 / 30.0; the clock must give
+  // the correctly rounded quotient for every tick count, not only for 300.
+  REQUIRE(23.0 * (1.0 / 30.0) != 23.0 / 30.0);
+
+  SimClock clock = SimClock::withTicksPerSecond(30);
+  for (int tick = 1; tick <= 30 * 60 * 10; ++tick) {
+    clock.advance();
+    CAPTURE(tick);
+    REQUIRE(clock.elapsedSeconds() == static_cast<double>(tick) / 30.0);
+  }
+}
+
+TEST_CASE("SimClock rejects a nonpositive tick rate", "[simTime]") {
+  constexpr std::array invalidRates{0, -1, std::numeric_limits<int>::min()};
+  for (const int rate : invalidRates) {
+    CAPTURE(rate);
+    REQUIRE_THROWS_AS(SimClock::withTicksPerSecond(rate), std::invalid_argument);
+  }
+}
+
+TEST_CASE("A duration-based clock reports no tick rate", "[simTime]") {
+  REQUIRE(SimClock(60.0).ticksPerSecond() == 0);
+}
