@@ -34,23 +34,43 @@ has to stay fixed for a replay to reproduce.
 
 ## Construction is validation
 
-`MatchState::create(MatchStateSpec)` is the only way to obtain a `MatchState`,
-so every instance that exists has passed every rule below. It returns
-`std::expected<MatchState, std::vector<MatchStateError>>`: on success the
-state, on failure every rule the spec breaks, not just the first one.
+`MatchState::create(MatchStateSpec)` is the only way to obtain a `MatchState`
+from outside the simulation, so every instance that exists has passed every rule
+below. It returns `std::expected<MatchState, std::vector<MatchStateError>>`: on
+success the state, on failure every rule the spec breaks, not just the first
+one.
 
 | Rule                                              | Error code                 |
 |---------------------------------------------------|----------------------------|
 | `playersPerSide` is at least 1                    | `kInvalidPlayersPerSide`   |
 | each side fields exactly `playersPerSide` players | `kWrongPlayerCountPerSide` |
+| every player's side is home or away               | `kInvalidTeamSide`         |
 | every player has a valid id                       | `kInvalidPlayerId`         |
 | player ids are unique                             | `kDuplicatePlayerId`       |
 | player positions are finite                       | `kNonFinitePlayerPosition` |
-| player positions are on the pitch                 | `kPlayerOutsidePitch`      |
 | player velocities are finite                      | `kNonFinitePlayerVelocity` |
 | the ball position is finite                       | `kNonFiniteBallPosition`   |
-| the ball is on the pitch                          | `kBallOutsidePitch`        |
 | the ball velocity is finite                       | `kNonFiniteBallVelocity`   |
+
+These rules hold for every state of a match, from kickoff to the final whistle.
+Being on the pitch is deliberately not one of them: a ball that crossed the
+touchline or a player standing behind the goal line is football, not a broken
+state. Deciding what such a position means — a throw-in, a goal kick, a goal —
+belongs to the rules system, not to validation.
+
+## Starting positions
+
+A state a match starts from, such as the kickoff fixture below, must also have
+everyone on the pitch. `checkStartingPositions(const MatchState&)` checks that
+and returns one error per offender, players by index and then the ball, or an
+empty list:
+
+| Rule                              | Error code            |
+|-----------------------------------|-----------------------|
+| player positions are on the pitch | `kPlayerOutsidePitch` |
+| the ball is on the pitch          | `kBallOutsidePitch`   |
+
+## Error messages
 
 Errors arrive in a fixed order — squad size, then players by index, then the
 ball — so a rejection reads the same way on every run and on every platform.
@@ -70,9 +90,9 @@ not with a fixed precision. The boundary is inclusive, so a player at exactly
 fixed two-decimal format would have printed it as a point on the line. The
 output is locale-independent, so messages match on every platform.
 
-One defect produces one error. A non-finite position is reported as such and
-not additionally as off-pitch, and an invalid id is not also counted as a
-duplicate of the next invalid one.
+One defect produces one error. An invalid id is not also counted as a
+duplicate of the next invalid one, and a player with an undeclared side does
+not also break the squad-size rule when assigning it a side could satisfy it.
 
 Squad size is checked per side rather than as a total, because the total
 follows from the two side counts. `playersPerSide` defaults to
@@ -109,7 +129,9 @@ responsibilities belong to the tactics module.
 
 Every fraction lies strictly between zero and one, so the fixture cannot fall
 outside the pitch it was built for. It still goes through
-`MatchState::create()`, so there is exactly one validated way to build a state.
+`MatchState::create()` and `checkStartingPositions()`, so there is exactly one
+validated way to build a state and the fixture is held to the same rules as any
+other starting state.
 
 The unit tests pin the resulting coordinates. Changing a fraction changes the
 fixture, and a changed fixture invalidates every replay recorded against it —
@@ -120,4 +142,5 @@ treat the table above as a contract, not a default.
 There is no clock, no movement, no ball physics, no possession, and no rules
 here: no offside, no out of play, no fouls. `Pitch::contains()` decides whether
 a position is on the rectangle, nothing more. A player standing on the goal
-line is a valid state, not a goal.
+line is a valid state, and so is a ball behind it; whether that ball is a goal
+is for the rules to decide.

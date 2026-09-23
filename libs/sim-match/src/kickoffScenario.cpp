@@ -84,12 +84,19 @@ std::expected<MatchState, std::vector<MatchStateError>> makeSevenASideKickoff(co
       .velocity = {},
   };
 
-  return MatchState::create({
+  auto state = MatchState::create({
       .pitch = pitch,
       .players = std::move(players),
       .ball = ball,
       .playersPerSide = kDefaultPlayersPerSide,
   });
+  if (!state) {
+    return state;
+  }
+  if (std::vector<MatchStateError> errors = checkStartingPositions(*state); !errors.empty()) {
+    return std::unexpected(std::move(errors));
+  }
+  return state;
 }
 
 }  // namespace ElyverseFootball::SimMatch

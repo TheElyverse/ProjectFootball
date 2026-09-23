@@ -91,18 +91,25 @@ struct MatchStateSpec {
   int playersPerSide = kDefaultPlayersPerSide;
 };
 
-// A validated initial or current match state: two teams, their players, and one
-// ball on a pitch. Nothing here advances time -- the fixed-timestep loop owns
-// that.
+// A validated match state: two teams, their players, and one ball on a pitch.
+// Nothing here advances time -- MatchSimulation owns that.
+//
+// The invariants hold for every state, from kickoff to the final whistle:
+// both squads have the stated size, every player has a unique valid id and a
+// declared side, and every position and velocity is finite. Being on the
+// pitch is deliberately not one of them: a ball that crossed the touchline or
+// a player standing behind the goal line is football, not a broken state.
+// checkStartingPositions() holds that rule for states a match starts from.
 //
 // Player order is part of the state. Two states holding the same players in a
 // different order are not equal, because update order has to stay fixed for
 // replays to reproduce.
 class MatchState {
  public:
-  // The only way to obtain a MatchState, so every instance that exists is
-  // valid. Reports every rule the spec breaks, not just the first one, in a
-  // fixed order: squad size, then players by index, then the ball.
+  // The only way to obtain a MatchState from outside the simulation, so every
+  // instance that exists is valid. Reports every rule the spec breaks, not just
+  // the first one, in a fixed order: squad size, then players by index, then
+  // the ball.
   [[nodiscard]] static std::expected<MatchState, std::vector<MatchStateError>> create(
       MatchStateSpec spec);
 
@@ -121,5 +128,11 @@ class MatchState {
   BallState ball_;
   int playersPerSide_;
 };
+
+// The extra rule for a state a match starts from, such as a kickoff fixture:
+// every player and the ball stand on the pitch, edges included. Returns one
+// error per offender, players by index first and then the ball, and nothing
+// for a state that complies.
+[[nodiscard]] std::vector<MatchStateError> checkStartingPositions(const MatchState& state);
 
 }  // namespace ElyverseFootball::SimMatch

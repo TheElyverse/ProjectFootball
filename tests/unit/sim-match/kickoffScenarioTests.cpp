@@ -8,6 +8,7 @@
 
 using ElyverseFootball::SimCore::PlayerId;
 using ElyverseFootball::SimCore::Vec2;
+using ElyverseFootball::SimMatch::checkStartingPositions;
 using ElyverseFootball::SimMatch::kDefaultPlayersPerSide;
 using ElyverseFootball::SimMatch::makeSevenASideKickoff;
 using ElyverseFootball::SimMatch::MatchState;
@@ -115,6 +116,7 @@ TEST_CASE("The kickoff fixture fits any valid pitch", "[kickoff]") {
   for (const Pitch& pitch : pitches) {
     CAPTURE(pitch.lengthMeters(), pitch.widthMeters());
     const MatchState state = kickoffOn(pitch);
+    REQUIRE(checkStartingPositions(state).empty());
     for (const PlayerMatchState& player : state.players()) {
       CAPTURE(player.position.x, player.position.y);
       REQUIRE(pitch.contains(player.position));

@@ -115,16 +115,9 @@ void validatePlayers(const MatchStateSpec& spec, std::vector<MatchStateError>& e
       }
     }
 
-    // contains() already rejects non-finite positions, so the two position
-    // checks are exclusive -- one defect, one error.
     if (!player.position.isFinite()) {
       errors.push_back({.code = MatchStateErrorCode::kNonFinitePlayerPosition,
                         .message = describePlayer(index, player) + " has a non-finite position: " +
-                                   formatPosition(player.position)});
-    } else if (!spec.pitch.contains(player.position)) {
-      errors.push_back({.code = MatchStateErrorCode::kPlayerOutsidePitch,
-                        .message = describePlayer(index, player) + " is outside the " +
-                                   describePitch(spec.pitch) + " at " +
                                    formatPosition(player.position)});
     }
 
@@ -143,10 +136,6 @@ void validateBall(const MatchStateSpec& spec, std::vector<MatchStateError>& erro
     errors.push_back(
         {.code = MatchStateErrorCode::kNonFiniteBallPosition,
          .message = "the ball has a non-finite position: " + formatPosition(spec.ball.position)});
-  } else if (!spec.pitch.contains(spec.ball.position)) {
-    errors.push_back({.code = MatchStateErrorCode::kBallOutsidePitch,
-                      .message = "the ball is outside the " + describePitch(spec.pitch) + " at " +
-                                 formatPosition(spec.ball.position)});
   }
 
   if (!spec.ball.velocity.isFinite()) {
@@ -188,6 +177,30 @@ std::expected<MatchState, std::vector<MatchStateError>> MatchState::create(Match
     return std::unexpected(std::move(errors));
   }
   return MatchState(std::move(spec));
+}
+
+// Every position in a MatchState is finite, so contains() fails here only for
+// a point off the pitch -- the message never has to tell the two apart.
+std::vector<MatchStateError> checkStartingPositions(const MatchState& state) {
+  std::vector<MatchStateError> errors;
+  const Pitch& pitch = state.pitch();
+
+  for (std::size_t index = 0; const PlayerMatchState& player : state.players()) {
+    if (!pitch.contains(player.position)) {
+      errors.push_back({.code = MatchStateErrorCode::kPlayerOutsidePitch,
+                        .message = describePlayer(index, player) + " is outside the " +
+                                   describePitch(pitch) + " at " +
+                                   formatPosition(player.position)});
+    }
+    ++index;
+  }
+
+  if (!pitch.contains(state.ball().position)) {
+    errors.push_back({.code = MatchStateErrorCode::kBallOutsidePitch,
+                      .message = "the ball is outside the " + describePitch(pitch) + " at " +
+                                 formatPosition(state.ball().position)});
+  }
+  return errors;
 }
 
 }  // namespace ElyverseFootball::SimMatch
