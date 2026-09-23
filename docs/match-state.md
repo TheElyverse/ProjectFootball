@@ -54,7 +54,9 @@ state, on failure every rule the spec breaks, not just the first one.
 
 Errors arrive in a fixed order — squad size, then players by index, then the
 ball — so a rejection reads the same way on every run and on every platform.
-Each error carries a message naming the offending index, id, and value:
+Each error carries a message naming the details its rule needs: the side
+counts for a squad-size error, the player's index, id, and side plus the
+offending value for a player error, and the offending value for a ball error:
 
 ```text
 home has 7 players and away has 6, expected 7 per side
