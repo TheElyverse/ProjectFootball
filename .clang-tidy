@@ -9,9 +9,13 @@ Checks: >
   -readability-magic-numbers,
   -cppcoreguidelines-avoid-magic-numbers,
   -cppcoreguidelines-non-private-member-variables-in-classes
-WarningsAsErrors: 'readability-identifier-naming,modernize-use-designated-initializers'
+WarningsAsErrors: '*'
 HeaderFilterRegex: '(libs|apps)/.*'
 CheckOptions:
+  # Catch2's TEST_CASE/REQUIRE macros expand to nested do/if/try blocks; don't
+  # count those towards a function's cognitive complexity.
+  - key: readability-function-cognitive-complexity.IgnoreMacros
+    value: true
   # Types: PascalCase.
   - key: readability-identifier-naming.NamespaceCase
     value: CamelCase

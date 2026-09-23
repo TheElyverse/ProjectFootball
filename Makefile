@@ -49,7 +49,7 @@ BUILD_DIR ?= build/debug
 
 # Needs a configured build dir with compile_commands.json (e.g. via `build` or `ci`).
 lint:
-	run-clang-tidy -p $(BUILD_DIR) $(SOURCES)
+	run-clang-tidy -quiet -p $(BUILD_DIR) $(SOURCES)
 
 clean:
 	rm -rf build

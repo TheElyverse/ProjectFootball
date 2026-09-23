@@ -6,7 +6,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 This repository is in **early bootstrap stage**. The P0 Foundation milestone (repo, CMake, CI, strong
 IDs, sim clock, deterministic RNG, a minimal event bus, and a CLI) exists under `libs/sim-core` and
-`apps/sim-cli`; almost everything described in the design/implementation docs below is still unbuilt.
+`apps/sim-cli`, and `libs/sim-match` has started with pitch geometry, the validated match state, and
+the seven-a-side kickoff fixture; almost everything described in the design/implementation docs below
+is still unbuilt.
 When implementing a new system, check whether it belongs in an existing module (see layout below) before
 adding a new one.
 
@@ -45,7 +47,7 @@ libs/
   sim-core       IDs, time, RNG, events, base types (depends on: STL only)      [exists]
   sim-player     Capabilities, match/world player state, development           [planned]
   sim-tactics    Principles, phases, responsibilities, spatial targets         [planned]
-  sim-match      Pitch, ball, perception, decisions, actions, rules            [planned]
+  sim-match      Pitch, ball, perception, decisions, actions, rules            [exists: pitch, state]
   sim-world      Calendar, clubs, competitions, economy, careers               [planned]
   sim-ai         Club planning, coach decisions, staff behavior                [planned]
   sim-analytics  Events, metrics, explanations (read-only over domain events)  [planned]
@@ -53,7 +55,7 @@ apps/
   sim-cli        starts an empty simulation, writes replay metadata           [exists]
   sim-benchmark, sim-replay, unreal-game                                       [planned]
 data/            schemas, tactics, competitions, fixtures (JSON/YAML, schema-validated) [planned]
-tests/unit/      Catch2 tests, mirrors libs/ by subdirectory                   [exists, sim-core only]
+tests/unit/      Catch2 tests, mirrors libs/ by subdirectory                   [exists: sim-core, sim-match]
 ```
 
 Stack in use: C++23, CMake + Ninja presets, CPM.cmake for dependencies (see `cmake/get_cpm.cmake`),
@@ -89,6 +91,7 @@ Run a single test (Catch2 tag or exact name), after building:
 ```
 ./build/debug/tests/unit/sim-core-tests "[rng]"
 ./build/debug/tests/unit/sim-core-tests "RandomNumberGenerator is deterministic for a given seed"
+./build/debug/tests/unit/sim-match-tests "[matchState]"
 ```
 
 Run the CLI (writes `replay_metadata.json` to the given path):
@@ -111,6 +114,22 @@ Auto-format:
 ```
 find libs apps tests -name '*.hpp' -o -name '*.cpp' | xargs clang-format -i
 ```
+
+## Commit messages
+
+A commit message is a short imperative subject, an optional body explaining why, and the
+issue number as its only trailer:
+
+```
+Add validated match state
+
+Introduce MatchState with two teams, their players and one ball.
+
+#3
+```
+
+Never add attribution trailers such as `Co-Authored-By:` or `Claude-Session:`, in commit
+messages or in pull request descriptions.
 
 ## Language note
 
