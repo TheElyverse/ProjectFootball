@@ -179,6 +179,16 @@ std::expected<MatchState, std::vector<MatchStateError>> MatchState::create(Match
   return MatchState(std::move(spec));
 }
 
+void MatchStateWriter::setPlayerPosition(const std::size_t playerIndex,
+                                         const SimCore::Vec2 position) {
+  state_->players_.at(playerIndex).position = position;
+}
+
+void MatchStateWriter::setPlayerVelocity(const std::size_t playerIndex,
+                                         const SimCore::Vec2 velocity) {
+  state_->players_.at(playerIndex).velocity = velocity;
+}
+
 // Every position in a MatchState is finite, so contains() fails here only for
 // a point off the pitch -- the message never has to tell the two apart.
 std::vector<MatchStateError> checkStartingPositions(const MatchState& state) {

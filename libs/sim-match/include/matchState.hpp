@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cstddef>
 #include <cstdint>
 #include <expected>
 #include <span>
@@ -91,6 +92,9 @@ struct MatchStateSpec {
   int playersPerSide = kDefaultPlayersPerSide;
 };
 
+class MatchSimulation;
+class MatchStateWriter;
+
 // A validated match state: two teams, their players, and one ball on a pitch.
 // Nothing here advances time -- MatchSimulation owns that.
 //
@@ -121,12 +125,36 @@ class MatchState {
   friend bool operator==(const MatchState&, const MatchState&) = default;
 
  private:
+  friend class MatchStateWriter;
+
   explicit MatchState(MatchStateSpec spec);
 
   Pitch pitch_;
   std::vector<PlayerMatchState> players_;
   BallState ball_;
   int playersPerSide_;
+};
+
+// What a simulation system may change in the next tick's state: positions and
+// velocities, nothing else. Squad, ids, sides, player order and the pitch have
+// no setter, so a system cannot break those invariants and nothing has to
+// re-check them every tick. Players are addressed by their index in
+// MatchState::players(); an index past the end throws std::out_of_range.
+//
+// Only MatchSimulation hands out writers, and a writer only lives for one step.
+class MatchStateWriter {
+ public:
+  void setPlayerPosition(std::size_t playerIndex, SimCore::Vec2 position);
+  void setPlayerVelocity(std::size_t playerIndex, SimCore::Vec2 velocity);
+  void setBallPosition(SimCore::Vec2 position) noexcept { state_->ball_.position = position; }
+  void setBallVelocity(SimCore::Vec2 velocity) noexcept { state_->ball_.velocity = velocity; }
+
+ private:
+  friend class MatchSimulation;
+
+  explicit MatchStateWriter(MatchState& state) noexcept : state_(&state) {}
+
+  MatchState* state_;
 };
 
 // The extra rule for a state a match starts from, such as a kickoff fixture:
