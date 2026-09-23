@@ -83,6 +83,33 @@ void validateRoster(const MatchStateSpec& spec, std::vector<MatchStateError>& er
   }
 }
 
+void appendNonFinitePlayerErrors(const std::size_t index, const PlayerMatchState& player,
+                                 std::vector<MatchStateError>& errors) {
+  if (!player.position.isFinite()) {
+    errors.push_back({.code = MatchStateErrorCode::kNonFinitePlayerPosition,
+                      .message = describePlayer(index, player) +
+                                 " has a non-finite position: " + formatPosition(player.position)});
+  }
+  if (!player.velocity.isFinite()) {
+    errors.push_back({.code = MatchStateErrorCode::kNonFinitePlayerVelocity,
+                      .message = describePlayer(index, player) +
+                                 " has a non-finite velocity: " + formatVelocity(player.velocity)});
+  }
+}
+
+void appendNonFiniteBallErrors(const BallState& ball, std::vector<MatchStateError>& errors) {
+  if (!ball.position.isFinite()) {
+    errors.push_back(
+        {.code = MatchStateErrorCode::kNonFiniteBallPosition,
+         .message = "the ball has a non-finite position: " + formatPosition(ball.position)});
+  }
+  if (!ball.velocity.isFinite()) {
+    errors.push_back(
+        {.code = MatchStateErrorCode::kNonFiniteBallVelocity,
+         .message = "the ball has a non-finite velocity: " + formatVelocity(ball.velocity)});
+  }
+}
+
 void validatePlayers(const MatchStateSpec& spec, std::vector<MatchStateError>& errors) {
   std::unordered_map<SimCore::PlayerId::ValueType, std::size_t> firstIndexById;
 
@@ -115,34 +142,13 @@ void validatePlayers(const MatchStateSpec& spec, std::vector<MatchStateError>& e
       }
     }
 
-    if (!player.position.isFinite()) {
-      errors.push_back({.code = MatchStateErrorCode::kNonFinitePlayerPosition,
-                        .message = describePlayer(index, player) + " has a non-finite position: " +
-                                   formatPosition(player.position)});
-    }
-
-    if (!player.velocity.isFinite()) {
-      errors.push_back({.code = MatchStateErrorCode::kNonFinitePlayerVelocity,
-                        .message = describePlayer(index, player) + " has a non-finite velocity: " +
-                                   formatVelocity(player.velocity)});
-    }
-
+    appendNonFinitePlayerErrors(index, player, errors);
     ++index;
   }
 }
 
 void validateBall(const MatchStateSpec& spec, std::vector<MatchStateError>& errors) {
-  if (!spec.ball.position.isFinite()) {
-    errors.push_back(
-        {.code = MatchStateErrorCode::kNonFiniteBallPosition,
-         .message = "the ball has a non-finite position: " + formatPosition(spec.ball.position)});
-  }
-
-  if (!spec.ball.velocity.isFinite()) {
-    errors.push_back(
-        {.code = MatchStateErrorCode::kNonFiniteBallVelocity,
-         .message = "the ball has a non-finite velocity: " + formatVelocity(spec.ball.velocity)});
-  }
+  appendNonFiniteBallErrors(spec.ball, errors);
 }
 
 }  // namespace
@@ -187,6 +193,18 @@ void MatchStateWriter::setPlayerPosition(const std::size_t playerIndex,
 void MatchStateWriter::setPlayerVelocity(const std::size_t playerIndex,
                                          const SimCore::Vec2 velocity) {
   state_->players_.at(playerIndex).velocity = velocity;
+}
+
+// Allocates nothing for a state without defects: the vector stays empty until
+// the first error.
+std::vector<MatchStateError> findNonFiniteValues(const MatchState& state) {
+  std::vector<MatchStateError> errors;
+  for (std::size_t index = 0; const PlayerMatchState& player : state.players()) {
+    appendNonFinitePlayerErrors(index, player, errors);
+    ++index;
+  }
+  appendNonFiniteBallErrors(state.ball(), errors);
+  return errors;
 }
 
 // Every position in a MatchState is finite, so contains() fails here only for

@@ -157,6 +157,12 @@ class MatchStateWriter {
   MatchState* state_;
 };
 
+// The finiteness rules of MatchState::create(), for a state the simulation
+// has just written: every non-finite position and velocity, players by index
+// first and then the ball, with the same codes and messages create() uses.
+// Empty for a state without defects.
+[[nodiscard]] std::vector<MatchStateError> findNonFiniteValues(const MatchState& state);
+
 // The extra rule for a state a match starts from, such as a kickoff fixture:
 // every player and the ball stand on the pitch, edges included. Returns one
 // error per offender, players by index first and then the ball, and nothing

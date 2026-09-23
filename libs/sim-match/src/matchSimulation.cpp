@@ -3,6 +3,7 @@
 #include <array>
 #include <cstddef>
 #include <cstdint>
+#include <expected>
 #include <functional>
 #include <set>
 #include <stdexcept>
@@ -78,15 +79,32 @@ MatchSimulation::MatchSimulation(MatchSimulationSpec spec)
       current_(spec.initialState),
       next_(std::move(spec.initialState)) {}
 
-SimCore::SimTick MatchSimulation::step() {
+std::expected<SimCore::SimTick, MatchStepError> MatchSimulation::step() {
+  if (failure_) {
+    return std::unexpected(*failure_);
+  }
+
   // Copy-assigning a state of the same squad reuses next_'s storage.
   next_ = current_;
 
   MatchStateWriter writer(next_);
   const MatchStepContext context(clock_.tick(), clock_.secondsPerTick(), random_);
   for (const MatchSystem& system : systems_) {
-    if (isDue(system, context.tick())) {
+    if (!isDue(system, context.tick())) {
+      continue;
+    }
+    try {
       system.update(context, current_, writer);
+    } catch (...) {
+      failure_ = MatchStepError{.tick = context.tick(), .systemName = system.name, .errors = {}};
+      throw;
+    }
+    // Checked after every system rather than once per step, so the error
+    // names the system that wrote the value. Allocates nothing when clean.
+    if (std::vector<MatchStateError> errors = findNonFiniteValues(next_); !errors.empty()) {
+      failure_ = MatchStepError{
+          .tick = context.tick(), .systemName = system.name, .errors = std::move(errors)};
+      return std::unexpected(*failure_);
     }
   }
 

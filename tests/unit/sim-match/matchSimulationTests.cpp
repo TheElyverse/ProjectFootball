@@ -3,6 +3,7 @@
 #include <catch2/generators/catch_generators.hpp>
 #include <cstddef>
 #include <cstdint>
+#include <expected>
 #include <limits>
 #include <map>
 #include <stdexcept>
@@ -26,8 +27,10 @@ using ElyverseFootball::SimMatch::kDefaultTicksPerSecond;
 using ElyverseFootball::SimMatch::makeSevenASideKickoff;
 using ElyverseFootball::SimMatch::MatchSimulation;
 using ElyverseFootball::SimMatch::MatchState;
+using ElyverseFootball::SimMatch::MatchStateErrorCode;
 using ElyverseFootball::SimMatch::MatchStateWriter;
 using ElyverseFootball::SimMatch::MatchStepContext;
+using ElyverseFootball::SimMatch::MatchStepError;
 using ElyverseFootball::SimMatch::MatchSystem;
 using ElyverseFootball::SimMatch::Pitch;
 using ElyverseFootball::SimMatch::PlayerMatchState;
@@ -53,8 +56,14 @@ constexpr std::uint64_t kSeed = 42;
 
 void stepTimes(MatchSimulation& simulation, const int steps) {
   for (int step = 0; step < steps; ++step) {
-    simulation.step();
+    REQUIRE(simulation.step().has_value());
   }
+}
+
+// For tests that expect step() to throw: reaching the end is a failure.
+void stepExpectingThrow(MatchSimulation& simulation) {
+  const auto result = simulation.step();
+  FAIL("step() returned instead of throwing, with a value: " << result.has_value());
 }
 
 // Every player runs at 5 m/s toward the nearest opponent; ties go to the lower
@@ -255,7 +264,7 @@ TEST_CASE("previousState is the state before the last step", "[matchSimulation]"
   stepTimes(simulation, 5);
   const MatchState beforeStep = simulation.state();
 
-  simulation.step();
+  REQUIRE(simulation.step().has_value());
 
   REQUIRE(simulation.previousState() == beforeStep);
   REQUIRE_FALSE(simulation.state() == beforeStep);
@@ -321,7 +330,7 @@ TEST_CASE("Systems draw from streams derived from the match seed", "[matchSimula
            }},
   });
 
-  simulation.step();
+  REQUIRE(simulation.step().has_value());
 
   RandomNumberGenerator execution(deriveSeed(kSeed, RandomNumberGeneratorDomain::kExecution));
   RandomNumberGenerator injuries(deriveSeed(kSeed, RandomNumberGeneratorDomain::kInjuries));
@@ -337,9 +346,91 @@ TEST_CASE("Positions off the pitch are part of a running match", "[matchSimulati
                      MatchStateWriter& next) { next.setBallPosition(behindGoalLine); }},
   });
 
-  simulation.step();
+  REQUIRE(simulation.step().has_value());
 
   REQUIRE(simulation.state().ball().position == behindGoalLine);
+}
+
+TEST_CASE("A non-finite value stops the simulation at the last good state", "[matchSimulation]") {
+  std::vector<std::string> log;
+  MatchSimulation simulation = simulationOf({
+      recorder("before", &log),
+      {.name = "break ball",
+       .update =
+           [](const MatchStepContext& context, const MatchState&, MatchStateWriter& next) {
+             if (context.tick() == SimTick(2)) {
+               next.setBallPosition({.x = std::numeric_limits<double>::quiet_NaN(), .y = 20.0});
+             }
+           }},
+      recorder("after", &log),
+  });
+  stepTimes(simulation, 2);
+  const MatchState lastGood = simulation.state();
+  const MatchState beforeLastGood = simulation.previousState();
+  log.clear();
+
+  const auto failed = simulation.step();
+
+  REQUIRE_FALSE(failed.has_value());
+  REQUIRE(failed.error().tick == SimTick(2));
+  REQUIRE(failed.error().systemName == "break ball");
+  REQUIRE(failed.error().errors.size() == 1);
+  REQUIRE(failed.error().errors.front().code == MatchStateErrorCode::kNonFiniteBallPosition);
+  // The step stopped at the system that broke the state.
+  REQUIRE(log == std::vector<std::string>{"before@2"});
+
+  REQUIRE(simulation.hasFailed());
+  REQUIRE(simulation.tick() == SimTick(2));
+  REQUIRE(simulation.state() == lastGood);
+  REQUIRE(simulation.previousState() == beforeLastGood);
+
+  log.clear();
+  REQUIRE(simulation.step() == std::unexpected(failed.error()));
+  REQUIRE(log.empty());
+  REQUIRE(simulation.tick() == SimTick(2));
+}
+
+TEST_CASE("A non-finite player value names the player", "[matchSimulation]") {
+  MatchSimulation simulation = simulationOf({
+      {.name = "sprint",
+       .update =
+           [](const MatchStepContext&, const MatchState&, MatchStateWriter& next) {
+             next.setPlayerVelocity(5, {.x = std::numeric_limits<double>::infinity(), .y = 0.0});
+           }},
+  });
+
+  const auto failed = simulation.step();
+
+  REQUIRE_FALSE(failed.has_value());
+  REQUIRE(failed.error().errors.size() == 1);
+  const auto& error = failed.error().errors.front();
+  REQUIRE(error.code == MatchStateErrorCode::kNonFinitePlayerVelocity);
+  CAPTURE(error.message);
+  REQUIRE(error.message.find("player at index 5 (id 6, home)") != std::string::npos);
+}
+
+TEST_CASE("A system that throws stops the simulation", "[matchSimulation]") {
+  MatchSimulation simulation = simulationOf({
+      chaseNearestOpponent(),
+      {.name = "throws",
+       .update =
+           [](const MatchStepContext& context, const MatchState&, MatchStateWriter&) {
+             if (context.tick() == SimTick(1)) {
+               throw std::runtime_error("broken system");
+             }
+           }},
+      integrate(),
+  });
+  REQUIRE(simulation.step().has_value());
+  const MatchState lastGood = simulation.state();
+
+  REQUIRE_THROWS_AS(stepExpectingThrow(simulation), std::runtime_error);
+
+  REQUIRE(simulation.hasFailed());
+  REQUIRE(simulation.tick() == SimTick(1));
+  REQUIRE(simulation.state() == lastGood);
+  REQUIRE(simulation.step() == std::unexpected(MatchStepError{
+                                   .tick = SimTick(1), .systemName = "throws", .errors = {}}));
 }
 
 TEST_CASE("A system cannot address a player past the end of the squad", "[matchSimulation]") {
@@ -351,7 +442,7 @@ TEST_CASE("A system cannot address a player past the end of the squad", "[matchS
            }},
   });
 
-  REQUIRE_THROWS_AS(simulation.step(), std::out_of_range);
+  REQUIRE_THROWS_AS(stepExpectingThrow(simulation), std::out_of_range);
 }
 
 TEST_CASE("MatchSimulation rejects an invalid configuration", "[matchSimulation]") {

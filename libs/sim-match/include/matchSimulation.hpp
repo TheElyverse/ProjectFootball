@@ -2,7 +2,9 @@
 
 #include <array>
 #include <cstdint>
+#include <expected>
 #include <functional>
+#include <optional>
 #include <string>
 #include <vector>
 
@@ -71,6 +73,20 @@ struct MatchSystem {
   int phaseTicks = 0;
 };
 
+// Why a step failed. A failed step is a defect in a system, not a match event:
+// the simulation keeps the last good state for diagnosis and runs no further
+// steps.
+struct MatchStepError {
+  // The tick the failed step started from.
+  SimCore::SimTick tick;
+  // The system that wrote a non-finite value or threw.
+  std::string systemName;
+  // What the system broke; empty if it threw instead.
+  std::vector<MatchStateError> errors;
+
+  friend bool operator==(const MatchStepError&, const MatchStepError&) = default;
+};
+
 // Everything a simulation starts from. Replaying a match means building the
 // same spec again: the same initial state, seed, tick rate and systems.
 struct MatchSimulationSpec {
@@ -91,6 +107,12 @@ struct MatchSimulationSpec {
 // last step stays available as previousState(), which is what a presentation
 // layer interpolates between.
 //
+// After each system the next state is checked for non-finite positions and
+// velocities; other invariants cannot break, because MatchStateWriter has no
+// way to change them. A step that fails leaves state(), previousState() and
+// tick() as they were before it, and every later step() reports the same
+// failure without running anything.
+//
 // Copying a MatchSimulation copies state, clock and random streams: the copy
 // is a complete snapshot that continues exactly like the original.
 class MatchSimulation {
@@ -100,8 +122,12 @@ class MatchSimulation {
   // below 1, or a phase outside [0, interval).
   explicit MatchSimulation(MatchSimulationSpec spec);
 
-  // Advances exactly one tick and returns the new tick.
-  SimCore::SimTick step();
+  // Advances exactly one tick and returns the new tick. Returns the error of
+  // the first failed step once a step has failed. A system that throws marks
+  // the simulation failed and the exception propagates.
+  [[nodiscard]] std::expected<SimCore::SimTick, MatchStepError> step();
+
+  [[nodiscard]] bool hasFailed() const noexcept { return failure_.has_value(); }
 
   [[nodiscard]] SimCore::SimTick tick() const noexcept { return clock_.tick(); }
   [[nodiscard]] double elapsedSeconds() const noexcept { return clock_.elapsedSeconds(); }
@@ -122,6 +148,7 @@ class MatchSimulation {
   // steps. Kept as a member so a step reuses its storage instead of
   // allocating.
   MatchState next_;
+  std::optional<MatchStepError> failure_;
 };
 
 }  // namespace ElyverseFootball::SimMatch
