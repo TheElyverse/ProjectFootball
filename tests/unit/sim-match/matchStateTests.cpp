@@ -4,6 +4,7 @@
 #include <cstddef>
 #include <limits>
 #include <string>
+#include <utility>
 #include <vector>
 
 #include "matchState.hpp"
@@ -245,7 +246,9 @@ TEST_CASE("MatchState::create rejects a player outside the pitch", "[matchState]
   REQUIRE(codesOf(state.error()) == std::vector{MatchStateErrorCode::kPlayerOutsidePitch});
   CAPTURE(state.error().front().message);
   REQUIRE(mentions(state.error().front().message, "index 4"));
-  REQUIRE(mentions(state.error().front().message, "outside the 60.00 x 40.00 m pitch"));
+  REQUIRE(mentions(state.error().front().message, "outside the 60 x 40 m pitch"));
+  // One ulp past the touchline must not print as a point on it.
+  REQUIRE(mentions(state.error().front().message, "at (60.00000000000001, 20) m"));
 }
 
 TEST_CASE("A non-finite player position is reported once, not twice", "[matchState]") {
@@ -274,7 +277,9 @@ TEST_CASE("MatchState::create rejects a non-finite player velocity", "[matchStat
 
   REQUIRE_FALSE(state.has_value());
   REQUIRE(codesOf(state.error()) == std::vector{MatchStateErrorCode::kNonFinitePlayerVelocity});
+  CAPTURE(state.error().front().message);
   REQUIRE(mentions(state.error().front().message, "index 6"));
+  REQUIRE(mentions(state.error().front().message, ") m/s"));
 }
 
 TEST_CASE("MatchState::create rejects a ball outside the pitch", "[matchState]") {

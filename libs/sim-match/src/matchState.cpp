@@ -1,27 +1,43 @@
 #include "matchState.hpp"
 
+#include <array>
+#include <charconv>
 #include <cstddef>
-#include <iomanip>
-#include <sstream>
 #include <string>
+#include <string_view>
 #include <unordered_map>
 #include <utility>
 
 namespace ElyverseFootball::SimMatch {
 namespace {
 
-std::string formatMeters(const double value) {
-  std::ostringstream stream;
-  stream << std::fixed << std::setprecision(2) << value;
-  return stream.str();
+// Shortest representation that parses back to the same double. A fixed
+// precision would hide exactly the values validation exists to catch: a player
+// one ulp past the touchline would print as sitting on it. std::to_chars is
+// also locale-independent, so messages match on every platform.
+std::string formatNumber(const double value) {
+  // The shortest round-trip form of any double, including "-nan", fits in 24
+  // characters, so the conversion cannot run out of space.
+  std::array<char, 32> buffer{};
+  const std::to_chars_result result =
+      std::to_chars(buffer.data(), buffer.data() + buffer.size(), value);
+  return {buffer.data(), result.ptr};
 }
 
-std::string formatPoint(const SimCore::Vec2 point) {
-  return "(" + formatMeters(point.x) + ", " + formatMeters(point.y) + ") m";
+std::string formatVector(const SimCore::Vec2 vector, const std::string_view unit) {
+  return "(" + formatNumber(vector.x) + ", " + formatNumber(vector.y) + ") " + std::string(unit);
+}
+
+std::string formatPosition(const SimCore::Vec2 position) {
+  return formatVector(position, "m");
+}
+
+std::string formatVelocity(const SimCore::Vec2 velocity) {
+  return formatVector(velocity, "m/s");
 }
 
 std::string describePitch(const Pitch& pitch) {
-  return formatMeters(pitch.lengthMeters()) + " x " + formatMeters(pitch.widthMeters()) +
+  return formatNumber(pitch.lengthMeters()) + " x " + formatNumber(pitch.widthMeters()) +
          " m pitch";
 }
 
@@ -107,19 +123,19 @@ void validatePlayers(const MatchStateSpec& spec, std::vector<MatchStateError>& e
     // checks are exclusive -- one defect, one error.
     if (!player.position.isFinite()) {
       errors.push_back({.code = MatchStateErrorCode::kNonFinitePlayerPosition,
-                        .message = describePlayer(index, player) +
-                                   " has a non-finite position: " + formatPoint(player.position)});
+                        .message = describePlayer(index, player) + " has a non-finite position: " +
+                                   formatPosition(player.position)});
     } else if (!spec.pitch.contains(player.position)) {
       errors.push_back({.code = MatchStateErrorCode::kPlayerOutsidePitch,
                         .message = describePlayer(index, player) + " is outside the " +
                                    describePitch(spec.pitch) + " at " +
-                                   formatPoint(player.position)});
+                                   formatPosition(player.position)});
     }
 
     if (!player.velocity.isFinite()) {
       errors.push_back({.code = MatchStateErrorCode::kNonFinitePlayerVelocity,
-                        .message = describePlayer(index, player) +
-                                   " has a non-finite velocity: " + formatPoint(player.velocity)});
+                        .message = describePlayer(index, player) + " has a non-finite velocity: " +
+                                   formatVelocity(player.velocity)});
     }
   }
 }
@@ -128,17 +144,17 @@ void validateBall(const MatchStateSpec& spec, std::vector<MatchStateError>& erro
   if (!spec.ball.position.isFinite()) {
     errors.push_back(
         {.code = MatchStateErrorCode::kNonFiniteBallPosition,
-         .message = "the ball has a non-finite position: " + formatPoint(spec.ball.position)});
+         .message = "the ball has a non-finite position: " + formatPosition(spec.ball.position)});
   } else if (!spec.pitch.contains(spec.ball.position)) {
     errors.push_back({.code = MatchStateErrorCode::kBallOutsidePitch,
                       .message = "the ball is outside the " + describePitch(spec.pitch) + " at " +
-                                 formatPoint(spec.ball.position)});
+                                 formatPosition(spec.ball.position)});
   }
 
   if (!spec.ball.velocity.isFinite()) {
     errors.push_back(
         {.code = MatchStateErrorCode::kNonFiniteBallVelocity,
-         .message = "the ball has a non-finite velocity: " + formatPoint(spec.ball.velocity)});
+         .message = "the ball has a non-finite velocity: " + formatVelocity(spec.ball.velocity)});
   }
 }
 
