@@ -59,8 +59,14 @@ Each error carries a message naming the offending index, id, and value:
 ```text
 home has 7 players and away has 6, expected 7 per side
 duplicate player id 4 at index 8, first seen at index 3
-player at index 4 (id 5, home) is outside the 60.00 x 40.00 m pitch at (60.00, 20.00) m
+player at index 4 (id 5, home) is outside the 60 x 40 m pitch at (60.00000000000001, 20) m
 ```
+
+Numbers are printed in their shortest round-trippable form (`std::format("{}")`),
+not with a fixed precision. The boundary is inclusive, so a player at exactly
+60 m is on the pitch; the example above is one ulp past the touchline, and a
+fixed two-decimal format would have printed it as a point on the line. The
+output is locale-independent, so messages match on every platform.
 
 One defect produces one error. A non-finite position is reported as such and
 not additionally as off-pitch, and an invalid id is not also counted as a
