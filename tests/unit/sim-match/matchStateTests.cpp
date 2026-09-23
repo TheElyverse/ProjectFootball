@@ -19,6 +19,7 @@ using ElyverseFootball::SimMatch::MatchStateSpec;
 using ElyverseFootball::SimMatch::Pitch;
 using ElyverseFootball::SimMatch::PlayerMatchState;
 using ElyverseFootball::SimMatch::TeamSide;
+using ElyverseFootball::SimMatch::teamSideName;
 
 namespace {
 
@@ -135,6 +136,63 @@ TEST_CASE("MatchState::create rejects a nonpositive squad size", "[matchState]")
   CAPTURE(state.error().front().message);
   REQUIRE(mentions(state.error().front().message, "playersPerSide must be at least 1"));
   REQUIRE(mentions(state.error().front().message, std::to_string(playersPerSide)));
+}
+
+TEST_CASE("MatchState::create rejects a team side outside the declared enumerators",
+          "[matchState]") {
+  MatchStateSpec spec = validSpec();
+  spec.players.at(9).side = static_cast<TeamSide>(2);
+
+  const auto state = MatchState::create(spec);
+
+  // The squad could still be seven per side if that player were away, so the
+  // unknown side is the only defect reported.
+  REQUIRE_FALSE(state.has_value());
+  REQUIRE(codesOf(state.error()) == std::vector{MatchStateErrorCode::kInvalidTeamSide});
+  CAPTURE(state.error().front().message);
+  REQUIRE(mentions(state.error().front().message, "index 9"));
+  REQUIRE(mentions(state.error().front().message, "team side value 2"));
+}
+
+TEST_CASE("Players with an unknown side are not counted as away", "[matchState]") {
+  // Seven home players plus seven with an undeclared side: no away team.
+  MatchStateSpec spec = validSpec();
+  for (PlayerMatchState& player : spec.players) {
+    if (player.side == TeamSide::kAway) {
+      player.side = static_cast<TeamSide>(2);
+    }
+  }
+
+  const auto state = MatchState::create(spec);
+
+  REQUIRE_FALSE(state.has_value());
+  const std::vector<MatchStateErrorCode> codes = codesOf(state.error());
+  REQUIRE(codes.size() == 7);
+  for (const MatchStateErrorCode code : codes) {
+    REQUIRE(code == MatchStateErrorCode::kInvalidTeamSide);
+  }
+}
+
+TEST_CASE("Unknown sides do not hide a squad that is too large", "[matchState]") {
+  MatchStateSpec spec = validSpec();
+  PlayerMatchState extra = spec.players.front();
+  extra.playerId = PlayerId(100);
+  extra.side = static_cast<TeamSide>(7);
+  spec.players.push_back(extra);
+
+  const auto state = MatchState::create(spec);
+
+  REQUIRE_FALSE(state.has_value());
+  REQUIRE(codesOf(state.error()) == std::vector{MatchStateErrorCode::kWrongPlayerCountPerSide,
+                                                MatchStateErrorCode::kInvalidTeamSide});
+  CAPTURE(state.error().front().message);
+  REQUIRE(mentions(state.error().front().message, "1 more with an unknown side"));
+}
+
+TEST_CASE("teamSideName does not label undeclared values as a side", "[matchState]") {
+  REQUIRE(teamSideName(TeamSide::kHome) == "home");
+  REQUIRE(teamSideName(TeamSide::kAway) == "away");
+  REQUIRE(teamSideName(static_cast<TeamSide>(2)) == "unknown");
 }
 
 TEST_CASE("MatchState::create rejects duplicate player ids", "[matchState]") {

@@ -33,7 +33,10 @@ std::string describePlayer(const std::size_t index, const PlayerMatchState& play
 
 // Squad size is checked per side rather than as a total: the total follows from
 // the two side counts, and reporting both would turn one defect into two
-// errors.
+// errors. Players whose side is not a declared enumerator count towards
+// neither side; they get their own kInvalidTeamSide error in validatePlayers,
+// so the count error is raised only when no assignment of those players to a
+// side could make the squad sizes right -- one defect, one error.
 void validateRoster(const MatchStateSpec& spec, std::vector<MatchStateError>& errors) {
   if (spec.playersPerSide < 1) {
     errors.push_back({.code = MatchStateErrorCode::kInvalidPlayersPerSide,
@@ -44,21 +47,28 @@ void validateRoster(const MatchStateSpec& spec, std::vector<MatchStateError>& er
 
   std::size_t homeCount = 0;
   std::size_t awayCount = 0;
+  std::size_t unknownCount = 0;
   for (const PlayerMatchState& player : spec.players) {
     if (player.side == TeamSide::kHome) {
       ++homeCount;
-    } else {
+    } else if (player.side == TeamSide::kAway) {
       ++awayCount;
+    } else {
+      ++unknownCount;
     }
   }
 
   const auto expectedPerSide = static_cast<std::size_t>(spec.playersPerSide);
-  if (homeCount != expectedPerSide || awayCount != expectedPerSide) {
-    errors.push_back({.code = MatchStateErrorCode::kWrongPlayerCountPerSide,
-                      .message = "home has " + std::to_string(homeCount) +
-                                 " players and away has " + std::to_string(awayCount) +
-                                 ", expected " + std::to_string(spec.playersPerSide) +
-                                 " per side"});
+  if (homeCount > expectedPerSide || awayCount > expectedPerSide ||
+      homeCount + awayCount + unknownCount != 2 * expectedPerSide) {
+    std::string message = "home has " + std::to_string(homeCount) + " players and away has " +
+                          std::to_string(awayCount);
+    if (unknownCount != 0) {
+      message += " (" + std::to_string(unknownCount) + " more with an unknown side)";
+    }
+    message += ", expected " + std::to_string(spec.playersPerSide) + " per side";
+    errors.push_back(
+        {.code = MatchStateErrorCode::kWrongPlayerCountPerSide, .message = std::move(message)});
   }
 }
 
@@ -67,6 +77,13 @@ void validatePlayers(const MatchStateSpec& spec, std::vector<MatchStateError>& e
 
   for (std::size_t index = 0; index < spec.players.size(); ++index) {
     const PlayerMatchState& player = spec.players[index];
+
+    if (!isValidTeamSide(player.side)) {
+      errors.push_back({.code = MatchStateErrorCode::kInvalidTeamSide,
+                        .message = describePlayer(index, player) + " has team side value " +
+                                   std::to_string(static_cast<unsigned>(player.side)) +
+                                   ", expected home or away"});
+    }
 
     // An invalid id is reported on its own: feeding it to the duplicate check
     // as well would report a second error for the same defect.
@@ -128,7 +145,17 @@ void validateBall(const MatchStateSpec& spec, std::vector<MatchStateError>& erro
 }  // namespace
 
 std::string_view teamSideName(const TeamSide side) noexcept {
-  return side == TeamSide::kHome ? "home" : "away";
+  switch (side) {
+    case TeamSide::kHome:
+      return "home";
+    case TeamSide::kAway:
+      return "away";
+  }
+  return "unknown";
+}
+
+bool isValidTeamSide(const TeamSide side) noexcept {
+  return side == TeamSide::kHome || side == TeamSide::kAway;
 }
 
 MatchState::MatchState(MatchStateSpec spec)

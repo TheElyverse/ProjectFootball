@@ -21,8 +21,13 @@ enum class TeamSide : std::uint8_t {
   kAway,
 };
 
-// "home" / "away", for error messages and debug output.
+// "home" / "away", for error messages and debug output. Any value outside the
+// declared enumerators (e.g. a cast from persisted numeric input) yields
+// "unknown" rather than being passed off as one of the two sides.
 [[nodiscard]] std::string_view teamSideName(TeamSide side) noexcept;
+
+// True only for the declared enumerators kHome and kAway.
+[[nodiscard]] bool isValidTeamSide(TeamSide side) noexcept;
 
 // Squad size per side used when a caller does not state one. Seven-a-side is
 // the M0 iteration stage (docs/implementation-plan.md section 6.1); the value
@@ -55,6 +60,7 @@ struct BallState {
 enum class MatchStateErrorCode : std::uint8_t {
   kInvalidPlayersPerSide,
   kWrongPlayerCountPerSide,
+  kInvalidTeamSide,
   kInvalidPlayerId,
   kDuplicatePlayerId,
   kNonFinitePlayerPosition,
