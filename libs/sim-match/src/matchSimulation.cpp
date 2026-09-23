@@ -46,8 +46,22 @@ static_assert(static_cast<std::size_t>(RandomNumberGeneratorDomain::kAi) + 1 ==
       throw std::invalid_argument("MatchSimulation: system name '" + system.name +
                                   "' is used twice");
     }
+    if (system.intervalTicks < 1) {
+      throw std::invalid_argument("MatchSimulation: system '" + system.name +
+                                  "' needs an interval of at least one tick, got " +
+                                  std::to_string(system.intervalTicks));
+    }
+    if (system.phaseTicks < 0 || system.phaseTicks >= system.intervalTicks) {
+      throw std::invalid_argument("MatchSimulation: system '" + system.name + "' has phase " +
+                                  std::to_string(system.phaseTicks) + ", expected 0 to " +
+                                  std::to_string(system.intervalTicks - 1));
+    }
   }
   return systems;
+}
+
+[[nodiscard]] bool isDue(const MatchSystem& system, const SimCore::SimTick tick) noexcept {
+  return tick.value() % system.intervalTicks == system.phaseTicks;
 }
 
 }  // namespace
@@ -71,7 +85,9 @@ SimCore::SimTick MatchSimulation::step() {
   MatchStateWriter writer(next_);
   const MatchStepContext context(clock_.tick(), clock_.secondsPerTick(), random_);
   for (const MatchSystem& system : systems_) {
-    system.update(context, current_, writer);
+    if (isDue(system, context.tick())) {
+      system.update(context, current_, writer);
+    }
   }
 
   // Advance before swapping: a tick overflow throws while current_ and

@@ -58,10 +58,17 @@ class MatchStepContext {
 using MatchSystemUpdate = std::function<void(const MatchStepContext& context,
                                              const MatchState& current, MatchStateWriter& next)>;
 
+// A system runs in the steps whose tick t satisfies
+// t % intervalTicks == phaseTicks. The default runs it every tick. At 30 Hz an
+// interval of 3 is a 10 Hz system, such as perception; different phases
+// spread systems of the same rate over different ticks. In a step a system
+// skips, the fields it writes keep their current values.
 struct MatchSystem {
   // Unique within a simulation; names the system in diagnostics.
   std::string name;
   MatchSystemUpdate update;
+  int intervalTicks = 1;
+  int phaseTicks = 0;
 };
 
 // Everything a simulation starts from. Replaying a match means building the
@@ -79,8 +86,8 @@ struct MatchSimulationSpec {
 // through wall-clock time or a frame rate, so how fast a caller steps -- live,
 // fast-forward, or headless -- cannot change the result.
 //
-// A step copies the current state into the next one, runs every system in
-// order against (current, next), then makes next current. The state before the
+// A step copies the current state into the next one, runs every system due in
+// that tick in order against (current, next), then makes next current. The state before the
 // last step stays available as previousState(), which is what a presentation
 // layer interpolates between.
 //
@@ -89,7 +96,8 @@ struct MatchSimulationSpec {
 class MatchSimulation {
  public:
   // Throws std::invalid_argument for a tick rate below 1, a system without a
-  // name or update function, or two systems with the same name.
+  // name or update function, two systems with the same name, an interval
+  // below 1, or a phase outside [0, interval).
   explicit MatchSimulation(MatchSimulationSpec spec);
 
   // Advances exactly one tick and returns the new tick.

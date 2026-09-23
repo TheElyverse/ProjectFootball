@@ -1,5 +1,6 @@
 #include <algorithm>
 #include <catch2/catch_test_macros.hpp>
+#include <catch2/generators/catch_generators.hpp>
 #include <cstddef>
 #include <cstdint>
 #include <limits>
@@ -193,6 +194,39 @@ TEST_CASE("Systems run in registration order on every tick", "[matchSimulation]"
           std::vector<std::string>{"c@0", "a@0", "b@0", "c@1", "a@1", "b@1", "c@2", "a@2", "b@2"});
 }
 
+TEST_CASE("A system runs every intervalTicks ticks, offset by its phase", "[matchSimulation]") {
+  std::vector<std::string> log;
+  MatchSystem third = recorder("third", &log);
+  third.intervalTicks = 3;
+  third.phaseTicks = 1;
+  MatchSystem second = recorder("second", &log);
+  second.intervalTicks = 2;
+  MatchSimulation simulation =
+      simulationOf({recorder("every", &log), std::move(third), std::move(second)});
+
+  stepTimes(simulation, 5);
+
+  REQUIRE(log == std::vector<std::string>{"every@0", "second@0", "every@1", "third@1", "every@2",
+                                          "second@2", "every@3", "every@4", "third@4", "second@4"});
+}
+
+TEST_CASE("Fields keep their values in ticks their system skips", "[matchSimulation]") {
+  const double startX = kickoff().ball().position.x;
+  MatchSimulation simulation = simulationOf({
+      {.name = "nudge ball",
+       .update =
+           [](const MatchStepContext&, const MatchState& current, MatchStateWriter& next) {
+             next.setBallPosition(current.ball().position + Vec2{.x = 1.0, .y = 0.0});
+           },
+       .intervalTicks = 3},
+  });
+
+  stepTimes(simulation, 7);
+
+  // Runs at ticks 0, 3 and 6; in between the ball stays where it was.
+  REQUIRE(simulation.state().ball().position.x == startX + 3.0);
+}
+
 TEST_CASE("Systems read the current state, not what an earlier system wrote", "[matchSimulation]") {
   const double startX = kickoff().ball().position.x;
   std::vector<double> seenByLaterSystem;
@@ -334,6 +368,18 @@ TEST_CASE("MatchSimulation rejects an invalid configuration", "[matchSimulation]
   }
   SECTION("a system without an update function") {
     REQUIRE_THROWS_AS(simulationOf({{.name = "empty", .update = {}}}), std::invalid_argument);
+  }
+  SECTION("an interval below one tick") {
+    const int interval = GENERATE(0, -1);
+    REQUIRE_THROWS_AS(simulationOf({{.name = "never", .update = noop, .intervalTicks = interval}}),
+                      std::invalid_argument);
+  }
+  SECTION("a phase outside the interval") {
+    const int phase = GENERATE(-1, 3, 4);
+    REQUIRE_THROWS_AS(
+        simulationOf(
+            {{.name = "misplaced", .update = noop, .intervalTicks = 3, .phaseTicks = phase}}),
+        std::invalid_argument);
   }
   SECTION("two systems with the same name") {
     REQUIRE_THROWS_AS(
