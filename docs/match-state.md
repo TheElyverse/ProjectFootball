@@ -4,9 +4,9 @@
 on: a pitch, two teams of players, and one ball. It lives in `sim-match`
 (`matchState.hpp`, `kickoffScenario.hpp`) and depends only on `sim-core`.
 
-Nothing in this document advances time. The state is what the fixed-timestep
-loop reads and writes; the loop itself, player movement, and ball physics are
-separate concerns.
+Nothing in this document advances time. The state is what the
+[match loop](match-loop.md) reads and writes; the loop itself, player movement,
+and ball physics are separate concerns.
 
 ## What a state holds
 
@@ -53,6 +53,9 @@ one.
 | the ball velocity is finite                       | `kNonFiniteBallVelocity`   |
 
 These rules hold for every state of a match, from kickoff to the final whistle.
+The match loop only changes positions and velocities, and checks the state it
+writes with `findNonFiniteValues(const MatchState&)`, which applies the four
+finiteness rules with the same codes and messages as `create()`.
 Being on the pitch is deliberately not one of them: a ball that crossed the
 touchline or a player standing behind the goal line is football, not a broken
 state. Deciding what such a position means — a throw-in, a goal kick, a goal —
