@@ -1,8 +1,7 @@
 #include "matchState.hpp"
 
-#include <array>
-#include <charconv>
 #include <cstddef>
+#include <format>
 #include <string>
 #include <string_view>
 #include <unordered_map>
@@ -11,17 +10,13 @@
 namespace ElyverseFootball::SimMatch {
 namespace {
 
-// Shortest representation that parses back to the same double. A fixed
-// precision would hide exactly the values validation exists to catch: a player
-// one ulp past the touchline would print as sitting on it. std::to_chars is
-// also locale-independent, so messages match on every platform.
+// Shortest representation that parses back to the same double -- what
+// std::format prints for "{}" with no precision. A fixed precision would hide
+// exactly the values validation exists to catch: a player one ulp past the
+// touchline would print as sitting on it. The output is locale-independent,
+// so messages match on every platform.
 std::string formatNumber(const double value) {
-  // The shortest round-trip form of any double, including "-nan", fits in 24
-  // characters, so the conversion cannot run out of space.
-  std::array<char, 32> buffer{};
-  const std::to_chars_result result =
-      std::to_chars(buffer.data(), buffer.data() + buffer.size(), value);
-  return {buffer.data(), result.ptr};
+  return std::format("{}", value);
 }
 
 std::string formatVector(const SimCore::Vec2 vector, const std::string_view unit) {
@@ -91,9 +86,10 @@ void validateRoster(const MatchStateSpec& spec, std::vector<MatchStateError>& er
 void validatePlayers(const MatchStateSpec& spec, std::vector<MatchStateError>& errors) {
   std::unordered_map<SimCore::PlayerId::ValueType, std::size_t> firstIndexById;
 
-  for (std::size_t index = 0; index < spec.players.size(); ++index) {
-    const PlayerMatchState& player = spec.players[index];
-
+  // Range-for with a counter rather than spec.players[index]: no unchecked
+  // subscript, and the index is still there for the messages. The body has no
+  // continue, so the increment at the end runs for every player.
+  for (std::size_t index = 0; const PlayerMatchState& player : spec.players) {
     if (!isValidTeamSide(player.side)) {
       errors.push_back({.code = MatchStateErrorCode::kInvalidTeamSide,
                         .message = describePlayer(index, player) + " has team side value " +
@@ -137,6 +133,8 @@ void validatePlayers(const MatchStateSpec& spec, std::vector<MatchStateError>& e
                         .message = describePlayer(index, player) + " has a non-finite velocity: " +
                                    formatVelocity(player.velocity)});
     }
+
+    ++index;
   }
 }
 

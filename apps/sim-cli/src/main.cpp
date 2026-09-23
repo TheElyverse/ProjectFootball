@@ -102,6 +102,16 @@ std::string iso8601Now() {
   std::strftime(buffer.data(), buffer.size(), "%Y-%m-%dT%H:%M:%SZ", &utcTm);
   return buffer.data();
 }
+
+// "Empty simulation": a clock that exists and could tick, with no domain
+// state yet. This proves the core + CLI + replay-metadata wiring per the P0
+// exit criteria without pretending real simulation content exists.
+//
+// Defined here rather than inside main(): SimClock's constructor can throw,
+// and bugprone-exception-escape flags any call to it from main() even though
+// a constexpr variable is initialized at compile time -- an invalid tick
+// length fails the build, never the run.
+constexpr ElyverseFootball::SimCore::SimClock kEmptySimulationClock(1.0 / 30.0);
 }  // namespace
 
 int main(int argc, char** argv) {
@@ -126,10 +136,6 @@ int main(int argc, char** argv) {
   }
   const std::uint64_t seed = resolveSeed(options);
 
-  // "Empty simulation": a clock that exists and could tick, with no domain
-  // state yet. This proves the core + CLI + replay-metadata wiring per the
-  // P0 exit criteria without pretending real simulation content exists.
-  constexpr ElyverseFootball::SimCore::SimClock clock(1.0 / 30.0);
   ElyverseFootball::SimCore::RandomNumberGenerator executionRng(
       ElyverseFootball::SimCore::deriveSeed(
           seed, ElyverseFootball::SimCore::RandomNumberGeneratorDomain::kExecution));
@@ -149,7 +155,7 @@ int main(int argc, char** argv) {
       << R"(  "coreVersion": ")" << ElyverseFootball::SimCore::coreVersion() << "\",\n"
       << R"(  "createdAt": ")" << iso8601Now() << "\",\n"
       << R"(  "seed": ")" << seed << "\",\n"
-      << "  \"gameTime\": " << clock.tick().value() << "\n"
+      << "  \"gameTime\": " << kEmptySimulationClock.tick().value() << "\n"
       << "}\n";
 
   out.close();
@@ -159,7 +165,8 @@ int main(int argc, char** argv) {
   }
 
   if (options.tui) {
-    ElyverseFootball::Cli::showSimulationSummary(seed, clock.tick(), options.replayOut);
+    ElyverseFootball::Cli::showSimulationSummary(seed, kEmptySimulationClock.tick(),
+                                                 options.replayOut);
   } else {
     std::cout << "Started empty simulation. Wrote replay metadata to " << options.replayOut << "\n";
   }
