@@ -30,6 +30,26 @@ jobs:
       - name: Acceptance scenarios
         run: ctest --preset ci --label-regex acceptance --output-on-failure
 
+  # The web debug viewer (apps/sim-viewer): type-check, build and unit tests.
+  viewer:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/sim-viewer
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22
+
+      # No lockfile: typescript, the only dependency, is pinned exactly.
+      - name: Install
+        run: npm install --no-audit --no-fund
+
+      - name: Build and test
+        run: npm test
+
   format:
     runs-on: ubuntu-latest
     steps:
