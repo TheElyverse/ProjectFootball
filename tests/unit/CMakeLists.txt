@@ -44,11 +44,13 @@ target_link_libraries(sim-match-tests PRIVATE
 catch_discover_tests(sim-match-tests)
 
 add_executable(sim-replay-tests
+        sim-replay/debugFramesTests.cpp
         sim-replay/replayTests.cpp
         sim-replay/replayJsonTests.cpp
 )
 target_link_libraries(sim-replay-tests PRIVATE
         ElyverseFootball::sim-replay
+        nlohmann_json::nlohmann_json
         Catch2::Catch2WithMain
         pf_compiler_warnings
 )

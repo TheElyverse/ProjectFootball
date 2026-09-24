@@ -8,6 +8,7 @@ CPMAddPackage(
 )
 
 add_library(sim-replay STATIC
+        src/debugFrames.cpp
         src/replay.cpp
         src/replayJson.cpp
 )
