@@ -9,6 +9,7 @@
 #include "matchState.hpp"
 #include "passing.hpp"
 #include "perception.hpp"
+#include "reception.hpp"
 
 namespace ElyverseFootball::SimMatch {
 
@@ -20,6 +21,7 @@ struct MatchConfig {
   BallPhysics ball;
   PerceptionConfig perception;
   PassConfig passing;
+  ReceptionConfig reception;
 
   friend bool operator==(const MatchConfig&, const MatchConfig&) = default;
 };

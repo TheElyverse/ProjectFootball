@@ -54,7 +54,7 @@ pass, for example — whoever releases it sets its new velocity.
 | Change                  | How                                                          |
 |-------------------------|--------------------------------------------------------------|
 | a scenario or test gives the ball to a player | `GiveBallCommand{playerId}`                    |
-| a player receives, intercepts or recovers it  | the reception system (coming with passing)     |
+| a player receives, intercepts or recovers it  | the first to reach a free ball takes it; see [reception](reception.md) |
 | a player passes         | pass execution releases it with the pass velocity; see [passing](passing.md) |
 
 A `GiveBallCommand` applies at the start of its tick; the ball is at the new

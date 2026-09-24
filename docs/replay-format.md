@@ -18,7 +18,7 @@ validation leaves no file behind.
 ```json
 {
   "schemaVersion": 2,
-  "coreVersion": "0.5.0",
+  "coreVersion": "0.6.0",
   "createdAt": "2026-09-24T10:00:00Z",
   "seed": "18446744073709551615",
   "gameTime": 300,
@@ -36,9 +36,10 @@ validation leaves no file behind.
     "passing": {
       "arrivalSpeed": 4.0,
       "maxSpeed": 22.0,
-      "directionError": 0.03,
+            "directionError": 0.03,
       "speedError": 0.05
-    }
+    },
+    "reception": { "controlRadius": 1.0, "reclaimDelaySeconds": 0.3 }
   },
   "initialState": {
     "pitch": { "length": 60.0, "width": 40.0 },

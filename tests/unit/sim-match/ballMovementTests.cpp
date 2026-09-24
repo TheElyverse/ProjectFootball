@@ -159,14 +159,16 @@ TEST_CASE("A ball rolling along the line stays in play", "[ballMovement]") {
 }
 
 TEST_CASE("The ball moves independently of the players", "[ballMovement]") {
-  const Vec2 kick{.x = 7.0, .y = 3.0};
+  // Straight up from the center spot while two players run elsewhere: a free
+  // ball nobody reaches rolls the same whoever moves around it.
+  const Vec2 kick{.x = 0.0, .y = 7.0};
   MatchSimulation ballOnly = simulationOf(kick, {makeBallMovementSystem({})});
   MatchSimulation withPlayers = simulationOf(
       kick, {makePlayerMovementSystem(), makeBallMovementSystem({})},
       {{.tick = SimTick(0),
-        .command = MovePlayerCommand{.playerId = PlayerId(7), .target = {.x = 34.0, .y = 22.0}}},
+        .command = MovePlayerCommand{.playerId = PlayerId(7), .target = {.x = 10.0, .y = 10.0}}},
        {.tick = SimTick(0),
-        .command = MovePlayerCommand{.playerId = PlayerId(14), .target = {.x = 36.0, .y = 21.0}}}});
+        .command = MovePlayerCommand{.playerId = PlayerId(14), .target = {.x = 50.0, .y = 10.0}}}});
 
   for (int tick = 0; tick < 150; ++tick) {
     REQUIRE(ballOnly.step().has_value());

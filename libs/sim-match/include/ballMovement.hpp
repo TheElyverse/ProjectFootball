@@ -49,6 +49,7 @@ struct BallPhysics {
 inline constexpr std::string_view kBallMovementSystemName = "ball movement";
 
 struct PassConfig;
+struct ReceptionConfig;
 
 // Moves the ball one tick, every tick:
 //
@@ -56,18 +57,25 @@ struct PassConfig;
 //      released with executePass()'s velocity and the passer recorded as its
 //      last touch. A pass whose passer does not own the ball is discarded.
 //      Either way the pending pass is cleared.
-//   2. A free ball rolls with stepFreeBall().
-//   3. A controlled ball follows its owner: it ends the tick at
+//   2. A controlled ball follows its owner: it ends the tick at
 //      carriedBallPosition() of the owner as the movement system moves and
 //      turns him in the same tick, with his velocity.
+//   3. A free ball rolls with stepFreeBall(), and findBallClaim() decides
+//      whether a player reaches it on its way this tick. The claimant owns it
+//      from the end of the tick, with the ball at his feet, and becomes its
+//      last touch.
 //
 // Writes the ball's position, velocity, owner and last touch, and clears the
-// pending pass. Throws std::invalid_argument for invalid physics or passing.
+// pending pass. Throws std::invalid_argument for an invalid configuration.
+// The shorter overloads use the default configuration for what they omit.
 //
 // Pair it with makePlayerMovementSystem(), both every tick, as
 // makeMatchSystems() does: a controlled ball follows the carrier's move as the
 // movement system makes it, and without that system the ball would end the
 // tick where the carrier would have gone.
+[[nodiscard]] MatchSystem makeBallMovementSystem(const BallPhysics& physics,
+                                                 const PassConfig& passing,
+                                                 const ReceptionConfig& reception);
 [[nodiscard]] MatchSystem makeBallMovementSystem(const BallPhysics& physics,
                                                  const PassConfig& passing);
 [[nodiscard]] MatchSystem makeBallMovementSystem(const BallPhysics& physics);

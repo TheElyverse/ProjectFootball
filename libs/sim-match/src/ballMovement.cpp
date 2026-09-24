@@ -8,6 +8,7 @@
 
 #include "passing.hpp"
 #include "playerMovement.hpp"
+#include "reception.hpp"
 
 namespace ElyverseFootball::SimMatch {
 namespace {
@@ -117,44 +118,69 @@ BallState stepFreeBall(const BallState& ball, const BallPhysics& physics, const 
   return moved;
 }
 
-MatchSystem makeBallMovementSystem(const BallPhysics& physics, const PassConfig& passing) {
+MatchSystem makeBallMovementSystem(const BallPhysics& physics, const PassConfig& passing,
+                                   const ReceptionConfig& reception) {
   if (!isValid(physics)) {
     throw std::invalid_argument(
         "ball movement: rolling deceleration must be positive and finite, carry distance finite "
         "and not negative");
   }
   validate(passing);
-  return {.name = std::string(kBallMovementSystemName),
-          .update = [physics, passing](const MatchStepContext& context, const MatchState& current,
-                                       MatchStateWriter& next) {
-            BallState ball = current.ball();
-            if (const auto& intent = current.pendingPass()) {
-              next.setPendingPass(std::nullopt);
-              if (ball.owner == intent->passer) {
-                ball = kicked(current, *intent, physics, passing, context);
-                next.setBallOwner(ball.owner);
-                next.setBallLastTouch(ball.lastTouch);
-              }
-            }
-            if (!ball.owner) {
-              const BallState moved =
-                  stepFreeBall(ball, physics, current.pitch(), context.secondsPerTick());
-              next.setBallPosition(moved.position);
-              next.setBallVelocity(moved.velocity);
-              return;
-            }
-            // create() and the writer accept no owner outside the state.
-            if (const auto index = findPlayerIndex(current, *ball.owner)) {
-              const PlayerMatchState owner = ownerAfterMove(
-                  current.players()[*index], ball.position, context.secondsPerTick());
-              next.setBallPosition(carriedBallPosition(owner, physics, current.pitch()));
-              next.setBallVelocity(owner.velocity);
-            }
-          }};
+  validate(reception);
+  return {
+      .name = std::string(kBallMovementSystemName),
+      .update = [physics, passing, reception](const MatchStepContext& context,
+                                              const MatchState& current, MatchStateWriter& next) {
+        const double secondsPerTick = context.secondsPerTick();
+        // Leaves the ball with this player, at his feet as he ends the tick.
+        const auto carryBy = [&](const PlayerMatchState& player) {
+          const PlayerMatchState owner =
+              ownerAfterMove(player, current.ball().position, secondsPerTick);
+          next.setBallPosition(carriedBallPosition(owner, physics, current.pitch()));
+          next.setBallVelocity(owner.velocity);
+        };
+
+        // 1. Play the pending pass, if its passer owns the ball.
+        BallState ball = current.ball();
+        if (const auto& intent = current.pendingPass()) {
+          next.setPendingPass(std::nullopt);
+          if (ball.owner == intent->passer) {
+            ball = kicked(current, *intent, physics, passing, context);
+            next.setBallOwner(ball.owner);
+            next.setBallLastTouch(ball.lastTouch);
+          }
+        }
+
+        // 2. A controlled ball stays with its owner. create() and the
+        //    writer accept no owner outside the state.
+        if (ball.owner) {
+          if (const auto index = findPlayerIndex(current, *ball.owner)) {
+            carryBy(current.players()[*index]);
+          }
+          return;
+        }
+
+        // 3. A free ball rolls, and the first player to reach it on its
+        //    way takes it.
+        const BallState rolled = stepFreeBall(ball, physics, current.pitch(), secondsPerTick);
+        if (const auto claim = findBallClaim(current, ball, rolled.position, context.tick(),
+                                             secondsPerTick, reception)) {
+          next.setBallOwner(claim->playerId);
+          next.setBallLastTouch(BallTouch{.playerId = claim->playerId, .tick = context.tick()});
+          carryBy(current.players()[claim->playerIndex]);
+          return;
+        }
+        next.setBallPosition(rolled.position);
+        next.setBallVelocity(rolled.velocity);
+      }};
+}
+
+MatchSystem makeBallMovementSystem(const BallPhysics& physics, const PassConfig& passing) {
+  return makeBallMovementSystem(physics, passing, ReceptionConfig{});
 }
 
 MatchSystem makeBallMovementSystem(const BallPhysics& physics) {
-  return makeBallMovementSystem(physics, PassConfig{});
+  return makeBallMovementSystem(physics, PassConfig{}, ReceptionConfig{});
 }
 
 }  // namespace ElyverseFootball::SimMatch

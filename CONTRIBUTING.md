@@ -41,6 +41,7 @@ before starting a change.
   ball follows its carrier.
 - [Passing](docs/passing.md): pass intents, pass speed and reach, and execution
   error.
+- [Reception](docs/reception.md): who gains control of a free ball.
 - [Replay format](docs/replay-format.md): the replay file `sim-cli` writes, its
   versioning and seed encoding contract, and replay playback.
 - [Scenarios](docs/scenarios.md): the named, reproducible match setups `sim-cli`

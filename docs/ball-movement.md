@@ -6,7 +6,8 @@ as the system `makeBallMovementSystem(BallPhysics)`, which runs every tick and
 writes the ball's position and velocity. A free ball knows nothing about players:
 it moves the same with or without them. A controlled ball follows its carrier;
 see [possession](possession.md). The same system plays pending passes, which
-turn a controlled ball into a free one; see [passing](passing.md).
+turn a controlled ball into a free one (see [passing](passing.md)), and hands a
+free ball to the first player to reach it (see [reception](reception.md)).
 
 ## Friction
 

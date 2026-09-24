@@ -103,7 +103,10 @@ using SimMatch::TeamSide;
            {{"arrivalSpeed", config.passing.arrivalSpeed},
             {"maxSpeed", config.passing.maxSpeed},
             {"directionError", config.passing.directionError},
-            {"speedError", config.passing.speedError}}}};
+            {"speedError", config.passing.speedError}}},
+          {"reception",
+           {{"controlRadius", config.reception.controlRadius},
+            {"reclaimDelaySeconds", config.reception.reclaimDelaySeconds}}}};
 }
 
 void addCommandFields(Json& json, const MovePlayerCommand& command) {
@@ -353,7 +356,10 @@ constexpr std::int64_t kMaxTick = std::int64_t{1} << 53;
       .ball = {.rollingDeceleration = field.member("ball").member("rollingDeceleration").number(),
                .carryDistance = field.member("ball").member("carryDistance").number()},
       .perception = readPerception(field.member("perception")),
-      .passing = readPassing(field.member("passing"))};
+      .passing = readPassing(field.member("passing")),
+      .reception = {
+          .controlRadius = field.member("reception").member("controlRadius").number(),
+          .reclaimDelaySeconds = field.member("reception").member("reclaimDelaySeconds").number()}};
 }
 
 [[nodiscard]] MatchCommand readCommand(const Field& field) {

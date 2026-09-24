@@ -145,7 +145,9 @@ TEST_CASE("A controlled ball follows its carrier", "[possession]") {
 }
 
 TEST_CASE("Taking a rolling ball leaves no stale velocity", "[possession]") {
-  MatchSimulation simulation = matchOf({give(10, 4)}, kickoff({.x = 9.0, .y = 2.0}));
+  // Straight up from the center spot, between the two forwards, so nobody
+  // reaches it on its own.
+  MatchSimulation simulation = matchOf({give(10, 4)}, kickoff({.x = 0.0, .y = 9.0}));
   stepTimes(simulation, 10);
   REQUIRE(simulation.state().ball().velocity.lengthSquared() > 0.0);
 

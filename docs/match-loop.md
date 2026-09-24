@@ -120,7 +120,7 @@ a replay reproduces.
 
 `matchSetup.hpp` assembles the systems a real match runs. `MatchConfig` holds
 every tunable parameter of those systems — the tick rate, ball physics and
-perception and passing so far — and `makeMatchSystems(config)` returns them in their fixed order:
+perception, passing and reception so far — and `makeMatchSystems(config)` returns them in their fixed order:
 
 | Order | System          | Rate       | Writes                         |
 |-------|-----------------|------------|--------------------------------|

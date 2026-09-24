@@ -75,5 +75,5 @@ The ball system rejects non-positive speeds, negative errors, a speed error of
 
 All passes are ground passes. There is no chip, lofted pass or shot, and the
 error does not yet depend on the passer's technique, pressure or body shape — the
-capabilities that will shape it arrive with the player model. Receiving the ball
-comes with receptions and interceptions.
+capabilities that will shape it arrive with the player model. Who gets the ball
+afterwards is decided by [reception](reception.md).
