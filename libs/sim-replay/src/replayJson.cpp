@@ -62,6 +62,13 @@ using SimMatch::TeamSide;
   return json;
 }
 
+[[nodiscard]] Json touchJson(const std::optional<SimMatch::BallTouch>& touch) {
+  if (!touch) {
+    return nullptr;
+  }
+  return {{"playerId", touch->playerId.value()}, {"tick", touch->tick.value()}};
+}
+
 [[nodiscard]] Json stateJson(const MatchState& state) {
   Json json;
   json["pitch"] = {{"length", state.pitch().lengthMeters()},
@@ -74,7 +81,8 @@ using SimMatch::TeamSide;
   const auto& owner = state.ball().owner;
   json["ball"] = {{"position", vec2Json(state.ball().position)},
                   {"velocity", vec2Json(state.ball().velocity)},
-                  {"owner", owner ? Json(owner->value()) : Json(nullptr)}};
+                  {"owner", owner ? Json(owner->value()) : Json(nullptr)},
+                  {"lastTouch", touchJson(state.ball().lastTouch)}};
   return json;
 }
 
@@ -252,6 +260,14 @@ constexpr std::int64_t kMaxTick = std::int64_t{1} << 53;
   return readPlayerId(field);
 }
 
+[[nodiscard]] std::optional<SimMatch::BallTouch> readTouch(const Field& field) {
+  if (field.isNull()) {
+    return std::nullopt;
+  }
+  return SimMatch::BallTouch{.playerId = readPlayerId(field.member("playerId")),
+                             .tick = SimTick(field.member("tick").integerIn(-kMaxTick, kMaxTick))};
+}
+
 [[nodiscard]] PlayerMatchState readPlayer(const Field& field) {
   const Field attributes = field.member("attributes");
   const Field target = field.member("target");
@@ -289,7 +305,8 @@ constexpr std::int64_t kMaxTick = std::int64_t{1} << 53;
        .players = std::move(players),
        .ball = {.position = readVec2(ball.member("position")),
                 .velocity = readVec2(ball.member("velocity")),
-                .owner = readOwner(ball.member("owner"))},
+                .owner = readOwner(ball.member("owner")),
+                .lastTouch = readTouch(ball.member("lastTouch"))},
        .playersPerSide = static_cast<int>(field.member("playersPerSide").integerIn(1, 1000))});
   if (!state) {
     std::string problems = "invalid match state";

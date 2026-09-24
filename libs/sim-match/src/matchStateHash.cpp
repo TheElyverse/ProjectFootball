@@ -60,12 +60,27 @@ std::uint64_t hashMatchState(const MatchState& state) noexcept {
   addVec2(hasher, state.ball().velocity);
   hasher.addBool(state.ball().owner.has_value());
   hasher.addU64(state.ball().owner.value_or(SimCore::PlayerId::invalid()).value());
+  const auto& touch = state.ball().lastTouch;
+  hasher.addBool(touch.has_value());
+  if (touch) {
+    hasher.addU64(touch->playerId.value());
+    hasher.addI64(touch->tick.value());
+  }
   for (std::size_t index = 0; index < state.players().size(); ++index) {
     const PlayerPerception& perception = state.perception(index);
     hasher.addU64(perception.observations.size());
     for (const Observation& observation : perception.observations) {
       addObservation(hasher, observation);
     }
+  }
+  const auto& pass = state.pendingPass();
+  hasher.addBool(pass.has_value());
+  if (pass) {
+    hasher.addU64(pass->passer.value());
+    addVec2(hasher, pass->target);
+    hasher.addDouble(pass->speed);
+    hasher.addBool(pass->receiver.has_value());
+    hasher.addU64(pass->receiver.value_or(SimCore::PlayerId::invalid()).value());
   }
   return hasher.value();
 }

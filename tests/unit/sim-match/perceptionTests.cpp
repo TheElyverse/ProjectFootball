@@ -66,7 +66,8 @@ const PerceptionConfig kConfig{};
                                       playerAt(4, TeamSide::kAway, {.x = 18.0, .y = 20.0})},
                           .ball = {.position = {.x = 30.0, .y = 20.0},
                                    .velocity = {.x = 2.0, .y = 0.0},
-                                   .owner = std::nullopt},
+                                   .owner = std::nullopt,
+                                   .lastTouch = std::nullopt},
                           .playersPerSide = 2});
   REQUIRE(state.has_value());
   return *std::move(state);

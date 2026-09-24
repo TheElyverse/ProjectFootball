@@ -215,6 +215,12 @@ void validateBall(const MatchStateSpec& spec, std::vector<MatchStateError>& erro
                       .message = "the ball moves at " + formatVelocity(velocity) +
                                  ", faster than " + formatNumber(kMaxBallSpeed) + " m/s"});
   }
+  if (spec.ball.lastTouch && !hasPlayer(spec.players, spec.ball.lastTouch->playerId)) {
+    errors.push_back({.code = MatchStateErrorCode::kUnknownLastTouch,
+                      .message = "the ball was last touched by player " +
+                                 std::to_string(spec.ball.lastTouch->playerId.value()) +
+                                 ", who is not in the state"});
+  }
   if (spec.ball.owner && !hasPlayer(spec.players, *spec.ball.owner)) {
     errors.push_back({.code = MatchStateErrorCode::kUnknownBallOwner,
                       .message = "the ball belongs to player " +
@@ -273,11 +279,35 @@ void MatchStateWriter::setPlayerFacing(const std::size_t playerIndex, const SimC
 }
 
 void MatchStateWriter::setBallOwner(const std::optional<SimCore::PlayerId> owner) {
-  if (owner && !hasPlayer(state_->players_, *owner)) {
-    throw std::invalid_argument("MatchStateWriter: no player with id " +
-                                std::to_string(owner->value()) + " can own the ball");
+  if (owner) {
+    requirePlayer(*owner, "the ball's owner");
   }
   state_->ball_.owner = owner;
+}
+
+void MatchStateWriter::requirePlayer(const SimCore::PlayerId playerId,
+                                     const std::string_view role) const {
+  if (!hasPlayer(state_->players_, playerId)) {
+    throw std::invalid_argument("MatchStateWriter: no player with id " +
+                                std::to_string(playerId.value()) + " can be " + std::string(role));
+  }
+}
+
+void MatchStateWriter::setBallLastTouch(const std::optional<BallTouch> touch) {
+  if (touch) {
+    requirePlayer(touch->playerId, "the last to touch the ball");
+  }
+  state_->ball_.lastTouch = touch;
+}
+
+void MatchStateWriter::setPendingPass(const std::optional<PassIntent> pass) {
+  if (pass) {
+    requirePlayer(pass->passer, "a passer");
+    if (pass->receiver) {
+      requirePlayer(*pass->receiver, "a receiver");
+    }
+  }
+  state_->pendingPass_ = pass;
 }
 
 PlayerPerception& MatchStateWriter::perception(const std::size_t playerIndex) {

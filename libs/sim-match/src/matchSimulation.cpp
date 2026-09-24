@@ -103,14 +103,17 @@ static_assert(static_cast<std::size_t>(RandomNumberGeneratorDomain::kAi) + 1 ==
 }
 
 // Commands were validated when scheduled, so the player exists.
-void apply(const MovePlayerCommand& command, const MatchState& state, MatchStateWriter& writer) {
+void apply(const MovePlayerCommand& command, const MatchState& state,
+           const SimCore::SimTick /*tick*/, MatchStateWriter& writer) {
   if (const auto index = findPlayerIndex(state, command.playerId)) {
     writer.setPlayerTarget(*index, state.pitch().clamp(command.target));
   }
 }
 
-void apply(const GiveBallCommand& command, const MatchState& /*state*/, MatchStateWriter& writer) {
+void apply(const GiveBallCommand& command, const MatchState& /*state*/, const SimCore::SimTick tick,
+           MatchStateWriter& writer) {
   writer.setBallOwner(command.playerId);
+  writer.setBallLastTouch(BallTouch{.playerId = command.playerId, .tick = tick});
 }
 
 }  // namespace
@@ -170,8 +173,9 @@ const MatchState& MatchSimulation::applyDueCommands() {
   commanded_ = current_;
   MatchStateWriter writer(commanded_);
   for (std::size_t index = appliedCount_; isDueNow(index); ++index) {
-    std::visit([this, &writer](const auto& command) { apply(command, commanded_, writer); },
-               commands_[index].command);
+    std::visit(
+        [this, &writer](const auto& command) { apply(command, commanded_, clock_.tick(), writer); },
+        commands_[index].command);
   }
   return commanded_;
 }

@@ -14,6 +14,7 @@
 using ElyverseFootball::SimCore::PlayerId;
 using ElyverseFootball::SimCore::SimTick;
 using ElyverseFootball::SimCore::Vec2;
+using ElyverseFootball::SimMatch::BallTouch;
 using ElyverseFootball::SimMatch::hashMatchState;
 using ElyverseFootball::SimMatch::makeSevenASideKickoff;
 using ElyverseFootball::SimMatch::MatchSimulation;
@@ -57,7 +58,7 @@ TEST_CASE("Equal states hash equally", "[matchStateHash]") {
 TEST_CASE("The kickoff hash is pinned", "[matchStateHash]") {
   // Changes when the fixture, a state field or the hash encoding changes;
   // each of those invalidates recorded replays, so update it deliberately.
-  REQUIRE(hashOf(kickoffSpec()) == 0x1e7c4558ba42bcfaULL);
+  REQUIRE(hashOf(kickoffSpec()) == 0x6c4fd8e47c35f20aULL);
 }
 
 // Guards against a field that is added to the state but forgotten here.
@@ -82,6 +83,10 @@ TEST_CASE("Every field of the state changes the hash", "[matchStateHash]") {
       {"ball position", [](auto& spec) { spec.ball.position.y = 1.0; }},
       {"ball velocity", [](auto& spec) { spec.ball.velocity.x = -1.0; }},
       {"ball owner", [](auto& spec) { spec.ball.owner = PlayerId(7); }},
+      {"last touch",
+       [](auto& spec) {
+         spec.ball.lastTouch = BallTouch{.playerId = PlayerId(7), .tick = SimTick(0)};
+       }},
   };
 
   for (const auto& [field, change] : changes) {

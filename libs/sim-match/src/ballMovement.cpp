@@ -86,11 +86,15 @@ BallState stepFreeBall(const BallState& ball, const BallPhysics& physics, const 
   // line. A ball already off the pitch (a hand-built state) rolls on.
   if (pitch.contains(ball.position) && !pitch.contains(end)) {
     const double fraction = exitFraction(ball.position, end, pitch);
-    return {.position = pitch.clamp(ball.position + ((end - ball.position) * fraction)),
-            .velocity = {},
-            .owner = ball.owner};
+    BallState stopped = ball;
+    stopped.position = pitch.clamp(ball.position + ((end - ball.position) * fraction));
+    stopped.velocity = {};
+    return stopped;
   }
-  return {.position = end, .velocity = direction * endSpeed, .owner = ball.owner};
+  BallState moved = ball;
+  moved.position = end;
+  moved.velocity = direction * endSpeed;
+  return moved;
 }
 
 MatchSystem makeBallMovementSystem(const BallPhysics physics) {

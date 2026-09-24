@@ -15,7 +15,7 @@ and ball physics are separate concerns.
 | `MatchState`       | the `Pitch`, the players in order, the `BallState`, the squad size per side, and every player's perception memory |
 | `PlayerMatchState` | `playerId`, `side`, `position`, `velocity`, `attributes`, `target`, `facing`    |
 | `PlayerAttributes` | `maxSpeed` (m/s) and `acceleration` (m/s²), fixed for the match                 |
-| `BallState`        | `position`, `velocity`, `owner`                                                 |
+| `BallState`        | `position`, `velocity`, `owner`, `lastTouch`                                    |
 | `TeamSide`         | `kHome` or `kAway`                                                              |
 
 Positions are meters in pitch coordinates, velocities are meters per second, in
@@ -30,8 +30,11 @@ one, and without a target a player comes to a stop where he is; see
 `kDefaultAcceleration` (4 m/s²); they describe the predefined test players of the
 sandbox, not a generated player.
 
-The ball's `owner` is the player in control of it, empty while it is free; see
-[possession](possession.md).
+The ball's `owner` is the player in control of it, empty while it is free, and
+`lastTouch` the last player to kick or take it; see [possession](possession.md).
+A state also holds the pass a player has decided on and not yet played,
+`pendingPass()`, empty in every state created from a spec; see
+[passing](passing.md).
 
 `facing` is the unit vector a player looks along; it decides what he can see. It
 is a vector rather than an angle so that no trigonometry, and none of its
@@ -78,6 +81,7 @@ one.
 | the ball velocity is finite                       | `kNonFiniteBallVelocity`   |
 | the ball is not faster than `kMaxBallSpeed` (100 m/s) | `kBallTooFast`         |
 | the ball's owner, where set, is a player in the state | `kUnknownBallOwner`    |
+| the ball's last touch, where set, is a player in the state | `kUnknownLastTouch` |
 
 These rules hold for every state of a match, from kickoff to the final whistle.
 The match loop only changes positions, velocities, targets and facings, and

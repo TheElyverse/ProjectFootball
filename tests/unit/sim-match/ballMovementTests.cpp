@@ -41,7 +41,8 @@ using ElyverseFootball::SimMatch::stepFreeBall;
 namespace {
 
 [[nodiscard]] BallState freeBall(const Vec2 position, const Vec2 velocity) {
-  return {.position = position, .velocity = velocity, .owner = std::nullopt};
+  return {
+      .position = position, .velocity = velocity, .owner = std::nullopt, .lastTouch = std::nullopt};
 }
 
 constexpr double kSecondsPerTick = 1.0 / kDefaultTicksPerSecond;

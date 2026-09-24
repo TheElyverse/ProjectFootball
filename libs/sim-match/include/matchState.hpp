@@ -12,6 +12,7 @@
 #include "ids.hpp"
 #include "observation.hpp"
 #include "pitch.hpp"
+#include "simTime.hpp"
 #include "vec2.hpp"
 
 namespace ElyverseFootball::SimMatch {
@@ -85,14 +86,24 @@ struct PlayerMatchState {
 // Position in meters, velocity in meters per second, both in the pitch plane.
 // The third dimension and spin (section 6.7) arrive with the passing model.
 //
+// Who last played the ball, and in which tick.
+struct BallTouch {
+  SimCore::PlayerId playerId;
+  SimCore::SimTick tick;
+
+  friend bool operator==(const BallTouch&, const BallTouch&) = default;
+};
+
 // owner is the player in control of the ball; empty while the ball is free.
 // One optional id rather than a flag per player, so the ball can never have
 // two owners. A controlled ball follows its owner, a free ball rolls on its
-// own (docs/possession.md).
+// own (docs/possession.md). lastTouch is the last player to kick or take the
+// ball; empty until someone has.
 struct BallState {
   SimCore::Vec2 position;
   SimCore::Vec2 velocity;
   std::optional<SimCore::PlayerId> owner;
+  std::optional<BallTouch> lastTouch;
 
   [[nodiscard]] bool isControlled() const noexcept { return owner.has_value(); }
 
@@ -122,6 +133,7 @@ enum class MatchStateErrorCode : std::uint8_t {
   kNonFiniteBallVelocity,
   kBallTooFast,
   kUnknownBallOwner,
+  kUnknownLastTouch,
 };
 
 // The code is what tests and callers branch on; the message names the offending
@@ -142,6 +154,22 @@ struct MatchStateSpec {
   std::vector<PlayerMatchState> players;
   BallState ball;
   int playersPerSide = kDefaultPlayersPerSide;
+};
+
+// A pass a player has decided on and not yet played: the what, decided apart
+// from the how well (docs/passing.md). The ball system executes it in the
+// next step it runs, if the passer still owns the ball, and discards it
+// otherwise.
+struct PassIntent {
+  SimCore::PlayerId passer;
+  // Where the pass should go, in meters.
+  SimCore::Vec2 target;
+  // How fast the ball should leave the foot, in meters per second.
+  double speed = 0.0;
+  // Who the pass is meant for; empty for a pass into space.
+  std::optional<SimCore::PlayerId> receiver;
+
+  friend bool operator==(const PassIntent&, const PassIntent&) = default;
 };
 
 class MatchSimulation;
@@ -176,6 +204,12 @@ class MatchState {
   [[nodiscard]] const BallState& ball() const noexcept { return ball_; }
   [[nodiscard]] int playersPerSide() const noexcept { return playersPerSide_; }
 
+  // The pass decided and waiting to be played; empty almost always. Every
+  // state created from a spec starts without one.
+  [[nodiscard]] const std::optional<PassIntent>& pendingPass() const noexcept {
+    return pendingPass_;
+  }
+
   // The memory of the player at this index in players(); throws
   // std::out_of_range past the end. Every state created from a spec starts
   // with empty memories: perception is built up by the match, not given.
@@ -196,11 +230,12 @@ class MatchState {
   int playersPerSide_;
   // Parallel to players_.
   std::vector<PlayerPerception> perceptions_;
+  std::optional<PassIntent> pendingPass_;
 };
 
 // What a simulation system or command may change in a state: positions,
-// velocities, movement targets, facings, perception memories and who owns the
-// ball, nothing else. Squad, ids, sides,
+// velocities, movement targets, facings, perception memories, who owns and
+// last touched the ball, and the pending pass, nothing else. Squad, ids, sides,
 // attributes, player order and the pitch have no setter, so a system cannot break those invariants
 // and nothing has to re-check them every tick. Players are addressed by their index in
 // MatchState::players(); an index past the end throws std::out_of_range.
@@ -221,11 +256,20 @@ class MatchStateWriter {
   // std::invalid_argument for an id no player in the state has, so the ball
   // can only ever belong to a player on the pitch.
   void setBallOwner(std::optional<SimCore::PlayerId> owner);
+  // Records who last played the ball; throws std::invalid_argument for a
+  // player not in the state.
+  void setBallLastTouch(std::optional<BallTouch> touch);
+  // Sets or clears the pass waiting to be played; throws
+  // std::invalid_argument for a passer or receiver not in the state.
+  void setPendingPass(std::optional<PassIntent> pass);
 
  private:
   friend class MatchSimulation;
 
   explicit MatchStateWriter(MatchState& state) noexcept : state_(&state) {}
+
+  // Throws std::invalid_argument naming the role if no player has the id.
+  void requirePlayer(SimCore::PlayerId playerId, std::string_view role) const;
 
   MatchState* state_;
 };

@@ -18,7 +18,7 @@ validation leaves no file behind.
 ```json
 {
   "schemaVersion": 2,
-  "coreVersion": "0.4.0",
+  "coreVersion": "0.5.0",
   "createdAt": "2026-09-24T10:00:00Z",
   "seed": "18446744073709551615",
   "gameTime": 300,
@@ -51,7 +51,8 @@ validation leaves no file behind.
     "ball": {
       "position": { "x": 30.0, "y": 20.0 },
       "velocity": { "x": 6.5, "y": -1.25 },
-      "owner": null
+            "owner": null,
+      "lastTouch": null
     }
   },
   "commands": [
@@ -60,7 +61,7 @@ validation leaves no file behind.
     { "tick": 45, "order": 1, "type": "movePlayer", "playerId": 2, "target": { "x": 30.0, "y": 20.0 } }
   ],
   "checkpoints": [
-    { "tick": 0, "stateHash": "1e7c4558ba42bcfa" },
+    { "tick": 0, "stateHash": "6c4fd8e47c35f20a" },
     { "tick": 30, "stateHash": "..." }
   ]
 }

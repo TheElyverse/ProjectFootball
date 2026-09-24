@@ -63,6 +63,13 @@ any other, so replays reproduce them and the state hash covers the owner.
 `BallPhysics::carryDistance` (0.5 m by default) is part of `MatchConfig` and of
 every replay. It must be finite and not negative.
 
+## Last touch
+
+`BallState::lastTouch` records who last played the ball and in which tick: the
+passer when a pass is kicked, the new owner when a `GiveBallCommand` hands him
+the ball. It is empty until someone has touched the ball, and like the owner it
+can only name a player in the state (`kUnknownLastTouch`).
+
 ## What this is not
 
 There is no dribbling skill, no loss of control and no tackling: a carrier keeps
