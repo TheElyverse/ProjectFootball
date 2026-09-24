@@ -43,6 +43,8 @@ before starting a change.
   error.
 - [Reception](docs/reception.md): who gains control of a free ball, and who goes
   after it.
+- [Pass candidates](docs/pass-candidates.md): passing options and their scores,
+  from the carrier's perception.
 - [Replay format](docs/replay-format.md): the replay file `sim-cli` writes, its
   versioning and seed encoding contract, and replay playback.
 - [Scenarios](docs/scenarios.md): the named, reproducible match setups `sim-cli`
