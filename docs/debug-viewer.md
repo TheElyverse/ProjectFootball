@@ -96,7 +96,7 @@ abridged example with illustrative values:
   "players": [{ "id": 1, "side": "home" }],
   "frames": [
     {
-      "tick": 0,
+      "tick": 1,
       "stateHash": "d96934b44b13ded7",
       "ball": { "position": [30, 20], "velocity": [0, 0], "owner": null, "lastTouch": null },
       "pendingPass": null,
@@ -112,9 +112,10 @@ abridged example with illustrative values:
           ]
         }
       ],
-      "events": [{ "type": "possessionChanged", "previousOwner": null, "newOwner": 4 }],
+      "events": [{ "tick": 0, "type": "possessionChanged", "previousOwner": null, "newOwner": 4 }],
       "decisions": [
         {
+          "tick": 0,
           "player": 4,
           "outcome": "passed",
           "chosen": 0,
@@ -140,7 +141,9 @@ abridged example with illustrative values:
 - `frames` has one entry per tick from 0, the initial state, to the last
   simulated tick. A frame is the state after the step that reached its tick,
   plus the events and decision diagnostics that step recorded; frame 0 has
-  none.
+  none. Events and decisions carry their own `tick`, the step's, which is one
+  less than the frame's: the step from tick 18 reaches frame 19. The viewer
+  shows that tick in the event log and the decision panel.
 - Vectors are `[x, y]` arrays in meters, `x` along the pitch length and `y`
   across it. Ids are player ids; `null` means none.
 - `observations` of a player are his memory after the step. The observations

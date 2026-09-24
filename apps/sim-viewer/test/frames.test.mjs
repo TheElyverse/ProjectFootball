@@ -61,11 +61,11 @@ test("describeEvent names the players involved", () => {
     "#4 passes to #7",
   );
   assert.equal(
-    describeEvent({ type: "passIntercepted", interceptor: 9, passer: 4 }),
+    describeEvent({ tick: 0, type: "passIntercepted", interceptor: 9, passer: 4 }),
     "#9 intercepts #4's pass",
   );
   assert.equal(
-    describeEvent({ type: "possessionChanged", previousOwner: 4, newOwner: null }),
+    describeEvent({ tick: 0, type: "possessionChanged", previousOwner: 4, newOwner: null }),
     "ball free (was #4)",
   );
 });

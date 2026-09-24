@@ -127,6 +127,9 @@ void addEventFields(Json& json, const SimMatch::PossessionChanged& event) {
 
 [[nodiscard]] Json eventJson(const SimMatch::MatchEvent& event) {
   Json json;
+  // The step's tick, one before the frame's: the event happened during the
+  // step that led to the frame.
+  json["tick"] = SimMatch::eventTick(event).value();
   std::visit([&json](const auto& alternative) { addEventFields(json, alternative); }, event);
   return json;
 }
@@ -159,6 +162,7 @@ void addEventFields(Json& json, const SimMatch::PossessionChanged& event) {
 
 [[nodiscard]] Json decisionJson(const SimMatch::DecisionDiagnostic& decision) {
   Json json;
+  json["tick"] = decision.tick.value();
   json["player"] = decision.player.value();
   json["outcome"] = outcomeName(decision.outcome);
   json["chosen"] = decision.chosen ? Json(*decision.chosen) : Json(nullptr);

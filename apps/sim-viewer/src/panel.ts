@@ -87,7 +87,7 @@ function eventSection(recording: Recording, frameIndex: number): HTMLElement[] {
         lines.push(
           element(
             "li",
-            `${frame?.tick ?? "?"}: ${describeEvent(event)}`,
+            `${event.tick}: ${describeEvent(event)}`,
             index === frameIndex ? "current" : undefined,
           ),
         );
@@ -130,11 +130,10 @@ function selectionSection(
     return nodes;
   }
   const { decision } = latest;
-  const tick = recording.frames[latest.frameIndex]?.tick ?? 0;
   nodes.push(
     element(
       "h3",
-      `Pass decision at tick ${tick}: ${decision.outcome === "passed" ? "passed" : "no valid option"}`,
+      `Pass decision at tick ${decision.tick}: ${decision.outcome === "passed" ? "passed" : "no valid option"}`,
     ),
     table(
       ["to", "dist", "risk", "compl", "prog", "press", "utility", "status"],

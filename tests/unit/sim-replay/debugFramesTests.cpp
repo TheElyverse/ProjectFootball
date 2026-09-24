@@ -103,6 +103,9 @@ TEST_CASE("toDebugFramesJson writes the documented format", "[debugFrames]") {
   CHECK(second.at("ball").at("owner") == 4);
   CHECK(second.at("events").at(0).at("type") == "possessionChanged");
   CHECK(second.at("events").at(0).at("newOwner") == 4);
+  // Events carry the tick of the step that recorded them, one before the
+  // frame's.
+  CHECK(second.at("events").at(0).at("tick") == 0);
 }
 
 TEST_CASE("toDebugFramesJson rounds to three decimals and lists decision candidates",
@@ -120,6 +123,7 @@ TEST_CASE("toDebugFramesJson rounds to three decimals and lists decision candida
     }
     for (const auto& decision : frame.at("decisions")) {
       CHECK(decision.at("player") == 4);
+      CHECK(decision.at("tick") == frame.at("tick").get<int>() - 1);
       for (const auto& candidate : decision.at("candidates")) {
         sawCandidate = true;
         CHECK(candidate.contains("utility"));

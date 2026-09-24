@@ -37,7 +37,14 @@ export function fixture() {
       frame(0),
       frame(1, {
         decisions: [
-          { player: 1, outcome: "noValidOption", chosen: null, candidates: [], observations: [] },
+          {
+            tick: 0,
+            player: 1,
+            outcome: "noValidOption",
+            chosen: null,
+            candidates: [],
+            observations: [],
+          },
         ],
       }),
       frame(2),

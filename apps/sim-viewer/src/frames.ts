@@ -47,7 +47,9 @@ export interface PendingPass {
   readonly receiver: number | null;
 }
 
-export type MatchEvent =
+// Every event carries the tick of the step that recorded it, which is one
+// before the tick of the frame holding it: the step from tick N reaches N + 1.
+export type MatchEvent = { readonly tick: number } & (
   | {
       readonly type: "passAttempted";
       readonly passer: number;
@@ -63,7 +65,8 @@ export type MatchEvent =
       readonly type: "possessionChanged";
       readonly previousOwner: number | null;
       readonly newOwner: number | null;
-    };
+    }
+);
 
 export interface PassCandidate {
   readonly receiver: number;
@@ -81,6 +84,8 @@ export interface PassCandidate {
 }
 
 export interface Decision {
+  // The tick decided on: the step's, one before the frame's.
+  readonly tick: number;
   readonly player: number;
   readonly outcome: "passed" | "noValidOption";
   // Index into candidates of the chosen pass.
