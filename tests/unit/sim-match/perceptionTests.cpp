@@ -113,6 +113,11 @@ TEST_CASE("The vision cone ends at half the field of view", "[perception]") {
   // The default 180 degrees: sideways is seen, slightly behind is not.
   REQUIRE(canSee(observer, {.x = 20.001, .y = 30.0}, kConfig));
   REQUIRE_FALSE(canSee(observer, {.x = 19.999, .y = 30.0}, kConfig));
+  // Exactly on the edge is inside: straight sideways, and the exact diagonal
+  // of the 90 degree cone.
+  REQUIRE(canSee(observer, {.x = 20.0, .y = 30.0}, kConfig));
+  REQUIRE(canSee(observer, {.x = 20.0, .y = 10.0}, kConfig));
+  REQUIRE(canSee(observer, {.x = 30.0, .y = 30.0}, narrow));
 }
 
 TEST_CASE("A player senses what is close behind him", "[perception]") {

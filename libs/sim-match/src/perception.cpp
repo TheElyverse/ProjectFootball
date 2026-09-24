@@ -57,9 +57,14 @@ bool canSee(const PlayerMatchState& observer, const Vec2 position,
   }
   // Inside the cone when the angle to the facing is at most half the field
   // of view: facing · offset >= |offset| · cos(fov / 2). The facing is a unit
-  // vector, so no angle needs to be computed per entity.
+  // vector, so no angle needs to be computed per entity. std::cos(pi / 2) is
+  // about 6e-17, not 0, so without the tolerance a player straight sideways
+  // would fall outside a 180 degree cone despite the inclusive edge; the
+  // tolerance also absorbs a last-bit difference between standard libraries.
+  constexpr double kEdgeTolerance = 1e-9;
   const double halfAngle = config.fieldOfViewDegrees * std::numbers::pi / 360.0;
-  return observer.facing.dot(offset) >= std::sqrt(distanceSquared) * std::cos(halfAngle);
+  return observer.facing.dot(offset) >=
+         std::sqrt(distanceSquared) * (std::cos(halfAngle) - kEdgeTolerance);
 }
 
 Vec2 estimatePosition(const Observation& observation, const SimTick now,

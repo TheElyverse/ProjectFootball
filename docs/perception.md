@@ -44,9 +44,12 @@ Both bounds are inclusive. Players do not hide one another yet: there is no
 occlusion. What a player faces is set by [player movement](player-movement.md):
 along his run while running, toward the ball otherwise.
 
-The cone compares against `cos(fov / 2)`, computed with `std::cos` from the
-configured degrees. A standard library may round that cosine differently in the
-last bit; only an entity lying exactly on the cone's edge could notice.
+The cone compares against `cos(fov / 2) − 10⁻⁹`, computed with `std::cos` from
+the configured degrees. The tolerance keeps the edge inclusive: `cos(π/2)` comes
+out as about 6·10⁻¹⁷ rather than 0, which would otherwise hide a player standing
+exactly sideways in the default 180° cone. It also absorbs a standard library
+rounding that cosine differently in the last bit; only an entity within 10⁻⁹
+radians of the edge could still notice.
 
 ## Remembering and forgetting
 
