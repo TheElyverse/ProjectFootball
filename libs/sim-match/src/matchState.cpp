@@ -226,6 +226,17 @@ void MatchStateWriter::setPlayerTarget(const std::size_t playerIndex,
   state_->players_.at(playerIndex).target = target;
 }
 
+std::optional<std::size_t> findPlayerIndex(const MatchState& state,
+                                           const SimCore::PlayerId playerId) noexcept {
+  for (std::size_t index = 0; const PlayerMatchState& player : state.players()) {
+    if (player.playerId == playerId) {
+      return index;
+    }
+    ++index;
+  }
+  return std::nullopt;
+}
+
 // Allocates nothing for a state without defects: the vector stays empty until
 // the first error.
 std::vector<MatchStateError> findNonFiniteValues(const MatchState& state) {

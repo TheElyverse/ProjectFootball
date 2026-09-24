@@ -183,6 +183,11 @@ class MatchStateWriter {
   MatchState* state_;
 };
 
+// The index of the player with this id in MatchState::players(), or nothing
+// if no player has it.
+[[nodiscard]] std::optional<std::size_t> findPlayerIndex(const MatchState& state,
+                                                         SimCore::PlayerId playerId) noexcept;
+
 // The finiteness rules of MatchState::create(), for a state the simulation
 // has just written: every non-finite position, velocity and target, players by index
 // first and then the ball, with the same codes and messages create() uses.
