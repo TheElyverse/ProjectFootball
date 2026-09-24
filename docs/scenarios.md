@@ -9,6 +9,7 @@ in `sim-match` (`scenarios.hpp`), and `sim-cli --scenario <name>` runs one.
 |----------------|-------------------------------------------------------------------|
 | `kickoff`      | the seven-a-side kickoff fixture, everyone at rest                 |
 | `rolling-ball` | the kickoff fixture with the ball rolling at (8, 3) m/s            |
+| `m0-acceptance`| all 14 players on scripted runs with target changes, rolling ball |
 
 All scenarios use the 60 × 40 m example pitch and the default `MatchConfig`
 (30 Hz). `sim-cli --list-scenarios` prints the catalog.
