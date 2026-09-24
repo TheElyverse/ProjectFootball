@@ -49,8 +49,8 @@ inline constexpr std::string_view kPassDecisionSystemName = "pass decision";
 //      step. Without a valid option he keeps the ball.
 //
 // Writes the pending pass only. Throws std::invalid_argument for an interval
-// below one tick, a negative or non-finite hold time, or a temperature that
-// is not positive and finite.
+// below one tick, a negative or non-finite hold time, a temperature that is
+// not positive and finite, or invalid scoring (validate(PassScoringConfig)).
 [[nodiscard]] MatchSystem makePassDecisionSystem(const DecisionConfig& config,
                                                  const PassCandidateRules& rules);
 

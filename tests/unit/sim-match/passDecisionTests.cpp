@@ -1,7 +1,9 @@
 #include <catch2/catch_test_macros.hpp>
 #include <cstddef>
 #include <cstdint>
+#include <limits>
 #include <optional>
+#include <stdexcept>
 #include <utility>
 #include <vector>
 
@@ -21,8 +23,10 @@ using ElyverseFootball::SimCore::RandomNumberGenerator;
 using ElyverseFootball::SimCore::SimTick;
 using ElyverseFootball::SimCore::Vec2;
 using ElyverseFootball::SimMatch::choosePass;
+using ElyverseFootball::SimMatch::DecisionConfig;
 using ElyverseFootball::SimMatch::GiveBallCommand;
 using ElyverseFootball::SimMatch::hashMatchState;
+using ElyverseFootball::SimMatch::makePassDecisionSystem;
 using ElyverseFootball::SimMatch::makeSevenASideKickoff;
 using ElyverseFootball::SimMatch::MatchConfig;
 using ElyverseFootball::SimMatch::MatchSetup;
@@ -30,13 +34,25 @@ using ElyverseFootball::SimMatch::MatchSimulation;
 using ElyverseFootball::SimMatch::MatchState;
 using ElyverseFootball::SimMatch::MatchStateSpec;
 using ElyverseFootball::SimMatch::PassCandidate;
+using ElyverseFootball::SimMatch::PassCandidateRules;
 using ElyverseFootball::SimMatch::PassRejection;
+using ElyverseFootball::SimMatch::PassScoringConfig;
 using ElyverseFootball::SimMatch::Pitch;
 using ElyverseFootball::SimMatch::PlayerMatchState;
 using ElyverseFootball::SimMatch::startMatch;
 using ElyverseFootball::SimMatch::TeamSide;
 
 namespace {
+
+template <typename Function>
+[[nodiscard]] bool throwsInvalidArgument(const Function& function) {
+  try {
+    function();
+  } catch (const std::invalid_argument&) {
+    return true;
+  }
+  return false;
+}
 
 [[nodiscard]] PassCandidate option(const PlayerId receiver, const double utility,
                                    const PassRejection rejection = PassRejection::kValid) {
@@ -98,6 +114,25 @@ TEST_CASE("A low temperature picks the best option", "[passDecision]") {
     RandomNumberGenerator random(seed);
     REQUIRE(choosePass(candidates, 0.005, random) == std::optional<std::size_t>(0));
   }
+}
+
+TEST_CASE("The decision system rejects invalid scoring", "[passDecision]") {
+  const auto rejects = [](const auto& change) {
+    DecisionConfig config;
+    change(config.scoring);
+    return throwsInvalidArgument(
+        [&config] { (void)makePassDecisionSystem(config, PassCandidateRules{}); });
+  };
+  REQUIRE_FALSE(rejects([](PassScoringConfig&) {}));
+  REQUIRE(rejects([](PassScoringConfig& scoring) { scoring.pressureRadius = 0.0; }));
+  REQUIRE(rejects([](PassScoringConfig& scoring) { scoring.interceptionMarginSeconds = 0.0; }));
+  REQUIRE(rejects([](PassScoringConfig& scoring) { scoring.minConfidence = 1.5; }));
+  REQUIRE(rejects([](PassScoringConfig& scoring) { scoring.minCompletion = -0.1; }));
+  REQUIRE(rejects([](PassScoringConfig& scoring) { scoring.maxPassDistance = 1.0; }));
+  REQUIRE(rejects([](PassScoringConfig& scoring) { scoring.riskWeight = 1e300; }));
+  REQUIRE(rejects([](PassScoringConfig& scoring) {
+    scoring.progressionWeight = std::numeric_limits<double>::quiet_NaN();
+  }));
 }
 
 TEST_CASE("Decisions run at their configured frequency", "[passDecision]") {

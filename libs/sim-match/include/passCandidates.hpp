@@ -22,10 +22,9 @@ namespace ElyverseFootball::SimMatch {
 struct PassScoringConfig {
   // Teammates and opponents remembered with less confidence are ignored.
   double minConfidence = 0.3;
-  double minPassDistance = 2.0;  // m
-  double maxPassDistance =
-      35.0;  // m
-             // An opponent's margin is the time he has to spare reaching the pass,
+  double minPassDistance = 2.0;   // m
+  double maxPassDistance = 35.0;  // m
+  // An opponent's margin is the time he has to spare reaching the pass,
   // negative if he gets there first. The risk from him falls smoothly from
   // 1 at minus this many seconds through 1/2 at zero to 0 at plus this.
   double interceptionMarginSeconds = 0.6;
@@ -42,6 +41,15 @@ struct PassScoringConfig {
 
   friend bool operator==(const PassScoringConfig&, const PassScoringConfig&) = default;
 };
+
+// Throws std::invalid_argument unless the confidence and completion limits
+// lie in [0, 1], the pass distances are finite and not negative with the
+// maximum above the minimum, the margin and pressure radius are positive and
+// finite, and the weights are finite, not negative and at most
+// kMaxScoringWeight. Scores then stay finite, so candidates sort and the
+// softmax works.
+inline constexpr double kMaxScoringWeight = 1e6;
+void validate(const PassScoringConfig& config);
 
 // Why a candidate cannot be played; kValid if it can.
 enum class PassRejection : std::uint8_t {

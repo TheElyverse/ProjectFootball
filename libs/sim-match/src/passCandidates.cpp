@@ -4,6 +4,7 @@
 #include <cmath>
 #include <limits>
 #include <optional>
+#include <stdexcept>
 #include <tuple>
 
 #include "spatialQueries.hpp"
@@ -143,6 +144,26 @@ std::string_view passRejectionName(const PassRejection rejection) noexcept {
       return "unlikely to arrive";
   }
   return "unknown";
+}
+
+void validate(const PassScoringConfig& config) {
+  const auto finiteIn = [](const double value, const double min, const double max) {
+    return value >= min && value <= max;  // false for NaN
+  };
+  constexpr double kMax = std::numeric_limits<double>::max();
+  const bool valid =
+      finiteIn(config.minConfidence, 0.0, 1.0) && finiteIn(config.minCompletion, 0.0, 1.0) &&
+      finiteIn(config.minPassDistance, 0.0, kMax) && finiteIn(config.maxPassDistance, 0.0, kMax) &&
+      config.maxPassDistance > config.minPassDistance &&
+      finiteIn(config.interceptionMarginSeconds, 0.0, kMax) &&
+      config.interceptionMarginSeconds > 0.0 && finiteIn(config.pressureRadius, 0.0, kMax) &&
+      config.pressureRadius > 0.0 && finiteIn(config.completionWeight, 0.0, kMaxScoringWeight) &&
+      finiteIn(config.progressionWeight, 0.0, kMaxScoringWeight) &&
+      finiteIn(config.pressureWeight, 0.0, kMaxScoringWeight) &&
+      finiteIn(config.riskWeight, 0.0, kMaxScoringWeight);
+  if (!valid) {
+    throw std::invalid_argument("pass scoring: invalid configuration");
+  }
 }
 
 double attackingDirection(const TeamSide side) noexcept {

@@ -5,6 +5,7 @@
 #include <string>
 #include <vector>
 
+#include "passCandidates.hpp"
 #include "stableMath.hpp"
 
 namespace ElyverseFootball::SimMatch {
@@ -18,6 +19,7 @@ void validate(const DecisionConfig& config) {
   if (!valid) {
     throw std::invalid_argument("pass decision: invalid configuration");
   }
+  validate(config.scoring);
 }
 
 // How long the owner has had the ball: since his last touch, which is when
