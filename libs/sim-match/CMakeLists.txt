@@ -7,6 +7,7 @@ add_library(sim-match STATIC
         src/ballMovement.cpp
         src/matchStateHash.cpp
         src/matchSetup.cpp
+        src/scenarios.cpp
 )
 add_library(ElyverseFootball::sim-match ALIAS sim-match)
 
