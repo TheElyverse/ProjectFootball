@@ -46,12 +46,16 @@ using SimCore::Vec2;
 }
 
 // The ball as a pass leaves it: free, at the passer's feet, with the executed
-// pass velocity, and the passer as its last touch.
+// pass velocity, and the passer as its last touch. At his feet is where a
+// controlled ball already is -- except when he got it by a command in this
+// very tick, which moves no ball.
 [[nodiscard]] BallState kicked(const MatchState& state, const PassIntent& intent,
-                               const PassConfig& passing, const MatchStepContext& context) {
+                               const BallPhysics& physics, const PassConfig& passing,
+                               const MatchStepContext& context) {
   BallState ball = state.ball();
   // The passer owns the ball, so he is in the state.
   const auto passer = findPlayerIndex(state, intent.passer).value_or(0);
+  ball.position = carriedBallPosition(state.players()[passer], physics);
   ball.velocity = executePass(intent, ball, state.players()[passer], passing,
                               context.random(SimCore::RandomNumberGeneratorDomain::kExecution));
   ball.owner = std::nullopt;
@@ -126,7 +130,7 @@ MatchSystem makeBallMovementSystem(const BallPhysics& physics, const PassConfig&
             if (const auto& intent = current.pendingPass()) {
               next.setPendingPass(std::nullopt);
               if (ball.owner == intent->passer) {
-                ball = kicked(current, *intent, passing, context);
+                ball = kicked(current, *intent, physics, passing, context);
                 next.setBallOwner(ball.owner);
                 next.setBallLastTouch(ball.lastTouch);
               }

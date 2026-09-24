@@ -201,6 +201,20 @@ TEST_CASE("Executing a pass releases possession and kicks the ball", "[passing]"
                WithinAbs(0.0, 1e-9));
 }
 
+TEST_CASE("A pass in the tick the ball is given leaves from the passer's feet", "[passing]") {
+  // The ball rests on the center spot; the command gives it to player 4 at
+  // (21, 20), and he passes it on in the same tick.
+  const Vec2 target{.x = 21.0, .y = 5.0};
+  MatchSimulation simulation = matchOf({give(0, kPasser), pass(0, kPasser, target, 9.0)});
+
+  stepTimes(simulation, 1);
+
+  const Vec2 feet{.x = 21.5, .y = 20.0};
+  const auto& ball = simulation.state().ball();
+  REQUIRE_FALSE(ball.owner.has_value());
+  REQUIRE(lengthOf(ball.position - feet) < 9.0 / 30.0);
+}
+
 TEST_CASE("Pass speed and friction decide how far the pass goes", "[passing]") {
   const Vec2 target{.x = 21.5, .y = 2.0};
   SECTION("a planned pass reaches its target") {
