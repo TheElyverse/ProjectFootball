@@ -14,6 +14,31 @@ in `sim-match` (`scenarios.hpp`), and `sim-cli --scenario <name>` runs one.
 All scenarios use the 60 × 40 m example pitch and the default `MatchConfig`
 (30 Hz). `sim-cli --list-scenarios` prints the catalog.
 
+## The M0 acceptance scenario
+
+`m0-acceptance` is the integration scenario of milestone M0. It starts from the
+kickoff fixture with the ball rolling at (9, 4) m/s. Every player gets six
+waypoints, one every six seconds, staggered by four ticks per player so the
+target changes spread over two seconds. Waypoints follow a fixed arithmetic
+pattern over the whole pitch, so most changes reach a player mid-run. At tick
+600 player 1 is sent behind a goal line and player 14 past a corner; both targets
+are moved onto the pitch. After 36 seconds everyone has reached his last waypoint.
+
+`tests/acceptance/m0AcceptanceTests.cpp` runs it for three minutes and checks
+that:
+
+- every player covers ground and targets change while players are running,
+- nine minutes of simulation never produce a non-finite value, a ball off the
+  pitch, a speed above a player's limit or a target off the pitch,
+- two runs produce identical checkpoint hashes, and so does playback of the
+  replay after a round trip through JSON,
+- advancing in batches of 1, 7, 30 or 451 ticks, each continued from a copy of
+  the simulation, gives the same hashes as one uninterrupted run,
+- the final state hash equals a pinned value on every platform CI builds on.
+
+CI runs these tests in their own step (`ctest --preset ci --label-regex
+acceptance`).
+
 ## Scenarios are versioned
 
 A scenario is a fixture: changing its layout, configuration or commands changes

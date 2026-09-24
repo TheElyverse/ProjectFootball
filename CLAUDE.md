@@ -57,7 +57,8 @@ apps/
   sim-cli        runs scenarios, records and plays back replays               [exists]
   sim-benchmark, sim-replay, unreal-game                                       [planned]
 data/            schemas, tactics, competitions, fixtures (JSON/YAML, schema-validated) [planned]
-tests/unit/      Catch2 tests, mirrors libs/ by subdirectory                   [exists: sim-core, sim-match]
+tests/unit/      Catch2 tests, mirrors libs/ by subdirectory                   [exists: sim-core, sim-match, sim-replay]
+tests/acceptance/ whole-match scenarios: stability, determinism, pinned hashes [exists: M0]
 ```
 
 Stack in use: C++23, CMake + Ninja presets, CPM.cmake for dependencies (see `cmake/get_cpm.cmake`),
@@ -101,6 +102,11 @@ Run a scenario headlessly and play its replay back (see `docs/replay-format.md`,
 ```
 ./build/debug/apps/sim-cli/sim-cli --scenario kickoff --seed 42 --ticks 300 --replay-out /tmp/replay.json
 ./build/debug/apps/sim-cli/sim-cli --play /tmp/replay.json
+```
+
+Run only the acceptance scenarios (CI runs them in their own step):
+```
+ctest --preset debug --label-regex acceptance
 ```
 
 Run the complete local CI target (warnings-as-errors build, tests, format check, and clang-tidy):

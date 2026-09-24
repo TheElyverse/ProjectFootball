@@ -48,7 +48,8 @@ fixture, the fixed-timestep match loop with its commands, and player and ball
 movement; it depends on `sim-core`. `sim-replay` records, writes, reads and plays
 back replays on top of `sim-match`. New libraries follow the existing
 CMake target pattern and expose an `ElyverseFootball::<name>` alias. Unit tests live
-under `tests/unit/`, grouped by module.
+under `tests/unit/`, grouped by module. Acceptance tests under `tests/acceptance/`
+run whole scenarios and carry the CTest label `acceptance`.
 
 ## Build and test
 
