@@ -25,8 +25,23 @@ const types = {
   ".json": "application/json",
 };
 
+// The request path, decoded; undefined for a malformed percent-encoding such as
+// "/%E0%A4%A", which decodeURIComponent() rejects with an exception -- thrown
+// inside the async handler it would end the whole server.
+function requestPath(request) {
+  try {
+    return decodeURIComponent(new URL(request.url ?? "/", "http://localhost").pathname);
+  } catch {
+    return undefined;
+  }
+}
+
 const server = createServer(async (request, response) => {
-  const path = decodeURIComponent(new URL(request.url ?? "/", "http://localhost").pathname);
+  const path = requestPath(request);
+  if (path === undefined) {
+    response.writeHead(400).end("bad request");
+    return;
+  }
   let file;
   if (path === "/frames.json" && framesPath !== undefined) {
     file = framesPath;
