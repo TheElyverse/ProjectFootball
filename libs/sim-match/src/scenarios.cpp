@@ -141,8 +141,9 @@ constexpr SimCore::PlayerId kFirstCarrier{1};
 }
 
 // Home in a zigzag up the pitch, every player facing the away goal, so each
-// carrier sees teammates ahead of him. The away side stands out of play along
-// the home goal line, behind every pass.
+// carrier sees teammates ahead of him. The away side stands on the pitch just
+// in front of the home goal line, behind every pass: its nearest player still
+// chases a free ball, but stands too far away to reach a pass first.
 [[nodiscard]] std::expected<MatchSetup, std::string> passChain(const std::uint64_t seed) {
   constexpr Side kHome{{{.x = 8.0, .y = 20.0, .facingX = 1.0},
                         {.x = 20.0, .y = 12.0, .facingX = 1.0},
