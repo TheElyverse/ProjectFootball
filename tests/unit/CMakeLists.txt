@@ -12,6 +12,7 @@ add_executable(sim-core-tests
         sim-core/randomTests.cpp
         sim-core/eventBusTests.cpp
         sim-core/vec2Tests.cpp
+        sim-core/stableHashTests.cpp
 )
 
 target_link_libraries(sim-core-tests PRIVATE
