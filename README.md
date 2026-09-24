@@ -29,24 +29,28 @@ passing, and player decisions before building the wider club experience.
 
 ### Try the sandbox
 
-The M0 sandbox runs headlessly from the command line. After building (see
-[Contributing](CONTRIBUTING.md)), run the acceptance scenario — fourteen players
-on scripted runs with repeated changes of direction, and a rolling ball — record
-it, and play the recording back:
+The sandbox runs headlessly from the command line. After building (see
+[Contributing](CONTRIBUTING.md)), run a passing scenario — players who see their
+teammates, pick a pass and play it, and teammates or opponents who go after the
+ball — record it, and play the recording back:
 
 ```sh
-./build/debug/apps/sim-cli/sim-cli --scenario m0-acceptance --seed 42 --ticks 1800 --replay-out m0.json
-./build/debug/apps/sim-cli/sim-cli --play m0.json
+./build/debug/apps/sim-cli/sim-cli --scenario pass-chain --seed 7 --ticks 600 --replay-out pass-chain.json --frames-out frames.json
+./build/debug/apps/sim-cli/sim-cli --play pass-chain.json
 ```
 
-Both print the simulated time and the final state hash; playback verifies that
-the recording reproduces tick for tick. `--list-scenarios` shows what else there
-is to run.
+Both print the simulated time and the final state and event hashes; playback
+verifies that the recording reproduces tick for tick. `--list-scenarios` shows
+what else there is to run, and the [debug viewer](docs/debug-viewer.md) plays
+`frames.json` back in the browser, down to what each player sees and why he
+passed where he did.
 
-M0 is deliberately small. Players run to positions a script gives them, at their
-top speed and acceleration, and the ball rolls and stops on the lines. There is
-no perception, no decision making, no possession, passing or tackling, no
-collisions, no rules and no graphics yet — those are the next steps.
+The sandbox is deliberately small. Players perceive what is in front of them and
+remember it for a while, the player on the ball weighs every pass he can see and
+picks one with a seeded choice, and the ball rolls, is received or intercepted.
+Players without the ball only chase loose balls; there is no dribbling,
+tackling, shooting, no tactics, no collisions and no rules yet — those are the
+next steps.
 
 Explore the [game design document](docs/game-design-document.md) for the full
 vision, or follow progress through the

@@ -66,6 +66,54 @@ given to him at tick 0. From then on only the standard systems act.
   to, decides "no valid option" every time, and keeps the ball. The away side
   waits in its own half.
 
+### Acceptance checks
+
+`tests/acceptance/p1AcceptanceTests.cpp` runs each scenario for twenty seconds
+with seed 7 and checks, on every tick, the possession invariants: a controlled
+ball sits exactly where the [carry rule](possession.md) puts it and moves with
+its owner, a pending pass belongs to the player on the ball, possession changes
+only through a chain of `PossessionChanged` events, and passes are played by the
+owner, received by teammates and intercepted by opponents. Then:
+
+- `pass-chain`: at least three passes in a row are decided, played and received
+  by home players -- with seed 7 and with each of the seeds 1 to 50;
+- `intercepted-pass`: player 1's only candidate is valid with an interception
+  risk above 0.5, he plays it, and player 8 intercepts it; over the seeds 1 to
+  50 at least 70 % of these passes are lost, a statistical guardrail rather than
+  an exact value;
+- `no-passing-option`: no pass is played, player 1 keeps the ball throughout, and
+  every decision finds no candidate because he sees only opponents;
+- two runs and playback of the replay after a JSON round trip agree on every
+  state and event hash, and collecting decision diagnostics changes neither;
+- the final state and event hashes are pinned.
+
+CI runs them with the other acceptance tests.
+
+### Watching them
+
+Each scenario can be run with debug frames and watched in the
+[debug viewer](debug-viewer.md):
+
+```sh
+./build/debug/apps/sim-cli/sim-cli --scenario intercepted-pass --seed 7 --ticks 600 \
+  --replay-out intercepted.json --frames-out frames.json
+cd apps/sim-viewer && npm install && npm run build && npm run serve -- ../../frames.json
+```
+
+What to look at:
+
+- **`pass-chain`**: click the player on the ball (yellow ring). His vision cone
+  covers the teammates ahead; step to the tick of his decision (the event log
+  shows the passes) to see every candidate line, the chosen one yellow, and the
+  scores in the panel. Step on to watch the receiver take the ball.
+- **`intercepted-pass`**: select player 1 and step to tick 19: the panel shows
+  the decision he made in the step from tick 18, one valid pass to player 2 with
+  a risk of about 0.64. After the pass, select player 8 to follow his run to the
+  ball; the event log shows the interception at tick 70.
+- **`no-passing-option`**: select player 1. His vision cone points at the away
+  side, his teammates are behind him with no observation circle, and every
+  decision reads "no valid option".
+
 ## Scenarios are versioned
 
 A scenario is a fixture: changing its layout, configuration or commands changes

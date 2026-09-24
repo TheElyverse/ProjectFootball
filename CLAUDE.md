@@ -12,7 +12,8 @@ player and ball movement (`docs/player-movement.md`, `docs/ball-movement.md`), s
 perception, possession, passing, reception and pass decisions (`docs/spatial-queries.md`,
 `docs/perception.md`, `docs/possession.md`, `docs/passing.md`, `docs/reception.md`,
 `docs/pass-candidates.md`, `docs/pass-decisions.md`) with events and diagnostics
-(`docs/match-events.md`), and a web debug viewer in `apps/sim-viewer` (`docs/debug-viewer.md`);
+(`docs/match-events.md`), a web debug viewer in `apps/sim-viewer` (`docs/debug-viewer.md`), and the P1
+passing scenarios with their acceptance tests (`docs/scenarios.md`);
 almost everything described in the design/implementation docs below is still unbuilt.
 When implementing a new system, check whether it belongs in an existing module (see layout below) before
 adding a new one.
@@ -64,7 +65,7 @@ apps/
   sim-benchmark, sim-replay, unreal-game                                       [planned]
 data/            schemas, tactics, competitions, fixtures (JSON/YAML, schema-validated) [planned]
 tests/unit/      Catch2 tests, mirrors libs/ by subdirectory                   [exists: sim-core, sim-match, sim-replay]
-tests/acceptance/ whole-match scenarios: stability, determinism, pinned hashes [exists: M0]
+tests/acceptance/ whole-match scenarios: stability, determinism, pinned hashes [exists: M0, P1]
 ```
 
 Stack in use: C++23, CMake + Ninja presets, CPM.cmake for dependencies (see `cmake/get_cpm.cmake`),
