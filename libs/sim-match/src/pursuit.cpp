@@ -50,8 +50,11 @@ std::optional<Interception> findInterception(const PlayerMatchState& player, con
       }
       return Interception{.point = predicted.position, .seconds = std::max(seconds, *arrival)};
     }
-    predicted = stepFreeBall(predicted, physics, pitch, config.sampleSeconds);
-    seconds += config.sampleSeconds;
+    // The last step ends on the horizon: a full sample could reach past it,
+    // and repeated additions of 0.1 s fall just short of 8 s.
+    const double step = std::min(config.sampleSeconds, config.horizonSeconds - seconds);
+    predicted = stepFreeBall(predicted, physics, pitch, step);
+    seconds = step == config.sampleSeconds ? seconds + step : config.horizonSeconds;
   }
 }
 

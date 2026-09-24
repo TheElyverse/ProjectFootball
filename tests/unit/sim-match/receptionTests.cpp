@@ -43,6 +43,7 @@ using ElyverseFootball::SimMatch::PursuitConfig;
 using ElyverseFootball::SimMatch::ReceptionConfig;
 using ElyverseFootball::SimMatch::ScheduledCommand;
 using ElyverseFootball::SimMatch::startMatch;
+using ElyverseFootball::SimMatch::stepFreeBall;
 using ElyverseFootball::SimMatch::TeamSide;
 
 namespace {
@@ -309,6 +310,24 @@ TEST_CASE("An interception is the earliest point reached before the ball", "[rec
   const auto loose = findInterception(onTheLine, freeBall({.x = 35.0, .y = 22.0}), BallPhysics{},
                                       kPitch, PursuitConfig{});
   REQUIRE(loose.value_or(kNoInterception).point == Vec2{.x = 35.0, .y = 22.0});
+}
+
+TEST_CASE("The ball path is predicted no further than the horizon", "[reception]") {
+  // Nobody can reach the ball within one second, so the pursuer heads for
+  // where it is at the horizon: 1.0 s, although 0.3 s samples would step to
+  // 1.2 s.
+  const BallState ball = freeBall({.x = 10.0, .y = 20.0}, {.x = 12.0, .y = 0.0});
+  const PlayerMatchState far = playerAt(3, TeamSide::kAway, {.x = 55.0, .y = 38.0});
+  PursuitConfig config;
+  config.sampleSeconds = 0.3;
+  config.horizonSeconds = 1.0;
+
+  const auto interception = findInterception(far, ball, BallPhysics{}, kPitch, config);
+
+  const BallState atHorizon = stepFreeBall(ball, BallPhysics{}, kPitch, 1.0);
+  REQUIRE(interception.has_value());
+  REQUIRE_THAT(interception.value_or(kNoInterception).point.x,
+               WithinAbs(atHorizon.position.x, 1e-9));
 }
 
 TEST_CASE("One player per side goes after a free ball", "[reception]") {
