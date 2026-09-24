@@ -256,6 +256,9 @@ std::expected<void, std::string> saveDebugFrames(const DebugRecording& recording
     return std::unexpected(path.string() + ": cannot open for writing");
   }
   file << toDebugFramesJson(recording) << '\n';
+  // Closed explicitly: the stream buffers, so the last write -- onto a full
+  // disk, say -- may only fail while flushing on close.
+  file.close();
   if (!file) {
     return std::unexpected(path.string() + ": write failed");
   }
