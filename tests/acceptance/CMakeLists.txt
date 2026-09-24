@@ -1,5 +1,6 @@
 add_executable(sim-acceptance-tests
         m0AcceptanceTests.cpp
+        p1AcceptanceTests.cpp
 )
 target_link_libraries(sim-acceptance-tests PRIVATE
         ElyverseFootball::sim-replay
