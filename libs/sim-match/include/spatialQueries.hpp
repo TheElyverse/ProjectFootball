@@ -44,10 +44,11 @@ struct NearbyPlayer {
 };
 
 // Every player the filter accepts within radius meters of center, nearest
-// first. The radius is inclusive. Players at the same distance are ordered by
-// id, so the result is the same whatever the order of players in the state --
-// a system iterating over it stays deterministic. Distances are compared
-// squared, so the ordering is exact.
+// first. The radius is inclusive; a negative or NaN radius finds no one.
+// Players at the same distance are ordered by id, so the result is the same
+// whatever the order of players in the state -- a system iterating over it
+// stays deterministic. Distances are compared squared, so the ordering is
+// exact.
 [[nodiscard]] std::vector<NearbyPlayer> findPlayersWithin(const MatchState& state,
                                                           SimCore::Vec2 center, double radius,
                                                           const PlayerFilter& filter = {});

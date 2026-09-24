@@ -11,7 +11,8 @@ who is near a point, and how soon can a player get somewhere. They live in
 filter)` returns the nearest one at any distance. Each result names the player's
 index in `MatchState::players()`, his id and his distance.
 
-- **Radius.** Inclusive: a player exactly `radius` meters away is found.
+- **Radius.** Inclusive: a player exactly `radius` meters away is found. A
+  negative or NaN radius finds no one.
 - **Filter.** `PlayerFilter` restricts the result to one side and can leave out
   one player, typically the one asking:
 

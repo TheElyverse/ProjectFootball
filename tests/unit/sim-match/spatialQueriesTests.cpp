@@ -107,6 +107,15 @@ TEST_CASE("The radius is inclusive", "[spatial]") {
   REQUIRE(findPlayersWithin(state, {.x = 0.0, .y = 40.0}, 0.5).empty());
 }
 
+TEST_CASE("A negative or NaN radius finds no one", "[spatial]") {
+  const MatchState state = threeASide();
+
+  REQUIRE(findPlayersWithin(state, kCenter, -10.0).empty());
+  REQUIRE(findPlayersWithin(state, kCenter, -0.0).size() ==
+          findPlayersWithin(state, kCenter, 0.0).size());
+  REQUIRE(findPlayersWithin(state, kCenter, std::numeric_limits<double>::quiet_NaN()).empty());
+}
+
 TEST_CASE("Nearby queries filter by side and exclude a player", "[spatial]") {
   const MatchState state = threeASide();
 

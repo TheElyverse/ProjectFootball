@@ -32,6 +32,11 @@ struct Candidate {
 
 std::vector<NearbyPlayer> findPlayersWithin(const MatchState& state, const Vec2 center,
                                             const double radius, const PlayerFilter& filter) {
+  // No distance is below a negative radius; squaring it would turn it into a
+  // positive one. Written so that NaN finds no one either.
+  if (!(radius >= 0.0)) {
+    return {};
+  }
   const double radiusSquared = radius * radius;
   std::vector<Candidate> candidates;
   for (std::size_t index = 0; const PlayerMatchState& player : state.players()) {
