@@ -117,6 +117,8 @@ if(NOT result STREQUAL "0" OR NOT output MATCHES "usage:")
     message(FATAL_ERROR "--help did not win: ${result}: ${output}${error}")
 endif()
 expect_failure("cannot be combined" --play "${replay}" --frames-out "${frames}")
+expect_failure("name the same file" --ticks 1 --replay-out "${replay}" --frames-out "${replay}")
+expect_failure("name the same file" --ticks 1 --frames-out replay.json)
 expect_failure("cannot open for writing" --ticks 1 --replay-out "${replay}"
         --frames-out "${TEST_OUTPUT_DIR}/missing/frames.json")
 expect_failure("cannot read" --play "${TEST_OUTPUT_DIR}/missing.json")

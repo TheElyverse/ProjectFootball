@@ -3,6 +3,7 @@
 #include <cstdlib>
 #include <ctime>
 #include <expected>
+#include <filesystem>
 #include <format>
 #include <iostream>
 #include <optional>
@@ -10,6 +11,7 @@
 #include <span>
 #include <stdexcept>
 #include <string>
+#include <system_error>
 #include <utility>
 #include <vector>
 
@@ -74,6 +76,17 @@ void report(const CliOptions& options, const std::string& title,
   }
 }
 
+// Whether two paths name the same file, existing or not: compared after
+// resolving them against the working directory, "." and ".." and links.
+bool sameFile(const std::filesystem::path& first, const std::filesystem::path& second) {
+  const auto resolve = [](const std::filesystem::path& path) {
+    std::error_code error;
+    const std::filesystem::path resolved = std::filesystem::weakly_canonical(path, error);
+    return error ? std::filesystem::absolute(path).lexically_normal() : resolved;
+  };
+  return resolve(first) == resolve(second);
+}
+
 int fail(const std::string& message) {
   std::cerr << "sim-cli: " << message << "\n";
   return EXIT_FAILURE;
@@ -92,6 +105,9 @@ int runScenario(const CliOptions& options) {
   const auto* scenario = ElyverseFootball::SimMatch::findScenario(options.scenario);
   if (scenario == nullptr) {
     return fail("unknown scenario '" + options.scenario + "'; see --list-scenarios");
+  }
+  if (!options.framesOut.empty() && sameFile(options.framesOut, options.replayOut)) {
+    return fail("--frames-out and --replay-out name the same file '" + options.framesOut + "'");
   }
   const std::uint64_t seed = resolveSeed(options);
   const auto setup = scenario->make(seed);
