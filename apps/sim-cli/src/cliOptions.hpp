@@ -21,6 +21,11 @@ inline constexpr std::int64_t kDefaultTicks = 300;
 // Longer than any match, short enough to reject a typo'd extra digit or two.
 // Also the longest replay --play runs.
 inline constexpr std::int64_t kMaxTicks = 10'000'000;
+// The longest run --frames-out records: two minutes at 30 Hz. Every tick
+// adds a full frame -- around 16 KB of JSON, and more while the recording is
+// held in memory -- so a whole match would not fit, and the viewer is for
+// looking at situations, not matches.
+inline constexpr std::int64_t kMaxFrameTicks = 3'600;
 
 struct CliOptions {
   CliMode mode = CliMode::kRun;
@@ -44,9 +49,10 @@ inline constexpr std::string_view kUsage =
 
 // Parses argv (program name first). --help wins over everything else.
 // Rejects unknown options, missing or invalid values, --play combined with
-// --list-scenarios, and --play or --list-scenarios combined with options that
-// only apply to a new run, whatever the order, with a message naming the
-// offending argument.
+// --list-scenarios, --play or --list-scenarios combined with options that
+// only apply to a new run, whatever the order, and --frames-out for a run of
+// more than kMaxFrameTicks ticks, with a message naming the offending
+// argument.
 [[nodiscard]] std::expected<CliOptions, std::string> parseCliOptions(std::span<char* const> args);
 
 }  // namespace ElyverseFootball::Cli

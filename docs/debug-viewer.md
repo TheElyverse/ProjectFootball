@@ -79,7 +79,11 @@ latest [events](match-events.md), newest first.
 viewer, versioned separately from the [replay format](replay-format.md): nothing
 reads it back into a simulation, and a replay, not a frame file, is what
 reproduces a match. Positions, velocities and scores are rounded to three
-decimals, which keeps a 30-second match of fourteen players around 17 MB. An
+decimals, which keeps a 30-second match of fourteen players around 17 MB.
+`--frames-out` records at most 3600 ticks (two minutes at 30 Hz,
+`kMaxFrameTicks`): the recording is held in memory until it is written, and a
+whole match would run to gigabytes that neither the CLI nor a browser handles
+well. The viewer is for looking at situations; a replay records any length. An
 abridged example with illustrative values:
 
 ```json

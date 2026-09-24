@@ -135,6 +135,10 @@ std::expected<CliOptions, std::string> parseCliOptions(const std::span<char* con
         "--list-scenarios runs nothing and cannot be combined with --scenario, --seed, --ticks, "
         "--replay-out or --frames-out");
   }
+  if (!options.framesOut.empty() && options.ticks > kMaxFrameTicks) {
+    return std::unexpected("--frames-out records at most " + std::to_string(kMaxFrameTicks) +
+                           " ticks, got --ticks " + std::to_string(options.ticks));
+  }
   if (play) {
     options.mode = CliMode::kPlay;
   } else if (listScenarios) {
