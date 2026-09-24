@@ -45,6 +45,8 @@ before starting a change.
   after it.
 - [Pass candidates](docs/pass-candidates.md): passing options and their scores,
   from the carrier's perception.
+- [Pass decisions](docs/pass-decisions.md): when a player on the ball passes, and
+  the seeded softmax that picks the pass.
 - [Replay format](docs/replay-format.md): the replay file `sim-cli` writes, its
   versioning and seed encoding contract, and replay playback.
 - [Scenarios](docs/scenarios.md): the named, reproducible match setups `sim-cli`

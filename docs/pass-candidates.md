@@ -84,7 +84,8 @@ with every score component visible.
 
 ## Configuration
 
-`PassScoringConfig`:
+`PassScoringConfig`, part of the decision configuration (see
+[pass decisions](pass-decisions.md)):
 
 | Field                       | Default | Meaning                                 |
 |-----------------------------|---------|-----------------------------------------|
