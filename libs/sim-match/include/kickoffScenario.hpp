@@ -21,8 +21,9 @@ namespace ElyverseFootball::SimMatch {
 //
 // The result cannot fail for a pitch that exists: every position is a fraction
 // strictly between zero and one of the pitch dimensions, so it lies inside any
-// valid pitch. It still goes through MatchState::create(), so there is exactly
-// one validated way to build a state.
+// valid pitch. It still goes through MatchState::create() and
+// checkStartingPositions(), so there is exactly one validated way to build a
+// state and a fixture is held to the same rules as any other starting state.
 [[nodiscard]] std::expected<MatchState, std::vector<MatchStateError>> makeSevenASideKickoff(
     const Pitch& pitch);
 

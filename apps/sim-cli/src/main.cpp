@@ -107,11 +107,11 @@ std::string iso8601Now() {
 // state yet. This proves the core + CLI + replay-metadata wiring per the P0
 // exit criteria without pretending real simulation content exists.
 //
-// Defined here rather than inside main(): SimClock's constructor can throw,
-// and bugprone-exception-escape flags any call to it from main() even though
-// a constexpr variable is initialized at compile time -- an invalid tick
-// length fails the build, never the run.
-constexpr ElyverseFootball::SimCore::SimClock kEmptySimulationClock(1.0 / 30.0);
+// Defined here rather than inside main(): SimClock::withTicksPerSecond() can
+// throw, and bugprone-exception-escape flags any call to it from main() even
+// though a constexpr variable is initialized at compile time -- an invalid
+// tick rate fails the build, never the run.
+constexpr auto kEmptySimulationClock = ElyverseFootball::SimCore::SimClock::withTicksPerSecond(30);
 }  // namespace
 
 int main(int argc, char** argv) {

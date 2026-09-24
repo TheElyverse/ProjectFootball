@@ -83,6 +83,33 @@ void validateRoster(const MatchStateSpec& spec, std::vector<MatchStateError>& er
   }
 }
 
+void appendNonFinitePlayerErrors(const std::size_t index, const PlayerMatchState& player,
+                                 std::vector<MatchStateError>& errors) {
+  if (!player.position.isFinite()) {
+    errors.push_back({.code = MatchStateErrorCode::kNonFinitePlayerPosition,
+                      .message = describePlayer(index, player) +
+                                 " has a non-finite position: " + formatPosition(player.position)});
+  }
+  if (!player.velocity.isFinite()) {
+    errors.push_back({.code = MatchStateErrorCode::kNonFinitePlayerVelocity,
+                      .message = describePlayer(index, player) +
+                                 " has a non-finite velocity: " + formatVelocity(player.velocity)});
+  }
+}
+
+void appendNonFiniteBallErrors(const BallState& ball, std::vector<MatchStateError>& errors) {
+  if (!ball.position.isFinite()) {
+    errors.push_back(
+        {.code = MatchStateErrorCode::kNonFiniteBallPosition,
+         .message = "the ball has a non-finite position: " + formatPosition(ball.position)});
+  }
+  if (!ball.velocity.isFinite()) {
+    errors.push_back(
+        {.code = MatchStateErrorCode::kNonFiniteBallVelocity,
+         .message = "the ball has a non-finite velocity: " + formatVelocity(ball.velocity)});
+  }
+}
+
 void validatePlayers(const MatchStateSpec& spec, std::vector<MatchStateError>& errors) {
   std::unordered_map<SimCore::PlayerId::ValueType, std::size_t> firstIndexById;
 
@@ -115,45 +142,13 @@ void validatePlayers(const MatchStateSpec& spec, std::vector<MatchStateError>& e
       }
     }
 
-    // contains() already rejects non-finite positions, so the two position
-    // checks are exclusive -- one defect, one error.
-    if (!player.position.isFinite()) {
-      errors.push_back({.code = MatchStateErrorCode::kNonFinitePlayerPosition,
-                        .message = describePlayer(index, player) + " has a non-finite position: " +
-                                   formatPosition(player.position)});
-    } else if (!spec.pitch.contains(player.position)) {
-      errors.push_back({.code = MatchStateErrorCode::kPlayerOutsidePitch,
-                        .message = describePlayer(index, player) + " is outside the " +
-                                   describePitch(spec.pitch) + " at " +
-                                   formatPosition(player.position)});
-    }
-
-    if (!player.velocity.isFinite()) {
-      errors.push_back({.code = MatchStateErrorCode::kNonFinitePlayerVelocity,
-                        .message = describePlayer(index, player) + " has a non-finite velocity: " +
-                                   formatVelocity(player.velocity)});
-    }
-
+    appendNonFinitePlayerErrors(index, player, errors);
     ++index;
   }
 }
 
 void validateBall(const MatchStateSpec& spec, std::vector<MatchStateError>& errors) {
-  if (!spec.ball.position.isFinite()) {
-    errors.push_back(
-        {.code = MatchStateErrorCode::kNonFiniteBallPosition,
-         .message = "the ball has a non-finite position: " + formatPosition(spec.ball.position)});
-  } else if (!spec.pitch.contains(spec.ball.position)) {
-    errors.push_back({.code = MatchStateErrorCode::kBallOutsidePitch,
-                      .message = "the ball is outside the " + describePitch(spec.pitch) + " at " +
-                                 formatPosition(spec.ball.position)});
-  }
-
-  if (!spec.ball.velocity.isFinite()) {
-    errors.push_back(
-        {.code = MatchStateErrorCode::kNonFiniteBallVelocity,
-         .message = "the ball has a non-finite velocity: " + formatVelocity(spec.ball.velocity)});
-  }
+  appendNonFiniteBallErrors(spec.ball, errors);
 }
 
 }  // namespace
@@ -188,6 +183,52 @@ std::expected<MatchState, std::vector<MatchStateError>> MatchState::create(Match
     return std::unexpected(std::move(errors));
   }
   return MatchState(std::move(spec));
+}
+
+void MatchStateWriter::setPlayerPosition(const std::size_t playerIndex,
+                                         const SimCore::Vec2 position) {
+  state_->players_.at(playerIndex).position = position;
+}
+
+void MatchStateWriter::setPlayerVelocity(const std::size_t playerIndex,
+                                         const SimCore::Vec2 velocity) {
+  state_->players_.at(playerIndex).velocity = velocity;
+}
+
+// Allocates nothing for a state without defects: the vector stays empty until
+// the first error.
+std::vector<MatchStateError> findNonFiniteValues(const MatchState& state) {
+  std::vector<MatchStateError> errors;
+  for (std::size_t index = 0; const PlayerMatchState& player : state.players()) {
+    appendNonFinitePlayerErrors(index, player, errors);
+    ++index;
+  }
+  appendNonFiniteBallErrors(state.ball(), errors);
+  return errors;
+}
+
+// Every position in a MatchState is finite, so contains() fails here only for
+// a point off the pitch -- the message never has to tell the two apart.
+std::vector<MatchStateError> checkStartingPositions(const MatchState& state) {
+  std::vector<MatchStateError> errors;
+  const Pitch& pitch = state.pitch();
+
+  for (std::size_t index = 0; const PlayerMatchState& player : state.players()) {
+    if (!pitch.contains(player.position)) {
+      errors.push_back({.code = MatchStateErrorCode::kPlayerOutsidePitch,
+                        .message = describePlayer(index, player) + " is outside the " +
+                                   describePitch(pitch) + " at " +
+                                   formatPosition(player.position)});
+    }
+    ++index;
+  }
+
+  if (!pitch.contains(state.ball().position)) {
+    errors.push_back({.code = MatchStateErrorCode::kBallOutsidePitch,
+                      .message = "the ball is outside the " + describePitch(pitch) + " at " +
+                                 formatPosition(state.ball().position)});
+  }
+  return errors;
 }
 
 }  // namespace ElyverseFootball::SimMatch

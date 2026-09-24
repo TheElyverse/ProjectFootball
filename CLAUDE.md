@@ -6,9 +6,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 This repository is in **early bootstrap stage**. The P0 Foundation milestone (repo, CMake, CI, strong
 IDs, sim clock, deterministic RNG, a minimal event bus, and a CLI) exists under `libs/sim-core` and
-`apps/sim-cli`, and `libs/sim-match` has started with pitch geometry, the validated match state, and
-the seven-a-side kickoff fixture; almost everything described in the design/implementation docs below
-is still unbuilt.
+`apps/sim-cli`, and `libs/sim-match` has started with pitch geometry, the validated match state, the
+seven-a-side kickoff fixture, and the fixed-timestep match loop (`docs/match-loop.md`); almost
+everything described in the design/implementation docs below is still unbuilt.
 When implementing a new system, check whether it belongs in an existing module (see layout below) before
 adding a new one.
 
@@ -47,7 +47,7 @@ libs/
   sim-core       IDs, time, RNG, events, base types (depends on: STL only)      [exists]
   sim-player     Capabilities, match/world player state, development           [planned]
   sim-tactics    Principles, phases, responsibilities, spatial targets         [planned]
-  sim-match      Pitch, ball, perception, decisions, actions, rules            [exists: pitch, state]
+  sim-match      Pitch, ball, perception, decisions, actions, rules            [exists: pitch, state, loop]
   sim-world      Calendar, clubs, competitions, economy, careers               [planned]
   sim-ai         Club planning, coach decisions, staff behavior                [planned]
   sim-analytics  Events, metrics, explanations (read-only over domain events)  [planned]
@@ -92,6 +92,7 @@ Run a single test (Catch2 tag or exact name), after building:
 ./build/debug/tests/unit/sim-core-tests "[rng]"
 ./build/debug/tests/unit/sim-core-tests "RandomNumberGenerator is deterministic for a given seed"
 ./build/debug/tests/unit/sim-match-tests "[matchState]"
+./build/debug/tests/unit/sim-match-tests "[matchSimulation]"
 ```
 
 Run the CLI (writes `replay_metadata.json` to the given path):

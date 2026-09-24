@@ -28,6 +28,7 @@ add_executable(sim-match-tests
         sim-match/pitchTests.cpp
         sim-match/matchStateTests.cpp
         sim-match/kickoffScenarioTests.cpp
+        sim-match/matchSimulationTests.cpp
 )
 target_link_libraries(sim-match-tests PRIVATE
         ElyverseFootball::sim-match

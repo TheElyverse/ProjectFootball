@@ -273,6 +273,30 @@ Duelle werden als kurze Sequenzen aus Position, Geschwindigkeit, Winkel, Balance
 
 Müdigkeit wirkt auf Sprintkapazität, Beschleunigung, technische Präzision, Scan-Frequenz und Entscheidungszeit. Mentale Zustände wie Confidence, Composure, Frustration und Focus verändern Verhalten subtil; es gibt keine pauschalen Arcade-Buffs und keinen versteckten Momentum-Regler.
 
+### 8.10 Spieldauer, Matchzeit und Wiedergabe
+
+**Spieldauer.** Standard sind 90 Minuten. Nutzer können eine kürzere Spieldauer wählen, z. B. 10 Minuten. Kürzer wird die Dauer, nicht der Fußball: Laufwege, Passgeschwindigkeiten und Reaktionszeiten bleiben unverändert, ein kürzeres Match läuft nicht schneller ab, sondern endet früher. Die angezeigte Spieluhr läuft im 90-Minuten-Äquivalent (bei 10 Minuten Spieldauer entspricht eine gespielte Minute neun Spielminuten), damit Anzeige, Wechselzeitpunkte und Spielerstatistiken vertraut bleiben.
+
+**Nachspielzeit.** Die gewählte Spieldauer ist eine Richtgröße, keine feste Endzeit. Unterbrechungen durch Standards (Freistöße, Einwürfe, Elfmeter), Verletzungen und Wechsel verlängern das Spiel; die verlorene Zeit wird wie im echten Fußball als Nachspielzeit angehängt. Ein 10-Minuten-Match kann dadurch spürbar länger dauern als zehn Minuten.
+
+**Müdigkeit.** Die Ermüdung über das ganze Match wird auf die Spieldauer abgebildet: Maßgeblich ist der Anteil der Spieldauer, den ein Spieler auf dem Platz stand. Wer 9 von 10 Minuten spielt, ist so müde wie ein Spieler nach 82 von 90 Minuten, jeweils rund 90 %. Kurzfristige Belastung – Sprintkapazität und Erholung zwischen Sprints – läuft dagegen in echter Zeit, weil sie von der einzelnen Aktion abhängt und nicht von der Spieldauer. Was aus dem Match in die Welt übergeht (Regeneration, Verletzungsrisiko durch Belastung, Einsatzminuten für die Entwicklung), wird ebenfalls im 90-Minuten-Äquivalent gezählt.
+
+**Eingriffe während des Spiels.** Die Simulation reagiert auf Taktikänderungen, Auswechslungen und Anweisungen. Sie wirken mit realistischer Verzögerung: Zurufe von der Seitenlinie erreichen die Spieler nach einigen Sekunden, Wechsel erfolgen bei der nächsten Spielunterbrechung. Die Verzögerung ist eine Regel der Simulation und läuft in echter Zeit – unabhängig von Spieldauer und Wiedergabegeschwindigkeit wirkt dieselbe Anweisung zum selben Zeitpunkt gleich.
+
+**Wiedergabe.** Unabhängig von der Spieldauer kann die Wiedergabe beschleunigt werden. Das Ergebnis eines Matches hängt nie von der Wiedergabegeschwindigkeit ab.
+
+| **Modus**         | **Verhalten**                                                                                                  | **Einsatz**                                 |
+| ----------------- | -------------------------------------------------------------------------------------------------------------- | ------------------------------------------- |
+| Echtzeit          | 1×                                                                                                             | Einzelne Szenen genau beobachten            |
+| Beschleunigt      | Frei wählbarer Faktor, z. B. 2×–10×                                                                            | Ganzes Match in kürzerer Zeit ansehen       |
+| Relevanzgesteuert | Schnell durch ungefährliche Phasen, normales Tempo bei Angriffen im letzten Drittel, Standards und Abschlüssen | Standard für angesehene Matches             |
+| Highlights        | Nur relevante Szenen; der Rest wird vollständig simuliert, aber übersprungen                                   | Schneller Überblick                         |
+| Sofortergebnis    | Kein Zuschauen; Simulation so schnell wie möglich                                                              | Uninteressante Matches, Hintergrund-Matches |
+
+Damit das Tempo *vor* einer Chance sinkt, läuft die Simulation einige Sekunden vor der Anzeige. Die Relevanz einer Szene ergibt sich aus Ereignissen und Kennzahlen der Simulation (Gefahr in Tornähe, Pitch Control, Standards), nicht aus einer separaten Regie-Logik – dieselben Daten, die auch Analytics und Erklärungen speisen (siehe Abschnitt 14). Die Verzögerung von Anweisungen ist mindestens so lang wie dieser Vorlauf, sodass ein Eingriff keine bereits simulierte Zukunft verändert. Fällt ein Eingriff dennoch in den Vorlauf, wird ab dem letzten Zwischenstand neu simuliert; wegen des Determinismus ist das Ergebnis identisch mit einem Spiel ohne Vorlauf.
+
+Wie beim Zeitfortschritt außerhalb des Spiels (siehe Abschnitt 3.2) hält die Wiedergabe bei Ereignissen mit Entscheidungsbedarf automatisch an, z. B. bei Verletzungen, Platzverweisen oder taktischen Hinweisen des Co-Trainers. Welche Ereignisse unterbrechen, ist konfigurierbar.
+
 ## 9. Training & Coaching
 
 Training verändert reale Fähigkeiten, Gewohnheiten und taktische Familiarität. Es gibt keinen abstrakten „Match Bonus“, wenn eine Übung keinen plausiblen Effekt auf das Verhalten hat.
@@ -397,6 +421,7 @@ Drei Teams mit identischer Spielerstärke: Possession, Counter, Pressing. Nach t
 - Keine tägliche Pflicht-Mikroverwaltung von Training oder Meetings.
 - Keine KI, die beim Delegieren außerhalb derselben Regeln cheatet.
 - Keine versteckte Momentum-Mechanik.
+- Keine beschleunigte Physik: Eine kürzere Spieldauer verkürzt das Match, lässt Spieler und Ball aber nicht schneller laufen.
 - Keine 3D-Produktion, bevor der headless Fußballkern plausibel funktioniert.
 
 ## 18. Erfolgskriterien und offene Designfragen
@@ -418,3 +443,8 @@ Drei Teams mit identischer Spielerstärke: Possession, Counter, Pressing. Nach t
 - Wie stark dürfen Clubidentitäten driften, ohne ihre historische Glaubwürdigkeit zu verlieren?
 - Wie werden echte Lizenzen / Daten später optional integriert, ohne das Kernsystem davon abhängig zu machen?
 - Welche Teile der Match-Engine benötigen echte 3D-Physik und welche sollten deterministisch im Core bleiben?
+- Welche Verzögerung von Anweisungen wirkt realistisch, ohne Eingriffe während des Spiels träge wirken zu lassen?
+- Welche Kennzahlen bestimmen die Relevanz einer Szene für relevanzgesteuerte Wiedergabe und Highlights?
+- Gilt die gewählte Spieldauer für alle Matches eines Spielstands (auch KI gegen KI) oder nur für die des Nutzers? Kürzere Matches liefern weniger Tore, Karten und Verletzungen pro Match; gemischt mit 90-Minuten-Matches werden Saisonstatistiken, Marktwerte und Ranglisten unvergleichbar.
+- Kürzere Matches enthalten weniger Tore und damit mehr Zufall; der schwächere Verein gewinnt häufiger. Wird das akzeptiert, oder darf die Spieldauer nur zwischen Spielständen bzw. Saisons geändert werden, damit sie nicht taktisch pro Match gewählt wird?
+- Verlängert jede Unterbrechung das Spiel vollständig, oder nur die Zeit, die über die übliche Dauer einer Unterbrechung hinausgeht (wie im echten Fußball)?

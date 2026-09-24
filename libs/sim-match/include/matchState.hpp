@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cstddef>
 #include <cstdint>
 #include <expected>
 #include <span>
@@ -91,18 +92,28 @@ struct MatchStateSpec {
   int playersPerSide = kDefaultPlayersPerSide;
 };
 
-// A validated initial or current match state: two teams, their players, and one
-// ball on a pitch. Nothing here advances time -- the fixed-timestep loop owns
-// that.
+class MatchSimulation;
+class MatchStateWriter;
+
+// A validated match state: two teams, their players, and one ball on a pitch.
+// Nothing here advances time -- MatchSimulation owns that.
+//
+// The invariants hold for every state, from kickoff to the final whistle:
+// both squads have the stated size, every player has a unique valid id and a
+// declared side, and every position and velocity is finite. Being on the
+// pitch is deliberately not one of them: a ball that crossed the touchline or
+// a player standing behind the goal line is football, not a broken state.
+// checkStartingPositions() holds that rule for states a match starts from.
 //
 // Player order is part of the state. Two states holding the same players in a
 // different order are not equal, because update order has to stay fixed for
 // replays to reproduce.
 class MatchState {
  public:
-  // The only way to obtain a MatchState, so every instance that exists is
-  // valid. Reports every rule the spec breaks, not just the first one, in a
-  // fixed order: squad size, then players by index, then the ball.
+  // The only way to obtain a MatchState from outside the simulation, so every
+  // instance that exists is valid. Reports every rule the spec breaks, not just
+  // the first one, in a fixed order: squad size, then players by index, then
+  // the ball.
   [[nodiscard]] static std::expected<MatchState, std::vector<MatchStateError>> create(
       MatchStateSpec spec);
 
@@ -114,6 +125,8 @@ class MatchState {
   friend bool operator==(const MatchState&, const MatchState&) = default;
 
  private:
+  friend class MatchStateWriter;
+
   explicit MatchState(MatchStateSpec spec);
 
   Pitch pitch_;
@@ -121,5 +134,39 @@ class MatchState {
   BallState ball_;
   int playersPerSide_;
 };
+
+// What a simulation system may change in the next tick's state: positions and
+// velocities, nothing else. Squad, ids, sides, player order and the pitch have
+// no setter, so a system cannot break those invariants and nothing has to
+// re-check them every tick. Players are addressed by their index in
+// MatchState::players(); an index past the end throws std::out_of_range.
+//
+// Only MatchSimulation hands out writers, and a writer only lives for one step.
+class MatchStateWriter {
+ public:
+  void setPlayerPosition(std::size_t playerIndex, SimCore::Vec2 position);
+  void setPlayerVelocity(std::size_t playerIndex, SimCore::Vec2 velocity);
+  void setBallPosition(SimCore::Vec2 position) noexcept { state_->ball_.position = position; }
+  void setBallVelocity(SimCore::Vec2 velocity) noexcept { state_->ball_.velocity = velocity; }
+
+ private:
+  friend class MatchSimulation;
+
+  explicit MatchStateWriter(MatchState& state) noexcept : state_(&state) {}
+
+  MatchState* state_;
+};
+
+// The finiteness rules of MatchState::create(), for a state the simulation
+// has just written: every non-finite position and velocity, players by index
+// first and then the ball, with the same codes and messages create() uses.
+// Empty for a state without defects.
+[[nodiscard]] std::vector<MatchStateError> findNonFiniteValues(const MatchState& state);
+
+// The extra rule for a state a match starts from, such as a kickoff fixture:
+// every player and the ball stand on the pitch, edges included. Returns one
+// error per offender, players by index first and then the ball, and nothing
+// for a state that complies.
+[[nodiscard]] std::vector<MatchStateError> checkStartingPositions(const MatchState& state);
 
 }  // namespace ElyverseFootball::SimMatch

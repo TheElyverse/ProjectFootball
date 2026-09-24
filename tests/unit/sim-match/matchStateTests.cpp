@@ -12,6 +12,7 @@
 using ElyverseFootball::SimCore::PlayerId;
 using ElyverseFootball::SimCore::Vec2;
 using ElyverseFootball::SimMatch::BallState;
+using ElyverseFootball::SimMatch::checkStartingPositions;
 using ElyverseFootball::SimMatch::kDefaultPlayersPerSide;
 using ElyverseFootball::SimMatch::MatchState;
 using ElyverseFootball::SimMatch::MatchStateError;
@@ -83,10 +84,13 @@ TEST_CASE("MatchState::create accepts squad sizes other than seven", "[matchStat
   REQUIRE(state->playersPerSide() == 11);
 }
 
-TEST_CASE("MatchState::create accepts players on the pitch boundary", "[matchState]") {
+TEST_CASE("MatchState::create accepts players and a ball outside the pitch", "[matchState]") {
+  // A ball over the touchline or a player behind the goal line is football,
+  // not a broken state; only starting states must be on the pitch.
   MatchStateSpec spec = validSpec();
-  spec.players.at(0).position = {.x = 0.0, .y = 0.0};
-  spec.players.at(1).position = {.x = kLengthMeters, .y = kWidthMeters};
+  spec.players.at(0).position = {.x = -3.0, .y = 20.0};
+  spec.players.at(8).position = {.x = 30.0, .y = kWidthMeters + 2.0};
+  spec.ball.position = {.x = kLengthMeters + 1.5, .y = 18.0};
 
   REQUIRE(MatchState::create(spec).has_value());
 }
@@ -235,23 +239,7 @@ TEST_CASE("Two invalid ids are not reported as duplicates of each other", "[matc
                                                 MatchStateErrorCode::kInvalidPlayerId});
 }
 
-TEST_CASE("MatchState::create rejects a player outside the pitch", "[matchState]") {
-  MatchStateSpec spec = validSpec();
-  spec.players.at(4).position = {.x = std::nextafter(kLengthMeters, kLengthMeters + 1.0),
-                                 .y = 20.0};
-
-  const auto state = MatchState::create(spec);
-
-  REQUIRE_FALSE(state.has_value());
-  REQUIRE(codesOf(state.error()) == std::vector{MatchStateErrorCode::kPlayerOutsidePitch});
-  CAPTURE(state.error().front().message);
-  REQUIRE(mentions(state.error().front().message, "index 4"));
-  REQUIRE(mentions(state.error().front().message, "outside the 60 x 40 m pitch"));
-  // One ulp past the touchline must not print as a point on it.
-  REQUIRE(mentions(state.error().front().message, "at (60.00000000000001, 20) m"));
-}
-
-TEST_CASE("A non-finite player position is reported once, not twice", "[matchState]") {
+TEST_CASE("MatchState::create rejects a non-finite player position", "[matchState]") {
   const double invalidValue =
       GENERATE(std::numeric_limits<double>::quiet_NaN(), std::numeric_limits<double>::infinity(),
                -std::numeric_limits<double>::infinity());
@@ -282,17 +270,6 @@ TEST_CASE("MatchState::create rejects a non-finite player velocity", "[matchStat
   REQUIRE(mentions(state.error().front().message, ") m/s"));
 }
 
-TEST_CASE("MatchState::create rejects a ball outside the pitch", "[matchState]") {
-  MatchStateSpec spec = validSpec();
-  spec.ball.position = {.x = -0.5, .y = 20.0};
-
-  const auto state = MatchState::create(spec);
-
-  REQUIRE_FALSE(state.has_value());
-  REQUIRE(codesOf(state.error()) == std::vector{MatchStateErrorCode::kBallOutsidePitch});
-  REQUIRE(mentions(state.error().front().message, "the ball is outside"));
-}
-
 TEST_CASE("MatchState::create rejects a non-finite ball state", "[matchState]") {
   MatchStateSpec spec = validSpec();
   spec.ball.position = {.x = std::numeric_limits<double>::quiet_NaN(), .y = 20.0};
@@ -309,18 +286,77 @@ TEST_CASE("MatchState::create reports every broken rule in a fixed order", "[mat
   MatchStateSpec spec = validSpec();
   spec.players.pop_back();
   spec.players.at(9).playerId = spec.players.at(2).playerId;
-  spec.players.at(11).position = {.x = 200.0, .y = 20.0};
-  spec.ball.position = {.x = 20.0, .y = 100.0};
+  spec.players.at(11).position = {.x = std::numeric_limits<double>::infinity(), .y = 20.0};
+  spec.ball.velocity = {.x = std::numeric_limits<double>::quiet_NaN(), .y = 0.0};
 
   const auto state = MatchState::create(spec);
 
   REQUIRE_FALSE(state.has_value());
   REQUIRE(codesOf(state.error()) == std::vector{MatchStateErrorCode::kWrongPlayerCountPerSide,
                                                 MatchStateErrorCode::kDuplicatePlayerId,
-                                                MatchStateErrorCode::kPlayerOutsidePitch,
-                                                MatchStateErrorCode::kBallOutsidePitch});
+                                                MatchStateErrorCode::kNonFinitePlayerPosition,
+                                                MatchStateErrorCode::kNonFiniteBallVelocity});
   for (const MatchStateError& error : state.error()) {
     CAPTURE(error.message);
     REQUIRE_FALSE(error.message.empty());
   }
+}
+
+TEST_CASE("checkStartingPositions accepts positions on the pitch boundary", "[matchState]") {
+  MatchStateSpec spec = validSpec();
+  spec.players.at(0).position = {.x = 0.0, .y = 0.0};
+  spec.players.at(1).position = {.x = kLengthMeters, .y = kWidthMeters};
+  spec.ball.position = {.x = kLengthMeters, .y = 0.0};
+  const auto state = MatchState::create(spec);
+  REQUIRE(state.has_value());
+
+  REQUIRE(checkStartingPositions(*state).empty());
+}
+
+TEST_CASE("checkStartingPositions rejects a player outside the pitch", "[matchState]") {
+  MatchStateSpec spec = validSpec();
+  spec.players.at(4).position = {.x = std::nextafter(kLengthMeters, kLengthMeters + 1.0),
+                                 .y = 20.0};
+  const auto state = MatchState::create(spec);
+  REQUIRE(state.has_value());
+
+  const std::vector<MatchStateError> errors = checkStartingPositions(*state);
+
+  REQUIRE(codesOf(errors) == std::vector{MatchStateErrorCode::kPlayerOutsidePitch});
+  CAPTURE(errors.front().message);
+  REQUIRE(mentions(errors.front().message, "index 4"));
+  REQUIRE(mentions(errors.front().message, "outside the 60 x 40 m pitch"));
+  // One ulp past the touchline must not print as a point on it.
+  REQUIRE(mentions(errors.front().message, "at (60.00000000000001, 20) m"));
+}
+
+TEST_CASE("checkStartingPositions rejects a ball outside the pitch", "[matchState]") {
+  MatchStateSpec spec = validSpec();
+  spec.ball.position = {.x = -0.5, .y = 20.0};
+  const auto state = MatchState::create(spec);
+  REQUIRE(state.has_value());
+
+  const std::vector<MatchStateError> errors = checkStartingPositions(*state);
+
+  REQUIRE(codesOf(errors) == std::vector{MatchStateErrorCode::kBallOutsidePitch});
+  CAPTURE(errors.front().message);
+  REQUIRE(mentions(errors.front().message, "the ball is outside the 60 x 40 m pitch"));
+  REQUIRE(mentions(errors.front().message, "at (-0.5, 20) m"));
+}
+
+TEST_CASE("checkStartingPositions reports players by index, then the ball", "[matchState]") {
+  MatchStateSpec spec = validSpec();
+  spec.players.at(11).position = {.x = 200.0, .y = 20.0};
+  spec.players.at(3).position = {.x = 20.0, .y = -1.0};
+  spec.ball.position = {.x = 20.0, .y = 100.0};
+  const auto state = MatchState::create(spec);
+  REQUIRE(state.has_value());
+
+  const std::vector<MatchStateError> errors = checkStartingPositions(*state);
+
+  REQUIRE(codesOf(errors) == std::vector{MatchStateErrorCode::kPlayerOutsidePitch,
+                                         MatchStateErrorCode::kPlayerOutsidePitch,
+                                         MatchStateErrorCode::kBallOutsidePitch});
+  REQUIRE(mentions(errors.at(0).message, "index 3"));
+  REQUIRE(mentions(errors.at(1).message, "index 11"));
 }
