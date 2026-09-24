@@ -11,7 +11,8 @@ seven-a-side kickoff fixture, the fixed-timestep match loop with commands (`docs
 player and ball movement (`docs/player-movement.md`, `docs/ball-movement.md`), spatial queries,
 perception, possession, passing, reception and pass decisions (`docs/spatial-queries.md`,
 `docs/perception.md`, `docs/possession.md`, `docs/passing.md`, `docs/reception.md`,
-`docs/pass-candidates.md`, `docs/pass-decisions.md`);
+`docs/pass-candidates.md`, `docs/pass-decisions.md`) with events and diagnostics
+(`docs/match-events.md`);
 almost everything described in the design/implementation docs below is still unbuilt.
 When implementing a new system, check whether it belongs in an existing module (see layout below) before
 adding a new one.
@@ -51,7 +52,7 @@ libs/
   sim-core       IDs, time, RNG, events, base types (depends on: STL only)      [exists]
   sim-player     Capabilities, match/world player state, development           [planned]
   sim-tactics    Principles, phases, responsibilities, spatial targets         [planned]
-  sim-match      Pitch, ball, perception, decisions, actions, rules            [exists: pitch, state, loop, movement, ball, perception, possession, passing, reception, decisions]
+  sim-match      Pitch, ball, perception, decisions, actions, rules            [exists: pitch, state, loop, movement, ball, perception, possession, passing, reception, decisions, events]
   sim-world      Calendar, clubs, competitions, economy, careers               [planned]
   sim-ai         Club planning, coach decisions, staff behavior                [planned]
   sim-analytics  Events, metrics, explanations (read-only over domain events)  [planned]

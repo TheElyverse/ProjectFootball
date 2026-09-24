@@ -47,6 +47,8 @@ before starting a change.
   from the carrier's perception.
 - [Pass decisions](docs/pass-decisions.md): when a player on the ball passes, and
   the seeded softmax that picks the pass.
+- [Match events](docs/match-events.md): pass and possession events, and decision
+  diagnostics.
 - [Replay format](docs/replay-format.md): the replay file `sim-cli` writes, its
   versioning and seed encoding contract, and replay playback.
 - [Scenarios](docs/scenarios.md): the named, reproducible match setups `sim-cli`

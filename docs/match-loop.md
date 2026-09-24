@@ -41,7 +41,8 @@ A step from tick `t` to `t + 1`:
 4. After each system, checks the next state for non-finite values.
 5. Advances the clock and makes the next state current.
 
-Planned slot, not built yet: events are published after the clock advances.
+After the clock advances, the events the step recorded are published: see
+[match events](match-events.md).
 
 ## Commands
 
