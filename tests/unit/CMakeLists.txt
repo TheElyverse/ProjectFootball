@@ -33,6 +33,7 @@ add_executable(sim-match-tests
         sim-match/matchCommandTests.cpp
         sim-match/playerMovementTests.cpp
         sim-match/ballMovementTests.cpp
+        sim-match/matchStateHashTests.cpp
 )
 target_link_libraries(sim-match-tests PRIVATE
         ElyverseFootball::sim-match
