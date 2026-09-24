@@ -259,6 +259,22 @@ TEST_CASE("MatchState::create rejects a non-finite player position", "[matchStat
   REQUIRE(mentions(state.error().front().message, "non-finite position"));
 }
 
+TEST_CASE("MatchState::create rejects a player faster than his max speed", "[matchState]") {
+  MatchStateSpec spec = validSpec();
+  spec.players.at(6).velocity = {.x = 10.0, .y = 0.0};
+
+  const auto state = MatchState::create(spec);
+
+  REQUIRE_FALSE(state.has_value());
+  REQUIRE(codesOf(state.error()) == std::vector{MatchStateErrorCode::kPlayerTooFast});
+  CAPTURE(state.error().front().message);
+  REQUIRE(mentions(state.error().front().message, "index 6"));
+
+  // Exactly at the limit is fine.
+  spec.players.at(6).velocity = {.x = 0.0, .y = spec.players.at(6).attributes.maxSpeed};
+  REQUIRE(MatchState::create(spec).has_value());
+}
+
 TEST_CASE("MatchState::create rejects a non-finite player velocity", "[matchState]") {
   const double invalidValue =
       GENERATE(std::numeric_limits<double>::quiet_NaN(), std::numeric_limits<double>::infinity());

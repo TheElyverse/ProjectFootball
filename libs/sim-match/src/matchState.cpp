@@ -119,6 +119,19 @@ void appendAttributeErrors(const std::size_t index, const PlayerMatchState& play
                                  formatNumber(attributes.maxSpeed) + " m/s and acceleration " +
                                  formatNumber(attributes.acceleration) +
                                  " m/s^2, expected both positive and finite"});
+    return;
+  }
+  // Movement assumes a player is never faster than his limit: it changes the
+  // velocity by one tick's acceleration at a time and would leave a faster
+  // player over it for many ticks. The margin absorbs rounding in a state
+  // copied from a running match.
+  constexpr double kSpeedTolerance = 1.0 + 1e-9;
+  const double limit = attributes.maxSpeed * kSpeedTolerance;
+  if (player.velocity.isFinite() && player.velocity.lengthSquared() > limit * limit) {
+    errors.push_back({.code = MatchStateErrorCode::kPlayerTooFast,
+                      .message = describePlayer(index, player) + " moves at " +
+                                 formatVelocity(player.velocity) + ", faster than his max speed " +
+                                 formatNumber(attributes.maxSpeed) + " m/s"});
   }
 }
 

@@ -90,6 +90,7 @@ enum class MatchStateErrorCode : std::uint8_t {
   kNonFinitePlayerPosition,
   kPlayerOutsidePitch,
   kNonFinitePlayerVelocity,
+  kPlayerTooFast,
   kNonFinitePlayerTarget,
   kNonFiniteBallPosition,
   kBallOutsidePitch,

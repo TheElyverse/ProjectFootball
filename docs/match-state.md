@@ -57,6 +57,7 @@ one.
 | player attributes are positive and finite         | `kInvalidPlayerAttributes` |
 | player positions are finite                       | `kNonFinitePlayerPosition` |
 | player velocities are finite                      | `kNonFinitePlayerVelocity` |
+| no player moves faster than his max speed         | `kPlayerTooFast`           |
 | player targets, where set, are finite             | `kNonFinitePlayerTarget`   |
 | the ball position is finite                       | `kNonFiniteBallPosition`   |
 | the ball velocity is finite                       | `kNonFiniteBallVelocity`   |
