@@ -7,6 +7,7 @@
 #include "matchCommand.hpp"
 #include "matchSimulation.hpp"
 #include "matchState.hpp"
+#include "passDecision.hpp"
 #include "passing.hpp"
 #include "perception.hpp"
 #include "pursuit.hpp"
@@ -24,6 +25,7 @@ struct MatchConfig {
   PassConfig passing;
   ReceptionConfig reception;
   PursuitConfig pursuit;
+  DecisionConfig decisions;
 
   friend bool operator==(const MatchConfig&, const MatchConfig&) = default;
 };
@@ -46,8 +48,9 @@ struct MatchSetup {
 //
 //   1. perception       every perception.intervalTicks ticks
 //   2. ball pursuit     every pursuit.intervalTicks ticks
-//   3. player movement  every tick
-//   4. ball movement    every tick
+//   3. pass decision    every decisions.intervalTicks ticks
+//   4. player movement  every tick
+//   5. ball movement    every tick
 //
 // Throws std::invalid_argument for invalid parameters.
 [[nodiscard]] std::vector<MatchSystem> makeMatchSystems(const MatchConfig& config);

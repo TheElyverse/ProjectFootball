@@ -27,7 +27,9 @@ using ElyverseFootball::SimMatch::kDefaultCarryDistance;
 using ElyverseFootball::SimMatch::makeBallMovementSystem;
 using ElyverseFootball::SimMatch::makeSevenASideKickoff;
 using ElyverseFootball::SimMatch::MatchCommandErrorCode;
+using ElyverseFootball::SimMatch::MatchConfig;
 using ElyverseFootball::SimMatch::MatchSetup;
+
 using ElyverseFootball::SimMatch::MatchSimulation;
 using ElyverseFootball::SimMatch::MatchState;
 using ElyverseFootball::SimMatch::MatchStateErrorCode;
@@ -48,10 +50,16 @@ namespace {
   return *std::move(state);
 }
 
+// A match whose carriers never pass, so possession changes only through the
+// commands of a test.
 [[nodiscard]] MatchSimulation matchOf(std::vector<ScheduledCommand> commands,
                                       MatchState state = kickoff()) {
-  return startMatch(MatchSetup{
-      .initialState = std::move(state), .config = {}, .seed = 1, .commands = std::move(commands)});
+  MatchConfig config;
+  config.decisions.minHoldSeconds = 1.0e6;
+  return startMatch(MatchSetup{.initialState = std::move(state),
+                               .config = config,
+                               .seed = 1,
+                               .commands = std::move(commands)});
 }
 
 [[nodiscard]] ScheduledCommand give(const std::int64_t tick, const std::uint32_t playerId) {

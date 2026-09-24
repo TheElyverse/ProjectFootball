@@ -86,6 +86,24 @@ using SimMatch::TeamSide;
   return json;
 }
 
+[[nodiscard]] Json decisionsJson(const SimMatch::DecisionConfig& decisions) {
+  const SimMatch::PassScoringConfig& scoring = decisions.scoring;
+  return {{"intervalTicks", decisions.intervalTicks},
+          {"minHoldSeconds", decisions.minHoldSeconds},
+          {"temperature", decisions.temperature},
+          {"scoring",
+           {{"minConfidence", scoring.minConfidence},
+            {"minPassDistance", scoring.minPassDistance},
+            {"maxPassDistance", scoring.maxPassDistance},
+            {"interceptionMarginSeconds", scoring.interceptionMarginSeconds},
+            {"pressureRadius", scoring.pressureRadius},
+            {"minCompletion", scoring.minCompletion},
+            {"completionWeight", scoring.completionWeight},
+            {"progressionWeight", scoring.progressionWeight},
+            {"pressureWeight", scoring.pressureWeight},
+            {"riskWeight", scoring.riskWeight}}}};
+}
+
 [[nodiscard]] Json configJson(const MatchConfig& config) {
   const SimMatch::PerceptionConfig& perception = config.perception;
   return {{"ticksPerSecond", config.ticksPerSecond},
@@ -110,7 +128,8 @@ using SimMatch::TeamSide;
           {"pursuit",
            {{"intervalTicks", config.pursuit.intervalTicks},
             {"sampleSeconds", config.pursuit.sampleSeconds},
-            {"horizonSeconds", config.pursuit.horizonSeconds}}}};
+            {"horizonSeconds", config.pursuit.horizonSeconds}}},
+          {"decisions", decisionsJson(config.decisions)}};
 }
 
 void addCommandFields(Json& json, const MovePlayerCommand& command) {
@@ -360,6 +379,24 @@ constexpr std::int64_t kMaxTick = std::int64_t{1} << 53;
           .horizonSeconds = field.member("horizonSeconds").number()};
 }
 
+[[nodiscard]] SimMatch::DecisionConfig readDecisions(const Field& field) {
+  const Field scoring = field.member("scoring");
+  return {
+      .intervalTicks = static_cast<int>(field.member("intervalTicks").integerIn(1, 100000)),
+      .minHoldSeconds = field.member("minHoldSeconds").number(),
+      .temperature = field.member("temperature").number(),
+      .scoring = {.minConfidence = scoring.member("minConfidence").number(),
+                  .minPassDistance = scoring.member("minPassDistance").number(),
+                  .maxPassDistance = scoring.member("maxPassDistance").number(),
+                  .interceptionMarginSeconds = scoring.member("interceptionMarginSeconds").number(),
+                  .pressureRadius = scoring.member("pressureRadius").number(),
+                  .minCompletion = scoring.member("minCompletion").number(),
+                  .completionWeight = scoring.member("completionWeight").number(),
+                  .progressionWeight = scoring.member("progressionWeight").number(),
+                  .pressureWeight = scoring.member("pressureWeight").number(),
+                  .riskWeight = scoring.member("riskWeight").number()}};
+}
+
 [[nodiscard]] MatchConfig readConfig(const Field& field) {
   return {
       .ticksPerSecond = static_cast<int>(field.member("ticksPerSecond").integerIn(1, 100000)),
@@ -370,7 +407,8 @@ constexpr std::int64_t kMaxTick = std::int64_t{1} << 53;
       .reception = {.controlRadius = field.member("reception").member("controlRadius").number(),
                     .reclaimDelaySeconds =
                         field.member("reception").member("reclaimDelaySeconds").number()},
-      .pursuit = readPursuit(field.member("pursuit"))};
+      .pursuit = readPursuit(field.member("pursuit")),
+      .decisions = readDecisions(field.member("decisions"))};
 }
 
 [[nodiscard]] MatchCommand readCommand(const Field& field) {

@@ -18,7 +18,7 @@ validation leaves no file behind.
 ```json
 {
   "schemaVersion": 2,
-  "coreVersion": "0.6.0",
+  "coreVersion": "0.7.0",
   "createdAt": "2026-09-24T10:00:00Z",
   "seed": "18446744073709551615",
   "gameTime": 300,
@@ -40,7 +40,24 @@ validation leaves no file behind.
       "speedError": 0.05
     },
     "reception": { "controlRadius": 1.0, "reclaimDelaySeconds": 0.3 },
-    "pursuit": { "intervalTicks": 3, "sampleSeconds": 0.1, "horizonSeconds": 8.0 }
+        "pursuit": { "intervalTicks": 3, "sampleSeconds": 0.1, "horizonSeconds": 8.0 },
+    "decisions": {
+      "intervalTicks": 6,
+      "minHoldSeconds": 0.5,
+      "temperature": 0.15,
+      "scoring": {
+        "minConfidence": 0.3,
+        "minPassDistance": 2.0,
+        "maxPassDistance": 35.0,
+        "interceptionMarginSeconds": 0.6,
+        "pressureRadius": 6.0,
+        "minCompletion": 0.35,
+        "completionWeight": 1.0,
+        "progressionWeight": 0.8,
+        "pressureWeight": 0.3,
+        "riskWeight": 0.3
+      }
+    }
   },
   "initialState": {
     "pitch": { "length": 60.0, "width": 40.0 },

@@ -33,6 +33,7 @@ add_executable(sim-match-tests
         sim-match/passingTests.cpp
         sim-match/receptionTests.cpp
         sim-match/passCandidatesTests.cpp
+        sim-match/passDecisionTests.cpp
 )
 target_link_libraries(sim-match-tests PRIVATE
         ElyverseFootball::sim-match

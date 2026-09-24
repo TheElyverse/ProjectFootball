@@ -14,6 +14,7 @@ add_library(sim-match STATIC
         src/reception.cpp
         src/pursuit.cpp
         src/passCandidates.cpp
+        src/passDecision.cpp
 )
 add_library(ElyverseFootball::sim-match ALIAS sim-match)
 
