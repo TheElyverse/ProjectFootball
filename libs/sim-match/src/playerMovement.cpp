@@ -77,6 +77,20 @@ PlayerKinematics stepPlayerMovement(const PlayerMatchState& player,
   return {.position = player.position + displacement, .velocity = velocity};
 }
 
+Vec2 facingAfterMove(const PlayerMatchState& player, const PlayerKinematics& moved,
+                     const Vec2 ballPosition) noexcept {
+  const double speed = lengthOf(moved.velocity);
+  if (speed > kFacingRunSpeed) {
+    return moved.velocity * (1.0 / speed);
+  }
+  const Vec2 towardBall = ballPosition - moved.position;
+  const double distance = lengthOf(towardBall);
+  if (distance > 0.0) {
+    return towardBall * (1.0 / distance);
+  }
+  return player.facing;
+}
+
 MatchSystem makePlayerMovementSystem() {
   return {.name = std::string(kPlayerMovementSystemName),
           .update = [](const MatchStepContext& context, const MatchState& current,
@@ -85,6 +99,7 @@ MatchSystem makePlayerMovementSystem() {
               const PlayerKinematics moved = stepPlayerMovement(player, context.secondsPerTick());
               next.setPlayerPosition(index, moved.position);
               next.setPlayerVelocity(index, moved.velocity);
+              next.setPlayerFacing(index, facingAfterMove(player, moved, current.ball().position));
               ++index;
             }
           }};

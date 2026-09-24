@@ -122,7 +122,7 @@ far — and `makeMatchSystems(config)` returns them in their fixed order:
 
 | Order | System          | Rate       | Writes                         |
 |-------|-----------------|------------|--------------------------------|
-| 1     | player movement | every tick | player positions, velocities   |
+| 1     | player movement | every tick | player positions, velocities, facings |
 | 2     | ball movement   | every tick | ball position, velocity        |
 
 `MatchSetup` is everything such a match starts from: initial state, config, seed
