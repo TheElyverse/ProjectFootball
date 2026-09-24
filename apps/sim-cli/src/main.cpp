@@ -5,6 +5,7 @@
 #include <expected>
 #include <format>
 #include <iostream>
+#include <optional>
 #include <random>
 #include <span>
 #include <stdexcept>
@@ -13,6 +14,7 @@
 #include <vector>
 
 #include "cliOptions.hpp"
+#include "debugFrames.hpp"
 #include "matchSetup.hpp"
 #include "replay.hpp"
 #include "replayJson.hpp"
@@ -27,6 +29,7 @@ using ElyverseFootball::Cli::CliOptions;
 using ElyverseFootball::Cli::SummaryLine;
 using ElyverseFootball::SimCore::SimTick;
 using ElyverseFootball::SimMatch::MatchSetup;
+using ElyverseFootball::SimReplay::DebugFrameRecorder;
 using ElyverseFootball::SimReplay::Replay;
 
 // Only the CLI (an adapter, not the simulation core) may pull entropy from a
@@ -82,8 +85,9 @@ void listScenarios() {
   }
 }
 
-// Runs a scenario, records it, writes the replay, then reports. The replay is
-// written before the terminal interface opens.
+// Runs a scenario, records it, writes the replay and, with --frames-out, the
+// debug frames, then reports. Files are written before the terminal
+// interface opens.
 int runScenario(const CliOptions& options) {
   const auto* scenario = ElyverseFootball::SimMatch::findScenario(options.scenario);
   if (scenario == nullptr) {
@@ -94,28 +98,53 @@ int runScenario(const CliOptions& options) {
   if (!setup) {
     return fail(setup.error());
   }
-  const auto replay = ElyverseFootball::SimReplay::recordMatch(
-      *setup, SimTick(options.ticks), ElyverseFootball::SimReplay::kDefaultCheckpointIntervalTicks,
-      iso8601Now());
-  if (!replay) {
-    return fail(std::format("the simulation failed at tick {} in system '{}'",
-                            replay.error().tick.value(), replay.error().systemName));
+
+  // One run feeds both recorders. Collecting diagnostics draws no random
+  // numbers, so it leaves the replay unchanged.
+  ElyverseFootball::SimMatch::MatchSimulation simulation =
+      ElyverseFootball::SimMatch::startMatch(*setup);
+  ElyverseFootball::SimReplay::ReplayRecorder recorder(*setup);
+  std::optional<DebugFrameRecorder> frames;
+  if (!options.framesOut.empty()) {
+    simulation.setCollectDiagnostics(true);
+    frames.emplace(*setup, options.scenario);
   }
-  if (const auto saved = ElyverseFootball::SimReplay::saveReplay(*replay, options.replayOut);
+  while (simulation.tick() < SimTick(options.ticks)) {
+    if (const auto stepped = simulation.step(); !stepped) {
+      return fail(std::format("the simulation failed at tick {} in system '{}'",
+                              stepped.error().tick.value(), stepped.error().systemName));
+    }
+    recorder.recordStep(simulation);
+    if (frames) {
+      frames->recordStep(simulation);
+    }
+  }
+  const Replay replay = recorder.finish(simulation, iso8601Now());
+  if (const auto saved = ElyverseFootball::SimReplay::saveReplay(replay, options.replayOut);
       !saved) {
     return fail(saved.error().message);
   }
+  if (frames) {
+    if (const auto saved =
+            ElyverseFootball::SimReplay::saveDebugFrames(frames->recording(), options.framesOut);
+        !saved) {
+      return fail(saved.error());
+    }
+  }
 
   // Elapsed time as the simulation clock computes it: one division.
-  const double elapsedSeconds = static_cast<double>(replay->finalTick.value()) /
+  const double elapsedSeconds = static_cast<double>(replay.finalTick.value()) /
                                 static_cast<double>(setup->config.ticksPerSecond);
-  report(options, "Scenario run",
-         {{"scenario", options.scenario},
-          {"seed", std::to_string(seed)},
-          {"ticks", std::to_string(replay->finalTick.value())},
-          {"time", std::format("{} s", elapsedSeconds)},
-          {"state hash", hashText(replay->checkpoints.back().stateHash)},
-          {"replay", options.replayOut}});
+  std::vector<SummaryLine> lines{{"scenario", options.scenario},
+                                 {"seed", std::to_string(seed)},
+                                 {"ticks", std::to_string(replay.finalTick.value())},
+                                 {"time", std::format("{} s", elapsedSeconds)},
+                                 {"state hash", hashText(replay.checkpoints.back().stateHash)},
+                                 {"replay", options.replayOut}};
+  if (frames) {
+    lines.emplace_back("frames", options.framesOut);
+  }
+  report(options, "Scenario run", lines);
   return EXIT_SUCCESS;
 }
 

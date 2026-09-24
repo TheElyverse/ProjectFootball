@@ -46,6 +46,25 @@ if(NOT result STREQUAL "0" OR NOT output MATCHES "state hash: +${runHash}\n"
     message(FATAL_ERROR "Replay playback failed: ${result}: ${output}${error}")
 endif()
 
+# Debug frames for the viewer come from the same run: collecting them leaves
+# the match, and so the state hash, unchanged.
+set(frames "${TEST_OUTPUT_DIR}/frames.json")
+run_cli(--scenario rolling-ball --seed 42 --ticks 300 --replay-out "${replay}"
+        --frames-out "${frames}")
+if(NOT result STREQUAL "0" OR NOT output MATCHES "state hash: +${runHash}\n"
+        OR NOT output MATCHES "frames: +[^\n]*frames.json\n")
+    message(FATAL_ERROR "Run with frames failed: ${result}: ${output}${error}")
+endif()
+file(READ "${frames}" framesContents)
+string(JSON framesFormat GET "${framesContents}" format)
+string(JSON frameCount LENGTH "${framesContents}" frames)
+string(JSON lastTick GET "${framesContents}" frames 300 tick)
+string(JSON lastHash GET "${framesContents}" frames 300 stateHash)
+if(NOT framesFormat STREQUAL "elyverse-debug-frames" OR NOT frameCount STREQUAL "301"
+        OR NOT lastTick STREQUAL "300" OR NOT lastHash STREQUAL runHash)
+    message(FATAL_ERROR "Unexpected debug frames: ${framesFormat} ${frameCount} ${lastTick}")
+endif()
+
 # A replay that does not reproduce is reported, with a nonzero exit.
 string(JSON firstHash GET "${contents}" checkpoints 1 stateHash)
 string(REPLACE "\"${firstHash}\"" "\"0000000000000000\"" tampered "${contents}")
@@ -97,6 +116,9 @@ run_cli(--help --play "${replay}" --seed 1)
 if(NOT result STREQUAL "0" OR NOT output MATCHES "usage:")
     message(FATAL_ERROR "--help did not win: ${result}: ${output}${error}")
 endif()
+expect_failure("cannot be combined" --play "${replay}" --frames-out "${frames}")
+expect_failure("cannot open for writing" --ticks 1 --replay-out "${replay}"
+        --frames-out "${TEST_OUTPUT_DIR}/missing/frames.json")
 expect_failure("cannot read" --play "${TEST_OUTPUT_DIR}/missing.json")
 file(WRITE "${TEST_OUTPUT_DIR}/broken.json" "{ not json")
 expect_failure("not a valid JSON document" --play "${TEST_OUTPUT_DIR}/broken.json")

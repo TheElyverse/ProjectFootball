@@ -30,12 +30,14 @@ struct CliOptions {
   std::optional<std::uint64_t> seed;
   std::int64_t ticks = kDefaultTicks;
   std::string replayOut = "replay.json";
+  // Where to write debug frames for the web viewer; empty writes none.
+  std::string framesOut;
   std::string playPath;
 };
 
 inline constexpr std::string_view kUsage =
     "usage: sim-cli [--scenario <name>] [--seed <u64>] [--ticks <n>] [--replay-out <path>] "
-    "[--tui]\n"
+    "[--frames-out <path>] [--tui]\n"
     "       sim-cli --play <replay.json> [--tui]\n"
     "       sim-cli --list-scenarios\n"
     "       sim-cli --help";
