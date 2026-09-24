@@ -55,7 +55,7 @@ using SimCore::Vec2;
   BallState ball = state.ball();
   // The passer owns the ball, so he is in the state.
   const auto passer = findPlayerIndex(state, intent.passer).value_or(0);
-  ball.position = carriedBallPosition(state.players()[passer], physics);
+  ball.position = carriedBallPosition(state.players()[passer], physics, state.pitch());
   ball.velocity = executePass(intent, ball, state.players()[passer], passing,
                               context.random(SimCore::RandomNumberGeneratorDomain::kExecution));
   ball.owner = std::nullopt;
@@ -71,8 +71,9 @@ using SimCore::Vec2;
 
 }  // namespace
 
-Vec2 carriedBallPosition(const PlayerMatchState& carrier, const BallPhysics& physics) noexcept {
-  return carrier.position + (carrier.facing * physics.carryDistance);
+Vec2 carriedBallPosition(const PlayerMatchState& carrier, const BallPhysics& physics,
+                         const Pitch& pitch) noexcept {
+  return pitch.clamp(carrier.position + (carrier.facing * physics.carryDistance));
 }
 
 double rollingDistance(const double speed, const BallPhysics& physics) noexcept {
@@ -146,7 +147,7 @@ MatchSystem makeBallMovementSystem(const BallPhysics& physics, const PassConfig&
             if (const auto index = findPlayerIndex(current, *ball.owner)) {
               const PlayerMatchState owner = ownerAfterMove(
                   current.players()[*index], ball.position, context.secondsPerTick());
-              next.setBallPosition(carriedBallPosition(owner, physics));
+              next.setBallPosition(carriedBallPosition(owner, physics, current.pitch()));
               next.setBallVelocity(owner.velocity);
             }
           }};

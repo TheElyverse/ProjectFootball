@@ -76,7 +76,7 @@ void requireBallWith(const MatchSimulation& simulation, const std::uint32_t play
   const auto& ball = simulation.state().ball();
   const PlayerMatchState& owner = playerOf(simulation, playerId);
   REQUIRE(ball.owner == PlayerId(playerId));
-  REQUIRE(ball.position == carriedBallPosition(owner, BallPhysics{}));
+  REQUIRE(ball.position == carriedBallPosition(owner, BallPhysics{}, simulation.state().pitch()));
   REQUIRE(ball.velocity == owner.velocity);
 }
 

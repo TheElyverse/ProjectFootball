@@ -37,9 +37,11 @@ struct BallPhysics {
                                      const Pitch& pitch, double secondsPerTick) noexcept;
 
 // Where a controlled ball is: carryDistance ahead of its carrier along his
-// facing (docs/possession.md).
+// facing, moved onto the pitch if that lies off it -- a carrier on the line
+// does not carry the ball out of play (docs/possession.md).
 [[nodiscard]] SimCore::Vec2 carriedBallPosition(const PlayerMatchState& carrier,
-                                                const BallPhysics& physics) noexcept;
+                                                const BallPhysics& physics,
+                                                const Pitch& pitch) noexcept;
 
 // Distance a ball rolling at this speed covers before it stops, in meters.
 [[nodiscard]] double rollingDistance(double speed, const BallPhysics& physics) noexcept;

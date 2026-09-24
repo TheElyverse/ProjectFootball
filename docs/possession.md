@@ -22,9 +22,12 @@ A controlled ball sits `carryDistance` (0.5 m) ahead of its carrier along his
 facing and moves with his velocity:
 
 ```text
-ball.position = carrier.position + carrier.facing · carryDistance
+ball.position = carrier.position + carrier.facing · carryDistance, moved onto the pitch
 ball.velocity = carrier.velocity
 ```
+
+A carrier standing on a line does not carry the ball out of play: a carried ball
+that would lie off the pitch is moved onto its nearest point.
 
 The ball movement system applies this rule every tick, to the carrier as the
 movement system leaves him after the same tick: it moves and turns him with the
