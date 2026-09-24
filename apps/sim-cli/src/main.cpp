@@ -125,6 +125,13 @@ int playReplayFile(const CliOptions& options) {
   if (!replay) {
     return fail(replay.error().message);
   }
+  // A replay file may claim any length the format allows; playback steps
+  // tick by tick, so hold it to the limit of a new run.
+  if (replay->finalTick.value() > ElyverseFootball::Cli::kMaxTicks) {
+    return fail(std::format("{}: the replay runs {} ticks, sim-cli plays at most {}",
+                            options.playPath, replay->finalTick.value(),
+                            ElyverseFootball::Cli::kMaxTicks));
+  }
   const auto playback = ElyverseFootball::SimReplay::playReplay(*replay);
   if (!playback) {
     return fail(options.playPath + ": " + playback.error().message);

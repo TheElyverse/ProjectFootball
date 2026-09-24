@@ -100,3 +100,10 @@ endif()
 expect_failure("cannot read" --play "${TEST_OUTPUT_DIR}/missing.json")
 file(WRITE "${TEST_OUTPUT_DIR}/broken.json" "{ not json")
 expect_failure("not a valid JSON document" --play "${TEST_OUTPUT_DIR}/broken.json")
+
+# A replay longer than a run may be is refused before playback starts.
+run_cli(--ticks 10 --replay-out "${replay}")
+file(READ "${replay}" contents)
+string(JSON longReplay SET "${contents}" gameTime 9007199254740992)
+file(WRITE "${TEST_OUTPUT_DIR}/long.json" "${longReplay}")
+expect_failure("plays at most 10000000" --play "${TEST_OUTPUT_DIR}/long.json")

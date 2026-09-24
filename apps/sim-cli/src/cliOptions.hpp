@@ -19,6 +19,7 @@ enum class CliMode : std::uint8_t {
 // The run length unless --ticks states another: ten seconds at 30 Hz.
 inline constexpr std::int64_t kDefaultTicks = 300;
 // Longer than any match, short enough to reject a typo'd extra digit or two.
+// Also the longest replay --play runs.
 inline constexpr std::int64_t kMaxTicks = 10'000'000;
 
 struct CliOptions {

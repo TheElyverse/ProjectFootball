@@ -103,7 +103,7 @@ arguments. With Make available, `make run ARGS="..."` builds and runs it.
 | `--seed <u64>`        | random        | the master seed; a random one is reported            |
 | `--ticks <n>`         | `300`         | how many ticks to simulate, 0 to 10,000,000          |
 | `--replay-out <path>` | `replay.json` | where to write the replay                            |
-| `--play <path>`       |               | play a replay back and verify its checkpoints        |
+| `--play <path>`       |               | play a replay of at most 10,000,000 ticks back and verify its checkpoints |
 | `--tui`               |               | show the result in a terminal screen                 |
 
 A run prints the tick count, the simulated time and the final state hash, and
