@@ -51,6 +51,11 @@ inline constexpr std::string_view kBallMovementSystemName = "ball movement";
 // of the owner as the movement system moves and turns him in the same tick,
 // with his velocity. Writes the ball's position and velocity, every tick.
 // Throws std::invalid_argument for invalid physics.
+//
+// Pair it with makePlayerMovementSystem(), both every tick, as
+// makeMatchSystems() does: a controlled ball follows the carrier's move as the
+// movement system makes it, and without that system the ball would end the
+// tick where the carrier would have gone.
 [[nodiscard]] MatchSystem makeBallMovementSystem(BallPhysics physics);
 
 }  // namespace ElyverseFootball::SimMatch

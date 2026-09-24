@@ -32,6 +32,15 @@ same pure functions, `stepPlayerMovement()` and `facingAfterMove()`, so ball and
 carrier end every step together. `carriedBallPosition(carrier, physics)` computes
 the position.
 
+This makes the two systems a pair: the ball system predicts the carrier's move,
+so the prediction only comes true if the player movement system runs in the same
+tick. `makeMatchSystems()` always installs both, every tick. A custom system
+list that runs the ball system without the movement system, or at another
+interval, may only use it for free balls; with a controlled ball it would leave
+the ball where the carrier would have gone. Systems read the state from before
+the step and cannot see what another system writes, so the ball cannot simply
+follow the carrier's committed position instead.
+
 Because the ball's velocity is the carrier's in every tick it is controlled, no
 velocity from before survives a change of possession: a player who takes a rolling
 ball stands with it at his feet, at his own speed. When a ball is released — by a
