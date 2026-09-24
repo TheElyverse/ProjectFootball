@@ -54,7 +54,7 @@ libs/
   sim-analytics  Events, metrics, explanations (read-only over domain events)  [planned]
   sim-replay     Replay recording, JSON file format, playback verification     [exists]
 apps/
-  sim-cli        sets up the kickoff fixture, writes a replay                 [exists]
+  sim-cli        runs scenarios, records and plays back replays               [exists]
   sim-benchmark, sim-replay, unreal-game                                       [planned]
 data/            schemas, tactics, competitions, fixtures (JSON/YAML, schema-validated) [planned]
 tests/unit/      Catch2 tests, mirrors libs/ by subdirectory                   [exists: sim-core, sim-match]
@@ -97,9 +97,10 @@ Run a single test (Catch2 tag or exact name), after building:
 ./build/debug/tests/unit/sim-match-tests "[matchSimulation]"
 ```
 
-Run the CLI (writes a replay to the given path, see `docs/replay-format.md`):
+Run a scenario headlessly and play its replay back (see `docs/replay-format.md`, `docs/scenarios.md`):
 ```
-./build/debug/apps/sim-cli/sim-cli --seed 42 --replay-out /tmp/replay.json
+./build/debug/apps/sim-cli/sim-cli --scenario kickoff --seed 42 --ticks 300 --replay-out /tmp/replay.json
+./build/debug/apps/sim-cli/sim-cli --play /tmp/replay.json
 ```
 
 Run the complete local CI target (warnings-as-errors build, tests, format check, and clang-tidy):

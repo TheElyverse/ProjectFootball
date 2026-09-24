@@ -9,7 +9,7 @@ CPMAddPackage(
         "FTXUI_ENABLE_INSTALL OFF"
 )
 
-add_executable(sim-cli src/main.cpp src/terminalUi.cpp)
+add_executable(sim-cli src/main.cpp src/cliOptions.cpp src/terminalUi.cpp)
 target_link_libraries(sim-cli PRIVATE
         ElyverseFootball::sim-core
         ElyverseFootball::sim-replay

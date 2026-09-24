@@ -9,7 +9,7 @@ The `sim-replay` library (`replay.hpp`, `replayJson.hpp`) records, writes, reads
 and plays back replays; it depends on `sim-match` and on
 [nlohmann/json](https://github.com/nlohmann/json) for the JSON encoding. `sim-cli`
 writes a replay on every successful run; `--replay-out` selects the path, the
-default is `replay_metadata.json` in the working directory. The file is written
+default is `replay.json` in the working directory, and `--play` plays one back. The file is written
 before the terminal interface opens, so a run rejected by argument or terminal
 validation leaves no file behind.
 

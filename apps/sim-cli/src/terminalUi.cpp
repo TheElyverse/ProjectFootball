@@ -1,7 +1,10 @@
 #include "terminalUi.hpp"
 
 #include <cstdio>
+#include <format>
 #include <string>
+#include <utility>
+#include <vector>
 
 #ifdef _WIN32
 #include <io.h>
@@ -27,25 +30,24 @@ bool hasInteractiveTerminal() {
 #endif
 }
 
-void showSimulationSummary(const std::uint64_t seed, const SimCore::SimTick tick,
-                           const std::string& replayPath) {
+void showSummary(const std::string& title, const std::vector<SummaryLine>& lines) {
   auto screen = ftxui::ScreenInteractive::TerminalOutput();
   const auto quit = screen.ExitLoopClosure();
   auto closeButton = ftxui::Button("Close", quit);
   auto renderer = ftxui::Renderer(closeButton, [&] {
-    return ftxui::vbox({
-               ftxui::text("Elyverse: Football") | ftxui::bold,
-               ftxui::separator(),
-               ftxui::text("Empty simulation initialized"),
-               ftxui::text("Core version: " + std::string(SimCore::coreVersion())),
-               ftxui::text("Seed: " + std::to_string(seed)),
-               ftxui::text("Game time (ticks): " + std::to_string(tick.value())),
-               ftxui::paragraph("Replay metadata saved to: " + replayPath),
-               ftxui::separator(),
-               closeButton->Render(),
-               ftxui::text("Enter: close | q / Esc: quit") | ftxui::dim,
-           }) |
-           ftxui::border;
+    ftxui::Elements rows{
+        ftxui::text("Elyverse: Football") | ftxui::bold,
+        ftxui::separator(),
+        ftxui::text(title),
+        ftxui::text("Core version: " + std::string(SimCore::coreVersion())),
+    };
+    for (const auto& [label, value] : lines) {
+      rows.push_back(ftxui::paragraph(std::format("{}: {}", label, value)));
+    }
+    rows.push_back(ftxui::separator());
+    rows.push_back(closeButton->Render());
+    rows.push_back(ftxui::text("Enter: close | q / Esc: quit") | ftxui::dim);
+    return ftxui::vbox(std::move(rows)) | ftxui::border;
   });
   auto component = ftxui::CatchEvent(renderer, [&](const ftxui::Event& event) {
     if (event == ftxui::Event::Character('q') || event == ftxui::Event::Escape) {

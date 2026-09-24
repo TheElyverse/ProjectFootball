@@ -35,6 +35,8 @@ before starting a change.
   what happens when it leaves the pitch.
 - [Replay format](docs/replay-format.md): the replay file `sim-cli` writes, its
   versioning and seed encoding contract, and replay playback.
+- [Scenarios](docs/scenarios.md): the named, reproducible match setups `sim-cli`
+  runs.
 
 The simulation uses standard C++23 and runs independently of Unreal Engine.
 Unreal will consume simulation state for presentation. Keep simulation behavior
@@ -76,29 +78,46 @@ and compiled artifacts are not interchangeable.
 
 ## Run the CLI
 
-From an interactive terminal, with Make available:
+`sim-cli` runs a scenario headlessly, records it as a replay, and plays replays
+back. After building on Linux or WSL:
 
 ```sh
-make run ARGS="--tui --seed 42 --replay-out replay_metadata.json"
+./build/debug/apps/sim-cli/sim-cli --scenario kickoff --seed 42 --ticks 300 --replay-out replay.json
 ```
 
-Alternatively, after building on Linux or WSL:
-
-```sh
-./build/debug/apps/sim-cli/sim-cli --tui --seed 42 --replay-out replay_metadata.json
+```text
+scenario:     kickoff
+seed:         42
+ticks:        300
+time:         10 s
+state hash:   c22d772ab92fca0c
+replay:       replay.json
 ```
 
 On Windows, run `sim-cli.exe` from the CMake build output directory with the same
-arguments.
+arguments. With Make available, `make run ARGS="..."` builds and runs it.
 
-The CLI currently sets up the kickoff fixture and writes a replay of it without
-running a single tick. The terminal screen displays the core version, seed, game
-time, and replay path. Press Enter on Close, `q`, or Escape to exit. The replay is
-written before the screen opens; [replay format](docs/replay-format.md)
-describes the file's schema.
+| Option                | Default       | Meaning                                              |
+|-----------------------|---------------|------------------------------------------------------|
+| `--scenario <name>`   | `kickoff`     | the scenario to run; `--list-scenarios` lists them   |
+| `--seed <u64>`        | random        | the master seed; a random one is reported            |
+| `--ticks <n>`         | `300`         | how many ticks to simulate, 0 to 10,000,000          |
+| `--replay-out <path>` | `replay.json` | where to write the replay                            |
+| `--play <path>`       |               | play a replay back and verify its checkpoints        |
+| `--tui`               |               | show the result in a terminal screen                 |
 
-Omit `--tui` for one-shot execution suitable for scripts and redirected output.
-`--tui` requires both stdin and stdout to be terminals.
+A run prints the tick count, the simulated time and the final state hash, and
+writes a [replay](docs/replay-format.md). `--play` rebuilds the match from the
+file, verifies every recorded state hash, and prints the same summary; it takes
+everything from the file, so it cannot be combined with the run options.
+[Scenarios](docs/scenarios.md) describes the scenario catalog.
+
+Invalid arguments, an unknown scenario, a replay that cannot be read, and a
+replay that does not reproduce all end with a message on stderr and a nonzero
+exit code.
+
+`--tui` requires both stdin and stdout to be terminals. The replay is written
+before the screen opens; press Enter on Close, `q`, or Escape to exit.
 
 ## Check a change
 
