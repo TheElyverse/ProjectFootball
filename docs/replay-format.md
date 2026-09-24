@@ -95,7 +95,10 @@ not.
 as 16 lowercase hexadecimal digits: a stable FNV-1a hash over every field of the
 state (`matchStateHash.hpp`). The recorder takes one of the initial state (tick
 0), one every 30 ticks by default, and one of the final state. Checkpoints are
-ascending, unique, and never past `gameTime`.
+ascending, unique, and never past `gameTime`; the first is at tick 0 and the last
+at `gameTime`, so playback always compares the initial and the final state. Every
+command runs before `gameTime`: a command at or after it would never be applied
+and is not part of the recorded match.
 
 ## Playing a replay back
 

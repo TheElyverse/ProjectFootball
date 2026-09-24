@@ -198,6 +198,30 @@ TEST_CASE("Playback rejects an unusable replay", "[replay]") {
     replay.checkpoints.push_back({.tick = SimTick(11), .stateHash = 0});
     REQUIRE(playReplay(replay).error().code == ReplayErrorCode::kInvalidSetup);
   }
+  SECTION("no checkpoint of the final state") {
+    Replay replay = recorded(setup(), 40);
+    replay.checkpoints.pop_back();
+    const auto playback = playReplay(replay);
+    REQUIRE(playback.error().code == ReplayErrorCode::kInvalidSetup);
+    REQUIRE(mentions(playback.error().message, "final tick 40"));
+  }
+  SECTION("no checkpoint of the initial state") {
+    Replay replay = recorded(setup(), 40);
+    replay.checkpoints.erase(replay.checkpoints.begin());
+    REQUIRE(playReplay(replay).error().code == ReplayErrorCode::kInvalidSetup);
+  }
+  SECTION("no checkpoints at all") {
+    Replay replay = recorded(setup(), 40);
+    replay.checkpoints.clear();
+    REQUIRE(playReplay(replay).error().code == ReplayErrorCode::kInvalidSetup);
+  }
+  SECTION("a command that never runs") {
+    Replay replay = recorded(setup(), 40);
+    replay.setup.commands.push_back(move(40, 7, 1.0, 1.0));
+    const auto playback = playReplay(replay);
+    REQUIRE(playback.error().code == ReplayErrorCode::kInvalidSetup);
+    REQUIRE(mentions(playback.error().message, "command at tick 40 never runs"));
+  }
   SECTION("a command for an unknown player") {
     Replay replay = recorded(setup(), 10);
     replay.setup.commands.push_back(move(5, 99, 1.0, 1.0));

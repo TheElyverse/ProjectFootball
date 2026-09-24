@@ -28,17 +28,33 @@ using SimMatch::MatchSimulation;
 }
 
 // The recorded checkpoints must be usable before anything runs: ascending,
-// unique, and within the recorded ticks.
-[[nodiscard]] std::expected<void, ReplayError> checkCheckpoints(const Replay& replay) {
+// unique, within the recorded ticks, and including the initial and the final
+// state, so that playback always compares where the match starts and ends.
+// Every command must run before the final tick; one that never runs is not
+// part of the recorded match.
+[[nodiscard]] std::expected<void, ReplayError> checkRecording(const Replay& replay) {
+  const SimTick::ValueType finalTick = replay.finalTick.value();
   SimTick::ValueType previous = -1;
   for (const ReplayCheckpoint& checkpoint : replay.checkpoints) {
     const SimTick::ValueType tick = checkpoint.tick.value();
-    if (tick <= previous || tick > replay.finalTick.value()) {
+    if (tick <= previous || tick > finalTick) {
       return fail(ReplayErrorCode::kInvalidSetup,
                   std::format("checkpoint at tick {} is out of order or past the final tick {}",
-                              tick, replay.finalTick.value()));
+                              tick, finalTick));
     }
     previous = tick;
+  }
+  if (replay.checkpoints.empty() || replay.checkpoints.front().tick != SimTick(0) ||
+      replay.checkpoints.back().tick != replay.finalTick) {
+    return fail(ReplayErrorCode::kInvalidSetup,
+                std::format("checkpoints must include tick 0 and the final tick {}", finalTick));
+  }
+  for (const SimMatch::ScheduledCommand& command : replay.setup.commands) {
+    if (command.tick.value() >= finalTick) {
+      return fail(ReplayErrorCode::kInvalidSetup,
+                  std::format("command at tick {} never runs before the final tick {}",
+                              command.tick.value(), finalTick));
+    }
   }
   return {};
 }
@@ -94,7 +110,7 @@ std::expected<ReplayPlayback, ReplayError> playReplay(const Replay& replay) {
                 std::format("replay was recorded with core version {}, this build is {}",
                             replay.coreVersion, SimCore::coreVersion()));
   }
-  if (auto checked = checkCheckpoints(replay); !checked) {
+  if (auto checked = checkRecording(replay); !checked) {
     return std::unexpected(std::move(checked.error()));
   }
 
