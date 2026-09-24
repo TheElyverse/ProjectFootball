@@ -77,8 +77,16 @@ using SimMatch::TeamSide;
 }
 
 [[nodiscard]] Json configJson(const MatchConfig& config) {
+  const SimMatch::PerceptionConfig& perception = config.perception;
   return {{"ticksPerSecond", config.ticksPerSecond},
-          {"ball", {{"rollingDeceleration", config.ball.rollingDeceleration}}}};
+          {"ball", {{"rollingDeceleration", config.ball.rollingDeceleration}}},
+          {"perception",
+           {{"intervalTicks", perception.intervalTicks},
+            {"viewDistance", perception.viewDistance},
+            {"fieldOfViewDegrees", perception.fieldOfViewDegrees},
+            {"awarenessRadius", perception.awarenessRadius},
+            {"memorySeconds", perception.memorySeconds},
+            {"extrapolationSeconds", perception.extrapolationSeconds}}}};
 }
 
 void addCommandFields(Json& json, const MovePlayerCommand& command) {
@@ -276,10 +284,20 @@ constexpr std::int64_t kMaxTick = std::int64_t{1} << 53;
   return *std::move(state);
 }
 
+[[nodiscard]] SimMatch::PerceptionConfig readPerception(const Field& field) {
+  return {.intervalTicks = static_cast<int>(field.member("intervalTicks").integerIn(1, 100000)),
+          .viewDistance = field.member("viewDistance").number(),
+          .fieldOfViewDegrees = field.member("fieldOfViewDegrees").number(),
+          .awarenessRadius = field.member("awarenessRadius").number(),
+          .memorySeconds = field.member("memorySeconds").number(),
+          .extrapolationSeconds = field.member("extrapolationSeconds").number()};
+}
+
 [[nodiscard]] MatchConfig readConfig(const Field& field) {
   return {
       .ticksPerSecond = static_cast<int>(field.member("ticksPerSecond").integerIn(1, 100000)),
-      .ball = {.rollingDeceleration = field.member("ball").member("rollingDeceleration").number()}};
+      .ball = {.rollingDeceleration = field.member("ball").member("rollingDeceleration").number()},
+      .perception = readPerception(field.member("perception"))};
 }
 
 [[nodiscard]] MatchCommand readCommand(const Field& field) {

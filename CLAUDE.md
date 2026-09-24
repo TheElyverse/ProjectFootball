@@ -8,8 +8,9 @@ This repository is in **early bootstrap stage**. The P0 Foundation milestone (re
 IDs, sim clock, deterministic RNG, a minimal event bus, and a CLI) exists under `libs/sim-core` and
 `apps/sim-cli`, and `libs/sim-match` has started with pitch geometry, the validated match state, the
 seven-a-side kickoff fixture, the fixed-timestep match loop with commands (`docs/match-loop.md`), and
-player and ball movement (`docs/player-movement.md`, `docs/ball-movement.md`); almost everything
-described in the design/implementation docs below is still unbuilt.
+player and ball movement (`docs/player-movement.md`, `docs/ball-movement.md`), spatial queries and
+perception (`docs/spatial-queries.md`, `docs/perception.md`); almost everything described in the
+design/implementation docs below is still unbuilt.
 When implementing a new system, check whether it belongs in an existing module (see layout below) before
 adding a new one.
 
@@ -48,7 +49,7 @@ libs/
   sim-core       IDs, time, RNG, events, base types (depends on: STL only)      [exists]
   sim-player     Capabilities, match/world player state, development           [planned]
   sim-tactics    Principles, phases, responsibilities, spatial targets         [planned]
-  sim-match      Pitch, ball, perception, decisions, actions, rules            [exists: pitch, state, loop, movement, ball]
+  sim-match      Pitch, ball, perception, decisions, actions, rules            [exists: pitch, state, loop, movement, ball, perception]
   sim-world      Calendar, clubs, competitions, economy, careers               [planned]
   sim-ai         Club planning, coach decisions, staff behavior                [planned]
   sim-analytics  Events, metrics, explanations (read-only over domain events)  [planned]

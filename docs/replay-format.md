@@ -18,13 +18,21 @@ validation leaves no file behind.
 ```json
 {
   "schemaVersion": 2,
-  "coreVersion": "0.2.0",
+  "coreVersion": "0.3.0",
   "createdAt": "2026-09-24T10:00:00Z",
   "seed": "18446744073709551615",
   "gameTime": 300,
   "config": {
     "ticksPerSecond": 30,
-    "ball": { "rollingDeceleration": 1.5 }
+    "ball": { "rollingDeceleration": 1.5 },
+    "perception": {
+      "intervalTicks": 3,
+      "viewDistance": 60.0,
+      "fieldOfViewDegrees": 180.0,
+      "awarenessRadius": 3.0,
+      "memorySeconds": 3.0,
+      "extrapolationSeconds": 1.0
+    }
   },
   "initialState": {
     "pitch": { "length": 60.0, "width": 40.0 },
@@ -67,7 +75,7 @@ The example shortens the player list; a real file lists every player.
 | `seed`          | string    | Unsigned 64-bit master seed, in decimal.                      |
 | `gameTime`      | number    | The tick the match was recorded up to.                        |
 | `config`        | object    | Parameters of the standard systems (`MatchConfig`).           |
-| `initialState`  | object    | The match state at tick 0, every field of `MatchState`.       |
+| `initialState`  | object    | The match state at tick 0: every field of `MatchState` except the perception memories, which are empty in every initial state. |
 | `commands`      | array     | Every applied command, in execution order.                    |
 | `checkpoints`   | array     | State hashes after the steps that reached these ticks.        |
 

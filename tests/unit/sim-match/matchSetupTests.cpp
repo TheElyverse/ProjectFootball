@@ -9,11 +9,13 @@
 #include "matchCommand.hpp"
 #include "matchSetup.hpp"
 #include "matchSimulation.hpp"
+#include "perception.hpp"
 #include "playerMovement.hpp"
 
 using ElyverseFootball::SimCore::PlayerId;
 using ElyverseFootball::SimCore::SimTick;
 using ElyverseFootball::SimMatch::kBallMovementSystemName;
+using ElyverseFootball::SimMatch::kPerceptionSystemName;
 using ElyverseFootball::SimMatch::kPlayerMovementSystemName;
 using ElyverseFootball::SimMatch::makeMatchSystems;
 using ElyverseFootball::SimMatch::makeSevenASideKickoff;
@@ -46,12 +48,15 @@ TEST_CASE("The standard systems run in their documented order", "[matchSetup]") 
     names.push_back(system.name);
   }
 
-  REQUIRE(names == std::vector<std::string>{std::string(kPlayerMovementSystemName),
+  REQUIRE(names == std::vector<std::string>{std::string(kPerceptionSystemName),
+                                            std::string(kPlayerMovementSystemName),
                                             std::string(kBallMovementSystemName)});
 }
 
 TEST_CASE("startMatch runs the setup with the standard systems", "[matchSetup]") {
-  const MatchSetup setup = kickoffSetup({.ticksPerSecond = 60, .ball = {}});
+  MatchConfig config;
+  config.ticksPerSecond = 60;
+  const MatchSetup setup = kickoffSetup(config);
   MatchSimulation simulation = startMatch(setup);
 
   for (int tick = 0; tick < 60; ++tick) {
@@ -67,9 +72,14 @@ TEST_CASE("startMatch runs the setup with the standard systems", "[matchSetup]")
 }
 
 TEST_CASE("startMatch rejects an invalid configuration", "[matchSetup]") {
-  REQUIRE_THROWS_AS(startMatch(kickoffSetup({.ticksPerSecond = 0, .ball = {}})),
-                    std::invalid_argument);
-  REQUIRE_THROWS_AS(
-      startMatch(kickoffSetup({.ticksPerSecond = 30, .ball = {.rollingDeceleration = 0.0}})),
-      std::invalid_argument);
+  MatchConfig noTicks;
+  noTicks.ticksPerSecond = 0;
+  MatchConfig noFriction;
+  noFriction.ball.rollingDeceleration = 0.0;
+  MatchConfig noMemory;
+  noMemory.perception.memorySeconds = 0.0;
+
+  for (const MatchConfig& config : {noTicks, noFriction, noMemory}) {
+    REQUIRE_THROWS_AS(startMatch(kickoffSetup(config)), std::invalid_argument);
+  }
 }

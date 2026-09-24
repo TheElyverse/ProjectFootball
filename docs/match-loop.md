@@ -117,13 +117,14 @@ a replay reproduces.
 ## The standard systems
 
 `matchSetup.hpp` assembles the systems a real match runs. `MatchConfig` holds
-every tunable parameter of those systems — the tick rate and the ball physics so
-far — and `makeMatchSystems(config)` returns them in their fixed order:
+every tunable parameter of those systems — the tick rate, ball physics and
+perception so far — and `makeMatchSystems(config)` returns them in their fixed order:
 
 | Order | System          | Rate       | Writes                         |
 |-------|-----------------|------------|--------------------------------|
-| 1     | player movement | every tick | player positions, velocities, facings |
-| 2     | ball movement   | every tick | ball position, velocity        |
+| 1     | perception      | 10 Hz      | perception memories            |
+| 2     | player movement | every tick | player positions, velocities, facings |
+| 3     | ball movement   | every tick | ball position, velocity        |
 
 `MatchSetup` is everything such a match starts from: initial state, config, seed
 and commands. `startMatch(setup)` builds the simulation. A replay records a

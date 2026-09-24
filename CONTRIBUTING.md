@@ -35,6 +35,8 @@ before starting a change.
   what happens when it leaves the pitch.
 - [Spatial queries](docs/spatial-queries.md): nearby players and arrival-time
   estimates.
+- [Perception](docs/perception.md): vision cones, observation memory and
+  confidence decay.
 - [Replay format](docs/replay-format.md): the replay file `sim-cli` writes, its
   versioning and seed encoding contract, and replay playback.
 - [Scenarios](docs/scenarios.md): the named, reproducible match setups `sim-cli`
@@ -93,7 +95,7 @@ scenario:     kickoff
 seed:         42
 ticks:        300
 time:         10 s
-state hash:   c22d772ab92fca0c
+state hash:   3d020bcd13d39a1c
 replay:       replay.json
 ```
 

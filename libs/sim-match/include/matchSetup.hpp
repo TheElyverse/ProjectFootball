@@ -7,6 +7,7 @@
 #include "matchCommand.hpp"
 #include "matchSimulation.hpp"
 #include "matchState.hpp"
+#include "perception.hpp"
 
 namespace ElyverseFootball::SimMatch {
 
@@ -16,6 +17,7 @@ namespace ElyverseFootball::SimMatch {
 struct MatchConfig {
   int ticksPerSecond = kDefaultTicksPerSecond;
   BallPhysics ball;
+  PerceptionConfig perception;
 
   friend bool operator==(const MatchConfig&, const MatchConfig&) = default;
 };
@@ -36,8 +38,9 @@ struct MatchSetup {
 // The standard systems in their fixed update order. Changing the order or the
 // set changes every match, like changing a system's behavior does.
 //
-//   1. player movement  every tick
-//   2. ball movement    every tick
+//   1. perception       every perception.intervalTicks ticks
+//   2. player movement  every tick
+//   3. ball movement    every tick
 //
 // Throws std::invalid_argument for invalid parameters.
 [[nodiscard]] std::vector<MatchSystem> makeMatchSystems(const MatchConfig& config);
