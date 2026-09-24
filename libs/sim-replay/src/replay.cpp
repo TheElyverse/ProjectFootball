@@ -6,7 +6,9 @@
 #include <string>
 #include <utility>
 
+#include "matchEvents.hpp"
 #include "matchStateHash.hpp"
+#include "stableHash.hpp"
 #include "version.hpp"
 
 namespace ElyverseFootball::SimReplay {
@@ -16,8 +18,17 @@ using SimCore::SimTick;
 using SimMatch::hashMatchState;
 using SimMatch::MatchSimulation;
 
-[[nodiscard]] ReplayCheckpoint checkpointOf(const MatchSimulation& simulation) noexcept {
-  return {.tick = simulation.tick(), .stateHash = hashMatchState(simulation.state())};
+[[nodiscard]] ReplayCheckpoint checkpointOf(const MatchSimulation& simulation,
+                                            const SimCore::StableHasher& events) noexcept {
+  return {.tick = simulation.tick(),
+          .stateHash = hashMatchState(simulation.state()),
+          .eventHash = events.value()};
+}
+
+void addEvents(SimCore::StableHasher& hasher, const MatchSimulation& simulation) {
+  for (const SimMatch::MatchEvent& event : simulation.events()) {
+    SimMatch::addEvent(hasher, event);
+  }
 }
 
 [[nodiscard]] std::string hex(const std::uint64_t hash) {
@@ -77,12 +88,15 @@ ReplayRecorder::ReplayRecorder(SimMatch::MatchSetup setup, const int checkpointI
           "state built with MatchState::create()");
     }
   }
-  checkpoints_.push_back({.tick = SimTick(0), .stateHash = hashMatchState(setup_.initialState)});
+  checkpoints_.push_back({.tick = SimTick(0),
+                          .stateHash = hashMatchState(setup_.initialState),
+                          .eventHash = events_.value()});
 }
 
 void ReplayRecorder::recordStep(const MatchSimulation& simulation) {
+  addEvents(events_, simulation);
   if (simulation.tick().value() % checkpointIntervalTicks_ == 0) {
-    checkpoints_.push_back(checkpointOf(simulation));
+    checkpoints_.push_back(checkpointOf(simulation, events_));
   }
 }
 
@@ -95,7 +109,7 @@ Replay ReplayRecorder::finish(const MatchSimulation& simulation, std::string cre
   replay.setup.commands.assign(simulation.appliedCommands().begin(),
                                simulation.appliedCommands().end());
   if (replay.checkpoints.back().tick != simulation.tick()) {
-    replay.checkpoints.push_back(checkpointOf(simulation));
+    replay.checkpoints.push_back(checkpointOf(simulation, events_));
   }
   return replay;
 }
@@ -139,6 +153,7 @@ std::expected<ReplayPlayback, ReplayError> playReplay(const Replay& replay) {
   MatchSimulation& simulation = *started;
 
   ReplayPlayback playback{.finalTick = SimTick(0)};
+  SimCore::StableHasher events;
   auto checkpoint = replay.checkpoints.begin();
   const auto verify = [&]() -> std::expected<void, ReplayError> {
     if (checkpoint == replay.checkpoints.end() || checkpoint->tick != simulation.tick()) {
@@ -149,6 +164,12 @@ std::expected<ReplayPlayback, ReplayError> playReplay(const Replay& replay) {
       return fail(ReplayErrorCode::kCheckpointMismatch,
                   std::format("state hash at tick {} is {}, the replay recorded {}",
                               simulation.tick().value(), hex(actual), hex(checkpoint->stateHash)));
+    }
+    if (events.value() != checkpoint->eventHash) {
+      return fail(
+          ReplayErrorCode::kCheckpointMismatch,
+          std::format("event hash at tick {} is {}, the replay recorded {}",
+                      simulation.tick().value(), hex(events.value()), hex(checkpoint->eventHash)));
     }
     ++checkpoint;
     ++playback.checkpointsVerified;
@@ -164,6 +185,7 @@ std::expected<ReplayPlayback, ReplayError> playReplay(const Replay& replay) {
                   std::format("step from tick {} failed in system '{}'",
                               stepped.error().tick.value(), stepped.error().systemName));
     }
+    addEvents(events, simulation);
     if (auto verified = verify(); !verified) {
       return std::unexpected(std::move(verified.error()));
     }
@@ -172,6 +194,7 @@ std::expected<ReplayPlayback, ReplayError> playReplay(const Replay& replay) {
   playback.finalTick = simulation.tick();
   playback.elapsedSeconds = simulation.elapsedSeconds();
   playback.finalStateHash = hashMatchState(simulation.state());
+  playback.finalEventHash = events.value();
   return playback;
 }
 

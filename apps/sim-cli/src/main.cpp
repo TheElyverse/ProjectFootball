@@ -156,6 +156,7 @@ int runScenario(const CliOptions& options) {
                                  {"ticks", std::to_string(replay.finalTick.value())},
                                  {"time", std::format("{} s", elapsedSeconds)},
                                  {"state hash", hashText(replay.checkpoints.back().stateHash)},
+                                 {"event hash", hashText(replay.checkpoints.back().eventHash)},
                                  {"replay", options.replayOut}};
   if (frames) {
     lines.emplace_back("frames", options.framesOut);
@@ -187,6 +188,7 @@ int playReplayFile(const CliOptions& options) {
           {"ticks", std::to_string(playback->finalTick.value())},
           {"time", std::format("{} s", playback->elapsedSeconds)},
           {"state hash", hashText(playback->finalStateHash)},
+          {"event hash", hashText(playback->finalEventHash)},
           {"checkpoints", std::format("{} verified", playback->checkpointsVerified)}});
   return EXIT_SUCCESS;
 }

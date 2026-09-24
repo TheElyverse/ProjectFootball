@@ -110,6 +110,7 @@ seed:         42
 ticks:        300
 time:         10 s
 state hash:   70185caa3597946b
+event hash:   fe365eb8d0a7e689
 replay:       replay.json
 ```
 
@@ -126,13 +127,13 @@ arguments. With Make available, `make run ARGS="..."` builds and runs it.
 | `--play <path>`       |               | play a replay of at most 10,000,000 ticks back and verify its checkpoints |
 | `--tui`               |               | show the result in a terminal screen                 |
 
-A run prints the tick count, the simulated time and the final state hash, and
-writes a [replay](docs/replay-format.md). `--play` rebuilds the match from the
-file, verifies every recorded state hash, and prints the same summary; it takes
-everything from the file, so it cannot be combined with the run options or with
-`--list-scenarios`, which cannot be combined with the run options either.
-`--help` wins over every other option. [Scenarios](docs/scenarios.md) describes
-the scenario catalog. `--frames-out` writes one frame per tick for the
+A run prints the tick count, the simulated time and the final state and event
+hashes, and writes a [replay](docs/replay-format.md). `--play` rebuilds the match
+from the file, verifies every recorded state and event hash, and prints the same
+summary; it takes everything from the file, so it cannot be combined with the run
+options or with `--list-scenarios`, which cannot be combined with the run options
+either. `--help` wins over every other option. [Scenarios](docs/scenarios.md)
+describes the scenario catalog. `--frames-out` writes one frame per tick for the
 [debug viewer](docs/debug-viewer.md), which plays the match back in the browser.
 
 Invalid arguments, an unknown scenario, a replay that cannot be read, and a

@@ -468,15 +468,19 @@ constexpr std::int64_t kMaxTick = std::int64_t{1} << 53;
   return value;
 }
 
+[[nodiscard]] std::uint64_t readHash(const Field& field) {
+  if (field.string().size() != 16) {
+    field.fail("expected 16 hexadecimal digits");
+  }
+  return readUnsigned(field, 16, "16 hexadecimal digits");
+}
+
 [[nodiscard]] std::vector<ReplayCheckpoint> readCheckpoints(const Field& field) {
   std::vector<ReplayCheckpoint> checkpoints;
   for (const Field& entry : field.elements()) {
-    const Field hash = entry.member("stateHash");
-    if (hash.string().size() != 16) {
-      hash.fail("expected 16 hexadecimal digits");
-    }
     checkpoints.push_back({.tick = SimTick(entry.member("tick").integerIn(0, kMaxTick)),
-                           .stateHash = readUnsigned(hash, 16, "16 hexadecimal digits")});
+                           .stateHash = readHash(entry.member("stateHash")),
+                           .eventHash = readHash(entry.member("eventHash"))});
   }
   return checkpoints;
 }
@@ -529,8 +533,9 @@ std::string toReplayJson(const Replay& replay) {
   json["commands"] = commandsJson(replay.setup.commands);
   json["checkpoints"] = Json::array();
   for (const ReplayCheckpoint& checkpoint : replay.checkpoints) {
-    json["checkpoints"].push_back(
-        {{"tick", checkpoint.tick.value()}, {"stateHash", hashText(checkpoint.stateHash)}});
+    json["checkpoints"].push_back({{"tick", checkpoint.tick.value()},
+                                   {"stateHash", hashText(checkpoint.stateHash)},
+                                   {"eventHash", hashText(checkpoint.eventHash)}});
   }
   return json.dump(2) + "\n";
 }

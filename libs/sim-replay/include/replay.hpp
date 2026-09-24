@@ -9,21 +9,25 @@
 #include "matchSetup.hpp"
 #include "matchSimulation.hpp"
 #include "simTime.hpp"
+#include "stableHash.hpp"
 
 namespace ElyverseFootball::SimReplay {
 
 // The version of the replay file format written by this build; see
 // docs/replay-format.md.
-inline constexpr int kReplaySchemaVersion = 2;
+inline constexpr int kReplaySchemaVersion = 3;
 
 // One checkpoint per simulated second at the default 30 Hz.
 inline constexpr int kDefaultCheckpointIntervalTicks = 30;
 
-// The state hash (SimMatch::hashMatchState) after the step that reached tick.
-// Tick 0 is the initial state.
+// The state hash (SimMatch::hashMatchState) after the step that reached tick,
+// and the event hash: every event published up to that step, in order, fed to
+// one SimCore::StableHasher with SimMatch::addEvent(). Tick 0 is the initial
+// state, before any event.
 struct ReplayCheckpoint {
   SimCore::SimTick tick;
   std::uint64_t stateHash = 0;
+  std::uint64_t eventHash = 0;
 
   friend bool operator==(const ReplayCheckpoint&, const ReplayCheckpoint&) = default;
 };
@@ -88,6 +92,7 @@ class ReplayRecorder {
   SimMatch::MatchSetup setup_;
   int checkpointIntervalTicks_;
   std::vector<ReplayCheckpoint> checkpoints_;
+  SimCore::StableHasher events_;
 };
 
 // Runs the setup with the standard systems up to finalTick and records the
@@ -101,13 +106,14 @@ struct ReplayPlayback {
   SimCore::SimTick finalTick;
   double elapsedSeconds = 0.0;
   std::uint64_t finalStateHash = 0;
+  std::uint64_t finalEventHash = 0;
   std::size_t checkpointsVerified = 0;
 };
 
 // Rebuilds the recorded match, runs it to the final tick, and compares the
-// state hash at every checkpoint. Rejects a replay from another core version,
-// an invalid setup, a failing step, and the first checkpoint whose hash
-// differs.
+// state and event hashes at every checkpoint. Rejects a replay from another core version,
+// an invalid setup, a failing step, and the first checkpoint with a differing
+// hash.
 [[nodiscard]] std::expected<ReplayPlayback, ReplayError> playReplay(const Replay& replay);
 
 }  // namespace ElyverseFootball::SimReplay

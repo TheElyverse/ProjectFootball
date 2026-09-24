@@ -3,7 +3,8 @@
 A replay file records a match so that it can be played back exactly: the replay
 contract `InitialSnapshot + OrderedCommands + Seed(s) + CoreVersion` of the
 [implementation plan](implementation-plan.md), section 5.3, plus the
-configuration of the standard systems and state hashes to check playback against.
+configuration of the standard systems and state and event hashes to check
+playback against.
 
 The `sim-replay` library (`replay.hpp`, `replayJson.hpp`) records, writes, reads
 and plays back replays; it depends on `sim-match` and on
@@ -13,11 +14,11 @@ default is `replay.json` in the working directory, and `--play` plays one back. 
 before the terminal interface opens, so a run rejected by argument or terminal
 validation leaves no file behind.
 
-## Schema version 2
+## Schema version 3
 
 ```json
 {
-  "schemaVersion": 2,
+  "schemaVersion": 3,
   "coreVersion": "0.7.0",
   "createdAt": "2026-09-24T10:00:00Z",
   "seed": "18446744073709551615",
@@ -86,8 +87,8 @@ validation leaves no file behind.
     { "tick": 45, "order": 1, "type": "movePlayer", "playerId": 2, "target": { "x": 30.0, "y": 20.0 } }
   ],
   "checkpoints": [
-    { "tick": 0, "stateHash": "6c4fd8e47c35f20a" },
-    { "tick": 30, "stateHash": "..." }
+    { "tick": 0, "stateHash": "6c4fd8e47c35f20a", "eventHash": "cbf29ce484222325" },
+    { "tick": 30, "stateHash": "...", "eventHash": "..." }
   ]
 }
 ```
@@ -96,7 +97,7 @@ The example shortens the player list; a real file lists every player.
 
 | Field           | JSON type | Meaning                                                       |
 |-----------------|-----------|---------------------------------------------------------------|
-| `schemaVersion` | number    | Version of this format. Currently `2`.                        |
+| `schemaVersion` | number    | Version of this format. Currently `3`.                        |
 | `coreVersion`   | string    | The `sim-core` version that recorded the match.               |
 | `createdAt`     | string    | Creation time in UTC, `%Y-%m-%dT%H:%M:%SZ`. Metadata only.    |
 | `seed`          | string    | Unsigned 64-bit master seed, in decimal.                      |
@@ -104,7 +105,7 @@ The example shortens the player list; a real file lists every player.
 | `config`        | object    | Parameters of the standard systems (`MatchConfig`).           |
 | `initialState`  | object    | The match state at tick 0: every field of `MatchState` except the perception memories, which are empty in every initial state: the recorder rejects a state copied from a running match that already remembers something. |
 | `commands`      | array     | Every applied command, in execution order.                    |
-| `checkpoints`   | array     | State hashes after the steps that reached these ticks.        |
+| `checkpoints`   | array     | State and event hashes after the steps that reached these ticks. |
 
 Positions are meters and velocities meters per second, as in the
 [match state](match-state.md). A player's `target` is `null` when he has none,
@@ -134,7 +135,13 @@ not.
 
 `stateHash` is `hashMatchState()` of the state after the step that reached `tick`,
 as 16 lowercase hexadecimal digits: a stable FNV-1a hash over every field of the
-state (`matchStateHash.hpp`). The recorder takes one of the initial state (tick
+state (`matchStateHash.hpp`). `eventHash`, in the same notation, covers the
+[events](match-events.md) of the match so far: every event published by the
+steps up to and including that one, in order, fed with `addEvent()` to one
+`StableHasher`. At tick 0 no event has happened and it is the hasher's initial
+value, `cbf29ce484222325`. The state hash shows that playback ends up in the same
+state, the event hash that it got there through the same passes, receptions and
+possession changes. The recorder takes one of the initial state (tick
 0), one every 30 ticks by default, and one of the final state. Checkpoints are
 ascending, unique, and never past `gameTime`; the first is at tick 0 and the last
 at `gameTime`, so playback always compares the initial and the final state. Every
@@ -145,8 +152,8 @@ and is not part of the recorded match.
 
 `playReplay()` rebuilds the match from `initialState`, `config`, `seed` and
 `commands` with the standard systems, runs it to `gameTime`, and compares the
-state hash at every checkpoint. It reports the first mismatch with the tick and
-both hashes. Recording, saving, loading and playing back reproduce every
+state and event hashes at every checkpoint. It reports the first mismatch with the
+tick and both hashes. Recording, saving, loading and playing back reproduce every
 checkpoint exactly; the unit tests in `tests/unit/sim-replay` hold that.
 
 ## Rejected files
@@ -159,7 +166,7 @@ number`.
 |-----------------------------|------------------------------------------------------------------------|
 | `kIoError`                  | the file cannot be read or written                                     |
 | `kMalformed`                | not JSON, a missing or mistyped field, commands out of order           |
-| `kUnsupportedSchemaVersion` | a `schemaVersion` other than 2                                         |
+| `kUnsupportedSchemaVersion` | a `schemaVersion` other than 3                                         |
 | `kIncompatibleCoreVersion`  | recorded with another `coreVersion`                                    |
 | `kInvalidSetup`             | an invalid initial state, command or checkpoint list                   |
 | `kSimulationFailed`         | a step of the playback failed                                          |
@@ -225,3 +232,4 @@ recorded replays without changing the file format, and surfaces as a new
 |---------|--------------------------------------------------------------------------------------------|
 | 1       | Initial schema: metadata only (`coreVersion`, `createdAt`, `seed`, `gameTime`).            |
 | 2       | A playable replay: adds `config`, `initialState`, `commands` and `checkpoints`; `gameTime` is the final tick. Version 1 files cannot be played back and are rejected. |
+| 3       | Checkpoints add `eventHash`. Version 2 files are rejected; record the scenario again with the same seed to get a version 3 file of the same match. |

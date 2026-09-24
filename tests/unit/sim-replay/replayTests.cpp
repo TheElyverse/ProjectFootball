@@ -8,22 +8,28 @@
 
 #include "kickoffScenario.hpp"
 #include "matchCommand.hpp"
+#include "matchEvents.hpp"
 #include "matchSetup.hpp"
 #include "matchSimulation.hpp"
 #include "matchStateHash.hpp"
 #include "replay.hpp"
 #include "replayJson.hpp"
+#include "stableHash.hpp"
 #include "version.hpp"
 
 using ElyverseFootball::SimCore::coreVersion;
 using ElyverseFootball::SimCore::PlayerId;
 using ElyverseFootball::SimCore::SimTick;
+using ElyverseFootball::SimCore::StableHasher;
+using ElyverseFootball::SimMatch::addEvent;
+using ElyverseFootball::SimMatch::GiveBallCommand;
 using ElyverseFootball::SimMatch::hashMatchState;
 using ElyverseFootball::SimMatch::makeSevenASideKickoff;
 using ElyverseFootball::SimMatch::MatchSetup;
 using ElyverseFootball::SimMatch::MatchSimulation;
 using ElyverseFootball::SimMatch::MovePlayerCommand;
 using ElyverseFootball::SimMatch::Pitch;
+using ElyverseFootball::SimMatch::PossessionChanged;
 using ElyverseFootball::SimMatch::ScheduledCommand;
 using ElyverseFootball::SimMatch::startMatch;
 using ElyverseFootball::SimReplay::kDefaultCheckpointIntervalTicks;
@@ -79,9 +85,10 @@ TEST_CASE("A recorded replay holds the contract and checkpoints", "[replay]") {
   REQUIRE(replay.setup == matchSetup);
   REQUIRE(replay.finalTick == SimTick(100));
   REQUIRE(replay.checkpoints.size() == 5);  // ticks 0, 30, 60, 90 and the final 100
-  REQUIRE(
-      replay.checkpoints.front() ==
-      ReplayCheckpoint{.tick = SimTick(0), .stateHash = hashMatchState(matchSetup.initialState)});
+  REQUIRE(replay.checkpoints.front() ==
+          ReplayCheckpoint{.tick = SimTick(0),
+                           .stateHash = hashMatchState(matchSetup.initialState),
+                           .eventHash = StableHasher().value()});
   REQUIRE(replay.checkpoints.back().tick == SimTick(100));
 }
 
@@ -110,6 +117,33 @@ TEST_CASE("Playing a replay back reproduces every checkpoint", "[replay]") {
   REQUIRE(playback->elapsedSeconds == 10.0);
   REQUIRE(playback->checkpointsVerified == replay.checkpoints.size());
   REQUIRE(playback->finalStateHash == replay.checkpoints.back().stateHash);
+  REQUIRE(playback->finalEventHash == replay.checkpoints.back().eventHash);
+}
+
+TEST_CASE("Checkpoints hash the events published so far", "[replay]") {
+  MatchSetup matchSetup = setup();
+  matchSetup.commands.push_back(
+      {.tick = SimTick(10), .command = GiveBallCommand{.playerId = PlayerId(4)}});
+  const Replay replay = recorded(matchSetup, 60);
+
+  // No event before the ball is given at tick 10; its possession change is
+  // published by the step that reaches tick 11.
+  REQUIRE(replay.checkpoints.at(0).eventHash == StableHasher().value());
+  StableHasher expected;
+  addEvent(expected,
+           PossessionChanged{
+               .tick = SimTick(10), .previousOwner = std::nullopt, .newOwner = PlayerId(4)});
+  MatchSimulation simulation = startMatch(matchSetup);
+  StableHasher events;
+  while (simulation.tick() < SimTick(30)) {
+    REQUIRE(simulation.step().has_value());
+    for (const auto& event : simulation.events()) {
+      addEvent(events, event);
+    }
+  }
+  REQUIRE(replay.checkpoints.at(1).tick == SimTick(30));
+  REQUIRE(replay.checkpoints.at(1).eventHash == events.value());
+  REQUIRE(replay.checkpoints.at(1).eventHash != StableHasher().value());
 }
 
 TEST_CASE("Commands scheduled during a run are recorded", "[replay]") {
@@ -200,6 +234,15 @@ TEST_CASE("Playback detects a replay that does not reproduce", "[replay]") {
     CAPTURE(playback.error().message);
     REQUIRE(mentions(playback.error().message, "state hash at tick 120"));
   }
+  SECTION("a changed event hash") {
+    Replay replay = recorded();
+    replay.checkpoints.at(4).eventHash ^= 1U;
+    const auto playback = playReplay(replay);
+    REQUIRE_FALSE(playback.has_value());
+    REQUIRE(playback.error().code == ReplayErrorCode::kCheckpointMismatch);
+    CAPTURE(playback.error().message);
+    REQUIRE(mentions(playback.error().message, "event hash at tick 120"));
+  }
   SECTION("a changed command") {
     Replay replay = recorded();
     replay.setup.commands.at(2) = move(45, 7, 10.0, 34.0);
@@ -220,7 +263,7 @@ TEST_CASE("Playback rejects an unusable replay", "[replay]") {
   }
   SECTION("a checkpoint past the final tick") {
     Replay replay = recorded(setup(), 10);
-    replay.checkpoints.push_back({.tick = SimTick(11), .stateHash = 0});
+    replay.checkpoints.push_back({.tick = SimTick(11), .stateHash = 0, .eventHash = 0});
     REQUIRE(playReplay(replay).error().code == ReplayErrorCode::kInvalidSetup);
   }
   SECTION("no checkpoint of the final state") {

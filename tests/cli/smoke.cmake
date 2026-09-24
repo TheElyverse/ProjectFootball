@@ -25,9 +25,11 @@ endmacro()
 # A documented headless run of the 7v7 scenario.
 run_cli(--scenario rolling-ball --seed 42 --ticks 300 --replay-out "${replay}")
 if(NOT result STREQUAL "0" OR NOT output MATCHES "ticks: +300\n" OR NOT output MATCHES "time: +10 s\n"
-        OR NOT output MATCHES "state hash: +([0-9a-f]+)\n")
+        OR NOT output MATCHES "event hash: +([0-9a-f]+)\n")
     message(FATAL_ERROR "Scenario run failed: ${result}: ${output}${error}")
 endif()
+set(runEventHash "${CMAKE_MATCH_1}")
+string(REGEX MATCH "state hash: +([0-9a-f]+)\n" stateHashLine "${output}")
 set(runHash "${CMAKE_MATCH_1}")
 file(READ "${replay}" contents)
 string(JSON seed GET "${contents}" seed)
@@ -35,13 +37,14 @@ string(JSON seedType TYPE "${contents}" seed)
 string(JSON gameTime GET "${contents}" gameTime)
 string(JSON schemaVersion GET "${contents}" schemaVersion)
 if(NOT seedType STREQUAL "STRING" OR NOT seed STREQUAL "42" OR NOT gameTime STREQUAL "300"
-        OR NOT schemaVersion STREQUAL "2")
+        OR NOT schemaVersion STREQUAL "3")
     message(FATAL_ERROR "Unexpected replay: ${contents}")
 endif()
 
 # The saved replay reproduces through the CLI.
 run_cli(--play "${replay}")
 if(NOT result STREQUAL "0" OR NOT output MATCHES "state hash: +${runHash}\n"
+        OR NOT output MATCHES "event hash: +${runEventHash}\n"
         OR NOT output MATCHES "checkpoints: +11 verified")
     message(FATAL_ERROR "Replay playback failed: ${result}: ${output}${error}")
 endif()
