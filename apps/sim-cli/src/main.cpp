@@ -12,10 +12,12 @@
 #include <string>
 #include <string_view>
 
-#include "random.hpp"
+#include "kickoffScenario.hpp"
+#include "matchSetup.hpp"
+#include "replay.hpp"
+#include "replayJson.hpp"
 #include "simTime.hpp"
 #include "terminalUi.hpp"
-#include "version.hpp"
 
 namespace {
 struct CliOptions {
@@ -103,15 +105,19 @@ std::string iso8601Now() {
   return buffer.data();
 }
 
-// "Empty simulation": a clock that exists and could tick, with no domain
-// state yet. This proves the core + CLI + replay-metadata wiring per the P0
-// exit criteria without pretending real simulation content exists.
-//
-// Defined here rather than inside main(): SimClock::withTicksPerSecond() can
-// throw, and bugprone-exception-escape flags any call to it from main() even
-// though a constexpr variable is initialized at compile time -- an invalid
-// tick rate fails the build, never the run.
-constexpr auto kEmptySimulationClock = ElyverseFootball::SimCore::SimClock::withTicksPerSecond(30);
+// The kickoff fixture on the 60 x 40 m example pitch, not yet run: the CLI
+// records a replay of zero ticks. Running a match comes with scenario
+// selection.
+std::expected<ElyverseFootball::SimMatch::MatchSetup, std::string> kickoffSetup(
+    const std::uint64_t seed) {
+  auto state = ElyverseFootball::SimMatch::makeSevenASideKickoff(
+      ElyverseFootball::SimMatch::Pitch(60.0, 40.0));
+  if (!state) {
+    return std::unexpected("the kickoff fixture is invalid: " + state.error().front().message);
+  }
+  return ElyverseFootball::SimMatch::MatchSetup{
+      .initialState = *std::move(state), .config = {}, .seed = seed, .commands = {}};
+}
 }  // namespace
 
 int main(int argc, char** argv) {
@@ -136,39 +142,28 @@ int main(int argc, char** argv) {
   }
   const std::uint64_t seed = resolveSeed(options);
 
-  ElyverseFootball::SimCore::RandomNumberGenerator executionRng(
-      ElyverseFootball::SimCore::deriveSeed(
-          seed, ElyverseFootball::SimCore::RandomNumberGeneratorDomain::kExecution));
-  (void)executionRng.nextU64();
-
-  std::ofstream out(options.replayOut);
-  if (!out) {
-    std::cerr << "Failed to open " << options.replayOut << " for writing\n";
+  const auto setup = kickoffSetup(seed);
+  if (!setup) {
+    std::cerr << "sim-cli: " << setup.error() << "\n";
     return EXIT_FAILURE;
   }
-
-  // seed is quoted deliberately: a JSON number may be decoded as a double and
-  // rounded above 2^53, which would silently change the simulation. See
-  // docs/replay-metadata.md.
-  out << "{\n"
-      << "  \"schemaVersion\": 1,\n"
-      << R"(  "coreVersion": ")" << ElyverseFootball::SimCore::coreVersion() << "\",\n"
-      << R"(  "createdAt": ")" << iso8601Now() << "\",\n"
-      << R"(  "seed": ")" << seed << "\",\n"
-      << "  \"gameTime\": " << kEmptySimulationClock.tick().value() << "\n"
-      << "}\n";
-
-  out.close();
-  if (!out) {
-    std::cerr << "Failed to write replay metadata to " << options.replayOut << "\n";
+  const auto replay = ElyverseFootball::SimReplay::recordMatch(
+      *setup, ElyverseFootball::SimCore::SimTick(0),
+      ElyverseFootball::SimReplay::kDefaultCheckpointIntervalTicks, iso8601Now());
+  if (!replay) {
+    std::cerr << "sim-cli: the simulation failed in system '" << replay.error().systemName << "'\n";
+    return EXIT_FAILURE;
+  }
+  if (const auto saved = ElyverseFootball::SimReplay::saveReplay(*replay, options.replayOut);
+      !saved) {
+    std::cerr << "sim-cli: " << saved.error().message << "\n";
     return EXIT_FAILURE;
   }
 
   if (options.tui) {
-    ElyverseFootball::Cli::showSimulationSummary(seed, kEmptySimulationClock.tick(),
-                                                 options.replayOut);
+    ElyverseFootball::Cli::showSimulationSummary(seed, replay->finalTick, options.replayOut);
   } else {
-    std::cout << "Started empty simulation. Wrote replay metadata to " << options.replayOut << "\n";
+    std::cout << "Started empty simulation. Wrote replay to " << options.replayOut << "\n";
   }
   return EXIT_SUCCESS;
 }

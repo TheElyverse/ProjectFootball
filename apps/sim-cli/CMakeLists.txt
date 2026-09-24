@@ -12,6 +12,7 @@ CPMAddPackage(
 add_executable(sim-cli src/main.cpp src/terminalUi.cpp)
 target_link_libraries(sim-cli PRIVATE
         ElyverseFootball::sim-core
+        ElyverseFootball::sim-replay
         pf_compiler_warnings
         ftxui::component
         ftxui::dom

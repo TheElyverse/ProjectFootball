@@ -35,7 +35,7 @@ foreach(pass IN ITEMS initial round-trip)
     string(JSON roundTripSeed GET "${metadata}" seed)
     string(JSON schemaVersion GET "${metadata}" schemaVersion)
     if(NOT seedType STREQUAL "STRING" OR NOT roundTripSeed STREQUAL maxSeed
-            OR NOT schemaVersion STREQUAL "1")
+            OR NOT schemaVersion STREQUAL "2")
         message(FATAL_ERROR "UINT64_MAX ${pass} metadata lost seed precision: ${metadata}")
     endif()
 endforeach()

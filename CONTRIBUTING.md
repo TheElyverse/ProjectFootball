@@ -33,8 +33,8 @@ before starting a change.
   acceleration limits, and the pitch boundary rule.
 - [Ball movement](docs/ball-movement.md): the rolling ball, ground friction, and
   what happens when it leaves the pitch.
-- [Replay metadata](docs/replay-metadata.md): the file `sim-cli` writes and its
-  seed encoding contract.
+- [Replay format](docs/replay-format.md): the replay file `sim-cli` writes, its
+  versioning and seed encoding contract, and replay playback.
 
 The simulation uses standard C++23 and runs independently of Unreal Engine.
 Unreal will consume simulation state for presentation. Keep simulation behavior
@@ -43,7 +43,8 @@ in the core and rendering or input handling in adapters.
 `sim-core` contains shared types and utilities. `sim-match` provides configurable
 metric pitch geometry, the validated match state, the seven-a-side kickoff
 fixture, the fixed-timestep match loop with its commands, and player and ball
-movement; it depends on `sim-core`. New libraries follow the existing
+movement; it depends on `sim-core`. `sim-replay` records, writes, reads and plays
+back replays on top of `sim-match`. New libraries follow the existing
 CMake target pattern and expose an `ElyverseFootball::<name>` alias. Unit tests live
 under `tests/unit/`, grouped by module.
 
@@ -64,7 +65,9 @@ ctest --preset debug
 ```
 
 The first configure downloads pinned dependencies through CPM, including Catch2
-for tests and [FTXUI 6.1.9](https://github.com/ArthurSonzogni/FTXUI/releases/tag/v6.1.9)
+for tests, [nlohmann/json 3.12.0](https://github.com/nlohmann/json/releases/tag/v3.12.0)
+for replay files, and
+[FTXUI 6.1.9](https://github.com/ArthurSonzogni/FTXUI/releases/tag/v6.1.9)
 for the terminal interface.
 
 Additional configure/build presets include `relwithdebinfo`, `release`, `ci`, and
@@ -88,10 +91,10 @@ Alternatively, after building on Linux or WSL:
 On Windows, run `sim-cli.exe` from the CMake build output directory with the same
 arguments.
 
-The CLI currently starts an empty simulation and writes replay metadata. It does
-not yet run a match. The terminal screen displays the core version, seed, game
-time, and metadata path. Press Enter on Close, `q`, or Escape to exit. Metadata is
-written before the screen opens; [replay metadata](docs/replay-metadata.md)
+The CLI currently sets up the kickoff fixture and writes a replay of it without
+running a single tick. The terminal screen displays the core version, seed, game
+time, and replay path. Press Enter on Close, `q`, or Escape to exit. The replay is
+written before the screen opens; [replay format](docs/replay-format.md)
 describes the file's schema.
 
 Omit `--tui` for one-shot execution suitable for scripts and redirected output.
