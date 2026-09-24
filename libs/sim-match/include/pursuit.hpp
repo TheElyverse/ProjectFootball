@@ -11,6 +11,12 @@
 
 namespace ElyverseFootball::SimMatch {
 
+// The most ball-path samples one interception search may check:
+// horizonSeconds / sampleSeconds. Pursuit runs this search for every player,
+// so the bound keeps a configuration -- read from a replay file, say -- from
+// making a step arbitrarily slow. The defaults use 80.
+inline constexpr double kMaxPursuitSamples = 1000.0;
+
 // How players go after a free ball; see docs/reception.md. Part of
 // MatchConfig and therefore of every replay.
 struct PursuitConfig {
@@ -49,8 +55,9 @@ inline constexpr std::string_view kPursuitSystemName = "ball pursuit";
 // else keeps his. The last player to touch the ball does not chase it while
 // it still moves -- he just passed it. Runs every config.intervalTicks ticks
 // and writes movement targets only. The ball is read directly, not through
-// perception. Throws std::invalid_argument for an interval below one tick or
-// a sample or horizon that is not positive and finite.
+// perception. Throws std::invalid_argument for an interval below one tick, a
+// sample or horizon that is not positive and finite, or a horizon of more
+// than kMaxPursuitSamples samples.
 [[nodiscard]] MatchSystem makePursuitSystem(const BallPhysics& physics,
                                             const PursuitConfig& config);
 

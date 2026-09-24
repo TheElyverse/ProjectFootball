@@ -18,7 +18,8 @@ void validate(const PursuitConfig& config) {
   constexpr double kMax = std::numeric_limits<double>::max();
   const bool valid = config.intervalTicks >= 1 && config.sampleSeconds > 0.0 &&
                      config.sampleSeconds <= kMax && config.horizonSeconds > 0.0 &&
-                     config.horizonSeconds <= kMax;
+                     config.horizonSeconds <= kMax &&
+                     config.horizonSeconds / config.sampleSeconds <= kMaxPursuitSamples;
   if (!valid) {
     throw std::invalid_argument("pursuit: invalid configuration");
   }

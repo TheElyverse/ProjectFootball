@@ -3,7 +3,9 @@
 #include <cmath>
 #include <cstddef>
 #include <cstdint>
+#include <limits>
 #include <optional>
+#include <stdexcept>
 #include <utility>
 #include <vector>
 
@@ -31,6 +33,7 @@ using ElyverseFootball::SimMatch::findContact;
 using ElyverseFootball::SimMatch::findInterception;
 using ElyverseFootball::SimMatch::GiveBallCommand;
 using ElyverseFootball::SimMatch::Interception;
+using ElyverseFootball::SimMatch::makePursuitSystem;
 using ElyverseFootball::SimMatch::MatchSetup;
 using ElyverseFootball::SimMatch::MatchSimulation;
 using ElyverseFootball::SimMatch::MatchState;
@@ -328,6 +331,28 @@ TEST_CASE("The ball path is predicted no further than the horizon", "[reception]
   REQUIRE(interception.has_value());
   REQUIRE_THAT(interception.value_or(kNoInterception).point.x,
                WithinAbs(atHorizon.position.x, 1e-9));
+}
+
+TEST_CASE("Pursuit rejects a configuration it cannot run in bounded time", "[reception]") {
+  const auto rejects = [](const PursuitConfig& config) {
+    REQUIRE_THROWS_AS(makePursuitSystem(BallPhysics{}, config), std::invalid_argument);
+  };
+  constexpr double kNaN = std::numeric_limits<double>::quiet_NaN();
+  constexpr double kInfinity = std::numeric_limits<double>::infinity();
+
+  rejects({.intervalTicks = 0, .sampleSeconds = 0.1, .horizonSeconds = 8.0});
+  for (const double invalid : {0.0, -0.1, kNaN, kInfinity}) {
+    rejects({.intervalTicks = 3, .sampleSeconds = invalid, .horizonSeconds = 8.0});
+    rejects({.intervalTicks = 3, .sampleSeconds = 0.1, .horizonSeconds = invalid});
+  }
+  // More than kMaxPursuitSamples samples: 8 s in 1 ms steps, or 1001 steps.
+  rejects({.intervalTicks = 3, .sampleSeconds = 0.001, .horizonSeconds = 8.0});
+  rejects({.intervalTicks = 3, .sampleSeconds = 0.125, .horizonSeconds = 125.125});
+
+  // Exactly at the limit is fine, and so are the defaults.
+  REQUIRE_NOTHROW(makePursuitSystem(
+      BallPhysics{}, {.intervalTicks = 3, .sampleSeconds = 0.125, .horizonSeconds = 125.0}));
+  REQUIRE_NOTHROW(makePursuitSystem(BallPhysics{}, PursuitConfig{}));
 }
 
 TEST_CASE("One player per side goes after a free ball", "[reception]") {

@@ -71,6 +71,11 @@ Both are part of `MatchConfig` and of every replay:
 | `pursuit.sampleSeconds`         | 0.1 s   | resolution of the predicted ball path           |
 | `pursuit.horizonSeconds`        | 8 s     | how far ahead the path is predicted             |
 
+`horizonSeconds / sampleSeconds` may be at most 1000 (`kMaxPursuitSamples`):
+every player searches the whole path, so a finer or longer prediction would
+make each pursuit update slower without limit. A replay file that asks for more
+is rejected.
+
 ## What this is not
 
 There is no first-touch quality, no deflection and no failed control: a player
