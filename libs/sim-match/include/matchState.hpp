@@ -36,6 +36,11 @@ enum class TeamSide : std::uint8_t {
 // is a default, not a rule built into the types.
 inline constexpr int kDefaultPlayersPerSide = 7;
 
+// How far a facing vector's squared length may be from 1 and still count as a
+// unit vector: generous for rounding in normalization, tight enough to catch
+// an unnormalized vector.
+inline constexpr double kFacingTolerance = 1e-9;
+
 // Movement limits used when a caller does not state any: a fast amateur
 // rather than an elite sprinter. They belong to the predefined test players of
 // the sandbox; generated players will derive theirs from capabilities.
@@ -60,6 +65,10 @@ struct PlayerAttributes {
 //
 // target is where the player is moving to, assigned by a command and kept on
 // the pitch; without one the player comes to a stop where he is.
+//
+// facing is the unit vector the player looks along, which decides what he
+// can see (docs/perception.md). It is a vector rather than an angle so that
+// no trigonometry, and none of its platform differences, enters the state.
 struct PlayerMatchState {
   SimCore::PlayerId playerId;
   TeamSide side = TeamSide::kHome;
@@ -67,6 +76,7 @@ struct PlayerMatchState {
   SimCore::Vec2 velocity;
   PlayerAttributes attributes;
   std::optional<SimCore::Vec2> target;
+  SimCore::Vec2 facing{.x = 1.0, .y = 0.0};
 
   friend bool operator==(const PlayerMatchState&, const PlayerMatchState&) = default;
 };
@@ -97,6 +107,7 @@ enum class MatchStateErrorCode : std::uint8_t {
   kNonFinitePlayerVelocity,
   kPlayerTooFast,
   kNonFinitePlayerTarget,
+  kInvalidPlayerFacing,
   kNonFiniteBallPosition,
   kBallOutsidePitch,
   kNonFiniteBallVelocity,
@@ -131,8 +142,8 @@ class MatchStateWriter;
 //
 // The invariants hold for every state, from kickoff to the final whistle:
 // both squads have the stated size, every player has a unique valid id, a
-// declared side and positive finite attributes, and every position, velocity
-// and target is finite. Being on the
+// declared side, positive finite attributes and a unit facing vector, and
+// every position, velocity and target is finite. Being on the
 // pitch is deliberately not one of them: a ball that crossed the touchline or
 // a player standing behind the goal line is football, not a broken state.
 // checkStartingPositions() holds that rule for states a match starts from.
@@ -168,7 +179,7 @@ class MatchState {
 };
 
 // What a simulation system or command may change in a state: positions,
-// velocities and movement targets, nothing else. Squad, ids, sides, attributes,
+// velocities, movement targets and facings, nothing else. Squad, ids, sides, attributes,
 // player order and the pitch have no setter, so a system cannot break those
 // invariants and nothing has to re-check them every tick. Players are addressed by their index in
 // MatchState::players(); an index past the end throws std::out_of_range.
@@ -179,6 +190,9 @@ class MatchStateWriter {
   void setPlayerPosition(std::size_t playerIndex, SimCore::Vec2 position);
   void setPlayerVelocity(std::size_t playerIndex, SimCore::Vec2 velocity);
   void setPlayerTarget(std::size_t playerIndex, std::optional<SimCore::Vec2> target);
+  // The facing must be a unit vector; runtime checks cannot catch a wrong
+  // length, so a system normalizes before it writes.
+  void setPlayerFacing(std::size_t playerIndex, SimCore::Vec2 facing);
   void setBallPosition(SimCore::Vec2 position) noexcept { state_->ball_.position = position; }
   void setBallVelocity(SimCore::Vec2 velocity) noexcept { state_->ball_.velocity = velocity; }
 
@@ -196,7 +210,8 @@ class MatchStateWriter {
                                                          SimCore::PlayerId playerId) noexcept;
 
 // The finiteness rules of MatchState::create(), for a state the simulation
-// has just written: every non-finite position, velocity and target, players by index
+// has just written: every non-finite position, velocity and target and every
+// facing that is not a finite unit vector, players by index
 // first and then the ball, with the same codes and messages create() uses.
 // Empty for a state without defects.
 [[nodiscard]] std::vector<MatchStateError> findNonFiniteValues(const MatchState& state);

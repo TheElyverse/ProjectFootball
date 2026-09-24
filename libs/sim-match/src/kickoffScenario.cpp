@@ -36,6 +36,10 @@ constexpr std::array<FormationSlot, kDefaultPlayersPerSide> kHomeFormation{
 
 constexpr double kCenterFraction = 0.5;
 
+// Each side faces the goal it attacks: home attacks +x, away -x.
+constexpr SimCore::Vec2 kTowardAwayGoal{.x = 1.0, .y = 0.0};
+constexpr SimCore::Vec2 kTowardHomeGoal{.x = -1.0, .y = 0.0};
+
 [[nodiscard]] SimCore::Vec2 homePosition(const Pitch& pitch, const FormationSlot slot) noexcept {
   return {
       .x = slot.lengthFraction * pitch.lengthMeters(),
@@ -68,6 +72,7 @@ std::expected<MatchState, std::vector<MatchStateError>> makeSevenASideKickoff(
         .velocity = {},
         .attributes = {},
         .target = std::nullopt,
+        .facing = kTowardAwayGoal,
     });
   }
   for (const FormationSlot slot : kHomeFormation) {
@@ -78,6 +83,7 @@ std::expected<MatchState, std::vector<MatchStateError>> makeSevenASideKickoff(
         .velocity = {},
         .attributes = {},
         .target = std::nullopt,
+        .facing = kTowardHomeGoal,
     });
   }
 

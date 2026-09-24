@@ -47,7 +47,9 @@ constexpr std::array<Vec2, 7> kExpectedHomePositions{{
                              : Vec2{.x = kLengthMeters - homePosition.x, .y = homePosition.y},
           .velocity = {},
           .attributes = {},
-          .target = std::nullopt};
+          .target = std::nullopt,
+          // Each side faces the goal it attacks.
+          .facing = {.x = isHome ? 1.0 : -1.0, .y = 0.0}};
 }
 
 [[nodiscard]] MatchState kickoffOn(const Pitch& pitch) {

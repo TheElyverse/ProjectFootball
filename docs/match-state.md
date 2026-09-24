@@ -13,7 +13,7 @@ and ball physics are separate concerns.
 | Type               | Contents                                                                        |
 |--------------------|---------------------------------------------------------------------------------|
 | `MatchState`       | the `Pitch`, the players in order, the `BallState`, and the squad size per side |
-| `PlayerMatchState` | `playerId`, `side`, `position`, `velocity`, `attributes`, `target`              |
+| `PlayerMatchState` | `playerId`, `side`, `position`, `velocity`, `attributes`, `target`, `facing`    |
 | `PlayerAttributes` | `maxSpeed` (m/s) and `acceleration` (m/s²), fixed for the match                 |
 | `BallState`        | `position`, `velocity`                                                          |
 | `TeamSide`         | `kHome` or `kAway`                                                              |
@@ -29,6 +29,11 @@ one, and without a target a player comes to a stop where he is; see
 [player movement](player-movement.md). `attributes` default to `kDefaultMaxSpeed` (7.5 m/s) and
 `kDefaultAcceleration` (4 m/s²); they describe the predefined test players of the
 sandbox, not a generated player.
+
+`facing` is the unit vector a player looks along; it decides what he can see. It
+is a vector rather than an angle so that no trigonometry, and none of its
+platform differences, enters the state. The kickoff fixture turns each side
+toward the goal it attacks.
 
 The fields are deliberately few. Orientation, energy, action, perception, and
 tactical runtime state from [implementation plan](implementation-plan.md)
@@ -59,14 +64,17 @@ one.
 | player velocities are finite                      | `kNonFinitePlayerVelocity` |
 | no player moves faster than his max speed         | `kPlayerTooFast`           |
 | player targets, where set, are finite             | `kNonFinitePlayerTarget`   |
+| player facings are finite unit vectors            | `kInvalidPlayerFacing`     |
 | the ball position is finite                       | `kNonFiniteBallPosition`   |
 | the ball velocity is finite                       | `kNonFiniteBallVelocity`   |
 | the ball is not faster than `kMaxBallSpeed` (100 m/s) | `kBallTooFast`         |
 
 These rules hold for every state of a match, from kickoff to the final whistle.
-The match loop only changes positions, velocities and targets, and checks the
-state it writes with `findNonFiniteValues(const MatchState&)`, which applies the
-five finiteness rules with the same codes and messages as `create()`.
+The match loop only changes positions, velocities, targets and facings, and
+checks the state it writes with `findNonFiniteValues(const MatchState&)`, which
+applies the five finiteness rules and the facing rule with the same codes and
+messages as `create()`. A facing counts as a unit vector when its squared length
+is within `kFacingTolerance` (1e-9) of one.
 Being on the pitch is deliberately not one of them: a ball that crossed the
 touchline or a player standing behind the goal line is football, not a broken
 state. Deciding what such a position means — a throw-in, a goal kick, a goal —

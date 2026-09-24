@@ -36,7 +36,8 @@ validation leaves no file behind.
         "position": { "x": 3.0, "y": 20.0 },
         "velocity": { "x": 0.0, "y": 0.0 },
         "attributes": { "maxSpeed": 7.5, "acceleration": 4.0 },
-        "target": null
+        "target": null,
+        "facing": { "x": 1.0, "y": 0.0 }
       }
     ],
     "ball": {
@@ -50,7 +51,7 @@ validation leaves no file behind.
     { "tick": 45, "order": 1, "type": "movePlayer", "playerId": 2, "target": { "x": 30.0, "y": 20.0 } }
   ],
   "checkpoints": [
-    { "tick": 0, "stateHash": "c22d772ab92fca0c" },
+    { "tick": 0, "stateHash": "fb0d5a082f2af1ea" },
     { "tick": 30, "stateHash": "..." }
   ]
 }

@@ -46,7 +46,8 @@ constexpr double kWidthMeters = 40.0;
                          .position = {.x = lineX, .y = 2.0 + (2.0 * static_cast<double>(slot))},
                          .velocity = {},
                          .attributes = {},
-                         .target = std::nullopt});
+                         .target = std::nullopt,
+                         .facing = {.x = 1.0, .y = 0.0}});
     }
   }
   return {.pitch = Pitch(kLengthMeters, kWidthMeters),
@@ -342,6 +343,30 @@ TEST_CASE("MatchState::create rejects a non-finite target", "[matchState]") {
   CAPTURE(state.error().front().message);
   REQUIRE(mentions(state.error().front().message, "index 10"));
   REQUIRE(mentions(state.error().front().message, "non-finite target"));
+}
+
+TEST_CASE("MatchState::create rejects a facing that is not a unit vector", "[matchState]") {
+  const Vec2 facing = GENERATE(Vec2{}, Vec2{.x = 0.5, .y = 0.0}, Vec2{.x = 1.0, .y = 1.0},
+                               Vec2{.x = std::numeric_limits<double>::quiet_NaN(), .y = 0.0});
+  CAPTURE(facing.x, facing.y);
+  MatchStateSpec spec = validSpec();
+  spec.players.at(12).facing = facing;
+
+  const auto state = MatchState::create(spec);
+
+  REQUIRE_FALSE(state.has_value());
+  REQUIRE(codesOf(state.error()) == std::vector{MatchStateErrorCode::kInvalidPlayerFacing});
+  CAPTURE(state.error().front().message);
+  REQUIRE(mentions(state.error().front().message, "index 12"));
+  REQUIRE(mentions(state.error().front().message, "not a finite unit vector"));
+}
+
+TEST_CASE("MatchState::create accepts any unit facing", "[matchState]") {
+  MatchStateSpec spec = validSpec();
+  spec.players.at(0).facing = {.x = 0.6, .y = -0.8};
+  spec.players.at(1).facing = {.x = 0.0, .y = 1.0};
+
+  REQUIRE(MatchState::create(spec).has_value());
 }
 
 TEST_CASE("MatchState::create rejects a non-finite ball state", "[matchState]") {

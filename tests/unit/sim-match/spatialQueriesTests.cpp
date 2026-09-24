@@ -44,7 +44,8 @@ const Pitch kPitch(60.0, 40.0);
           .position = position,
           .velocity = velocity,
           .attributes = {},
-          .target = std::nullopt};
+          .target = std::nullopt,
+          .facing = {.x = 1.0, .y = 0.0}};
 }
 
 // Three a side around (30, 20). Player 5 and player 2 are both exactly 5 m

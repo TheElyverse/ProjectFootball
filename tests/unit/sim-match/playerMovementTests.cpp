@@ -45,7 +45,8 @@ constexpr double kTolerance = 1e-9;
           .position = position,
           .velocity = velocity,
           .attributes = {},
-          .target = target};
+          .target = target,
+          .facing = {.x = 1.0, .y = 0.0}};
 }
 
 // Moves the player tick by tick and records every state, including the first.

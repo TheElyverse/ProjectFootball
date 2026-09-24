@@ -32,6 +32,7 @@ void addPlayer(StableHasher& hasher, const PlayerMatchState& player) noexcept {
   hasher.addDouble(player.attributes.maxSpeed);
   hasher.addDouble(player.attributes.acceleration);
   addOptionalVec2(hasher, player.target);
+  addVec2(hasher, player.facing);
 }
 
 }  // namespace

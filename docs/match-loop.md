@@ -83,8 +83,9 @@ moved to in that step. Update order is fixed, so replays reproduce, but it does
 not change the result: the tenth player and the first see the same pitch. Each
 field should have exactly one system that writes it.
 
-**Write positions, velocities and targets only.** `MatchStateWriter` can set
-player and ball positions and velocities and player targets, and nothing else.
+**Write positions, velocities, targets and facings only.** `MatchStateWriter`
+can set player and ball positions and velocities and player targets and facings,
+and nothing else.
 Squad, ids, sides, attributes, player order and the pitch have no setter, so a
 system cannot break those invariants. Players
 are addressed by their index in `MatchState::players()`.

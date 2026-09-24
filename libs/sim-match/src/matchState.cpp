@@ -1,5 +1,6 @@
 #include "matchState.hpp"
 
+#include <cmath>
 #include <cstddef>
 #include <format>
 #include <limits>
@@ -110,6 +111,17 @@ void appendNonFinitePlayerErrors(const std::size_t index, const PlayerMatchState
   return value > 0.0 && value <= std::numeric_limits<double>::max();
 }
 
+void appendFacingErrors(const std::size_t index, const PlayerMatchState& player,
+                        std::vector<MatchStateError>& errors) {
+  const double lengthSquared = player.facing.lengthSquared();
+  if (!player.facing.isFinite() || !(std::abs(lengthSquared - 1.0) <= kFacingTolerance)) {
+    errors.push_back({.code = MatchStateErrorCode::kInvalidPlayerFacing,
+                      .message = describePlayer(index, player) + " has facing " +
+                                 formatVector(player.facing, "") +
+                                 "which is not a finite unit vector"});
+  }
+}
+
 void appendAttributeErrors(const std::size_t index, const PlayerMatchState& player,
                            std::vector<MatchStateError>& errors) {
   const PlayerAttributes& attributes = player.attributes;
@@ -182,6 +194,7 @@ void validatePlayers(const MatchStateSpec& spec, std::vector<MatchStateError>& e
 
     appendAttributeErrors(index, player, errors);
     appendNonFinitePlayerErrors(index, player, errors);
+    appendFacingErrors(index, player, errors);
     ++index;
   }
 }
@@ -240,6 +253,10 @@ void MatchStateWriter::setPlayerVelocity(const std::size_t playerIndex,
   state_->players_.at(playerIndex).velocity = velocity;
 }
 
+void MatchStateWriter::setPlayerFacing(const std::size_t playerIndex, const SimCore::Vec2 facing) {
+  state_->players_.at(playerIndex).facing = facing;
+}
+
 void MatchStateWriter::setPlayerTarget(const std::size_t playerIndex,
                                        const std::optional<SimCore::Vec2> target) {
   state_->players_.at(playerIndex).target = target;
@@ -262,6 +279,7 @@ std::vector<MatchStateError> findNonFiniteValues(const MatchState& state) {
   std::vector<MatchStateError> errors;
   for (std::size_t index = 0; const PlayerMatchState& player : state.players()) {
     appendNonFinitePlayerErrors(index, player, errors);
+    appendFacingErrors(index, player, errors);
     ++index;
   }
   appendNonFiniteBallErrors(state.ball(), errors);
