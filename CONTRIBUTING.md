@@ -28,7 +28,9 @@ before starting a change.
 - [Match state](docs/match-state.md): players, ball, validation rules, and the
   seven-a-side kickoff fixture.
 - [Match loop](docs/match-loop.md): the fixed-timestep simulation loop, system
-  order and schedule, and failure handling.
+  order and schedule, commands, and failure handling.
+- [Player movement](docs/player-movement.md): movement targets, speed and
+  acceleration limits, and the pitch boundary rule.
 - [Replay metadata](docs/replay-metadata.md): the file `sim-cli` writes and its
   seed encoding contract.
 
@@ -38,7 +40,8 @@ in the core and rendering or input handling in adapters.
 
 `sim-core` contains shared types and utilities. `sim-match` provides configurable
 metric pitch geometry, the validated match state, the seven-a-side kickoff
-fixture, and the fixed-timestep match loop; it depends on `sim-core`. New libraries follow the existing
+fixture, the fixed-timestep match loop with its commands, and player movement; it
+depends on `sim-core`. New libraries follow the existing
 CMake target pattern and expose an `ElyverseFootball::<name>` alias. Unit tests live
 under `tests/unit/`, grouped by module.
 
