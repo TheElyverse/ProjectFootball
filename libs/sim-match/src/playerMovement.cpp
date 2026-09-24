@@ -59,15 +59,20 @@ PlayerKinematics stepPlayerMovement(const PlayerMatchState& player,
   const Vec2 velocity = player.velocity + change;
   const Vec2 displacement = velocity * secondsPerTick;
 
-  // Arrival: a step that would reach or pass the target ends on it, at rest,
-  // if the player is slow enough to stop there -- at most two ticks' worth of
-  // acceleration, which braking guarantees on a straight approach. A player
-  // carried past a new target by his momentum runs on and comes back
-  // instead of stopping dead.
+  // Arrival: a step toward the target that would reach or pass it ends on
+  // it, at rest, if the player is slow enough to stop there -- at most two
+  // ticks' worth of acceleration, which braking guarantees on a straight
+  // approach. A player carried past a new target by his momentum, or still
+  // moving away from one just behind him, runs on and comes back instead of
+  // stopping dead or jumping back onto it.
   const double maxStopSpeed = 2.0 * maxChange;
-  if (player.target && velocity.lengthSquared() <= maxStopSpeed * maxStopSpeed &&
-      displacement.lengthSquared() >= (*player.target - player.position).lengthSquared()) {
-    return {.position = *player.target, .velocity = {}};
+  if (player.target) {
+    const Vec2 offset = *player.target - player.position;
+    const bool towardTarget = displacement.dot(offset) > 0.0;
+    if (towardTarget && velocity.lengthSquared() <= maxStopSpeed * maxStopSpeed &&
+        displacement.lengthSquared() >= offset.lengthSquared()) {
+      return {.position = *player.target, .velocity = {}};
+    }
   }
   return {.position = player.position + displacement, .velocity = velocity};
 }

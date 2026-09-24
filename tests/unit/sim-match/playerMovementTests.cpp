@@ -196,6 +196,21 @@ TEST_CASE("A player turns around when his target changes", "[playerMovement]") {
   requireAccelerationWithinLimits(back);
 }
 
+TEST_CASE("A slow player does not jump back onto a target just behind him", "[playerMovement]") {
+  // Moving away at 0.2 m/s -- slow enough to stop -- with a target 1 mm
+  // behind: the step moves him further away, so it must not end on the
+  // target.
+  PlayerMatchState player = playerAt({.x = 10.0, .y = 20.0}, Vec2{.x = 9.999, .y = 20.0});
+  player.velocity = {.x = 0.2, .y = 0.0};
+
+  const PlayerKinematics moved = stepPlayerMovement(player, kSecondsPerTick);
+
+  REQUIRE(moved.position.x > player.position.x);
+  REQUIRE(moved.velocity.x > 0.0);
+  const auto back = trajectory(player, 60);
+  REQUIRE(back.back().position == Vec2{.x = 9.999, .y = 20.0});
+}
+
 TEST_CASE("Players follow commands through the movement system", "[playerMovement]") {
   const Vec2 wing{.x = 50.0, .y = 38.0};
   MatchSimulation simulation(
