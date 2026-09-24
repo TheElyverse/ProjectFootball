@@ -30,6 +30,7 @@ endif ()
 
 add_subdirectory(libs/sim-core)
 add_subdirectory(libs/sim-match)
+add_subdirectory(libs/sim-replay)
 add_subdirectory(apps/sim-cli)
 
 if (PF_BUILD_TESTS)

@@ -43,6 +43,17 @@ target_link_libraries(sim-match-tests PRIVATE
 )
 catch_discover_tests(sim-match-tests)
 
+add_executable(sim-replay-tests
+        sim-replay/replayTests.cpp
+        sim-replay/replayJsonTests.cpp
+)
+target_link_libraries(sim-replay-tests PRIVATE
+        ElyverseFootball::sim-replay
+        Catch2::Catch2WithMain
+        pf_compiler_warnings
+)
+catch_discover_tests(sim-replay-tests)
+
 add_test(NAME sim-cli-smoke
         COMMAND ${CMAKE_COMMAND}
         -DSIM_CLI=$<TARGET_FILE:sim-cli>
