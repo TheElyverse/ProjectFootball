@@ -80,6 +80,11 @@ struct BallState {
   friend bool operator==(const BallState&, const BallState&) = default;
 };
 
+// No kicked football gets near this; the hardest shots are around 60 m/s. A
+// faster ball is a broken fixture, and would overflow when its speed is
+// squared.
+inline constexpr double kMaxBallSpeed = 100.0;  // m/s
+
 enum class MatchStateErrorCode : std::uint8_t {
   kInvalidPlayersPerSide,
   kWrongPlayerCountPerSide,
@@ -95,6 +100,7 @@ enum class MatchStateErrorCode : std::uint8_t {
   kNonFiniteBallPosition,
   kBallOutsidePitch,
   kNonFiniteBallVelocity,
+  kBallTooFast,
 };
 
 // The code is what tests and callers branch on; the message names the offending

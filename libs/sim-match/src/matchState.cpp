@@ -188,6 +188,12 @@ void validatePlayers(const MatchStateSpec& spec, std::vector<MatchStateError>& e
 
 void validateBall(const MatchStateSpec& spec, std::vector<MatchStateError>& errors) {
   appendNonFiniteBallErrors(spec.ball, errors);
+  const SimCore::Vec2 velocity = spec.ball.velocity;
+  if (velocity.isFinite() && velocity.lengthSquared() > kMaxBallSpeed * kMaxBallSpeed) {
+    errors.push_back({.code = MatchStateErrorCode::kBallTooFast,
+                      .message = "the ball moves at " + formatVelocity(velocity) +
+                                 ", faster than " + formatNumber(kMaxBallSpeed) + " m/s"});
+  }
 }
 
 }  // namespace

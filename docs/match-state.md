@@ -61,6 +61,7 @@ one.
 | player targets, where set, are finite             | `kNonFinitePlayerTarget`   |
 | the ball position is finite                       | `kNonFiniteBallPosition`   |
 | the ball velocity is finite                       | `kNonFiniteBallVelocity`   |
+| the ball is not faster than `kMaxBallSpeed` (100 m/s) | `kBallTooFast`         |
 
 These rules hold for every state of a match, from kickoff to the final whistle.
 The match loop only changes positions, velocities and targets, and checks the
