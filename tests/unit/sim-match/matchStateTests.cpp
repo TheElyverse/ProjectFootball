@@ -3,6 +3,7 @@
 #include <cmath>
 #include <cstddef>
 #include <limits>
+#include <stdexcept>
 #include <string>
 #include <utility>
 #include <vector>
@@ -21,6 +22,7 @@ using ElyverseFootball::SimMatch::MatchState;
 using ElyverseFootball::SimMatch::MatchStateError;
 using ElyverseFootball::SimMatch::MatchStateErrorCode;
 using ElyverseFootball::SimMatch::MatchStateSpec;
+using ElyverseFootball::SimMatch::ObservedEntity;
 using ElyverseFootball::SimMatch::Pitch;
 using ElyverseFootball::SimMatch::PlayerAttributes;
 using ElyverseFootball::SimMatch::PlayerMatchState;
@@ -81,6 +83,24 @@ TEST_CASE("MatchState::create accepts a valid seven-a-side spec", "[matchState]"
   REQUIRE(state->pitch() == Pitch(kLengthMeters, kWidthMeters));
   REQUIRE(state->ball() == spec.ball);
   REQUIRE(state->players().front() == spec.players.front());
+}
+
+TEST_CASE("Every player starts with an empty memory", "[matchState]") {
+  const auto state = MatchState::create(validSpec());
+
+  REQUIRE(state.has_value());
+  for (std::size_t index = 0; index < state->players().size(); ++index) {
+    REQUIRE(state->perception(index).observations.empty());
+  }
+  REQUIRE_THROWS_AS(state->perception(state->players().size()), std::out_of_range);
+}
+
+TEST_CASE("Observed entities order the ball first, then players by id", "[matchState]") {
+  REQUIRE(ObservedEntity::ball() < ObservedEntity::player(PlayerId(1)));
+  REQUIRE(ObservedEntity::player(PlayerId(1)) < ObservedEntity::player(PlayerId(2)));
+  REQUIRE(ObservedEntity::ball().isBall());
+  REQUIRE_FALSE(ObservedEntity::ball().playerId().isValid());
+  REQUIRE(ObservedEntity::player(PlayerId(4)).playerId() == PlayerId(4));
 }
 
 TEST_CASE("MatchState::create accepts squad sizes other than seven", "[matchState]") {

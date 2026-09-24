@@ -12,7 +12,7 @@ and ball physics are separate concerns.
 
 | Type               | Contents                                                                        |
 |--------------------|---------------------------------------------------------------------------------|
-| `MatchState`       | the `Pitch`, the players in order, the `BallState`, and the squad size per side |
+| `MatchState`       | the `Pitch`, the players in order, the `BallState`, the squad size per side, and every player's perception memory |
 | `PlayerMatchState` | `playerId`, `side`, `position`, `velocity`, `attributes`, `target`, `facing`    |
 | `PlayerAttributes` | `maxSpeed` (m/s) and `acceleration` (m/s²), fixed for the match                 |
 | `BallState`        | `position`, `velocity`                                                          |
@@ -34,6 +34,12 @@ sandbox, not a generated player.
 is a vector rather than an angle so that no trigonometry, and none of its
 platform differences, enters the state. The kickoff fixture turns each side
 toward the goal it attacks.
+
+Every player also has a perception memory, `perception(playerIndex)`: what he
+believes about the ball and the other players (see [perception](perception.md)).
+A state created from a spec starts with every memory empty — perception is built
+up by the match, not given — so the spec and the replay format need no field
+for it; the state hash includes it.
 
 The fields are deliberately few. Orientation, energy, action, perception, and
 tactical runtime state from [implementation plan](implementation-plan.md)

@@ -1,5 +1,6 @@
 #include "matchStateHash.hpp"
 
+#include <cstddef>
 #include <optional>
 
 #include "stableHash.hpp"
@@ -35,6 +36,15 @@ void addPlayer(StableHasher& hasher, const PlayerMatchState& player) noexcept {
   addVec2(hasher, player.facing);
 }
 
+void addObservation(StableHasher& hasher, const Observation& observation) noexcept {
+  hasher.addBool(observation.entity.isBall());
+  hasher.addU64(observation.entity.playerId().value());
+  addVec2(hasher, observation.position);
+  addVec2(hasher, observation.velocity);
+  hasher.addDouble(observation.confidence);
+  hasher.addI64(observation.lastSeen.value());
+}
+
 }  // namespace
 
 std::uint64_t hashMatchState(const MatchState& state) noexcept {
@@ -48,6 +58,13 @@ std::uint64_t hashMatchState(const MatchState& state) noexcept {
   }
   addVec2(hasher, state.ball().position);
   addVec2(hasher, state.ball().velocity);
+  for (std::size_t index = 0; index < state.players().size(); ++index) {
+    const PlayerPerception& perception = state.perception(index);
+    hasher.addU64(perception.observations.size());
+    for (const Observation& observation : perception.observations) {
+      addObservation(hasher, observation);
+    }
+  }
   return hasher.value();
 }
 

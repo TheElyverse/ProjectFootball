@@ -51,7 +51,7 @@ validation leaves no file behind.
     { "tick": 45, "order": 1, "type": "movePlayer", "playerId": 2, "target": { "x": 30.0, "y": 20.0 } }
   ],
   "checkpoints": [
-    { "tick": 0, "stateHash": "fb0d5a082f2af1ea" },
+    { "tick": 0, "stateHash": "93e6193a42c4fb6a" },
     { "tick": 30, "stateHash": "..." }
   ]
 }

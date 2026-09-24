@@ -229,7 +229,8 @@ MatchState::MatchState(MatchStateSpec spec)
     : pitch_(spec.pitch),
       players_(std::move(spec.players)),
       ball_(spec.ball),
-      playersPerSide_(spec.playersPerSide) {}
+      playersPerSide_(spec.playersPerSide),
+      perceptions_(players_.size()) {}
 
 std::expected<MatchState, std::vector<MatchStateError>> MatchState::create(MatchStateSpec spec) {
   std::vector<MatchStateError> errors;
@@ -255,6 +256,10 @@ void MatchStateWriter::setPlayerVelocity(const std::size_t playerIndex,
 
 void MatchStateWriter::setPlayerFacing(const std::size_t playerIndex, const SimCore::Vec2 facing) {
   state_->players_.at(playerIndex).facing = facing;
+}
+
+PlayerPerception& MatchStateWriter::perception(const std::size_t playerIndex) {
+  return state_->perceptions_.at(playerIndex);
 }
 
 void MatchStateWriter::setPlayerTarget(const std::size_t playerIndex,

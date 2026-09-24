@@ -6,16 +6,24 @@
 #include <vector>
 
 #include "kickoffScenario.hpp"
+#include "matchSimulation.hpp"
 #include "matchState.hpp"
 #include "matchStateHash.hpp"
 #include "vec2.hpp"
 
 using ElyverseFootball::SimCore::PlayerId;
+using ElyverseFootball::SimCore::SimTick;
 using ElyverseFootball::SimCore::Vec2;
 using ElyverseFootball::SimMatch::hashMatchState;
 using ElyverseFootball::SimMatch::makeSevenASideKickoff;
+using ElyverseFootball::SimMatch::MatchSimulation;
 using ElyverseFootball::SimMatch::MatchState;
 using ElyverseFootball::SimMatch::MatchStateSpec;
+using ElyverseFootball::SimMatch::MatchStateWriter;
+using ElyverseFootball::SimMatch::MatchStepContext;
+using ElyverseFootball::SimMatch::MatchSystem;
+using ElyverseFootball::SimMatch::Observation;
+using ElyverseFootball::SimMatch::ObservedEntity;
 using ElyverseFootball::SimMatch::Pitch;
 using ElyverseFootball::SimMatch::PlayerMatchState;
 using ElyverseFootball::SimMatch::TeamSide;
@@ -49,7 +57,7 @@ TEST_CASE("Equal states hash equally", "[matchStateHash]") {
 TEST_CASE("The kickoff hash is pinned", "[matchStateHash]") {
   // Changes when the fixture, a state field or the hash encoding changes;
   // each of those invalidates recorded replays, so update it deliberately.
-  REQUIRE(hashOf(kickoffSpec()) == 0xfb0d5a082f2af1eaULL);
+  REQUIRE(hashOf(kickoffSpec()) == 0x93e6193a42c4fb6aULL);
 }
 
 // Guards against a field that is added to the state but forgotten here.
@@ -81,4 +89,41 @@ TEST_CASE("Every field of the state changes the hash", "[matchStateHash]") {
     change(spec);
     REQUIRE(hashOf(spec) != original);
   }
+}
+
+TEST_CASE("Perception memories are part of the hash", "[matchStateHash]") {
+  const auto kickoff = makeSevenASideKickoff(Pitch(60.0, 40.0));
+  REQUIRE(kickoff.has_value());
+  const auto remember = [](const Observation observation) {
+    return MatchSystem{.name = "remember",
+                       .update = [observation](const MatchStepContext&, const MatchState&,
+                                               MatchStateWriter& next) {
+                         next.perception(2).observations = {observation};
+                       }};
+  };
+  const Observation seenBall{.entity = ObservedEntity::ball(),
+                             .position = {.x = 30.0, .y = 20.0},
+                             .velocity = {},
+                             .confidence = 1.0,
+                             .lastSeen = SimTick(0)};
+  Observation older = seenBall;
+  older.confidence = 0.5;
+  Observation seenPlayer = seenBall;
+  seenPlayer.entity = ObservedEntity::player(PlayerId(9));
+
+  const auto hashAfter = [&](const Observation observation) {
+    MatchSimulation simulation({.initialState = *kickoff,
+                                .seed = 1,
+                                .ticksPerSecond = 30,
+                                .systems = {remember(observation)},
+                                .commands = {}});
+    REQUIRE(simulation.step().has_value());
+    return hashMatchState(simulation.state());
+  };
+
+  const std::uint64_t empty = hashMatchState(*kickoff);
+  REQUIRE(hashAfter(seenBall) != empty);
+  REQUIRE(hashAfter(seenBall) != hashAfter(older));
+  REQUIRE(hashAfter(seenBall) != hashAfter(seenPlayer));
+  REQUIRE(hashAfter(seenBall) == hashAfter(seenBall));
 }

@@ -10,6 +10,7 @@
 #include <vector>
 
 #include "ids.hpp"
+#include "observation.hpp"
 #include "pitch.hpp"
 #include "vec2.hpp"
 
@@ -165,6 +166,13 @@ class MatchState {
   [[nodiscard]] const BallState& ball() const noexcept { return ball_; }
   [[nodiscard]] int playersPerSide() const noexcept { return playersPerSide_; }
 
+  // The memory of the player at this index in players(); throws
+  // std::out_of_range past the end. Every state created from a spec starts
+  // with empty memories: perception is built up by the match, not given.
+  [[nodiscard]] const PlayerPerception& perception(std::size_t playerIndex) const {
+    return perceptions_.at(playerIndex);
+  }
+
   friend bool operator==(const MatchState&, const MatchState&) = default;
 
  private:
@@ -176,12 +184,14 @@ class MatchState {
   std::vector<PlayerMatchState> players_;
   BallState ball_;
   int playersPerSide_;
+  // Parallel to players_.
+  std::vector<PlayerPerception> perceptions_;
 };
 
 // What a simulation system or command may change in a state: positions,
-// velocities, movement targets and facings, nothing else. Squad, ids, sides, attributes,
-// player order and the pitch have no setter, so a system cannot break those
-// invariants and nothing has to re-check them every tick. Players are addressed by their index in
+// velocities, movement targets, facings and perception memories, nothing else. Squad, ids, sides,
+// attributes, player order and the pitch have no setter, so a system cannot break those invariants
+// and nothing has to re-check them every tick. Players are addressed by their index in
 // MatchState::players(); an index past the end throws std::out_of_range.
 //
 // Only MatchSimulation hands out writers, and a writer only lives for one step.
@@ -190,9 +200,10 @@ class MatchStateWriter {
   void setPlayerPosition(std::size_t playerIndex, SimCore::Vec2 position);
   void setPlayerVelocity(std::size_t playerIndex, SimCore::Vec2 velocity);
   void setPlayerTarget(std::size_t playerIndex, std::optional<SimCore::Vec2> target);
-  // The facing must be a unit vector; runtime checks cannot catch a wrong
-  // length, so a system normalizes before it writes.
+  // The facing must be a unit vector; the loop rejects any other.
   void setPlayerFacing(std::size_t playerIndex, SimCore::Vec2 facing);
+  // The memory of the player at this index, to update in place.
+  [[nodiscard]] PlayerPerception& perception(std::size_t playerIndex);
   void setBallPosition(SimCore::Vec2 position) noexcept { state_->ball_.position = position; }
   void setBallVelocity(SimCore::Vec2 velocity) noexcept { state_->ball_.velocity = velocity; }
 
