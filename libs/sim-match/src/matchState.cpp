@@ -2,6 +2,8 @@
 
 #include <cstddef>
 #include <format>
+#include <limits>
+#include <optional>
 #include <string>
 #include <string_view>
 #include <unordered_map>
@@ -95,6 +97,29 @@ void appendNonFinitePlayerErrors(const std::size_t index, const PlayerMatchState
                       .message = describePlayer(index, player) +
                                  " has a non-finite velocity: " + formatVelocity(player.velocity)});
   }
+  if (player.target && !player.target->isFinite()) {
+    errors.push_back({.code = MatchStateErrorCode::kNonFinitePlayerTarget,
+                      .message = describePlayer(index, player) +
+                                 " has a non-finite target: " + formatPosition(*player.target)});
+  }
+}
+
+// Positive and finite: a player who cannot move or speed up is not a slow
+// player but a broken fixture, and would make every arrival time infinite.
+[[nodiscard]] bool isPositiveFinite(const double value) noexcept {
+  return value > 0.0 && value <= std::numeric_limits<double>::max();
+}
+
+void appendAttributeErrors(const std::size_t index, const PlayerMatchState& player,
+                           std::vector<MatchStateError>& errors) {
+  const PlayerAttributes& attributes = player.attributes;
+  if (!isPositiveFinite(attributes.maxSpeed) || !isPositiveFinite(attributes.acceleration)) {
+    errors.push_back({.code = MatchStateErrorCode::kInvalidPlayerAttributes,
+                      .message = describePlayer(index, player) + " has max speed " +
+                                 formatNumber(attributes.maxSpeed) + " m/s and acceleration " +
+                                 formatNumber(attributes.acceleration) +
+                                 " m/s^2, expected both positive and finite"});
+  }
 }
 
 void appendNonFiniteBallErrors(const BallState& ball, std::vector<MatchStateError>& errors) {
@@ -142,6 +167,7 @@ void validatePlayers(const MatchStateSpec& spec, std::vector<MatchStateError>& e
       }
     }
 
+    appendAttributeErrors(index, player, errors);
     appendNonFinitePlayerErrors(index, player, errors);
     ++index;
   }
@@ -193,6 +219,11 @@ void MatchStateWriter::setPlayerPosition(const std::size_t playerIndex,
 void MatchStateWriter::setPlayerVelocity(const std::size_t playerIndex,
                                          const SimCore::Vec2 velocity) {
   state_->players_.at(playerIndex).velocity = velocity;
+}
+
+void MatchStateWriter::setPlayerTarget(const std::size_t playerIndex,
+                                       const std::optional<SimCore::Vec2> target) {
+  state_->players_.at(playerIndex).target = target;
 }
 
 // Allocates nothing for a state without defects: the vector stays empty until
