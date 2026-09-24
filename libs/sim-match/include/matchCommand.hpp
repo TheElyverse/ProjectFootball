@@ -21,11 +21,20 @@ struct MovePlayerCommand {
   friend bool operator==(const MovePlayerCommand&, const MovePlayerCommand&) = default;
 };
 
+// Puts the ball at a player's feet: he owns it from this step on, and the
+// ball follows him (docs/possession.md). A scenario uses it to decide who
+// starts with the ball; a test uses it to set up a situation.
+struct GiveBallCommand {
+  SimCore::PlayerId playerId;
+
+  friend bool operator==(const GiveBallCommand&, const GiveBallCommand&) = default;
+};
+
 // An intent from outside the systems -- a scenario script, a coach, a test --
 // that changes the match state at a tick. Every command type is a
 // std::variant alternative, so a replay can record and a reader can dispatch
 // on them without a class hierarchy.
-using MatchCommand = std::variant<MovePlayerCommand>;
+using MatchCommand = std::variant<MovePlayerCommand, GiveBallCommand>;
 
 // A command and the tick whose step applies it. Commands of the same tick are
 // applied in the order they were scheduled.

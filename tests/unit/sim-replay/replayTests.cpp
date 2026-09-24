@@ -141,6 +141,9 @@ TEST_CASE("A replay survives the JSON round trip unchanged", "[replay]") {
   // Values without a short decimal form must come back bit for bit.
   matchSetup.config.ball.rollingDeceleration = 1.0 / 3.0;
   matchSetup.commands.push_back(move(120, 5, 0.1, 1e-300));
+  matchSetup.commands.push_back(
+      {.tick = SimTick(60),
+       .command = ElyverseFootball::SimMatch::GiveBallCommand{.playerId = PlayerId(9)}});
   const Replay replay = recorded(matchSetup, 150);
 
   const auto parsed = parseReplayJson(toReplayJson(replay));

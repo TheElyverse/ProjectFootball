@@ -6,6 +6,8 @@
 #include <stdexcept>
 #include <string>
 
+#include "playerMovement.hpp"
+
 namespace ElyverseFootball::SimMatch {
 namespace {
 
@@ -29,7 +31,30 @@ using SimCore::Vec2;
   return fraction;
 }
 
+// The owner as the movement system leaves him after this tick: moved and
+// turned with the same pure functions, so ball and carrier stay together.
+[[nodiscard]] PlayerMatchState ownerAfterMove(const PlayerMatchState& owner,
+                                              const Vec2 ballPosition,
+                                              const double secondsPerTick) noexcept {
+  const PlayerKinematics moved = stepPlayerMovement(owner, secondsPerTick);
+  PlayerMatchState after = owner;
+  after.facing = facingAfterMove(owner, moved, ballPosition);
+  after.position = moved.position;
+  after.velocity = moved.velocity;
+  return after;
+}
+
+[[nodiscard]] bool isValid(const BallPhysics& physics) noexcept {
+  constexpr double kMax = std::numeric_limits<double>::max();
+  return physics.rollingDeceleration > 0.0 && physics.rollingDeceleration <= kMax &&
+         physics.carryDistance >= 0.0 && physics.carryDistance <= kMax;
+}
+
 }  // namespace
+
+Vec2 carriedBallPosition(const PlayerMatchState& carrier, const BallPhysics& physics) noexcept {
+  return carrier.position + (carrier.facing * physics.carryDistance);
+}
 
 double rollingDistance(const double speed, const BallPhysics& physics) noexcept {
   return (speed * speed) / (2.0 * physics.rollingDeceleration);
@@ -69,18 +94,29 @@ BallState stepFreeBall(const BallState& ball, const BallPhysics& physics, const 
 }
 
 MatchSystem makeBallMovementSystem(const BallPhysics physics) {
-  const bool valid = physics.rollingDeceleration > 0.0 &&
-                     physics.rollingDeceleration <= std::numeric_limits<double>::max();
-  if (!valid) {
-    throw std::invalid_argument("ball movement: rolling deceleration must be positive and finite");
+  if (!isValid(physics)) {
+    throw std::invalid_argument(
+        "ball movement: rolling deceleration must be positive and finite, carry distance finite "
+        "and not negative");
   }
   return {.name = std::string(kBallMovementSystemName),
           .update = [physics](const MatchStepContext& context, const MatchState& current,
                               MatchStateWriter& next) {
-            const BallState moved =
-                stepFreeBall(current.ball(), physics, current.pitch(), context.secondsPerTick());
-            next.setBallPosition(moved.position);
-            next.setBallVelocity(moved.velocity);
+            const BallState& ball = current.ball();
+            if (!ball.owner) {
+              const BallState moved =
+                  stepFreeBall(ball, physics, current.pitch(), context.secondsPerTick());
+              next.setBallPosition(moved.position);
+              next.setBallVelocity(moved.velocity);
+              return;
+            }
+            // create() and the writer accept no owner outside the state.
+            if (const auto index = findPlayerIndex(current, *ball.owner)) {
+              const PlayerMatchState owner = ownerAfterMove(
+                  current.players()[*index], ball.position, context.secondsPerTick());
+              next.setBallPosition(carriedBallPosition(owner, physics));
+              next.setBallVelocity(owner.velocity);
+            }
           }};
 }
 

@@ -52,6 +52,7 @@ the command types:
 | Command             | Effect                                                                |
 |---------------------|-----------------------------------------------------------------------|
 | `MovePlayerCommand` | sets a player's movement target, moved onto the pitch if it lies off it |
+| `GiveBallCommand`   | puts the ball at a player's feet; he owns it from this step on        |
 
 `schedule(ScheduledCommand)` queues a command for the step that starts at its
 tick. Commands of one tick apply in the order they were scheduled, which is the
@@ -83,9 +84,9 @@ moved to in that step. Update order is fixed, so replays reproduce, but it does
 not change the result: the tenth player and the first see the same pitch. Each
 field should have exactly one system that writes it.
 
-**Write positions, velocities, targets and facings only.** `MatchStateWriter`
-can set player and ball positions and velocities and player targets and facings,
-and nothing else.
+**Write only what a match changes.** `MatchStateWriter` can set player and ball
+positions and velocities, player targets and facings, perception memories and
+the ball's owner, and nothing else.
 Squad, ids, sides, attributes, player order and the pitch have no setter, so a
 system cannot break those invariants. Players
 are addressed by their index in `MatchState::players()`.

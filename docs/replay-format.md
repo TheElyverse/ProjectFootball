@@ -24,7 +24,7 @@ validation leaves no file behind.
   "gameTime": 300,
   "config": {
     "ticksPerSecond": 30,
-    "ball": { "rollingDeceleration": 1.5 },
+    "ball": { "rollingDeceleration": 1.5, "carryDistance": 0.5 },
     "perception": {
       "intervalTicks": 3,
       "viewDistance": 60.0,
@@ -95,6 +95,7 @@ were scheduled (see [match loop](match-loop.md), section *Commands*).
 | `type`       | Fields                 | Command             |
 |--------------|------------------------|---------------------|
 | `movePlayer` | `playerId`, `target`   | `MovePlayerCommand` |
+| `giveBall`   | `playerId`             | `GiveBallCommand`   |
 
 A recorded replay holds the commands the simulation applied. A command scheduled
 during the run is included; one scheduled for a tick the match never reached is

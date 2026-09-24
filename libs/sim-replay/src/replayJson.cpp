@@ -81,7 +81,9 @@ using SimMatch::TeamSide;
 [[nodiscard]] Json configJson(const MatchConfig& config) {
   const SimMatch::PerceptionConfig& perception = config.perception;
   return {{"ticksPerSecond", config.ticksPerSecond},
-          {"ball", {{"rollingDeceleration", config.ball.rollingDeceleration}}},
+          {"ball",
+           {{"rollingDeceleration", config.ball.rollingDeceleration},
+            {"carryDistance", config.ball.carryDistance}}},
           {"perception",
            {{"intervalTicks", perception.intervalTicks},
             {"viewDistance", perception.viewDistance},
@@ -95,6 +97,11 @@ void addCommandFields(Json& json, const MovePlayerCommand& command) {
   json["type"] = "movePlayer";
   json["playerId"] = command.playerId.value();
   json["target"] = vec2Json(command.target);
+}
+
+void addCommandFields(Json& json, const SimMatch::GiveBallCommand& command) {
+  json["type"] = "giveBall";
+  json["playerId"] = command.playerId.value();
 }
 
 // Commands in execution order, each with its position within its tick.
@@ -306,7 +313,8 @@ constexpr std::int64_t kMaxTick = std::int64_t{1} << 53;
 [[nodiscard]] MatchConfig readConfig(const Field& field) {
   return {
       .ticksPerSecond = static_cast<int>(field.member("ticksPerSecond").integerIn(1, 100000)),
-      .ball = {.rollingDeceleration = field.member("ball").member("rollingDeceleration").number()},
+      .ball = {.rollingDeceleration = field.member("ball").member("rollingDeceleration").number(),
+               .carryDistance = field.member("ball").member("carryDistance").number()},
       .perception = readPerception(field.member("perception"))};
 }
 
@@ -315,6 +323,9 @@ constexpr std::int64_t kMaxTick = std::int64_t{1} << 53;
   if (type == "movePlayer") {
     return MovePlayerCommand{.playerId = readPlayerId(field.member("playerId")),
                              .target = readVec2(field.member("target"))};
+  }
+  if (type == "giveBall") {
+    return SimMatch::GiveBallCommand{.playerId = readPlayerId(field.member("playerId"))};
   }
   field.member("type").fail(std::format("unknown command type \"{}\"", type));
 }

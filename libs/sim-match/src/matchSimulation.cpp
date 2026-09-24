@@ -86,6 +86,14 @@ static_assert(static_cast<std::size_t>(RandomNumberGeneratorDomain::kAi) + 1 ==
   return std::nullopt;
 }
 
+[[nodiscard]] std::optional<MatchCommandError> validate(const MatchState& state,
+                                                        const GiveBallCommand& command) {
+  if (!findPlayerIndex(state, command.playerId)) {
+    return unknownPlayer(command.playerId);
+  }
+  return std::nullopt;
+}
+
 // Validation needs only the squad, which no step changes, so a command valid
 // when scheduled is still valid when applied.
 [[nodiscard]] std::optional<MatchCommandError> validate(const MatchState& state,
@@ -99,6 +107,10 @@ void apply(const MovePlayerCommand& command, const MatchState& state, MatchState
   if (const auto index = findPlayerIndex(state, command.playerId)) {
     writer.setPlayerTarget(*index, state.pitch().clamp(command.target));
   }
+}
+
+void apply(const GiveBallCommand& command, const MatchState& /*state*/, MatchStateWriter& writer) {
+  writer.setBallOwner(command.playerId);
 }
 
 }  // namespace
