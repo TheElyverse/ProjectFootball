@@ -56,7 +56,10 @@ The scores use arithmetic and square roots only — no exponential or logistic
 function — so they are identical on every platform.
 
 **Attacking direction.** Home attacks `+x` and away `−x` (`attackingDirection()`);
-the sandbox has no halves.
+the sandbox has no halves, and every scenario places home at `x = 0` (see
+[match state](match-state.md)). When rules let teams switch ends, the direction
+must come from the match state instead, and `attackingDirection()` is the one
+place to change.
 
 ## Valid candidates
 

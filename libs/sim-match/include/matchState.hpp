@@ -17,9 +17,11 @@
 
 namespace ElyverseFootball::SimMatch {
 
-// Which end a player belongs to. The pitch coordinate system is fixed (see
-// docs/match-geometry.md), so this says nothing about attacking direction --
-// a scenario decides which side defends x = 0.
+// Which squad a player belongs to. The pitch coordinate system is fixed (see
+// docs/match-geometry.md), so this is not itself an attacking direction. The
+// sandbox has no halves yet: home defends x = 0 in every match, and systems
+// that need the direction ask attackingDirection() (passCandidates.hpp), the
+// one place to change once rules let teams switch ends.
 enum class TeamSide : std::uint8_t {
   kHome,
   kAway,

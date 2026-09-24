@@ -109,7 +109,8 @@ struct PassCandidateRules {
                                                                 const PassCandidateRules& rules);
 
 // The direction along x a side attacks: +1 for home, -1 for away. Fixed in
-// the sandbox, which has no halves.
+// the sandbox, which has no halves and in which every scenario places home at
+// x = 0; the one place to change once rules let teams switch ends.
 [[nodiscard]] double attackingDirection(TeamSide side) noexcept;
 
 }  // namespace ElyverseFootball::SimMatch

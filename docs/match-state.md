@@ -21,8 +21,10 @@ and ball physics are separate concerns.
 Positions are meters in pitch coordinates, velocities are meters per second, in
 the plane described by [match geometry](match-geometry.md). The pitch
 coordinate system is fixed, so `TeamSide` says which squad a player belongs to,
-not which way that squad attacks; a scenario decides which side defends
-`x = 0`.
+not by itself which way that squad attacks. The sandbox has no halves yet, so
+home defends `x = 0` and attacks `+x` in every match; systems that need the
+direction take it from `attackingDirection()`, the one place to change once
+rules let teams switch ends.
 
 `target` is where the player is moving to. It is empty until a command assigns
 one, and without a target a player comes to a stop where he is; see
