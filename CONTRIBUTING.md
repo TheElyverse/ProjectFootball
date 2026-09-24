@@ -109,8 +109,10 @@ arguments. With Make available, `make run ARGS="..."` builds and runs it.
 A run prints the tick count, the simulated time and the final state hash, and
 writes a [replay](docs/replay-format.md). `--play` rebuilds the match from the
 file, verifies every recorded state hash, and prints the same summary; it takes
-everything from the file, so it cannot be combined with the run options.
-[Scenarios](docs/scenarios.md) describes the scenario catalog.
+everything from the file, so it cannot be combined with the run options or with
+`--list-scenarios`, which cannot be combined with the run options either.
+`--help` wins over every other option. [Scenarios](docs/scenarios.md) describes
+the scenario catalog.
 
 Invalid arguments, an unknown scenario, a replay that cannot be read, and a
 replay that does not reproduce all end with a message on stderr and a nonzero

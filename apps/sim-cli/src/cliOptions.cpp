@@ -61,6 +61,11 @@ class ArgumentReader {
 // NOLINTNEXTLINE(readability-function-cognitive-complexity)
 std::expected<CliOptions, std::string> parseCliOptions(const std::span<char* const> args) {
   CliOptions options;
+  // Recorded apart from options.mode, so conflicts are found whatever the
+  // order of the arguments.
+  bool help = false;
+  bool listScenarios = false;
+  bool play = false;
   bool newRunOption = false;
   ArgumentReader reader(args);
   while (!reader.done()) {
@@ -68,15 +73,18 @@ std::expected<CliOptions, std::string> parseCliOptions(const std::span<char* con
     if (arg == "--tui") {
       options.tui = true;
     } else if (arg == "--help") {
-      options.mode = CliMode::kHelp;
+      help = true;
     } else if (arg == "--list-scenarios") {
-      options.mode = CliMode::kListScenarios;
+      listScenarios = true;
     } else if (arg == "--play") {
       const auto path = reader.value(arg);
       if (!path) {
         return std::unexpected(path.error());
       }
-      options.mode = CliMode::kPlay;
+      if (play) {
+        return std::unexpected("--play is given twice");
+      }
+      play = true;
       options.playPath = *path;
     } else if (arg == "--scenario" || arg == "--seed" || arg == "--ticks" ||
                arg == "--replay-out") {
@@ -107,10 +115,28 @@ std::expected<CliOptions, std::string> parseCliOptions(const std::span<char* con
       return std::unexpected("unknown argument '" + std::string(arg) + "'");
     }
   }
-  if (options.mode == CliMode::kPlay && newRunOption) {
+  // --help always wins: whatever else was asked, the usage answers it.
+  if (help) {
+    options.mode = CliMode::kHelp;
+    return options;
+  }
+  if (play && listScenarios) {
+    return std::unexpected("--play and --list-scenarios cannot be combined");
+  }
+  if (play && newRunOption) {
     return std::unexpected(
         "--play takes everything from the replay file and cannot be combined with --scenario, "
         "--seed, --ticks or --replay-out");
+  }
+  if (listScenarios && newRunOption) {
+    return std::unexpected(
+        "--list-scenarios runs nothing and cannot be combined with --scenario, --seed, --ticks "
+        "or --replay-out");
+  }
+  if (play) {
+    options.mode = CliMode::kPlay;
+  } else if (listScenarios) {
+    options.mode = CliMode::kListScenarios;
   }
   return options;
 }

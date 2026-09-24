@@ -39,9 +39,11 @@ inline constexpr std::string_view kUsage =
     "       sim-cli --list-scenarios\n"
     "       sim-cli --help";
 
-// Parses argv (program name first). Rejects unknown options, missing or
-// invalid values, and --play combined with options that only apply to a new
-// run, with a message naming the offending argument.
+// Parses argv (program name first). --help wins over everything else.
+// Rejects unknown options, missing or invalid values, --play combined with
+// --list-scenarios, and --play or --list-scenarios combined with options that
+// only apply to a new run, whatever the order, with a message naming the
+// offending argument.
 [[nodiscard]] std::expected<CliOptions, std::string> parseCliOptions(std::span<char* const> args);
 
 }  // namespace ElyverseFootball::Cli
