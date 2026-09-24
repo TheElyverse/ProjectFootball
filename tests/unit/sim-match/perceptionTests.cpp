@@ -58,14 +58,16 @@ const PerceptionConfig kConfig{};
 // Observer 1 at (20, 20) looking along +x. Player 2 ahead, player 3 behind at
 // 10 m, player 4 behind at 2 m; the ball ahead at 10 m.
 [[nodiscard]] MatchState scene() {
-  auto state = MatchState::create(
-      {.pitch = Pitch(60.0, 40.0),
-       .players = {playerAt(1, TeamSide::kHome, {.x = 20.0, .y = 20.0}),
-                   playerAt(3, TeamSide::kHome, {.x = 10.0, .y = 20.0}),
-                   playerAt(2, TeamSide::kAway, {.x = 35.0, .y = 25.0}),
-                   playerAt(4, TeamSide::kAway, {.x = 18.0, .y = 20.0})},
-       .ball = {.position = {.x = 30.0, .y = 20.0}, .velocity = {.x = 2.0, .y = 0.0}},
-       .playersPerSide = 2});
+  auto state =
+      MatchState::create({.pitch = Pitch(60.0, 40.0),
+                          .players = {playerAt(1, TeamSide::kHome, {.x = 20.0, .y = 20.0}),
+                                      playerAt(3, TeamSide::kHome, {.x = 10.0, .y = 20.0}),
+                                      playerAt(2, TeamSide::kAway, {.x = 35.0, .y = 25.0}),
+                                      playerAt(4, TeamSide::kAway, {.x = 18.0, .y = 20.0})},
+                          .ball = {.position = {.x = 30.0, .y = 20.0},
+                                   .velocity = {.x = 2.0, .y = 0.0},
+                                   .owner = std::nullopt},
+                          .playersPerSide = 2});
   REQUIRE(state.has_value());
   return *std::move(state);
 }

@@ -54,7 +54,9 @@ constexpr double kWidthMeters = 40.0;
   }
   return {.pitch = Pitch(kLengthMeters, kWidthMeters),
           .players = std::move(players),
-          .ball = {.position = {.x = kLengthMeters / 2.0, .y = kWidthMeters / 2.0}, .velocity = {}},
+          .ball = {.position = {.x = kLengthMeters / 2.0, .y = kWidthMeters / 2.0},
+                   .velocity = {},
+                   .owner = std::nullopt},
           .playersPerSide = playersPerSide};
 }
 

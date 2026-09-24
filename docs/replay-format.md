@@ -18,7 +18,7 @@ validation leaves no file behind.
 ```json
 {
   "schemaVersion": 2,
-  "coreVersion": "0.3.0",
+  "coreVersion": "0.4.0",
   "createdAt": "2026-09-24T10:00:00Z",
   "seed": "18446744073709551615",
   "gameTime": 300,
@@ -50,7 +50,8 @@ validation leaves no file behind.
     ],
     "ball": {
       "position": { "x": 30.0, "y": 20.0 },
-      "velocity": { "x": 6.5, "y": -1.25 }
+      "velocity": { "x": 6.5, "y": -1.25 },
+      "owner": null
     }
   },
   "commands": [
@@ -59,7 +60,7 @@ validation leaves no file behind.
     { "tick": 45, "order": 1, "type": "movePlayer", "playerId": 2, "target": { "x": 30.0, "y": 20.0 } }
   ],
   "checkpoints": [
-    { "tick": 0, "stateHash": "93e6193a42c4fb6a" },
+    { "tick": 0, "stateHash": "1e7c4558ba42bcfa" },
     { "tick": 30, "stateHash": "..." }
   ]
 }
@@ -80,7 +81,8 @@ The example shortens the player list; a real file lists every player.
 | `checkpoints`   | array     | State hashes after the steps that reached these ticks.        |
 
 Positions are meters and velocities meters per second, as in the
-[match state](match-state.md). A player's `target` is `null` when he has none.
+[match state](match-state.md). A player's `target` is `null` when he has none,
+and the ball's `owner` is `null` while it is free.
 
 ### Commands and their order
 

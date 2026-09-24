@@ -94,6 +94,7 @@ std::expected<MatchState, std::vector<MatchStateError>> makeSevenASideKickoff(
               .y = kCenterFraction * pitch.widthMeters(),
           },
       .velocity = ballVelocity,
+      .owner = std::nullopt,
   };
 
   auto state = MatchState::create({

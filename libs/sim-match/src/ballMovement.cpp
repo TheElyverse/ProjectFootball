@@ -62,9 +62,10 @@ BallState stepFreeBall(const BallState& ball, const BallPhysics& physics, const 
   if (pitch.contains(ball.position) && !pitch.contains(end)) {
     const double fraction = exitFraction(ball.position, end, pitch);
     return {.position = pitch.clamp(ball.position + ((end - ball.position) * fraction)),
-            .velocity = {}};
+            .velocity = {},
+            .owner = ball.owner};
   }
-  return {.position = end, .velocity = direction * endSpeed};
+  return {.position = end, .velocity = direction * endSpeed, .owner = ball.owner};
 }
 
 MatchSystem makeBallMovementSystem(const BallPhysics physics) {

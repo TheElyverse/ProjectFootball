@@ -84,9 +84,17 @@ struct PlayerMatchState {
 
 // Position in meters, velocity in meters per second, both in the pitch plane.
 // The third dimension and spin (section 6.7) arrive with the passing model.
+//
+// owner is the player in control of the ball; empty while the ball is free.
+// One optional id rather than a flag per player, so the ball can never have
+// two owners. A controlled ball follows its owner, a free ball rolls on its
+// own (docs/possession.md).
 struct BallState {
   SimCore::Vec2 position;
   SimCore::Vec2 velocity;
+  std::optional<SimCore::PlayerId> owner;
+
+  [[nodiscard]] bool isControlled() const noexcept { return owner.has_value(); }
 
   friend bool operator==(const BallState&, const BallState&) = default;
 };
@@ -113,6 +121,7 @@ enum class MatchStateErrorCode : std::uint8_t {
   kBallOutsidePitch,
   kNonFiniteBallVelocity,
   kBallTooFast,
+  kUnknownBallOwner,
 };
 
 // The code is what tests and callers branch on; the message names the offending
@@ -143,8 +152,9 @@ class MatchStateWriter;
 //
 // The invariants hold for every state, from kickoff to the final whistle:
 // both squads have the stated size, every player has a unique valid id, a
-// declared side, positive finite attributes and a unit facing vector, and
-// every position, velocity and target is finite. Being on the
+// declared side, positive finite attributes and a unit facing vector, every
+// position, velocity and target is finite, and the ball belongs to no one or
+// to a player in the state. Being on the
 // pitch is deliberately not one of them: a ball that crossed the touchline or
 // a player standing behind the goal line is football, not a broken state.
 // checkStartingPositions() holds that rule for states a match starts from.
@@ -189,7 +199,8 @@ class MatchState {
 };
 
 // What a simulation system or command may change in a state: positions,
-// velocities, movement targets, facings and perception memories, nothing else. Squad, ids, sides,
+// velocities, movement targets, facings, perception memories and who owns the
+// ball, nothing else. Squad, ids, sides,
 // attributes, player order and the pitch have no setter, so a system cannot break those invariants
 // and nothing has to re-check them every tick. Players are addressed by their index in
 // MatchState::players(); an index past the end throws std::out_of_range.
@@ -206,6 +217,10 @@ class MatchStateWriter {
   [[nodiscard]] PlayerPerception& perception(std::size_t playerIndex);
   void setBallPosition(SimCore::Vec2 position) noexcept { state_->ball_.position = position; }
   void setBallVelocity(SimCore::Vec2 velocity) noexcept { state_->ball_.velocity = velocity; }
+  // Hands the ball to a player, or frees it with std::nullopt. Throws
+  // std::invalid_argument for an id no player in the state has, so the ball
+  // can only ever belong to a player on the pitch.
+  void setBallOwner(std::optional<SimCore::PlayerId> owner);
 
  private:
   friend class MatchSimulation;

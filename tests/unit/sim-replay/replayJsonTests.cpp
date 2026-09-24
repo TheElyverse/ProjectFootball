@@ -100,6 +100,15 @@ TEST_CASE("An invalid initial state is rejected with its errors", "[replayJson]"
                   ReplayErrorCode::kInvalidSetup, "expected both positive and finite");
 }
 
+TEST_CASE("The ball's owner is read from the initial state", "[replayJson]") {
+  const auto owned = parseReplayJson(validJsonWith(R"("owner": null)", R"("owner": 7)"));
+  REQUIRE(owned.has_value());
+  REQUIRE(owned->setup.initialState.ball().owner == ElyverseFootball::SimCore::PlayerId(7));
+
+  requireRejected(validJsonWith(R"("owner": null)", R"("owner": 99)"),
+                  ReplayErrorCode::kInvalidSetup, "the ball belongs to player 99");
+}
+
 TEST_CASE("Commands must state their execution order explicitly", "[replayJson]") {
   const std::string command =
       R"({"tick": 2, "order": 0, "type": "movePlayer", "playerId": 3, "target": {"x": 1.0, "y": 2.0}})";

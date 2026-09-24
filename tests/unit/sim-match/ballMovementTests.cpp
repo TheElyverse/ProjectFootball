@@ -4,6 +4,7 @@
 #include <cmath>
 #include <cstddef>
 #include <limits>
+#include <optional>
 #include <stdexcept>
 #include <utility>
 #include <vector>
@@ -39,6 +40,10 @@ using ElyverseFootball::SimMatch::stepFreeBall;
 
 namespace {
 
+[[nodiscard]] BallState freeBall(const Vec2 position, const Vec2 velocity) {
+  return {.position = position, .velocity = velocity, .owner = std::nullopt};
+}
+
 constexpr double kSecondsPerTick = 1.0 / kDefaultTicksPerSecond;
 const Pitch kPitch(60.0, 40.0);
 
@@ -68,7 +73,7 @@ const Pitch kPitch(60.0, 40.0);
 }  // namespace
 
 TEST_CASE("A ball at rest stays at rest", "[ballMovement]") {
-  const BallState ball{.position = {.x = 30.0, .y = 20.0}, .velocity = {}};
+  const BallState ball = freeBall({.x = 30.0, .y = 20.0}, {});
 
   for (const BallState& state : roll(ball, 60)) {
     REQUIRE(state == ball);
@@ -77,7 +82,7 @@ TEST_CASE("A ball at rest stays at rest", "[ballMovement]") {
 
 TEST_CASE("Friction slows a rolling ball without reversing it", "[ballMovement]") {
   const Vec2 initialVelocity{.x = 6.0, .y = -2.0};
-  const auto states = roll({.position = {.x = 20.0, .y = 25.0}, .velocity = initialVelocity}, 200);
+  const auto states = roll(freeBall({.x = 20.0, .y = 25.0}, initialVelocity), 200);
 
   constexpr double kSpeedLossPerTick = kDefaultRollingDeceleration * kSecondsPerTick;
   for (std::size_t tick = 1; tick < states.size(); ++tick) {
@@ -97,7 +102,7 @@ TEST_CASE("A rolling ball stops after its rolling distance at any tick rate", "[
   const double speed = GENERATE(0.01, 3.0, 8.0, 12.5);
   const double ticksPerSecond = GENERATE(30.0, 60.0, 7.0);
   CAPTURE(speed, ticksPerSecond);
-  BallState ball{.position = {.x = 5.0, .y = 20.0}, .velocity = {.x = speed, .y = 0.0}};
+  BallState ball = freeBall({.x = 5.0, .y = 20.0}, {.x = speed, .y = 0.0});
 
   for (int tick = 0; tick < 10000 && ball.velocity != Vec2{}; ++tick) {
     ball = stepFreeBall(ball, {}, kPitch, 1.0 / ticksPerSecond);
@@ -109,7 +114,7 @@ TEST_CASE("A rolling ball stops after its rolling distance at any tick rate", "[
 }
 
 TEST_CASE("A stronger rolling resistance stops the ball sooner", "[ballMovement]") {
-  const BallState ball{.position = {.x = 5.0, .y = 20.0}, .velocity = {.x = 8.0, .y = 0.0}};
+  const BallState ball = freeBall({.x = 5.0, .y = 20.0}, {.x = 8.0, .y = 0.0});
 
   const BallState normal = roll(ball, 300).back();
   const BallState heavy = roll(ball, 300, {.rollingDeceleration = 4.0}).back();
@@ -120,38 +125,33 @@ TEST_CASE("A stronger rolling resistance stops the ball sooner", "[ballMovement]
 
 TEST_CASE("A ball leaving the pitch stops on the line where it crossed it", "[ballMovement]") {
   SECTION("over the touchline") {
-    const auto states =
-        roll({.position = {.x = 30.0, .y = 38.0}, .velocity = {.x = 3.0, .y = 6.0}}, 60);
+    const auto states = roll(freeBall({.x = 30.0, .y = 38.0}, {.x = 3.0, .y = 6.0}), 60);
     // Crosses y = 40 after 2 m sideways, 1 m along the length.
     REQUIRE_THAT(states.back().position.x, WithinAbs(31.0, 1e-9));
     REQUIRE(states.back().position.y == 40.0);
     REQUIRE(states.back().velocity == Vec2{});
   }
   SECTION("over the goal line") {
-    const auto states =
-        roll({.position = {.x = 2.0, .y = 20.0}, .velocity = {.x = -9.0, .y = 0.0}}, 60);
+    const auto states = roll(freeBall({.x = 2.0, .y = 20.0}, {.x = -9.0, .y = 0.0}), 60);
     REQUIRE(states.back().position == Vec2{.x = 0.0, .y = 20.0});
     REQUIRE(states.back().velocity == Vec2{});
   }
   SECTION("through a corner") {
-    const auto states =
-        roll({.position = {.x = 58.0, .y = 38.0}, .velocity = {.x = 8.0, .y = 8.0}}, 60);
+    const auto states = roll(freeBall({.x = 58.0, .y = 38.0}, {.x = 8.0, .y = 8.0}), 60);
     REQUIRE(states.back().position == Vec2{.x = 60.0, .y = 40.0});
   }
   SECTION("from the line itself") {
-    const BallState onLine{.position = {.x = 60.0, .y = 10.0}, .velocity = {.x = 5.0, .y = 0.0}};
-    REQUIRE(stepFreeBall(onLine, {}, kPitch, kSecondsPerTick) ==
-            BallState{.position = onLine.position, .velocity = {}});
+    const BallState onLine = freeBall({.x = 60.0, .y = 10.0}, {.x = 5.0, .y = 0.0});
+    REQUIRE(stepFreeBall(onLine, {}, kPitch, kSecondsPerTick) == freeBall(onLine.position, {}));
   }
   for (const BallState& state :
-       roll({.position = {.x = 30.0, .y = 20.0}, .velocity = {.x = 25.0, .y = -18.0}}, 120)) {
+       roll(freeBall({.x = 30.0, .y = 20.0}, {.x = 25.0, .y = -18.0}), 120)) {
     REQUIRE(kPitch.contains(state.position));
   }
 }
 
 TEST_CASE("A ball rolling along the line stays in play", "[ballMovement]") {
-  const auto states =
-      roll({.position = {.x = 10.0, .y = 0.0}, .velocity = {.x = 5.0, .y = 0.0}}, 120);
+  const auto states = roll(freeBall({.x = 10.0, .y = 0.0}, {.x = 5.0, .y = 0.0}), 120);
 
   REQUIRE_THAT(states.back().position.x, WithinAbs(10.0 + rollingDistance(5.0, {}), 1e-9));
   REQUIRE(states.back().position.y == 0.0);

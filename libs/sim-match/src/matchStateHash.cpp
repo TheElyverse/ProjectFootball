@@ -58,6 +58,8 @@ std::uint64_t hashMatchState(const MatchState& state) noexcept {
   }
   addVec2(hasher, state.ball().position);
   addVec2(hasher, state.ball().velocity);
+  hasher.addBool(state.ball().owner.has_value());
+  hasher.addU64(state.ball().owner.value_or(SimCore::PlayerId::invalid()).value());
   for (std::size_t index = 0; index < state.players().size(); ++index) {
     const PlayerPerception& perception = state.perception(index);
     hasher.addU64(perception.observations.size());

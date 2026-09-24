@@ -71,8 +71,10 @@ using SimMatch::TeamSide;
   for (const PlayerMatchState& player : state.players()) {
     json["players"].push_back(playerJson(player));
   }
+  const auto& owner = state.ball().owner;
   json["ball"] = {{"position", vec2Json(state.ball().position)},
-                  {"velocity", vec2Json(state.ball().velocity)}};
+                  {"velocity", vec2Json(state.ball().velocity)},
+                  {"owner", owner ? Json(owner->value()) : Json(nullptr)}};
   return json;
 }
 
@@ -236,6 +238,13 @@ constexpr std::int64_t kMaxTick = std::int64_t{1} << 53;
       field.integerIn(0, std::numeric_limits<PlayerId::ValueType>::max() - 1)));
 }
 
+[[nodiscard]] std::optional<PlayerId> readOwner(const Field& field) {
+  if (field.isNull()) {
+    return std::nullopt;
+  }
+  return readPlayerId(field);
+}
+
 [[nodiscard]] PlayerMatchState readPlayer(const Field& field) {
   const Field attributes = field.member("attributes");
   const Field target = field.member("target");
@@ -272,7 +281,8 @@ constexpr std::int64_t kMaxTick = std::int64_t{1} << 53;
       {.pitch = *pitch,
        .players = std::move(players),
        .ball = {.position = readVec2(ball.member("position")),
-                .velocity = readVec2(ball.member("velocity"))},
+                .velocity = readVec2(ball.member("velocity")),
+                .owner = readOwner(ball.member("owner"))},
        .playersPerSide = static_cast<int>(field.member("playersPerSide").integerIn(1, 1000))});
   if (!state) {
     std::string problems = "invalid match state";

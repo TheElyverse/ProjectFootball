@@ -1,10 +1,12 @@
 #include "matchState.hpp"
 
+#include <algorithm>
 #include <cmath>
 #include <cstddef>
 #include <format>
 #include <limits>
 #include <optional>
+#include <stdexcept>
 #include <string>
 #include <string_view>
 #include <unordered_map>
@@ -199,6 +201,12 @@ void validatePlayers(const MatchStateSpec& spec, std::vector<MatchStateError>& e
   }
 }
 
+[[nodiscard]] bool hasPlayer(const std::vector<PlayerMatchState>& players,
+                             const SimCore::PlayerId playerId) noexcept {
+  return std::ranges::any_of(
+      players, [playerId](const PlayerMatchState& player) { return player.playerId == playerId; });
+}
+
 void validateBall(const MatchStateSpec& spec, std::vector<MatchStateError>& errors) {
   appendNonFiniteBallErrors(spec.ball, errors);
   const SimCore::Vec2 velocity = spec.ball.velocity;
@@ -206,6 +214,12 @@ void validateBall(const MatchStateSpec& spec, std::vector<MatchStateError>& erro
     errors.push_back({.code = MatchStateErrorCode::kBallTooFast,
                       .message = "the ball moves at " + formatVelocity(velocity) +
                                  ", faster than " + formatNumber(kMaxBallSpeed) + " m/s"});
+  }
+  if (spec.ball.owner && !hasPlayer(spec.players, *spec.ball.owner)) {
+    errors.push_back({.code = MatchStateErrorCode::kUnknownBallOwner,
+                      .message = "the ball belongs to player " +
+                                 std::to_string(spec.ball.owner->value()) +
+                                 ", who is not in the state"});
   }
 }
 
@@ -256,6 +270,14 @@ void MatchStateWriter::setPlayerVelocity(const std::size_t playerIndex,
 
 void MatchStateWriter::setPlayerFacing(const std::size_t playerIndex, const SimCore::Vec2 facing) {
   state_->players_.at(playerIndex).facing = facing;
+}
+
+void MatchStateWriter::setBallOwner(const std::optional<SimCore::PlayerId> owner) {
+  if (owner && !hasPlayer(state_->players_, *owner)) {
+    throw std::invalid_argument("MatchStateWriter: no player with id " +
+                                std::to_string(owner->value()) + " can own the ball");
+  }
+  state_->ball_.owner = owner;
 }
 
 PlayerPerception& MatchStateWriter::perception(const std::size_t playerIndex) {
