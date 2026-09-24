@@ -53,6 +53,8 @@ before starting a change.
   versioning and seed encoding contract, and replay playback.
 - [Scenarios](docs/scenarios.md): the named, reproducible match setups `sim-cli`
   runs.
+- [Debug viewer](docs/debug-viewer.md): watching a match in the browser, and the
+  debug frame format `sim-cli` writes for it.
 
 The simulation uses standard C++23 and runs independently of Unreal Engine.
 Unreal will consume simulation state for presentation. Keep simulation behavior
@@ -120,6 +122,7 @@ arguments. With Make available, `make run ARGS="..."` builds and runs it.
 | `--seed <u64>`        | random        | the master seed; a random one is reported            |
 | `--ticks <n>`         | `300`         | how many ticks to simulate, 0 to 10,000,000          |
 | `--replay-out <path>` | `replay.json` | where to write the replay                            |
+| `--frames-out <path>` |               | also write debug frames for the viewer               |
 | `--play <path>`       |               | play a replay of at most 10,000,000 ticks back and verify its checkpoints |
 | `--tui`               |               | show the result in a terminal screen                 |
 
@@ -129,7 +132,8 @@ file, verifies every recorded state hash, and prints the same summary; it takes
 everything from the file, so it cannot be combined with the run options or with
 `--list-scenarios`, which cannot be combined with the run options either.
 `--help` wins over every other option. [Scenarios](docs/scenarios.md) describes
-the scenario catalog.
+the scenario catalog. `--frames-out` writes one frame per tick for the
+[debug viewer](docs/debug-viewer.md), which plays the match back in the browser.
 
 Invalid arguments, an unknown scenario, a replay that cannot be read, and a
 replay that does not reproduce all end with a message on stderr and a nonzero

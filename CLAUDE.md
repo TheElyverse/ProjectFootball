@@ -12,7 +12,7 @@ player and ball movement (`docs/player-movement.md`, `docs/ball-movement.md`), s
 perception, possession, passing, reception and pass decisions (`docs/spatial-queries.md`,
 `docs/perception.md`, `docs/possession.md`, `docs/passing.md`, `docs/reception.md`,
 `docs/pass-candidates.md`, `docs/pass-decisions.md`) with events and diagnostics
-(`docs/match-events.md`);
+(`docs/match-events.md`), and a web debug viewer in `apps/sim-viewer` (`docs/debug-viewer.md`);
 almost everything described in the design/implementation docs below is still unbuilt.
 When implementing a new system, check whether it belongs in an existing module (see layout below) before
 adding a new one.
@@ -56,9 +56,11 @@ libs/
   sim-world      Calendar, clubs, competitions, economy, careers               [planned]
   sim-ai         Club planning, coach decisions, staff behavior                [planned]
   sim-analytics  Events, metrics, explanations (read-only over domain events)  [planned]
-  sim-replay     Replay recording, JSON file format, playback verification     [exists]
+  sim-replay     Replay recording, JSON file format, playback verification,
+                 debug frames for the viewer                                   [exists]
 apps/
   sim-cli        runs scenarios, records and plays back replays               [exists]
+  sim-viewer     TypeScript/Canvas debug viewer for sim-cli's frames (npm)    [exists]
   sim-benchmark, sim-replay, unreal-game                                       [planned]
 data/            schemas, tactics, competitions, fixtures (JSON/YAML, schema-validated) [planned]
 tests/unit/      Catch2 tests, mirrors libs/ by subdirectory                   [exists: sim-core, sim-match, sim-replay]
@@ -106,6 +108,13 @@ Run a scenario headlessly and play its replay back (see `docs/replay-format.md`,
 ```
 ./build/debug/apps/sim-cli/sim-cli --scenario kickoff --seed 42 --ticks 300 --replay-out /tmp/replay.json
 ./build/debug/apps/sim-cli/sim-cli --play /tmp/replay.json
+```
+
+Record debug frames and watch them in the web viewer (Node.js 22+, see `docs/debug-viewer.md`):
+```
+./build/debug/apps/sim-cli/sim-cli --scenario m0-acceptance --seed 42 --frames-out frames.json
+cd apps/sim-viewer && npm install && npm run build && npm run serve -- ../../frames.json
+cd apps/sim-viewer && npm test
 ```
 
 Run only the acceptance scenarios (CI runs them in their own step):
