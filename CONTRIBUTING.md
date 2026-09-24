@@ -39,6 +39,8 @@ before starting a change.
   confidence decay.
 - [Possession](docs/possession.md): who controls the ball and how a controlled
   ball follows its carrier.
+- [Passing](docs/passing.md): pass intents, pass speed and reach, and execution
+  error.
 - [Replay format](docs/replay-format.md): the replay file `sim-cli` writes, its
   versioning and seed encoding contract, and replay playback.
 - [Scenarios](docs/scenarios.md): the named, reproducible match setups `sim-cli`
@@ -97,7 +99,7 @@ scenario:     kickoff
 seed:         42
 ticks:        300
 time:         10 s
-state hash:   99e0409b59dc3144
+state hash:   9f3dbc1aa5f2c0d8
 replay:       replay.json
 ```
 

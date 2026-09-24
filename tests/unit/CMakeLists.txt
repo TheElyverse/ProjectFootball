@@ -29,6 +29,7 @@ add_executable(sim-match-tests
         sim-match/spatialQueriesTests.cpp
         sim-match/perceptionTests.cpp
         sim-match/possessionTests.cpp
+        sim-match/passingTests.cpp
 )
 target_link_libraries(sim-match-tests PRIVATE
         ElyverseFootball::sim-match

@@ -10,6 +10,7 @@ add_library(sim-match STATIC
         src/scenarios.cpp
         src/spatialQueries.cpp
         src/perception.cpp
+        src/passing.cpp
 )
 add_library(ElyverseFootball::sim-match ALIAS sim-match)
 

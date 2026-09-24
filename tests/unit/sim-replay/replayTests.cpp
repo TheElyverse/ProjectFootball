@@ -144,6 +144,12 @@ TEST_CASE("A replay survives the JSON round trip unchanged", "[replay]") {
   matchSetup.commands.push_back(
       {.tick = SimTick(60),
        .command = ElyverseFootball::SimMatch::GiveBallCommand{.playerId = PlayerId(9)}});
+  matchSetup.commands.push_back(
+      {.tick = SimTick(90),
+       .command = ElyverseFootball::SimMatch::PassCommand{.playerId = PlayerId(9),
+                                                          .target = {.x = 20.0, .y = 5.0},
+                                                          .speed = 11.0,
+                                                          .receiver = PlayerId(10)}});
   const Replay replay = recorded(matchSetup, 150);
 
   const auto parsed = parseReplayJson(toReplayJson(replay));

@@ -7,6 +7,7 @@
 #include "matchCommand.hpp"
 #include "matchSimulation.hpp"
 #include "matchState.hpp"
+#include "passing.hpp"
 #include "perception.hpp"
 
 namespace ElyverseFootball::SimMatch {
@@ -18,6 +19,7 @@ struct MatchConfig {
   int ticksPerSecond = kDefaultTicksPerSecond;
   BallPhysics ball;
   PerceptionConfig perception;
+  PassConfig passing;
 
   friend bool operator==(const MatchConfig&, const MatchConfig&) = default;
 };

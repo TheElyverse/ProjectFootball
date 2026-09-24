@@ -31,7 +31,13 @@ validation leaves no file behind.
       "fieldOfViewDegrees": 180.0,
       "awarenessRadius": 3.0,
       "memorySeconds": 3.0,
-      "extrapolationSeconds": 1.0
+            "extrapolationSeconds": 1.0
+    },
+    "passing": {
+      "arrivalSpeed": 4.0,
+      "maxSpeed": 22.0,
+      "directionError": 0.03,
+      "speedError": 0.05
     }
   },
   "initialState": {
@@ -83,7 +89,9 @@ The example shortens the player list; a real file lists every player.
 
 Positions are meters and velocities meters per second, as in the
 [match state](match-state.md). A player's `target` is `null` when he has none,
-and the ball's `owner` is `null` while it is free.
+the ball's `owner` is `null` while it is free, and its `lastTouch` is `null` or
+`{ "playerId": 7, "tick": 120 }`. The pending pass is not recorded: every
+initial state has none.
 
 ### Commands and their order
 
@@ -97,6 +105,7 @@ were scheduled (see [match loop](match-loop.md), section *Commands*).
 |--------------|------------------------|---------------------|
 | `movePlayer` | `playerId`, `target`   | `MovePlayerCommand` |
 | `giveBall`   | `playerId`             | `GiveBallCommand`   |
+| `pass`       | `playerId`, `target`, `speed`, `receiver` (or `null`) | `PassCommand` |
 
 A recorded replay holds the commands the simulation applied. A command scheduled
 during the run is included; one scheduled for a tick the match never reached is

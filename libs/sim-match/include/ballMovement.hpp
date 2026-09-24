@@ -46,16 +46,28 @@ struct BallPhysics {
 
 inline constexpr std::string_view kBallMovementSystemName = "ball movement";
 
-// Moves the ball one tick. A free ball rolls with stepFreeBall(); a
-// controlled ball follows its owner: it ends the tick at carriedBallPosition()
-// of the owner as the movement system moves and turns him in the same tick,
-// with his velocity. Writes the ball's position and velocity, every tick.
-// Throws std::invalid_argument for invalid physics.
+struct PassConfig;
+
+// Moves the ball one tick, every tick:
+//
+//   1. A pending pass is played if its passer owns the ball: the ball is
+//      released with executePass()'s velocity and the passer recorded as its
+//      last touch. A pass whose passer does not own the ball is discarded.
+//      Either way the pending pass is cleared.
+//   2. A free ball rolls with stepFreeBall().
+//   3. A controlled ball follows its owner: it ends the tick at
+//      carriedBallPosition() of the owner as the movement system moves and
+//      turns him in the same tick, with his velocity.
+//
+// Writes the ball's position, velocity, owner and last touch, and clears the
+// pending pass. Throws std::invalid_argument for invalid physics or passing.
 //
 // Pair it with makePlayerMovementSystem(), both every tick, as
 // makeMatchSystems() does: a controlled ball follows the carrier's move as the
 // movement system makes it, and without that system the ball would end the
 // tick where the carrier would have gone.
-[[nodiscard]] MatchSystem makeBallMovementSystem(BallPhysics physics);
+[[nodiscard]] MatchSystem makeBallMovementSystem(const BallPhysics& physics,
+                                                 const PassConfig& passing);
+[[nodiscard]] MatchSystem makeBallMovementSystem(const BallPhysics& physics);
 
 }  // namespace ElyverseFootball::SimMatch

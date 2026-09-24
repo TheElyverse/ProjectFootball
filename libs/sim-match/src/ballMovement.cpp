@@ -6,6 +6,7 @@
 #include <stdexcept>
 #include <string>
 
+#include "passing.hpp"
 #include "playerMovement.hpp"
 
 namespace ElyverseFootball::SimMatch {
@@ -42,6 +43,20 @@ using SimCore::Vec2;
   after.position = moved.position;
   after.velocity = moved.velocity;
   return after;
+}
+
+// The ball as a pass leaves it: free, at the passer's feet, with the executed
+// pass velocity, and the passer as its last touch.
+[[nodiscard]] BallState kicked(const MatchState& state, const PassIntent& intent,
+                               const PassConfig& passing, const MatchStepContext& context) {
+  BallState ball = state.ball();
+  // The passer owns the ball, so he is in the state.
+  const auto passer = findPlayerIndex(state, intent.passer).value_or(0);
+  ball.velocity = executePass(intent, ball, state.players()[passer], passing,
+                              context.random(SimCore::RandomNumberGeneratorDomain::kExecution));
+  ball.owner = std::nullopt;
+  ball.lastTouch = BallTouch{.playerId = intent.passer, .tick = context.tick()};
+  return ball;
 }
 
 [[nodiscard]] bool isValid(const BallPhysics& physics) noexcept {
@@ -97,16 +112,25 @@ BallState stepFreeBall(const BallState& ball, const BallPhysics& physics, const 
   return moved;
 }
 
-MatchSystem makeBallMovementSystem(const BallPhysics physics) {
+MatchSystem makeBallMovementSystem(const BallPhysics& physics, const PassConfig& passing) {
   if (!isValid(physics)) {
     throw std::invalid_argument(
         "ball movement: rolling deceleration must be positive and finite, carry distance finite "
         "and not negative");
   }
+  validate(passing);
   return {.name = std::string(kBallMovementSystemName),
-          .update = [physics](const MatchStepContext& context, const MatchState& current,
-                              MatchStateWriter& next) {
-            const BallState& ball = current.ball();
+          .update = [physics, passing](const MatchStepContext& context, const MatchState& current,
+                                       MatchStateWriter& next) {
+            BallState ball = current.ball();
+            if (const auto& intent = current.pendingPass()) {
+              next.setPendingPass(std::nullopt);
+              if (ball.owner == intent->passer) {
+                ball = kicked(current, *intent, passing, context);
+                next.setBallOwner(ball.owner);
+                next.setBallLastTouch(ball.lastTouch);
+              }
+            }
             if (!ball.owner) {
               const BallState moved =
                   stepFreeBall(ball, physics, current.pitch(), context.secondsPerTick());
@@ -122,6 +146,10 @@ MatchSystem makeBallMovementSystem(const BallPhysics physics) {
               next.setBallVelocity(owner.velocity);
             }
           }};
+}
+
+MatchSystem makeBallMovementSystem(const BallPhysics& physics) {
+  return makeBallMovementSystem(physics, PassConfig{});
 }
 
 }  // namespace ElyverseFootball::SimMatch

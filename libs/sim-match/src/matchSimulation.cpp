@@ -6,6 +6,7 @@
 #include <cstdint>
 #include <expected>
 #include <functional>
+#include <limits>
 #include <set>
 #include <stdexcept>
 #include <string>
@@ -94,6 +95,32 @@ static_assert(static_cast<std::size_t>(RandomNumberGeneratorDomain::kAi) + 1 ==
   return std::nullopt;
 }
 
+[[nodiscard]] std::optional<MatchCommandError> validate(const MatchState& state,
+                                                        const PassCommand& command) {
+  if (!findPlayerIndex(state, command.playerId)) {
+    return unknownPlayer(command.playerId);
+  }
+  if (command.receiver && !findPlayerIndex(state, *command.receiver)) {
+    return unknownPlayer(*command.receiver);
+  }
+  if (!command.target.isFinite()) {
+    return MatchCommandError{.code = MatchCommandErrorCode::kNonFiniteTarget,
+                             .message = "pass command for player " +
+                                        std::to_string(command.playerId.value()) +
+                                        " has a non-finite target"};
+  }
+  // Written so that NaN fails too.
+  const bool positiveFiniteSpeed =
+      command.speed > 0.0 && command.speed <= std::numeric_limits<double>::max();
+  if (!positiveFiniteSpeed) {
+    return MatchCommandError{.code = MatchCommandErrorCode::kInvalidPassSpeed,
+                             .message = "pass command for player " +
+                                        std::to_string(command.playerId.value()) +
+                                        " needs a positive, finite speed"};
+  }
+  return std::nullopt;
+}
+
 // Validation needs only the squad, which no step changes, so a command valid
 // when scheduled is still valid when applied.
 [[nodiscard]] std::optional<MatchCommandError> validate(const MatchState& state,
@@ -114,6 +141,14 @@ void apply(const GiveBallCommand& command, const MatchState& /*state*/, const Si
            MatchStateWriter& writer) {
   writer.setBallOwner(command.playerId);
   writer.setBallLastTouch(BallTouch{.playerId = command.playerId, .tick = tick});
+}
+
+void apply(const PassCommand& command, const MatchState& /*state*/, const SimCore::SimTick /*tick*/,
+           MatchStateWriter& writer) {
+  writer.setPendingPass(PassIntent{.passer = command.playerId,
+                                   .target = command.target,
+                                   .speed = command.speed,
+                                   .receiver = command.receiver});
 }
 
 }  // namespace

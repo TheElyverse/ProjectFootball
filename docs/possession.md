@@ -52,7 +52,7 @@ pass, for example — whoever releases it sets its new velocity.
 |-------------------------|--------------------------------------------------------------|
 | a scenario or test gives the ball to a player | `GiveBallCommand{playerId}`                    |
 | a player receives, intercepts or recovers it  | the reception system (coming with passing)     |
-| a player passes         | pass execution releases it with the pass velocity (coming)   |
+| a player passes         | pass execution releases it with the pass velocity; see [passing](passing.md) |
 
 A `GiveBallCommand` applies at the start of its tick; the ball is at the new
 owner's feet at the end of that tick. Possession changes are state changes like

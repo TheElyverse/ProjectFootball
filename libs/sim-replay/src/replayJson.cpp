@@ -98,7 +98,12 @@ using SimMatch::TeamSide;
             {"fieldOfViewDegrees", perception.fieldOfViewDegrees},
             {"awarenessRadius", perception.awarenessRadius},
             {"memorySeconds", perception.memorySeconds},
-            {"extrapolationSeconds", perception.extrapolationSeconds}}}};
+            {"extrapolationSeconds", perception.extrapolationSeconds}}},
+          {"passing",
+           {{"arrivalSpeed", config.passing.arrivalSpeed},
+            {"maxSpeed", config.passing.maxSpeed},
+            {"directionError", config.passing.directionError},
+            {"speedError", config.passing.speedError}}}};
 }
 
 void addCommandFields(Json& json, const MovePlayerCommand& command) {
@@ -110,6 +115,14 @@ void addCommandFields(Json& json, const MovePlayerCommand& command) {
 void addCommandFields(Json& json, const SimMatch::GiveBallCommand& command) {
   json["type"] = "giveBall";
   json["playerId"] = command.playerId.value();
+}
+
+void addCommandFields(Json& json, const SimMatch::PassCommand& command) {
+  json["type"] = "pass";
+  json["playerId"] = command.playerId.value();
+  json["target"] = vec2Json(command.target);
+  json["speed"] = command.speed;
+  json["receiver"] = command.receiver ? Json(command.receiver->value()) : Json(nullptr);
 }
 
 // Commands in execution order, each with its position within its tick.
@@ -327,12 +340,20 @@ constexpr std::int64_t kMaxTick = std::int64_t{1} << 53;
           .extrapolationSeconds = field.member("extrapolationSeconds").number()};
 }
 
+[[nodiscard]] SimMatch::PassConfig readPassing(const Field& field) {
+  return {.arrivalSpeed = field.member("arrivalSpeed").number(),
+          .maxSpeed = field.member("maxSpeed").number(),
+          .directionError = field.member("directionError").number(),
+          .speedError = field.member("speedError").number()};
+}
+
 [[nodiscard]] MatchConfig readConfig(const Field& field) {
   return {
       .ticksPerSecond = static_cast<int>(field.member("ticksPerSecond").integerIn(1, 100000)),
       .ball = {.rollingDeceleration = field.member("ball").member("rollingDeceleration").number(),
                .carryDistance = field.member("ball").member("carryDistance").number()},
-      .perception = readPerception(field.member("perception"))};
+      .perception = readPerception(field.member("perception")),
+      .passing = readPassing(field.member("passing"))};
 }
 
 [[nodiscard]] MatchCommand readCommand(const Field& field) {
@@ -343,6 +364,12 @@ constexpr std::int64_t kMaxTick = std::int64_t{1} << 53;
   }
   if (type == "giveBall") {
     return SimMatch::GiveBallCommand{.playerId = readPlayerId(field.member("playerId"))};
+  }
+  if (type == "pass") {
+    return SimMatch::PassCommand{.playerId = readPlayerId(field.member("playerId")),
+                                 .target = readVec2(field.member("target")),
+                                 .speed = field.member("speed").number(),
+                                 .receiver = readOwner(field.member("receiver"))};
   }
   field.member("type").fail(std::format("unknown command type \"{}\"", type));
 }
