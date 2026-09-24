@@ -1,5 +1,6 @@
 #include "replay.hpp"
 
+#include <cstddef>
 #include <format>
 #include <stdexcept>
 #include <string>
@@ -65,6 +66,16 @@ ReplayRecorder::ReplayRecorder(SimMatch::MatchSetup setup, const int checkpointI
     : setup_(std::move(setup)), checkpointIntervalTicks_(checkpointIntervalTicks) {
   if (checkpointIntervalTicks < 1) {
     throw std::invalid_argument("ReplayRecorder: checkpoint interval must be at least one tick");
+  }
+  // The replay format has no place for perception memories, so a state that
+  // already remembers something could not be played back.
+  const SimMatch::MatchState& initial = setup_.initialState;
+  for (std::size_t index = 0; index < initial.players().size(); ++index) {
+    if (!initial.perception(index).observations.empty()) {
+      throw std::invalid_argument(
+          "ReplayRecorder: the initial state must not hold perception memories; record from a "
+          "state built with MatchState::create()");
+    }
   }
   checkpoints_.push_back({.tick = SimTick(0), .stateHash = hashMatchState(setup_.initialState)});
 }

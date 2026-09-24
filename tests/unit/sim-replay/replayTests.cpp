@@ -2,6 +2,7 @@
 #include <cstdint>
 #include <filesystem>
 #include <limits>
+#include <stdexcept>
 #include <string>
 #include <utility>
 
@@ -82,6 +83,21 @@ TEST_CASE("A recorded replay holds the contract and checkpoints", "[replay]") {
       replay.checkpoints.front() ==
       ReplayCheckpoint{.tick = SimTick(0), .stateHash = hashMatchState(matchSetup.initialState)});
   REQUIRE(replay.checkpoints.back().tick == SimTick(100));
+}
+
+TEST_CASE("A state that already remembers something cannot be recorded", "[replay]") {
+  // Perception memories are not part of the replay format, so a state
+  // copied from a running match could not be played back.
+  MatchSimulation simulation = startMatch(setup());
+  for (int step = 0; step < 3; ++step) {
+    REQUIRE(simulation.step().has_value());
+  }
+  MatchSetup copied = setup();
+  copied.initialState = simulation.state();
+  copied.commands.clear();
+
+  REQUIRE_THROWS_AS(ReplayRecorder(copied), std::invalid_argument);
+  REQUIRE_NOTHROW(ReplayRecorder(setup()));
 }
 
 TEST_CASE("Playing a replay back reproduces every checkpoint", "[replay]") {

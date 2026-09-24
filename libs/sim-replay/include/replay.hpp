@@ -70,7 +70,9 @@ struct ReplayError {
 // checkpointIntervalTicks ticks, and one of the final state.
 class ReplayRecorder {
  public:
-  // Throws std::invalid_argument for an interval below one tick.
+  // Throws std::invalid_argument for an interval below one tick and for an
+  // initial state with perception memories, which the replay format does not
+  // record: record from a state built with MatchState::create().
   explicit ReplayRecorder(SimMatch::MatchSetup setup,
                           int checkpointIntervalTicks = kDefaultCheckpointIntervalTicks);
 

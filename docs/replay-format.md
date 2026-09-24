@@ -75,7 +75,7 @@ The example shortens the player list; a real file lists every player.
 | `seed`          | string    | Unsigned 64-bit master seed, in decimal.                      |
 | `gameTime`      | number    | The tick the match was recorded up to.                        |
 | `config`        | object    | Parameters of the standard systems (`MatchConfig`).           |
-| `initialState`  | object    | The match state at tick 0: every field of `MatchState` except the perception memories, which are empty in every initial state. |
+| `initialState`  | object    | The match state at tick 0: every field of `MatchState` except the perception memories, which are empty in every initial state: the recorder rejects a state copied from a running match that already remembers something. |
 | `commands`      | array     | Every applied command, in execution order.                    |
 | `checkpoints`   | array     | State hashes after the steps that reached these ticks.        |
 
