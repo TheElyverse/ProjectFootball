@@ -138,7 +138,7 @@ dimensions rather than fixed meters, so the fixture fits any valid pitch:
 Away is home's mirror image through the halfway line, so each side starts in
 its own half. The ball lies on the center spot and every player velocity is
 zero. The ball is at rest unless the optional `ballVelocity` argument sets it
-rolling.
+rolling; see [ball movement](ball-movement.md).
 Role names describe the layout; they are not a field of the state, because
 responsibilities belong to the tactics module.
 
@@ -154,8 +154,9 @@ treat the table above as a contract, not a default.
 
 ## What this is not
 
-There is no clock, no movement, no ball physics, no possession, and no rules
-here: no offside, no out of play, no fouls. `Pitch::contains()` decides whether
+The state does not advance itself: the clock is the [match loop](match-loop.md)'s,
+and movement and ball physics are systems that run in it. There is no possession
+and there are no rules here: no offside, no out of play, no fouls. `Pitch::contains()` decides whether
 a position is on the rectangle, nothing more. A player standing on the goal
 line is a valid state, and so is a ball behind it; whether that ball is a goal
 is for the rules to decide.
