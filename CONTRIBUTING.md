@@ -33,6 +33,8 @@ before starting a change.
   acceleration limits, and the pitch boundary rule.
 - [Ball movement](docs/ball-movement.md): the rolling ball, ground friction, and
   what happens when it leaves the pitch.
+- [Spatial queries](docs/spatial-queries.md): nearby players and arrival-time
+  estimates.
 - [Replay format](docs/replay-format.md): the replay file `sim-cli` writes, its
   versioning and seed encoding contract, and replay playback.
 - [Scenarios](docs/scenarios.md): the named, reproducible match setups `sim-cli`
