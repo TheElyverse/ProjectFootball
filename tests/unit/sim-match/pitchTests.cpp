@@ -94,3 +94,13 @@ TEST_CASE("Pitch compares both dimensions exactly", "[pitch]") {
   REQUIRE_FALSE(pitch == Pitch(40.0, 60.0));
   REQUIRE_FALSE(pitch == Pitch(std::nextafter(60.0, 61.0), 40.0));
 }
+
+TEST_CASE("Pitch::clamp keeps points on the pitch and projects others onto it", "[pitch]") {
+  const Pitch pitch(60.0, 40.0);
+
+  REQUIRE(pitch.clamp({.x = 12.5, .y = 7.0}) == Vec2{.x = 12.5, .y = 7.0});
+  REQUIRE(pitch.clamp({.x = 60.0, .y = 0.0}) == Vec2{.x = 60.0, .y = 0.0});
+  REQUIRE(pitch.clamp({.x = -3.0, .y = 20.0}) == Vec2{.x = 0.0, .y = 20.0});
+  REQUIRE(pitch.clamp({.x = 30.0, .y = 41.0}) == Vec2{.x = 30.0, .y = 40.0});
+  REQUIRE(pitch.clamp({.x = 75.0, .y = -8.0}) == Vec2{.x = 60.0, .y = 0.0});
+}

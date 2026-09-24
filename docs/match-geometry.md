@@ -43,6 +43,10 @@ It returns false for positions containing NaN or infinity. It tests a point,
 not the full ball: out-of-play rules, ball radius, and player movement constraints
 are not part of this geometry API.
 
+`Pitch::clamp()` returns the point on the pitch nearest to a finite position:
+the position itself when `contains()` holds, otherwise its projection onto the
+nearest edge or corner. Movement commands use it to keep targets on the pitch.
+
 ## Vector operations
 
 `Vec2` stores two doubles by value and defaults to zero. It supports addition,
