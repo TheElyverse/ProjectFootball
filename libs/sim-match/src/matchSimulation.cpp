@@ -131,20 +131,25 @@ static_assert(static_cast<std::size_t>(RandomNumberGeneratorDomain::kAi) + 1 ==
 
 // Commands were validated when scheduled, so the player exists.
 void apply(const MovePlayerCommand& command, const MatchState& state,
-           const SimCore::SimTick /*tick*/, MatchStateWriter& writer) {
+           const SimCore::SimTick /*tick*/, MatchStateWriter& writer,
+           std::vector<MatchEvent>& /*events*/) {
   if (const auto index = findPlayerIndex(state, command.playerId)) {
     writer.setPlayerTarget(*index, state.pitch().clamp(command.target));
   }
 }
 
-void apply(const GiveBallCommand& command, const MatchState& /*state*/, const SimCore::SimTick tick,
-           MatchStateWriter& writer) {
+void apply(const GiveBallCommand& command, const MatchState& state, const SimCore::SimTick tick,
+           MatchStateWriter& writer, std::vector<MatchEvent>& events) {
+  if (state.ball().owner != command.playerId) {
+    events.emplace_back(PossessionChanged{
+        .tick = tick, .previousOwner = state.ball().owner, .newOwner = command.playerId});
+  }
   writer.setBallOwner(command.playerId);
   writer.setBallLastTouch(BallTouch{.playerId = command.playerId, .tick = tick});
 }
 
 void apply(const PassCommand& command, const MatchState& /*state*/, const SimCore::SimTick /*tick*/,
-           MatchStateWriter& writer) {
+           MatchStateWriter& writer, std::vector<MatchEvent>& /*events*/) {
   writer.setPendingPass(PassIntent{.passer = command.playerId,
                                    .target = command.target,
                                    .speed = command.speed,
@@ -155,6 +160,16 @@ void apply(const PassCommand& command, const MatchState& /*state*/, const SimCor
 
 RandomNumberGenerator& MatchStepContext::random(const RandomNumberGeneratorDomain domain) const {
   return random_->at(static_cast<std::size_t>(domain));
+}
+
+void MatchStepContext::record(const MatchEvent& event) const {
+  events_->push_back(event);
+}
+
+void MatchStepContext::diagnose(DecisionDiagnostic diagnostic) const {
+  if (diagnostics_ != nullptr) {
+    diagnostics_->push_back(std::move(diagnostic));
+  }
 }
 
 MatchSimulation::MatchSimulation(MatchSimulationSpec spec)
@@ -209,7 +224,9 @@ const MatchState& MatchSimulation::applyDueCommands() {
   MatchStateWriter writer(commanded_);
   for (std::size_t index = appliedCount_; isDueNow(index); ++index) {
     std::visit(
-        [this, &writer](const auto& command) { apply(command, commanded_, clock_.tick(), writer); },
+        [this, &writer](const auto& command) {
+          apply(command, commanded_, clock_.tick(), writer, stepEvents_);
+        },
         commands_[index].command);
   }
   return commanded_;
@@ -220,12 +237,16 @@ std::expected<SimCore::SimTick, MatchStepError> MatchSimulation::step() {
     return std::unexpected(*failure_);
   }
 
+  // clear() keeps the buffers' capacity: steady-state steps allocate nothing.
+  stepEvents_.clear();
+  stepDiagnostics_.clear();
   const MatchState& current = applyDueCommands();
   // Copy-assigning a state of the same squad reuses next_'s storage.
   next_ = current;
 
   MatchStateWriter writer(next_);
-  const MatchStepContext context(clock_.tick(), clock_.secondsPerTick(), random_);
+  const MatchStepContext context(clock_.tick(), clock_.secondsPerTick(), random_, stepEvents_,
+                                 collectDiagnostics_ ? &stepDiagnostics_ : nullptr);
   for (const MatchSystem& system : systems_) {
     if (!isDue(system, context.tick())) {
       continue;
@@ -253,6 +274,8 @@ std::expected<SimCore::SimTick, MatchStepError> MatchSimulation::step() {
   }
   std::swap(previous_, current_);
   std::swap(current_, next_);
+  std::swap(events_, stepEvents_);
+  std::swap(diagnostics_, stepDiagnostics_);
   return tick;
 }
 

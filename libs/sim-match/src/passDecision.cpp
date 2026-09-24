@@ -69,38 +69,50 @@ MatchSystem makePassDecisionSystem(const DecisionConfig& config, const PassCandi
   validate(config);
   PassCandidateRules scored = rules;
   scored.scoring = config.scoring;
-  return {.name = std::string(kPassDecisionSystemName),
-          .update =
-              [config, scored](const MatchStepContext& context, const MatchState& current,
-                               MatchStateWriter& next) {
-                const BallState& ball = current.ball();
-                if (!ball.owner || current.pendingPass()) {
-                  return;
-                }
-                if (heldSeconds(ball, context.tick(), context.secondsPerTick()) <
-                    config.minHoldSeconds) {
-                  return;
-                }
-                const auto carrier = findPlayerIndex(current, *ball.owner);
-                if (!carrier) {
-                  return;
-                }
-                const std::vector<PassCandidate> candidates = generatePassCandidates(
-                    current, *carrier, context.tick(), context.secondsPerTick(), scored);
-                const auto chosen =
-                    choosePass(candidates, config.temperature,
-                               context.random(SimCore::RandomNumberGeneratorDomain::kAi));
-                if (!chosen) {
-                  return;
-                }
-                const PassCandidate& pass = candidates[*chosen];
-                next.setPendingPass(PassIntent{.passer = *ball.owner,
-                                               .target = pass.target,
-                                               .speed = pass.speed,
-                                               .receiver = pass.receiver});
-              },
-          .intervalTicks = config.intervalTicks,
-          .phaseTicks = 0};
+  return {
+      .name = std::string(kPassDecisionSystemName),
+      .update =
+          [config, scored](const MatchStepContext& context, const MatchState& current,
+                           MatchStateWriter& next) {
+            const BallState& ball = current.ball();
+            if (!ball.owner || current.pendingPass()) {
+              return;
+            }
+            if (heldSeconds(ball, context.tick(), context.secondsPerTick()) <
+                config.minHoldSeconds) {
+              return;
+            }
+            const auto carrier = findPlayerIndex(current, *ball.owner);
+            if (!carrier) {
+              return;
+            }
+            const std::vector<PassCandidate> candidates = generatePassCandidates(
+                current, *carrier, context.tick(), context.secondsPerTick(), scored);
+            const auto chosen =
+                choosePass(candidates, config.temperature,
+                           context.random(SimCore::RandomNumberGeneratorDomain::kAi));
+            // Built only on request, and after the choice: diagnostics can
+            // neither change the decision nor draw a number.
+            if (context.collectsDiagnostics()) {
+              context.diagnose(DecisionDiagnostic{
+                  .tick = context.tick(),
+                  .player = *ball.owner,
+                  .observations = current.perception(*carrier).observations,
+                  .candidates = candidates,
+                  .outcome = chosen ? DecisionOutcome::kPassed : DecisionOutcome::kNoValidOption,
+                  .chosen = chosen});
+            }
+            if (!chosen) {
+              return;
+            }
+            const PassCandidate& pass = candidates[*chosen];
+            next.setPendingPass(PassIntent{.passer = *ball.owner,
+                                           .target = pass.target,
+                                           .speed = pass.speed,
+                                           .receiver = pass.receiver});
+          },
+      .intervalTicks = config.intervalTicks,
+      .phaseTicks = 0};
 }
 
 }  // namespace ElyverseFootball::SimMatch

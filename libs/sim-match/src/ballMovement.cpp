@@ -13,6 +13,7 @@
 namespace ElyverseFootball::SimMatch {
 namespace {
 
+using SimCore::PlayerId;
 using SimCore::Vec2;
 
 // The fraction t in (0, 1] of the move from start to end at which the ball
@@ -62,6 +63,24 @@ using SimCore::Vec2;
   ball.owner = std::nullopt;
   ball.lastTouch = BallTouch{.playerId = intent.passer, .tick = context.tick()};
   return ball;
+}
+
+// What gaining control of a free ball was: the ball's last touch kicked it,
+// so a teammate of his received the pass and an opponent intercepted it. A
+// ball nobody played, or one the kicker takes back himself, was loose.
+[[nodiscard]] MatchEvent controlEvent(const MatchState& state, const BallState& ball,
+                                      const BallClaim& claim, const SimCore::SimTick tick) {
+  const PlayerMatchState& claimant = state.players()[claim.playerIndex];
+  if (!ball.lastTouch || ball.lastTouch->playerId == claimant.playerId) {
+    return LooseBallRecovered{.tick = tick, .player = claimant.playerId};
+  }
+  const PlayerId passer = ball.lastTouch->playerId;
+  const auto passerIndex = findPlayerIndex(state, passer);
+  const bool teammate = passerIndex && state.players()[*passerIndex].side == claimant.side;
+  if (teammate) {
+    return PassReceived{.tick = tick, .receiver = claimant.playerId, .passer = passer};
+  }
+  return PassIntercepted{.tick = tick, .interceptor = claimant.playerId, .passer = passer};
 }
 
 [[nodiscard]] bool isValid(const BallPhysics& physics) noexcept {
@@ -148,6 +167,14 @@ MatchSystem makeBallMovementSystem(const BallPhysics& physics, const PassConfig&
             ball = kicked(current, *intent, physics, passing, context);
             next.setBallOwner(ball.owner);
             next.setBallLastTouch(ball.lastTouch);
+            context.record(PassAttempted{.tick = context.tick(),
+                                         .passer = intent->passer,
+                                         .intendedReceiver = intent->receiver,
+                                         .from = ball.position,
+                                         .target = intent->target,
+                                         .speed = std::sqrt(ball.velocity.lengthSquared())});
+            context.record(PossessionChanged{
+                .tick = context.tick(), .previousOwner = intent->passer, .newOwner = std::nullopt});
           }
         }
 
@@ -168,6 +195,9 @@ MatchSystem makeBallMovementSystem(const BallPhysics& physics, const PassConfig&
           next.setBallOwner(claim->playerId);
           next.setBallLastTouch(BallTouch{.playerId = claim->playerId, .tick = context.tick()});
           carryBy(current.players()[claim->playerIndex]);
+          context.record(controlEvent(current, ball, *claim, context.tick()));
+          context.record(PossessionChanged{
+              .tick = context.tick(), .previousOwner = std::nullopt, .newOwner = claim->playerId});
           return;
         }
         next.setBallPosition(rolled.position);
