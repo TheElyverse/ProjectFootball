@@ -1,6 +1,7 @@
 #include <array>
 #include <catch2/catch_test_macros.hpp>
 #include <cstddef>
+#include <limits>
 #include <optional>
 #include <set>
 #include <vector>
@@ -13,6 +14,7 @@ using ElyverseFootball::SimMatch::checkStartingPositions;
 using ElyverseFootball::SimMatch::kDefaultPlayersPerSide;
 using ElyverseFootball::SimMatch::makeSevenASideKickoff;
 using ElyverseFootball::SimMatch::MatchState;
+using ElyverseFootball::SimMatch::MatchStateErrorCode;
 using ElyverseFootball::SimMatch::Pitch;
 using ElyverseFootball::SimMatch::PlayerMatchState;
 using ElyverseFootball::SimMatch::TeamSide;
@@ -140,4 +142,22 @@ TEST_CASE("Each side keeps to its own half at kickoff", "[kickoff]") {
       REQUIRE(player.position.x > pitch.lengthMeters() / 2.0);
     }
   }
+}
+
+TEST_CASE("The kickoff fixture can start with a rolling ball", "[kickoff]") {
+  const auto state =
+      makeSevenASideKickoff(Pitch(kLengthMeters, kWidthMeters), {.x = 4.0, .y = -1.5});
+
+  REQUIRE(state.has_value());
+  REQUIRE(state->ball().velocity == Vec2{.x = 4.0, .y = -1.5});
+  REQUIRE(state->ball().position == Vec2{.x = kLengthMeters / 2.0, .y = kWidthMeters / 2.0});
+}
+
+TEST_CASE("The kickoff fixture rejects a non-finite ball velocity", "[kickoff]") {
+  const auto state = makeSevenASideKickoff(
+      Pitch(kLengthMeters, kWidthMeters), {.x = std::numeric_limits<double>::infinity(), .y = 0.0});
+
+  REQUIRE_FALSE(state.has_value());
+  REQUIRE(state.error().size() == 1);
+  REQUIRE(state.error().front().code == MatchStateErrorCode::kNonFiniteBallVelocity);
 }

@@ -115,11 +115,11 @@ different type.
 
 ## The seven-a-side kickoff fixture
 
-`makeSevenASideKickoff(pitch)` builds the fixed starting scenario. It is a pure
-function of the pitch: no seed, no random number generator, no clock. The same
-pitch always produces the same state, which is what makes it usable as the
-`InitialSnapshot` of a replay ([implementation plan](implementation-plan.md)
-section 5.3).
+`makeSevenASideKickoff(pitch, ballVelocity = {})` builds the fixed starting
+scenario. It is a pure function of its arguments: no seed, no random number
+generator, no clock. The same arguments always produce the same state, which is
+what makes it usable as the `InitialSnapshot` of a replay
+([implementation plan](implementation-plan.md) section 5.3).
 
 Home defends `x = 0` and attacks `+x`. Positions are fractions of the pitch
 dimensions rather than fixed meters, so the fixture fits any valid pitch:
@@ -136,7 +136,9 @@ dimensions rather than fixed meters, so the fixture fits any valid pitch:
 | 8–14 | away | mirror of 1–7   | length − x    | unchanged    |
 
 Away is home's mirror image through the halfway line, so each side starts in
-its own half. The ball rests on the center spot and every velocity is zero.
+its own half. The ball lies on the center spot and every player velocity is
+zero. The ball is at rest unless the optional `ballVelocity` argument sets it
+rolling.
 Role names describe the layout; they are not a field of the state, because
 responsibilities belong to the tactics module.
 
