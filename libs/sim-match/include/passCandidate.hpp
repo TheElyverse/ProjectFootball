@@ -32,7 +32,7 @@ struct PassCandidate {
   // How sure the carrier is of the receiver's position: his observation's
   // confidence.
   double receiverConfidence = 0.0;
-  // Chance that no remembered opponent reaches the pass first, in [0, 1].
+  // Chance that some remembered opponent reaches the pass first, in [0, 1].
   double interceptionRisk = 0.0;
   // (1 - interceptionRisk) · receiverConfidence, in [0, 1].
   double completion = 0.0;
