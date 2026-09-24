@@ -5,6 +5,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <limits>
+#include <numbers>
 #include <optional>
 #include <stdexcept>
 #include <utility>
@@ -118,6 +119,29 @@ TEST_CASE("The vision cone ends at half the field of view", "[perception]") {
   REQUIRE(canSee(observer, {.x = 20.0, .y = 30.0}, kConfig));
   REQUIRE(canSee(observer, {.x = 20.0, .y = 10.0}, kConfig));
   REQUIRE(canSee(observer, {.x = 30.0, .y = 30.0}, narrow));
+}
+
+TEST_CASE("The cone edge is accurate for every field of view", "[perception]") {
+  // The cone's cosine comes from a series, not std::cos: it must still put
+  // the edge where the angle says, for narrow and wide cones alike.
+  const double fieldOfView = GENERATE(10.0, 45.0, 90.0, 120.0, 179.0, 200.0, 270.0, 359.0);
+  PerceptionConfig config;
+  config.fieldOfViewDegrees = fieldOfView;
+  config.awarenessRadius = 0.0;
+  const PlayerMatchState observer = playerAt(1, TeamSide::kHome, {.x = 20.0, .y = 20.0});
+  const double halfAngle = fieldOfView * std::numbers::pi / 360.0;
+  const auto pointAt = [&observer](const double angle) {
+    constexpr double kDistance = 10.0;
+    return observer.position +
+           Vec2{.x = kDistance * std::cos(angle), .y = kDistance * std::sin(angle)};
+  };
+
+  // A microradian inside the edge is seen, a microradian outside is not, on
+  // both sides of the facing.
+  REQUIRE(canSee(observer, pointAt(halfAngle - 1e-6), config));
+  REQUIRE(canSee(observer, pointAt(-(halfAngle - 1e-6)), config));
+  REQUIRE_FALSE(canSee(observer, pointAt(halfAngle + 1e-6), config));
+  REQUIRE_FALSE(canSee(observer, pointAt(-(halfAngle + 1e-6)), config));
 }
 
 TEST_CASE("A player senses what is close behind him", "[perception]") {

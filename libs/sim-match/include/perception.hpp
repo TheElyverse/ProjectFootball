@@ -35,7 +35,8 @@ struct PerceptionConfig {
 // Whether a player standing where observer stands, looking along his facing,
 // sees a position: within viewDistance, and either inside the vision cone or
 // within awarenessRadius. Both bounds are inclusive. There is no occlusion:
-// players do not hide one another yet.
+// players do not hide one another yet. The cone's cosine is computed from
+// basic arithmetic, so the answer is the same on every platform.
 [[nodiscard]] bool canSee(const PlayerMatchState& observer, SimCore::Vec2 position,
                           const PerceptionConfig& config) noexcept;
 

@@ -33,6 +33,52 @@ void validate(const PerceptionConfig& config) {
   return static_cast<double>(later.value() - earlier.value()) * secondsPerTick;
 }
 
+// cos(angle) for an angle in [0, pi], from basic arithmetic only, so the cone
+// edge is the same bit pattern on every platform: std::cos, like std::exp
+// (see SimCore::stableExp), need not be correctly rounded, and a last-bit
+// difference would decide differently for an entity right on the edge.
+//
+// The Taylor series of cos(angle / 2) up to the 22nd power, in Horner form
+// 1 - x²/(1·2)·(1 - x²/(3·4)·(1 - ...)), then cos(angle) = 2·cos²(angle / 2) - 1.
+// Halving keeps x within pi / 2, where the first omitted term is below 1e-19;
+// the result is within a few 1e-16 of the true cosine.
+[[nodiscard]] double stableCosine(const double angle) noexcept {
+  const double half = angle / 2.0;
+  const double square = half * half;
+  double sum = 1.0;
+  for (int power = 22; power >= 2; power -= 2) {
+    sum = 1.0 - ((square / static_cast<double>((power - 1) * power)) * sum);
+  }
+  return (2.0 * sum * sum) - 1.0;
+}
+
+// The cosine a position's direction must reach to lie in the vision cone:
+// cos(fov / 2) less a tolerance. stableCosine(pi / 2) is about 2e-16, not 0,
+// so without the tolerance a player straight sideways would fall outside a
+// 180 degree cone despite the inclusive edge.
+[[nodiscard]] double coneCosine(const PerceptionConfig& config) noexcept {
+  constexpr double kEdgeTolerance = 1e-9;
+  return stableCosine(config.fieldOfViewDegrees * std::numbers::pi / 360.0) - kEdgeTolerance;
+}
+
+// canSee() with the cone's cosine already computed, so perceive() computes it
+// once per observer rather than once per entity.
+[[nodiscard]] bool isVisible(const PlayerMatchState& observer, const Vec2 position,
+                             const PerceptionConfig& config, const double minCosine) noexcept {
+  const Vec2 offset = position - observer.position;
+  const double distanceSquared = offset.lengthSquared();
+  if (distanceSquared > config.viewDistance * config.viewDistance) {
+    return false;
+  }
+  if (distanceSquared <= config.awarenessRadius * config.awarenessRadius) {
+    return true;
+  }
+  // Inside the cone when the angle to the facing is at most half the field
+  // of view: facing · offset >= |offset| · cos(fov / 2). The facing is a unit
+  // vector, so no angle needs to be computed per entity.
+  return observer.facing.dot(offset) >= std::sqrt(distanceSquared) * minCosine;
+}
+
 // A fresh observation of an entity seen right now.
 [[nodiscard]] Observation seen(const ObservedEntity entity, const Vec2 position,
                                const Vec2 velocity, const SimTick now) noexcept {
@@ -47,24 +93,7 @@ void validate(const PerceptionConfig& config) {
 
 bool canSee(const PlayerMatchState& observer, const Vec2 position,
             const PerceptionConfig& config) noexcept {
-  const Vec2 offset = position - observer.position;
-  const double distanceSquared = offset.lengthSquared();
-  if (distanceSquared > config.viewDistance * config.viewDistance) {
-    return false;
-  }
-  if (distanceSquared <= config.awarenessRadius * config.awarenessRadius) {
-    return true;
-  }
-  // Inside the cone when the angle to the facing is at most half the field
-  // of view: facing · offset >= |offset| · cos(fov / 2). The facing is a unit
-  // vector, so no angle needs to be computed per entity. std::cos(pi / 2) is
-  // about 6e-17, not 0, so without the tolerance a player straight sideways
-  // would fall outside a 180 degree cone despite the inclusive edge; the
-  // tolerance also absorbs a last-bit difference between standard libraries.
-  constexpr double kEdgeTolerance = 1e-9;
-  const double halfAngle = config.fieldOfViewDegrees * std::numbers::pi / 360.0;
-  return observer.facing.dot(offset) >=
-         std::sqrt(distanceSquared) * (std::cos(halfAngle) - kEdgeTolerance);
+  return isVisible(observer, position, config, coneCosine(config));
 }
 
 Vec2 estimatePosition(const Observation& observation, const SimTick now,
@@ -83,8 +112,9 @@ void perceive(const MatchState& state, const std::size_t observerIndex, const Si
   // steady-state update allocates nothing.
   std::vector<Observation>& observations = memory.observations;
   observations.clear();
+  const double minCosine = coneCosine(config);
   const auto observe = [&](const ObservedEntity entity, const Vec2 position, const Vec2 velocity) {
-    if (canSee(observer, position, config)) {
+    if (isVisible(observer, position, config, minCosine)) {
       observations.push_back(seen(entity, position, velocity, now));
       return;
     }
