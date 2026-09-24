@@ -7,7 +7,7 @@ in `sim-match` (`scenarios.hpp`), and `sim-cli --scenario <name>` runs one.
 
 | Name           | Setup                                                             |
 |----------------|-------------------------------------------------------------------|
-| `kickoff`      | the seven-a-side kickoff fixture, everyone at rest                 |
+| `kickoff`      | the seven-a-side kickoff fixture, the ball free on the center spot |
 | `rolling-ball` | the kickoff fixture with the ball rolling at (8, 3) m/s            |
 | `m0-acceptance`| all 14 players on scripted runs with target changes, rolling ball |
 

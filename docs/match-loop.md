@@ -120,13 +120,14 @@ a replay reproduces.
 
 `matchSetup.hpp` assembles the systems a real match runs. `MatchConfig` holds
 every tunable parameter of those systems — the tick rate, ball physics and
-perception, passing and reception so far — and `makeMatchSystems(config)` returns them in their fixed order:
+perception, passing, reception and pursuit so far — and `makeMatchSystems(config)` returns them in their fixed order:
 
 | Order | System          | Rate       | Writes                         |
 |-------|-----------------|------------|--------------------------------|
 | 1     | perception      | 10 Hz      | perception memories            |
-| 2     | player movement | every tick | player positions, velocities, facings |
-| 3     | ball movement   | every tick | ball position, velocity, owner, last touch; clears the pending pass |
+| 2     | ball pursuit    | 10 Hz      | movement targets of the chasers |
+| 3     | player movement | every tick | player positions, velocities, facings |
+| 4     | ball movement   | every tick | ball position, velocity, owner, last touch; clears the pending pass |
 
 `MatchSetup` is everything such a match starts from: initial state, config, seed
 and commands. `startMatch(setup)` builds the simulation. A replay records a

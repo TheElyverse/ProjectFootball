@@ -77,9 +77,10 @@ constexpr double kPitchWidth = 40.0;
 }
 
 constexpr std::array kScenarios{
-    ScenarioDefinition{.name = "kickoff",
-                       .description = "seven-a-side kickoff fixture, everyone at rest",
-                       .make = &kickoff},
+    ScenarioDefinition{
+        .name = "kickoff",
+        .description = "seven-a-side kickoff fixture, the ball free on the center spot",
+        .make = &kickoff},
     ScenarioDefinition{.name = "rolling-ball",
                        .description = "kickoff fixture with the ball rolling at (8, 3) m/s",
                        .make = &rollingBall},

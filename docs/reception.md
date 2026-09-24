@@ -1,8 +1,9 @@
 # Reception, interceptions and loose balls
 
-A free ball belongs to whoever reaches it first. **Reception** (`reception.hpp`)
-in `sim-match` resolves, every tick, which player gains control of a free ball on
-its way.
+A free ball belongs to whoever reaches it first. Two parts of `sim-match` decide
+who that is: **reception** (`reception.hpp`) resolves, every tick, which player
+gains control of a free ball on its way, and **ball pursuit** (`pursuit.hpp`)
+decides who goes after it.
 
 ## Gaining control
 
@@ -37,14 +38,38 @@ The same rule covers every way of getting the ball:
 Telling these apart is for match events; control itself does not care who
 kicked the ball.
 
+## Going after the ball
+
+While the ball is free, the ball pursuit system sends one player per side after
+it, ten times a second:
+
+1. **Interception point.** For each player, `findInterception()` predicts the
+   ball's path — rolled with the exact free-ball step in `sampleSeconds` (0.1 s)
+   steps, up to `horizonSeconds` (8 s) — and finds the earliest point he can reach
+   no later than the ball (`estimateArrivalSeconds()`, see
+   [spatial queries](spatial-queries.md)). If he reaches none before the ball
+   stops, his interception is where it stops, when he gets there.
+2. **Chaser.** Per side, the player with the earliest interception chases it; ties
+   go to the lower id. His movement target becomes the interception point,
+   overriding any target a command gave him. Everyone else keeps his target.
+3. **The passer does not chase his own pass** while the ball still moves.
+
+Pursuit reads the ball directly rather than through
+[perception](perception.md): a simplification until off-ball movement uses
+perceived positions. A player who has chased the ball stays where he ran to once
+someone controls it; positioning belongs to later tactical systems.
+
 ## Configuration
 
-`ReceptionConfig` is part of `MatchConfig` and of every replay:
+Both are part of `MatchConfig` and of every replay:
 
 | Field                           | Default | Meaning                                         |
 |---------------------------------|---------|-------------------------------------------------|
 | `reception.controlRadius`       | 1 m     | how close a free ball must come to be controlled |
 | `reception.reclaimDelaySeconds` | 0.3 s   | how long the last touch cannot take the ball back |
+| `pursuit.intervalTicks`         | 3       | ticks between chase decisions                   |
+| `pursuit.sampleSeconds`         | 0.1 s   | resolution of the predicted ball path           |
+| `pursuit.horizonSeconds`        | 8 s     | how far ahead the path is predicted             |
 
 ## What this is not
 

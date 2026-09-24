@@ -9,10 +9,10 @@
 #include "ballMovement.hpp"
 #include "kickoffScenario.hpp"
 #include "matchCommand.hpp"
-#include "matchSetup.hpp"
 #include "matchSimulation.hpp"
 #include "matchState.hpp"
 #include "passing.hpp"
+#include "playerMovement.hpp"
 #include "random.hpp"
 #include "vec2.hpp"
 
@@ -26,10 +26,10 @@ using ElyverseFootball::SimMatch::BallState;
 using ElyverseFootball::SimMatch::BallTouch;
 using ElyverseFootball::SimMatch::executePass;
 using ElyverseFootball::SimMatch::GiveBallCommand;
+using ElyverseFootball::SimMatch::makeBallMovementSystem;
+using ElyverseFootball::SimMatch::makePlayerMovementSystem;
 using ElyverseFootball::SimMatch::makeSevenASideKickoff;
 using ElyverseFootball::SimMatch::MatchCommandErrorCode;
-using ElyverseFootball::SimMatch::MatchConfig;
-using ElyverseFootball::SimMatch::MatchSetup;
 using ElyverseFootball::SimMatch::MatchSimulation;
 using ElyverseFootball::SimMatch::PassCommand;
 using ElyverseFootball::SimMatch::PassConfig;
@@ -39,7 +39,6 @@ using ElyverseFootball::SimMatch::Pitch;
 using ElyverseFootball::SimMatch::planPassSpeed;
 using ElyverseFootball::SimMatch::PlayerMatchState;
 using ElyverseFootball::SimMatch::ScheduledCommand;
-using ElyverseFootball::SimMatch::startMatch;
 
 namespace {
 
@@ -51,17 +50,19 @@ namespace {
   return config;
 }
 
+// Movement and ball only: nobody goes after a pass, so its path is the
+// pass's own.
 [[nodiscard]] MatchSimulation matchOf(std::vector<ScheduledCommand> commands,
                                       const PassConfig passing = exact(),
                                       const std::uint64_t seed = 1) {
   auto state = makeSevenASideKickoff(Pitch(60.0, 40.0));
   REQUIRE(state.has_value());
-  MatchConfig config;
-  config.passing = passing;
-  return startMatch(MatchSetup{.initialState = *std::move(state),
-                               .config = config,
-                               .seed = seed,
-                               .commands = std::move(commands)});
+  return MatchSimulation(
+      {.initialState = *std::move(state),
+       .seed = seed,
+       .ticksPerSecond = 30,
+       .systems = {makePlayerMovementSystem(), makeBallMovementSystem(BallPhysics{}, passing)},
+       .commands = std::move(commands)});
 }
 
 [[nodiscard]] ScheduledCommand give(const std::int64_t tick, const std::uint32_t playerId) {

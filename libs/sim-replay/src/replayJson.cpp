@@ -106,7 +106,11 @@ using SimMatch::TeamSide;
             {"speedError", config.passing.speedError}}},
           {"reception",
            {{"controlRadius", config.reception.controlRadius},
-            {"reclaimDelaySeconds", config.reception.reclaimDelaySeconds}}}};
+            {"reclaimDelaySeconds", config.reception.reclaimDelaySeconds}}},
+          {"pursuit",
+           {{"intervalTicks", config.pursuit.intervalTicks},
+            {"sampleSeconds", config.pursuit.sampleSeconds},
+            {"horizonSeconds", config.pursuit.horizonSeconds}}}};
 }
 
 void addCommandFields(Json& json, const MovePlayerCommand& command) {
@@ -350,6 +354,12 @@ constexpr std::int64_t kMaxTick = std::int64_t{1} << 53;
           .speedError = field.member("speedError").number()};
 }
 
+[[nodiscard]] SimMatch::PursuitConfig readPursuit(const Field& field) {
+  return {.intervalTicks = static_cast<int>(field.member("intervalTicks").integerIn(1, 100000)),
+          .sampleSeconds = field.member("sampleSeconds").number(),
+          .horizonSeconds = field.member("horizonSeconds").number()};
+}
+
 [[nodiscard]] MatchConfig readConfig(const Field& field) {
   return {
       .ticksPerSecond = static_cast<int>(field.member("ticksPerSecond").integerIn(1, 100000)),
@@ -357,9 +367,10 @@ constexpr std::int64_t kMaxTick = std::int64_t{1} << 53;
                .carryDistance = field.member("ball").member("carryDistance").number()},
       .perception = readPerception(field.member("perception")),
       .passing = readPassing(field.member("passing")),
-      .reception = {
-          .controlRadius = field.member("reception").member("controlRadius").number(),
-          .reclaimDelaySeconds = field.member("reception").member("reclaimDelaySeconds").number()}};
+      .reception = {.controlRadius = field.member("reception").member("controlRadius").number(),
+                    .reclaimDelaySeconds =
+                        field.member("reception").member("reclaimDelaySeconds").number()},
+      .pursuit = readPursuit(field.member("pursuit"))};
 }
 
 [[nodiscard]] MatchCommand readCommand(const Field& field) {

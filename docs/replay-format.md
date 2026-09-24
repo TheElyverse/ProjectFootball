@@ -39,7 +39,8 @@ validation leaves no file behind.
             "directionError": 0.03,
       "speedError": 0.05
     },
-    "reception": { "controlRadius": 1.0, "reclaimDelaySeconds": 0.3 }
+    "reception": { "controlRadius": 1.0, "reclaimDelaySeconds": 0.3 },
+    "pursuit": { "intervalTicks": 3, "sampleSeconds": 0.1, "horizonSeconds": 8.0 }
   },
   "initialState": {
     "pitch": { "length": 60.0, "width": 40.0 },

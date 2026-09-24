@@ -13,6 +13,7 @@
 #include "matchSimulation.hpp"
 #include "matchState.hpp"
 #include "passing.hpp"
+#include "pursuit.hpp"
 #include "reception.hpp"
 #include "vec2.hpp"
 
@@ -27,7 +28,9 @@ using ElyverseFootball::SimMatch::BallTouch;
 using ElyverseFootball::SimMatch::Contact;
 using ElyverseFootball::SimMatch::findBallClaim;
 using ElyverseFootball::SimMatch::findContact;
+using ElyverseFootball::SimMatch::findInterception;
 using ElyverseFootball::SimMatch::GiveBallCommand;
+using ElyverseFootball::SimMatch::Interception;
 using ElyverseFootball::SimMatch::MatchSetup;
 using ElyverseFootball::SimMatch::MatchSimulation;
 using ElyverseFootball::SimMatch::MatchState;
@@ -36,6 +39,7 @@ using ElyverseFootball::SimMatch::PassCommand;
 using ElyverseFootball::SimMatch::Pitch;
 using ElyverseFootball::SimMatch::planPassSpeed;
 using ElyverseFootball::SimMatch::PlayerMatchState;
+using ElyverseFootball::SimMatch::PursuitConfig;
 using ElyverseFootball::SimMatch::ReceptionConfig;
 using ElyverseFootball::SimMatch::ScheduledCommand;
 using ElyverseFootball::SimMatch::startMatch;
@@ -109,6 +113,7 @@ void stepUntilTaken(MatchSimulation& simulation, const int maxTicks) {
 }
 
 constexpr Contact kNoContact{.contactFraction = -1.0, .closestDistance = -1.0};
+constexpr Interception kNoInterception{.point = {.x = -1.0, .y = -1.0}, .seconds = -1.0};
 
 // The id of the claimant, 0 if nobody claims the ball.
 [[nodiscard]] std::uint32_t claimant(const std::optional<BallClaim>& claim) {
@@ -155,6 +160,69 @@ TEST_CASE("A receiver controls a reachable pass", "[reception]") {
   REQUIRE(ball.owner == PlayerId(2));
   REQUIRE(ball.lastTouch ==
           BallTouch{.playerId = PlayerId(2), .tick = SimTick(simulation.tick().value() - 1)});
+}
+
+TEST_CASE("An opponent intercepts a pass by reaching it on its way", "[reception]") {
+  // Player 3 stands two meters off the line from 1 to 2 and steps in.
+  const MatchState state = twoASide({{.x = 10.0, .y = 20.0},
+                                     {.x = 30.0, .y = 20.0},
+                                     {.x = 20.0, .y = 22.0},
+                                     {.x = 50.0, .y = 5.0}},
+                                    freeBall({.x = 10.0, .y = 20.0}));
+  MatchSimulation simulation = passFrom(state, {.x = 30.0, .y = 20.0});
+
+  stepUntilTaken(simulation, 150);
+
+  REQUIRE(simulation.state().ball().owner == PlayerId(3));
+}
+
+TEST_CASE("A receiver misses a pass he cannot reach", "[reception]") {
+  // A hard pass far to the side of player 2: it crosses the touchline before
+  // anyone gets there, then everyone goes after the loose ball.
+  const MatchState state = twoASide({{.x = 10.0, .y = 20.0},
+                                     {.x = 30.0, .y = 20.0},
+                                     {.x = 45.0, .y = 30.0},
+                                     {.x = 50.0, .y = 5.0}},
+                                    freeBall({.x = 10.0, .y = 20.0}));
+  MatchSimulation simulation = passFrom(state, {.x = 30.0, .y = 40.0}, 18.0);
+
+  bool reachedTheLine = false;
+  for (int tick = 0; tick < 90 && !reachedTheLine; ++tick) {
+    REQUIRE(simulation.step().has_value());
+    const BallState& ball = simulation.state().ball();
+    reachedTheLine = ball.position.y == 40.0;
+    if (tick > 2) {
+      REQUIRE_FALSE(ball.owner.has_value());
+    }
+  }
+  REQUIRE(reachedTheLine);
+  REQUIRE(simulation.state().ball().lastTouch.value_or(BallTouch{}).playerId == PlayerId(1));
+
+  // The loose ball is recovered afterwards.
+  stepUntilTaken(simulation, 300);
+  REQUIRE(simulation.state().ball().owner.has_value());
+}
+
+TEST_CASE("The fastest player recovers a loose ball", "[reception]") {
+  // Player 4 is 8 m away, everyone else farther.
+  const MatchState state = twoASide({{.x = 10.0, .y = 20.0},
+                                     {.x = 30.0, .y = 5.0},
+                                     {.x = 50.0, .y = 35.0},
+                                     {.x = 40.0, .y = 22.0}},
+                                    freeBall({.x = 40.0, .y = 30.0}));
+  MatchSimulation simulation =
+      startMatch({.initialState = state, .config = {}, .seed = 1, .commands = {}});
+
+  for (int tick = 0; tick < 120 && !simulation.state().ball().owner; ++tick) {
+    REQUIRE(simulation.step().has_value());
+  }
+
+  REQUIRE(simulation.state().ball().owner == PlayerId(4));
+  // He reached it within the control radius and did not need to stand on it.
+  const double distance =
+      std::sqrt((simulation.previousState().players()[3].position - Vec2{.x = 40.0, .y = 30.0})
+                    .lengthSquared());
+  REQUIRE(distance <= ReceptionConfig{}.controlRadius + 0.3);
 }
 
 TEST_CASE("An opponent standing in the lane intercepts the pass", "[reception]") {
@@ -220,4 +288,45 @@ TEST_CASE("The passer cannot take his own pass back at once", "[reception]") {
   // 0.3 s = 9 ticks later he may.
   REQUIRE(claimant(findBallClaim(state, state.ball(), {.x = 20.7, .y = 20.0}, SimTick(19),
                                  kSecondsPerTick, config)) == 1);
+}
+
+TEST_CASE("An interception is the earliest point reached before the ball", "[reception]") {
+  const BallState ball = freeBall({.x = 10.0, .y = 20.0}, {.x = 12.0, .y = 0.0});
+  const PlayerMatchState onTheLine = playerAt(3, TeamSide::kAway, {.x = 30.0, .y = 22.0});
+
+  const auto interception =
+      findInterception(onTheLine, ball, BallPhysics{}, kPitch, PursuitConfig{});
+
+  REQUIRE(interception.has_value());
+  const Interception reached = interception.value_or(kNoInterception);
+  REQUIRE(reached.point.y == 20.0);
+  // He cannot get there before the ball: the point lies ahead of him on the
+  // line, where he arrives no later than the ball.
+  REQUIRE(reached.point.x > 20.0);
+  REQUIRE(reached.seconds > 0.0);
+
+  // A ball at rest is reached where it lies.
+  const auto loose = findInterception(onTheLine, freeBall({.x = 35.0, .y = 22.0}), BallPhysics{},
+                                      kPitch, PursuitConfig{});
+  REQUIRE(loose.value_or(kNoInterception).point == Vec2{.x = 35.0, .y = 22.0});
+}
+
+TEST_CASE("One player per side goes after a free ball", "[reception]") {
+  const MatchState state = twoASide({{.x = 10.0, .y = 20.0},
+                                     {.x = 30.0, .y = 20.0},
+                                     {.x = 45.0, .y = 30.0},
+                                     {.x = 50.0, .y = 5.0}},
+                                    freeBall({.x = 10.0, .y = 20.0}));
+  MatchSimulation simulation = passFrom(state, {.x = 30.0, .y = 20.0});
+
+  for (int tick = 0; tick < 4; ++tick) {
+    REQUIRE(simulation.step().has_value());
+  }
+
+  const auto players = simulation.state().players();
+  // The passer does not chase his own pass; player 2 and player 3 go.
+  REQUIRE_FALSE(players[0].target.has_value());
+  REQUIRE(players[1].target.has_value());
+  REQUIRE(players[2].target.has_value());
+  REQUIRE_FALSE(players[3].target.has_value());
 }

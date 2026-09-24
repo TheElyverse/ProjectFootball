@@ -9,6 +9,7 @@
 #include "matchState.hpp"
 #include "passing.hpp"
 #include "perception.hpp"
+#include "pursuit.hpp"
 #include "reception.hpp"
 
 namespace ElyverseFootball::SimMatch {
@@ -22,6 +23,7 @@ struct MatchConfig {
   PerceptionConfig perception;
   PassConfig passing;
   ReceptionConfig reception;
+  PursuitConfig pursuit;
 
   friend bool operator==(const MatchConfig&, const MatchConfig&) = default;
 };
@@ -43,8 +45,9 @@ struct MatchSetup {
 // set changes every match, like changing a system's behavior does.
 //
 //   1. perception       every perception.intervalTicks ticks
-//   2. player movement  every tick
-//   3. ball movement    every tick
+//   2. ball pursuit     every pursuit.intervalTicks ticks
+//   3. player movement  every tick
+//   4. ball movement    every tick
 //
 // Throws std::invalid_argument for invalid parameters.
 [[nodiscard]] std::vector<MatchSystem> makeMatchSystems(const MatchConfig& config);
