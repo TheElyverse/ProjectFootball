@@ -19,7 +19,7 @@ validation leaves no file behind.
 ```json
 {
   "schemaVersion": 3,
-  "coreVersion": "0.13.0",
+  "coreVersion": "0.14.0",
   "createdAt": "2026-09-24T10:00:00Z",
   "seed": "18446744073709551615",
   "gameTime": 300,
@@ -116,7 +116,20 @@ validation leaves no file behind.
       "radius": 1.2,
       "winChance": 0.2,
       "attemptSeconds": 0.5,
-      "protectSeconds": 0.5
+            "protectSeconds": 0.5
+    },
+    "pressing": {
+      "intervalTicks": 6,
+      "triggerRadius": 20.0,
+      "recentSeconds": 1.5,
+      "heavyTouchSpeed": 11.0,
+      "slowPassSpeed": 6.0,
+      "isolationRadius": 10.0,
+      "facingOwnGoal": -0.3,
+      "backPassMeters": 2.0,
+      "maxJoiners": 4,
+      "phaseIntensity": 0.5,
+      "maxPressSeconds": 4.0
     }
   },
   "initialState": {

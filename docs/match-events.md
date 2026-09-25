@@ -24,6 +24,8 @@ Every event carries the `tick` of its step and the players involved:
 | `PossessionChanged`  | `previousOwner`, `newOwner`                                  | the ball's owner changes; either may be empty |
 | `PhaseChanged`       | `side`, `previous`, `phase`                                  | a side with a tactic enters another [tactical phase](match-phases.md); `previous` is empty for its first |
 | `BallWon`            | `winner`, `loser`, `position`                                | a presser wins the ball from the carrier in a [challenge](pressing.md); `PossessionChanged` follows |
+| `PressingStarted`    | `side`, `carrier`, `trigger`, `assignments`                  | a side starts a [coordinated press](pressing.md); `trigger` is empty for a press of the pressing phase |
+| `PressingEnded`      | `side`, `outcome`                                            | the press ends: `ballRegained`, `passedOut` or `carrierEscaped` |
 
 `speed` is the speed the ball left the foot with, execution error included. A
 pass shows up as

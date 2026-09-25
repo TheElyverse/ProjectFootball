@@ -60,7 +60,10 @@ state created from a spec and kept up to date by the tactical phase system; see
 [pitch-control](pitch-control.md) grid between refreshes, `chaser(side)` names the
 player each side has sent after a free ball ([reception](reception.md)), and
 `tactical(playerIndex)` holds each player's tactical runtime state, such as his
-[desired region](desired-region.md). All are empty in a state created from a spec.
+[desired region](desired-region.md), and `press(side)` the side's
+[press](pressing.md) in progress. `lastPass()` and `lastReception()` record the
+last pass kicked and the last free ball controlled. All are empty in a state
+created from a spec.
 
 Every player also has a perception memory, `perception(playerIndex)`: what he
 believes about the ball and the other players (see [perception](perception.md)).
