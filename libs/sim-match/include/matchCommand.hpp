@@ -8,6 +8,7 @@
 #include "ids.hpp"
 #include "matchState.hpp"
 #include "simTime.hpp"
+#include "tactic.hpp"
 #include "vec2.hpp"
 
 namespace ElyverseFootball::SimMatch {
@@ -45,11 +46,25 @@ struct PassCommand {
   friend bool operator==(const PassCommand&, const PassCommand&) = default;
 };
 
+// Switches a side to another tactic from this step on: the same command for a
+// human coach, a script and an AI, so every tactic change goes through the
+// ordered command log and a replay reproduces it (docs/match-loop.md). The
+// tactic is already valid by construction; the command is rejected if it
+// does not fit the squad. Phase, press and the players' tactical state are
+// kept and follow the new tactic at the systems' next update.
+struct ChangeTacticCommand {
+  TeamSide side = TeamSide::kHome;
+  SimTactics::Tactic tactic;
+
+  friend bool operator==(const ChangeTacticCommand&, const ChangeTacticCommand&) = default;
+};
+
 // An intent from outside the systems -- a scenario script, a coach, a test --
 // that changes the match state at a tick. Every command type is a
 // std::variant alternative, so a replay can record and a reader can dispatch
 // on them without a class hierarchy.
-using MatchCommand = std::variant<MovePlayerCommand, GiveBallCommand, PassCommand>;
+using MatchCommand =
+    std::variant<MovePlayerCommand, GiveBallCommand, PassCommand, ChangeTacticCommand>;
 
 // A command and the tick whose step applies it. Commands of the same tick are
 // applied in the order they were scheduled.
@@ -65,6 +80,7 @@ enum class MatchCommandErrorCode : std::uint8_t {
   kUnknownPlayer,
   kNonFiniteTarget,
   kInvalidPassSpeed,
+  kTacticDoesNotFitSquad,
 };
 
 struct MatchCommandError {

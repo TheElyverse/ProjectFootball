@@ -55,12 +55,13 @@ the command types:
 | `MovePlayerCommand` | sets a player's movement target, moved onto the pitch if it lies off it |
 | `GiveBallCommand`   | puts the ball at a player's feet; he owns it from this step on        |
 | `PassCommand`       | asks a player to pass; played in this step if he owns the ball       |
+| `ChangeTacticCommand` | switches a side to another tactic from this step on               |
 
 `schedule(ScheduledCommand)` queues a command for the step that starts at its
 tick. Commands of one tick apply in the order they were scheduled, which is the
 explicit execution order a replay needs. `schedule()` rejects a tick before
-`tick()`, an unknown player and a non-finite target, and leaves the queue
-unchanged; a command for `tick()` itself applies in the next step. Commands
+`tick()`, an unknown player, a non-finite target and a tactic that does not fit
+the squad, and leaves the queue unchanged; a command for `tick()` itself applies in the next step. Commands
 known before kickoff go into `MatchSimulationSpec::commands`, which the
 constructor schedules in order and rejects with `std::invalid_argument`.
 
@@ -70,6 +71,18 @@ log of the replay contract.
 
 Commands are applied to a copy of the current state, so a step that fails leaves
 `state()` and the command log as they were.
+
+### Tactic changes
+
+A coach changes a tactic the way a script or a test does: with a
+`ChangeTacticCommand` carrying the side and the new, already validated tactic.
+There is no second path for AI or user input, so every change lands in the
+ordered command log and a replay reproduces it, tactic content included. The
+change applies at the start of its tick's step and records a `TacticChanged`
+event with the tactic's name and content hash. The side's phase, press and
+the players' tactical state are kept; each system follows the new tactic at its
+next update, the tactical phase within a third of a second. A side that played
+no tactic plays the new one from then on.
 
 ## Systems
 

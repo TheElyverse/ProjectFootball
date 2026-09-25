@@ -3,6 +3,7 @@
 #include <cstdint>
 #include <optional>
 #include <span>
+#include <string>
 #include <string_view>
 #include <variant>
 #include <vector>
@@ -85,6 +86,18 @@ struct PhaseChanged {
   friend bool operator==(const PhaseChanged&, const PhaseChanged&) = default;
 };
 
+// A side switched to another tactic by a ChangeTacticCommand: its name and
+// content hash (tacticHash.hpp), so a log names the tactic and an analysis
+// can tell two versions of a name apart.
+struct TacticChanged {
+  SimCore::SimTick tick;
+  TeamSide side = TeamSide::kHome;
+  std::string tactic;
+  std::uint64_t contentHash = 0;
+
+  friend bool operator==(const TacticChanged&, const TacticChanged&) = default;
+};
+
 // A presser won the ball from the carrier in a challenge (docs/pressing.md),
 // at the ball's position.
 struct BallWon {
@@ -118,9 +131,9 @@ struct PressingEnded {
   friend bool operator==(const PressingEnded&, const PressingEnded&) = default;
 };
 
-using MatchEvent =
-    std::variant<PassAttempted, PassReceived, PassIntercepted, LooseBallRecovered,
-                 PossessionChanged, PhaseChanged, BallWon, PressingStarted, PressingEnded>;
+using MatchEvent = std::variant<PassAttempted, PassReceived, PassIntercepted, LooseBallRecovered,
+                                PossessionChanged, PhaseChanged, BallWon, PressingStarted,
+                                PressingEnded, TacticChanged>;
 
 // "pass attempted", "pass received", ... for logs and diagnostics.
 [[nodiscard]] std::string_view eventName(const MatchEvent& event);

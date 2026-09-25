@@ -19,7 +19,7 @@ validation leaves no file behind.
 ```json
 {
   "schemaVersion": 3,
-  "coreVersion": "0.15.0",
+  "coreVersion": "0.16.0",
   "createdAt": "2026-09-24T10:00:00Z",
   "seed": "18446744073709551615",
   "gameTime": 300,
@@ -203,6 +203,7 @@ were scheduled (see [match loop](match-loop.md), section *Commands*).
 | `movePlayer` | `playerId`, `target`   | `MovePlayerCommand` |
 | `giveBall`   | `playerId`             | `GiveBallCommand`   |
 | `pass`       | `playerId`, `target`, `speed`, `receiver` (or `null`) | `PassCommand` |
+| `changeTactic` | `side`, `tactic` (a whole tactic file, see [tactic format](tactic-format.md)) | `ChangeTacticCommand` |
 
 A recorded replay holds the commands the simulation applied. A command scheduled
 during the run is included; one scheduled for a tick the match never reached is

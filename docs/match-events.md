@@ -26,6 +26,7 @@ Every event carries the `tick` of its step and the players involved:
 | `BallWon`            | `winner`, `loser`, `position`                                | a presser wins the ball from the carrier in a [challenge](pressing.md); `PossessionChanged` follows |
 | `PressingStarted`    | `side`, `carrier`, `trigger`, `assignments`                  | a side starts a [coordinated press](pressing.md); `trigger` is empty for a press of the pressing phase |
 | `PressingEnded`      | `side`, `outcome`                                            | the press ends: `ballRegained`, `passedOut` or `carrierEscaped` |
+| `TacticChanged`      | `side`, `tactic`, `contentHash`                              | a [tactic change command](match-loop.md#tactic-changes) applies; `tactic` is the new tactic's name |
 
 `speed` is the speed the ball left the foot with, execution error included. A
 pass shows up as

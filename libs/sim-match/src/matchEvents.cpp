@@ -73,6 +73,12 @@ void addFields(StableHasher& hasher, const PhaseChanged& event) noexcept {
   hasher.addU64(static_cast<std::uint64_t>(event.phase));
 }
 
+void addFields(StableHasher& hasher, const TacticChanged& event) noexcept {
+  hasher.addU64(static_cast<std::uint64_t>(event.side));
+  hasher.addString(event.tactic);
+  hasher.addU64(event.contentHash);
+}
+
 }  // namespace
 
 std::string_view eventName(const MatchEvent& event) {
@@ -101,6 +107,9 @@ std::string_view eventName(const MatchEvent& event) {
     }
     std::string_view operator()(const PressingEnded& /*event*/) const noexcept {
       return "pressing ended";
+    }
+    std::string_view operator()(const TacticChanged& /*event*/) const noexcept {
+      return "tactic changed";
     }
   };
   return std::visit(Names{}, event);

@@ -197,6 +197,13 @@ void addEventFields(Json& json, const SimMatch::PressingEnded& event) {
   json["outcome"] = SimMatch::pressOutcomeName(event.outcome);
 }
 
+void addEventFields(Json& json, const SimMatch::TacticChanged& event) {
+  json["type"] = "tacticChanged";
+  json["side"] = SimMatch::teamSideName(event.side);
+  json["tactic"] = event.tactic;
+  json["contentHash"] = std::format("{:016x}", event.contentHash);
+}
+
 [[nodiscard]] Json eventJson(const SimMatch::MatchEvent& event) {
   Json json;
   // The step's tick, one before the frame's: the event happened during the

@@ -89,7 +89,17 @@ test("describeEvent names the players involved", () => {
   );
   assert.equal(
     describeEvent({ tick: 0, type: "pressingEnded", side: "home", outcome: "ballRegained" }),
-    "home press ends: ballRegained",
+        "home press ends: ballRegained",
+  );
+  assert.equal(
+    describeEvent({
+      tick: 0,
+      type: "tacticChanged",
+      side: "away",
+      tactic: "pressing",
+      contentHash: "0123456789abcdef",
+    }),
+    "away switches to pressing",
   );
   assert.equal(describeEvent({ tick: 0, type: "somethingNew" }), "somethingNew");
 });

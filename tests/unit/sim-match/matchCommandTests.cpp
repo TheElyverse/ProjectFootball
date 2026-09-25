@@ -9,13 +9,19 @@
 
 #include "kickoffScenario.hpp"
 #include "matchCommand.hpp"
+#include "matchEvents.hpp"
+#include "matchSetup.hpp"
 #include "matchSimulation.hpp"
 #include "matchState.hpp"
+#include "referenceTactic.hpp"
+#include "tactic.hpp"
+#include "tacticHash.hpp"
 #include "vec2.hpp"
 
 using ElyverseFootball::SimCore::PlayerId;
 using ElyverseFootball::SimCore::SimTick;
 using ElyverseFootball::SimCore::Vec2;
+using ElyverseFootball::SimMatch::ChangeTacticCommand;
 using ElyverseFootball::SimMatch::kDefaultTicksPerSecond;
 using ElyverseFootball::SimMatch::makeSevenASideKickoff;
 using ElyverseFootball::SimMatch::MatchCommandErrorCode;
@@ -26,7 +32,12 @@ using ElyverseFootball::SimMatch::MatchStepContext;
 using ElyverseFootball::SimMatch::MatchSystem;
 using ElyverseFootball::SimMatch::MovePlayerCommand;
 using ElyverseFootball::SimMatch::Pitch;
+using ElyverseFootball::SimMatch::PlayerMatchState;
 using ElyverseFootball::SimMatch::ScheduledCommand;
+using ElyverseFootball::SimMatch::TacticChanged;
+using ElyverseFootball::SimMatch::TeamSide;
+using ElyverseFootball::SimTactics::referenceTacticSpec;
+using ElyverseFootball::SimTactics::Tactic;
 
 namespace {
 
@@ -198,4 +209,100 @@ TEST_CASE("A copy keeps the queued commands", "[matchCommand]") {
 
   REQUIRE(targetOf(copy, 7) == Vec2{.x = 30.0, .y = 30.0});
   REQUIRE_FALSE(targetOf(original, 7).has_value());
+}
+
+namespace {
+
+[[nodiscard]] Tactic tacticNamed(const char* name) {
+  auto spec = referenceTacticSpec();
+  spec.name = name;
+  auto tactic = Tactic::create(spec);
+  REQUIRE(tactic.has_value());
+  return *std::move(tactic);
+}
+
+}  // namespace
+
+TEST_CASE("A tactic change applies in the step of its tick with an event", "[matchCommand]") {
+  const Tactic bold = tacticNamed("bold");
+  MatchSimulation simulation =
+      simulationOf({{.tick = SimTick(2),
+                     .command = ChangeTacticCommand{.side = TeamSide::kAway, .tactic = bold}}});
+  stepTimes(simulation, 2);
+  REQUIRE_FALSE(simulation.state().tactics().away.has_value());
+  REQUIRE(simulation.events().empty());
+
+  stepTimes(simulation, 1);
+  REQUIRE(simulation.state().tactics().away == bold);
+  REQUIRE_FALSE(simulation.state().tactics().home.has_value());
+  REQUIRE(simulation.events().size() == 1);
+  REQUIRE(simulation.events().front() ==
+          ElyverseFootball::SimMatch::MatchEvent{
+              TacticChanged{.tick = SimTick(2),
+                            .side = TeamSide::kAway,
+                            .tactic = "bold",
+                            .contentHash = ElyverseFootball::SimTactics::contentHash(bold)}});
+  REQUIRE(simulation.appliedCommands().size() == 1);
+}
+
+TEST_CASE("A later tactic change replaces an earlier one", "[matchCommand]") {
+  MatchSimulation simulation = simulationOf(
+      {{.tick = SimTick(0),
+        .command = ChangeTacticCommand{.side = TeamSide::kHome, .tactic = tacticNamed("first")}},
+       {.tick = SimTick(0),
+        .command = ChangeTacticCommand{.side = TeamSide::kHome, .tactic = tacticNamed("second")}}});
+  stepTimes(simulation, 1);
+  REQUIRE(simulation.state().tactics().home == tacticNamed("second"));
+  REQUIRE(simulation.events().size() == 2);
+}
+
+TEST_CASE("A tactic that does not fit the squad is rejected", "[matchCommand]") {
+  auto state = MatchState::create({.pitch = Pitch(60.0, 40.0),
+                                   .players = {PlayerMatchState{.playerId = PlayerId(1),
+                                                                .side = TeamSide::kHome,
+                                                                .position = {.x = 20.0, .y = 20.0},
+                                                                .velocity = {},
+                                                                .attributes = {},
+                                                                .target = std::nullopt,
+                                                                .facing = {.x = 1.0, .y = 0.0}},
+                                               PlayerMatchState{.playerId = PlayerId(2),
+                                                                .side = TeamSide::kAway,
+                                                                .position = {.x = 40.0, .y = 20.0},
+                                                                .velocity = {},
+                                                                .attributes = {},
+                                                                .target = std::nullopt,
+                                                                .facing = {.x = -1.0, .y = 0.0}}},
+                                   .ball = {.position = {.x = 30.0, .y = 20.0},
+                                            .velocity = {},
+                                            .owner = std::nullopt,
+                                            .lastTouch = std::nullopt},
+                                   .playersPerSide = 1});
+  REQUIRE(state.has_value());
+  MatchSimulation simulation({.initialState = *std::move(state),
+                              .seed = kSeed,
+                              .ticksPerSecond = kDefaultTicksPerSecond,
+                              .systems = {},
+                              .commands = {}});
+  const auto result = simulation.schedule(
+      {.tick = SimTick(0),
+       .command = ChangeTacticCommand{.side = TeamSide::kHome, .tactic = tacticNamed("seven")}});
+  REQUIRE_FALSE(result.has_value());
+  REQUIRE(result.error().code == MatchCommandErrorCode::kTacticDoesNotFitSquad);
+  REQUIRE(result.error().message == "home's new tactic 'seven' has 7 slots for 1 players");
+  stepTimes(simulation, 1);
+  REQUIRE(simulation.appliedCommands().empty());
+}
+
+TEST_CASE("A scripted side plays a tactic it is given mid-match", "[matchCommand]") {
+  MatchSimulation simulation = ElyverseFootball::SimMatch::startMatch(
+      {.initialState = kickoff(),
+       .config = {},
+       .seed = kSeed,
+       .commands = {{.tick = SimTick(30),
+                     .command = ChangeTacticCommand{.side = TeamSide::kHome,
+                                                    .tactic = tacticNamed("late")}}}});
+  stepTimes(simulation, 90);
+  REQUIRE(simulation.state().tactics().home == tacticNamed("late"));
+  REQUIRE(simulation.state().phase(TeamSide::kHome).has_value());
+  REQUIRE_FALSE(simulation.state().phase(TeamSide::kAway).has_value());
 }

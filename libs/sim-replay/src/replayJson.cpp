@@ -244,6 +244,12 @@ void addCommandFields(Json& json, const SimMatch::PassCommand& command) {
   json["receiver"] = command.receiver ? Json(command.receiver->value()) : Json(nullptr);
 }
 
+void addCommandFields(Json& json, const SimMatch::ChangeTacticCommand& command) {
+  json["type"] = "changeTactic";
+  json["side"] = SimMatch::teamSideName(command.side);
+  json["tactic"] = tacticJson(command.tactic);
+}
+
 // Commands in execution order, each with its position within its tick.
 [[nodiscard]] Json commandsJson(std::vector<ScheduledCommand> commands) {
   std::ranges::stable_sort(commands, {}, &ScheduledCommand::tick);
@@ -633,6 +639,14 @@ constexpr std::int64_t kMaxTick = std::int64_t{1} << 53;
                                  .target = readVec2(field.member("target")),
                                  .speed = field.member("speed").number(),
                                  .receiver = readOwner(field.member("receiver"))};
+  }
+  if (type == "changeTactic") {
+    const TeamSide side = readSide(field.member("side"));
+    auto tactic = readTactic(field.member("tactic"));
+    if (!tactic) {
+      field.member("tactic").fail("a tactic change needs a tactic");
+    }
+    return SimMatch::ChangeTacticCommand{.side = side, .tactic = *std::move(tactic)};
   }
   field.member("type").fail(std::format("unknown command type \"{}\"", type));
 }

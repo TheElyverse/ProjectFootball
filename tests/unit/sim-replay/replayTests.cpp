@@ -12,9 +12,12 @@
 #include "matchSetup.hpp"
 #include "matchSimulation.hpp"
 #include "matchStateHash.hpp"
+#include "referenceTactic.hpp"
 #include "replay.hpp"
 #include "replayJson.hpp"
+#include "scenarios.hpp"
 #include "stableHash.hpp"
+#include "tactic.hpp"
 #include "version.hpp"
 
 using ElyverseFootball::SimCore::coreVersion;
@@ -191,6 +194,42 @@ TEST_CASE("A replay survives the JSON round trip unchanged", "[replay]") {
   REQUIRE(parsed.has_value());
   REQUIRE(*parsed == replay);
   REQUIRE(playReplay(*parsed).has_value());
+}
+
+TEST_CASE("A match with a tactic change replays identically", "[replay]") {
+  using ElyverseFootball::SimMatch::ChangeTacticCommand;
+  using ElyverseFootball::SimMatch::TeamSide;
+  using ElyverseFootball::SimTactics::referenceTacticSpec;
+  using ElyverseFootball::SimTactics::Tactic;
+  const auto reference = Tactic::create(referenceTacticSpec());
+  auto boldSpec = referenceTacticSpec();
+  boldSpec.name = "bold";
+  for (auto& phase : boldSpec.phases) {
+    phase.lineHeight = 0.45;
+    phase.pressingIntensity = 1.0;
+    phase.passingRisk = 0.9;
+  }
+  const auto bold = Tactic::create(boldSpec);
+  REQUIRE(reference.has_value());
+  REQUIRE(bold.has_value());
+  const auto unchanged =
+      ElyverseFootball::SimMatch::makeTacticMatch({.home = *reference, .away = *reference}, 11);
+  REQUIRE(unchanged.has_value());
+  MatchSetup changed = *unchanged;
+  changed.commands.push_back(
+      {.tick = SimTick(90),
+       .command = ChangeTacticCommand{.side = TeamSide::kAway, .tactic = *bold}});
+
+  const Replay replay = recorded(changed, 300);
+  const auto parsed = parseReplayJson(toReplayJson(replay));
+  REQUIRE(parsed.has_value());
+  REQUIRE(*parsed == replay);
+  const auto playback = playReplay(*parsed);
+  REQUIRE(playback.has_value());
+  REQUIRE(playback->finalStateHash == replay.checkpoints.back().stateHash);
+  // The change takes effect: the match without it ends elsewhere.
+  REQUIRE(recorded(*unchanged, 300).checkpoints.back().stateHash !=
+          replay.checkpoints.back().stateHash);
 }
 
 TEST_CASE("The seed is written as a decimal string", "[replay]") {

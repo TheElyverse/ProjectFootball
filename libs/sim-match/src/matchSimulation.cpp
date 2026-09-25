@@ -5,6 +5,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <expected>
+#include <format>
 #include <functional>
 #include <limits>
 #include <set>
@@ -13,6 +14,8 @@
 #include <utility>
 #include <variant>
 #include <vector>
+
+#include "tacticHash.hpp"
 
 namespace ElyverseFootball::SimMatch {
 namespace {
@@ -121,6 +124,18 @@ static_assert(static_cast<std::size_t>(RandomNumberGeneratorDomain::kAi) + 1 ==
   return std::nullopt;
 }
 
+[[nodiscard]] std::optional<MatchCommandError> validate(const MatchState& state,
+                                                        const ChangeTacticCommand& command) {
+  if (std::cmp_not_equal(command.tactic.slots().size(), state.playersPerSide())) {
+    return MatchCommandError{
+        .code = MatchCommandErrorCode::kTacticDoesNotFitSquad,
+        .message = std::format("{}'s new tactic '{}' has {} slots for {} players",
+                               teamSideName(command.side), command.tactic.name(),
+                               command.tactic.slots().size(), state.playersPerSide())};
+  }
+  return std::nullopt;
+}
+
 // Validation needs only the squad, which no step changes, so a command valid
 // when scheduled is still valid when applied.
 [[nodiscard]] std::optional<MatchCommandError> validate(const MatchState& state,
@@ -154,6 +169,15 @@ void apply(const PassCommand& command, const MatchState& /*state*/, const SimCor
                                    .target = command.target,
                                    .speed = command.speed,
                                    .receiver = command.receiver});
+}
+
+void apply(const ChangeTacticCommand& command, const MatchState& /*state*/,
+           const SimCore::SimTick tick, MatchStateWriter& writer, std::vector<MatchEvent>& events) {
+  events.emplace_back(TacticChanged{.tick = tick,
+                                    .side = command.side,
+                                    .tactic = command.tactic.name(),
+                                    .contentHash = SimTactics::contentHash(command.tactic)});
+  writer.setTactic(command.side, command.tactic);
 }
 
 }  // namespace

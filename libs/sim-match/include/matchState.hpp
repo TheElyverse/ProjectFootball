@@ -410,6 +410,8 @@ class MatchStateWriter {
   void setPress(TeamSide side, std::optional<TeamPress> press);
   // Throws std::invalid_argument for a player not on that side.
   void setChaser(TeamSide side, std::optional<SimCore::PlayerId> chaser);
+  // Throws std::invalid_argument for a tactic that does not fit the squad.
+  void setTactic(TeamSide side, SimTactics::Tactic tactic);
   void setPitchControl(std::optional<PitchControlGrid> grid) {
     state_->pitchControl_ = std::move(grid);
   }

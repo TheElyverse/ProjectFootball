@@ -352,6 +352,15 @@ void MatchStateWriter::setPhase(const TeamSide side, const std::optional<TeamPha
   (side == TeamSide::kHome ? state_->phases_[0] : state_->phases_[1]) = phase;
 }
 
+void MatchStateWriter::setTactic(const TeamSide side, SimTactics::Tactic tactic) {
+  if (std::cmp_not_equal(tactic.slots().size(), state_->playersPerSide())) {
+    throw std::invalid_argument(std::format(
+        "MatchStateWriter: {}'s tactic '{}' has {} slots for {} players", teamSideName(side),
+        tactic.name(), tactic.slots().size(), state_->playersPerSide()));
+  }
+  (side == TeamSide::kHome ? state_->tactics_.home : state_->tactics_.away) = std::move(tactic);
+}
+
 void MatchStateWriter::setPress(const TeamSide side, std::optional<TeamPress> press) {
   if (press) {
     if (!state_->tactics_.of(side)) {

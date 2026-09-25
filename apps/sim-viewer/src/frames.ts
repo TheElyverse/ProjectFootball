@@ -83,7 +83,13 @@ export type MatchEvent = { readonly tick: number } & (
         readonly subject: number;
       }[];
     }
-  | { readonly type: "pressingEnded"; readonly side: TeamSide; readonly outcome: string }
+    | { readonly type: "pressingEnded"; readonly side: TeamSide; readonly outcome: string }
+  | {
+      readonly type: "tacticChanged";
+      readonly side: TeamSide;
+      readonly tactic: string;
+      readonly contentHash: string;
+    }
   | {
       readonly type: "phaseChanged";
       readonly side: TeamSide;
@@ -241,7 +247,9 @@ export function describeEvent(event: MatchEvent): string {
     case "pressingStarted":
       return `${event.side} presses #${event.carrier} (${event.trigger ?? "pressing phase"}, ${event.assignments.length} players)`;
     case "pressingEnded":
-      return `${event.side} press ends: ${event.outcome}`;
+            return `${event.side} press ends: ${event.outcome}`;
+    case "tacticChanged":
+      return `${event.side} switches to ${event.tactic}`;
     default:
       // A newer core may record events this viewer does not know yet.
       return (event as { readonly type: string }).type;

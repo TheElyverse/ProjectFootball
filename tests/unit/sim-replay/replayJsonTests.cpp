@@ -182,3 +182,20 @@ TEST_CASE("A malformed tactic in a replay is rejected with its field", "[replayJ
   requireRejected(validJsonWith(R"("tactics": {)", R"("tacticz": {)"), kMalformed,
                   "initialState.tactics: missing");
 }
+
+TEST_CASE("A tactic change needs a side and a tactic", "[replayJson]") {
+  const auto withCommand = [](const std::string& command) {
+    return validJsonWith("\"commands\": []", "\"commands\": [" + command + "]");
+  };
+  requireRejected(
+      withCommand(
+          R"({"tick": 1, "order": 0, "type": "changeTactic", "side": "home", "tactic": null})"),
+      kMalformed, "commands[0].tactic: a tactic change needs a tactic");
+  requireRejected(
+      withCommand(
+          R"({"tick": 1, "order": 0, "type": "changeTactic", "side": "both", "tactic": null})"),
+      kMalformed, "commands[0].side");
+  requireRejected(withCommand(R"({"tick": 1, "order": 0, "type": "changeTactic", "side": "home",
+                                  "tactic": {"format": "elyverse-tactic"}})"),
+                  kMalformed, "commands[0].tactic");
+}
