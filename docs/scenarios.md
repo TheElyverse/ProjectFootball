@@ -14,6 +14,11 @@ in `sim-match` (`scenarios.hpp`), and `sim-cli --scenario <name>` runs one.
 | `intercepted-pass` | home player 1's only option is a risky pass past away player 8 |
 | `no-passing-option` | home player 1 on the ball, every teammate behind him out of sight |
 | `tactic-match` | the reference tactic against itself, home's forward kicks off      |
+| `transition-3v2` | home wins the ball in midfield, three attackers against two defenders ([golden](golden-scenarios.md)) |
+| `isolated-winger` | home plays out to an isolated winger, away presses on the trigger |
+| `touchline-trap` | away's receiver faces his own goal at the touchline, home presses four players |
+| `lone-press` | the touchline trap with one home presser instead of four |
+| `run-behind-line` | home's striker level with away's defensive line, space behind it |
 
 All scenarios use the 60 × 40 m example pitch and the default `MatchConfig`
 (30 Hz). `sim-cli --list-scenarios` prints the catalog.

@@ -8,6 +8,7 @@ add_library(sim-match STATIC
         src/matchStateHash.cpp
         src/matchSetup.cpp
         src/scenarios.cpp
+        src/goldenScenarios.cpp
         src/spatialQueries.cpp
         src/perception.cpp
         src/passing.cpp

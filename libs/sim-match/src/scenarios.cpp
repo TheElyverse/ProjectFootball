@@ -9,6 +9,7 @@
 #include <vector>
 
 #include "ballMovement.hpp"
+#include "goldenScenarios.hpp"
 #include "ids.hpp"
 #include "kickoffScenario.hpp"
 #include "matchCommand.hpp"
@@ -46,6 +47,14 @@ constexpr double kPitchWidth = 40.0;
     return std::unexpected("invalid reference tactic: " + reference.error().front().message);
   }
   return makeTacticMatch({.home = *reference, .away = *reference}, seed);
+}
+
+[[nodiscard]] std::expected<MatchSetup, std::string> touchlineTrap(const std::uint64_t seed) {
+  return makePressingTrap(seed, TrapSpot::kTouchline, 1.0);
+}
+
+[[nodiscard]] std::expected<MatchSetup, std::string> lonePress(const std::uint64_t seed) {
+  return makePressingTrap(seed, TrapSpot::kTouchline, 0.25);
 }
 
 [[nodiscard]] std::expected<MatchSetup, std::string> rollingBall(const std::uint64_t seed) {
@@ -244,6 +253,25 @@ constexpr std::array kScenarios{
     ScenarioDefinition{.name = "tactic-match",
                        .description = "reference tactic against reference tactic, home kicks off",
                        .make = &tacticMatch},
+    ScenarioDefinition{.name = "transition-3v2",
+                       .description = "home wins the ball in midfield, three attackers against "
+                                      "two defenders",
+                       .make = &makeTransitionThreeVersusTwo},
+    ScenarioDefinition{.name = "isolated-winger",
+                       .description = "home plays out to an isolated winger, away presses on "
+                                      "the trigger",
+                       .make = &makeIsolatedWinger},
+    ScenarioDefinition{.name = "touchline-trap",
+                       .description = "away's receiver faces his own goal at the touchline, home "
+                                      "presses four players",
+                       .make = &touchlineTrap},
+    ScenarioDefinition{.name = "lone-press",
+                       .description = "the touchline trap with one home presser instead of four",
+                       .make = &lonePress},
+    ScenarioDefinition{.name = "run-behind-line",
+                       .description = "home's striker level with away's defensive line, space "
+                                      "behind it",
+                       .make = &makeRunBehindTheLine},
 };
 
 }  // namespace
