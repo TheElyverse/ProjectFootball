@@ -56,7 +56,8 @@ The state also holds which team has the ball, `possession()` -- the team, the
 tick it won the ball and whether it won it from the opponent -- and the
 tactical phase of each side with a tactic, `phase(side)`. Both are empty in a
 state created from a spec and kept up to date by the tactical phase system; see
-[match phases](match-phases.md).
+[match phases](match-phases.md). Likewise `pitchControl()` caches the
+[pitch-control](pitch-control.md) grid between refreshes.
 
 Every player also has a perception memory, `perception(playerIndex)`: what he
 believes about the ball and the other players (see [perception](perception.md)).

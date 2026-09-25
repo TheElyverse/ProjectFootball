@@ -19,7 +19,7 @@ validation leaves no file behind.
 ```json
 {
   "schemaVersion": 3,
-  "coreVersion": "0.8.0",
+  "coreVersion": "0.9.0",
   "createdAt": "2026-09-24T10:00:00Z",
   "seed": "18446744073709551615",
   "gameTime": 300,
@@ -59,7 +59,8 @@ validation leaves no file behind.
                 "riskWeight": 0.3
       }
     },
-    "phases": { "intervalTicks": 10, "transitionSeconds": 4.0, "hysteresisMeters": 3.0 }
+        "phases": { "intervalTicks": 10, "transitionSeconds": 4.0, "hysteresisMeters": 3.0 },
+    "pitchControl": { "intervalTicks": 10, "cellSize": 2.0, "controlSeconds": 0.5 }
   },
   "initialState": {
     "pitch": { "length": 60.0, "width": 40.0 },
@@ -89,7 +90,7 @@ validation leaves no file behind.
     { "tick": 45, "order": 1, "type": "movePlayer", "playerId": 2, "target": { "x": 30.0, "y": 20.0 } }
   ],
   "checkpoints": [
-    { "tick": 0, "stateHash": "2c734b279e56a19a", "eventHash": "cbf29ce484222325" },
+    { "tick": 0, "stateHash": "172f58f16ce4360e", "eventHash": "cbf29ce484222325" },
     { "tick": 30, "stateHash": "...", "eventHash": "..." }
   ]
 }
