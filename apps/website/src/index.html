@@ -1,0 +1,767 @@
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Elyverse: Football — Living Football</title>
+    <meta
+      name="description"
+      content="Elyverse: Football is a football management game in development for PC. Deep football, meaningful decisions, less busywork."
+    />
+    <meta name="theme-color" content="#040907" />
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="Elyverse: Football — Living Football" />
+    <meta
+      property="og:description"
+      content="Build a club with an identity. Shape how your team plays, and understand why it wins — or why it falls apart."
+    />
+    <link rel="icon" href="assets/favicon.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="styles.css" />
+    <script>
+      document.documentElement.classList.replace("no-js", "js");
+    </script>
+    <script src="main.js" defer></script>
+  </head>
+
+  <body class="overflow-x-clip">
+    <a
+      href="#main"
+      class="sr-only z-50 rounded-full bg-volt-400 px-4 py-2 font-semibold text-night-950 focus:not-sr-only focus:fixed focus:top-4 focus:left-4"
+      >Skip to content</a
+    >
+
+    <!-- ============================================================ Header -->
+    <header
+      id="site-header"
+      class="fixed inset-x-0 top-0 z-40 border-b border-transparent transition-colors duration-300 data-[scrolled]:border-white/8 data-[scrolled]:bg-night-950/85 data-[scrolled]:backdrop-blur-lg"
+    >
+      <nav class="container-page flex h-18 items-center justify-between gap-6" aria-label="Main">
+        <a href="#top" class="flex items-center gap-3" aria-label="Elyverse: Football — home">
+          <img src="assets/logo.svg" alt="" class="size-9" width="36" height="36" />
+          <span class="font-display text-lg leading-none font-bold tracking-wide uppercase font-stretch-condensed">
+            Elyverse<span class="text-volt-400">:</span> Football
+          </span>
+        </a>
+
+        <ul class="hidden items-center gap-8 font-display text-sm font-semibold tracking-widest text-mist uppercase lg:flex">
+          <li><a class="transition hover:text-chalk" href="#features">Features</a></li>
+          <li><a class="transition hover:text-chalk" href="#match">Match engine</a></li>
+          <li><a class="transition hover:text-chalk" href="#modes">Modes</a></li>
+          <li><a class="transition hover:text-chalk" href="#roadmap">Roadmap</a></li>
+          <li><a class="transition hover:text-chalk" href="#sandbox">Sandbox</a></li>
+        </ul>
+
+        <div class="flex items-center gap-3">
+          <a
+            href="https://github.com/TheElyverse/ProjectFootball"
+            class="btn-primary hidden px-5! py-2.5! text-sm! sm:inline-flex"
+            rel="noopener"
+          >
+            Follow development
+          </a>
+          <button
+            id="menu-toggle"
+            type="button"
+            class="grid size-11 place-items-center rounded-full border border-white/15 text-chalk lg:hidden"
+            aria-controls="mobile-menu"
+            aria-expanded="false"
+          >
+            <span class="sr-only">Open menu</span>
+            <svg class="size-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+              <path d="M4 7h16M4 12h16M4 17h16" stroke-linecap="round" />
+            </svg>
+          </button>
+        </div>
+      </nav>
+
+      <div id="mobile-menu" class="hidden border-t border-white/8 bg-night-950/95 backdrop-blur-lg lg:hidden">
+        <ul class="container-page flex flex-col py-4 font-display text-lg font-semibold tracking-widest uppercase">
+          <li><a class="block py-3" href="#features">Features</a></li>
+          <li><a class="block py-3" href="#match">Match engine</a></li>
+          <li><a class="block py-3" href="#modes">Modes</a></li>
+          <li><a class="block py-3" href="#roadmap">Roadmap</a></li>
+          <li><a class="block py-3" href="#sandbox">Sandbox</a></li>
+          <li class="pt-3">
+            <a href="https://github.com/TheElyverse/ProjectFootball" class="btn-primary" rel="noopener">Follow development</a>
+          </li>
+        </ul>
+      </div>
+    </header>
+
+    <main id="main">
+      <!-- ============================================================ Hero -->
+      <section id="top" class="relative isolate overflow-hidden pt-32 pb-20 sm:pt-40 lg:pb-28">
+        <!-- Floodlight glow -->
+        <div
+          aria-hidden="true"
+          class="absolute inset-0 -z-10 bg-[radial-gradient(ellipse_80%_60%_at_70%_0%,rgb(212_255_79/0.16),transparent_60%),radial-gradient(ellipse_60%_50%_at_0%_100%,rgb(111_211_255/0.08),transparent_60%)]"
+        ></div>
+        <div aria-hidden="true" class="grass absolute inset-0 -z-20 opacity-60"></div>
+
+        <div class="container-page grid items-center gap-14 lg:grid-cols-[1.05fr_1fr]">
+          <div>
+            <p class="inline-flex items-center gap-2 rounded-full border border-volt-400/30 bg-volt-400/10 px-4 py-1.5 font-display text-xs font-semibold tracking-[0.2em] text-volt-300 uppercase">
+              <span class="relative flex size-2">
+                <span class="absolute inline-flex size-full animate-ping rounded-full bg-volt-400 opacity-75"></span>
+                <span class="relative inline-flex size-2 rounded-full bg-volt-400"></span>
+              </span>
+              In development for PC
+            </p>
+
+            <h1 class="heading-xl mt-6">
+              Living<br />
+              <span class="bg-linear-to-r from-volt-300 via-volt-400 to-volt-500 bg-clip-text text-transparent">Football.</span>
+            </h1>
+
+            <p class="mt-6 max-w-xl text-lg leading-relaxed text-mist sm:text-xl">
+              Build a club with an identity. Discover players who can change its future. Shape how your team plays —
+              and understand why it wins, or why it falls apart.
+            </p>
+
+            <div class="mt-9 flex flex-wrap gap-4">
+              <a href="https://github.com/TheElyverse/ProjectFootball" class="btn-primary" rel="noopener">
+                <svg class="size-5" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                  <path
+                    d="M12 .5a11.5 11.5 0 0 0-3.64 22.41c.58.1.79-.25.79-.56v-2c-3.2.7-3.87-1.37-3.87-1.37-.53-1.33-1.28-1.69-1.28-1.69-1.04-.71.08-.7.08-.7 1.16.08 1.77 1.19 1.77 1.19 1.03 1.76 2.7 1.25 3.36.96.1-.75.4-1.25.73-1.54-2.55-.29-5.24-1.28-5.24-5.68 0-1.25.45-2.28 1.19-3.08-.12-.29-.52-1.46.11-3.04 0 0 .97-.31 3.17 1.18a11 11 0 0 1 5.77 0c2.2-1.49 3.17-1.18 3.17-1.18.63 1.58.23 2.75.11 3.04.74.8 1.19 1.83 1.19 3.08 0 4.41-2.69 5.38-5.26 5.67.41.36.78 1.06.78 2.14v3.17c0 .31.21.67.8.56A11.5 11.5 0 0 0 12 .5Z"
+                  />
+                </svg>
+                Follow on GitHub
+              </a>
+              <a href="#features" class="btn-ghost">Explore the game</a>
+            </div>
+
+            <dl class="mt-12 flex max-w-lg flex-wrap gap-x-10 gap-y-4 border-t border-white/10 pt-8">
+              <div>
+                <dt class="text-xs tracking-widest text-fog uppercase">Simulation</dt>
+                <dd class="mt-1 font-display text-lg font-bold uppercase font-stretch-condensed sm:text-2xl">Deep</dd>
+              </div>
+              <div>
+                <dt class="text-xs tracking-widest text-fog uppercase">Decisions</dt>
+                <dd class="mt-1 font-display text-lg font-bold uppercase font-stretch-condensed sm:text-2xl">Meaningful</dd>
+              </div>
+              <div>
+                <dt class="text-xs tracking-widest text-fog uppercase">Busywork</dt>
+                <dd class="mt-1 font-display text-lg font-bold text-volt-400 uppercase font-stretch-condensed sm:text-2xl">Zero</dd>
+              </div>
+            </dl>
+          </div>
+
+          <!-- Animated pitch: a seven-a-side passing move, drawn in metres (105 × 68). -->
+          <figure class="relative animate-float">
+            <div aria-hidden="true" class="absolute -inset-6 -z-10 rounded-[2.5rem] bg-volt-400/10 blur-3xl"></div>
+            <div class="card overflow-hidden p-3 sm:p-4">
+              <div class="flex items-center justify-between px-2 pb-3 font-mono text-[11px] text-fog">
+                <span class="flex items-center gap-2"
+                  ><span class="size-2 rounded-full bg-volt-400"></span>Elyverse FC
+                  <span class="text-white/30">vs</span>
+                  <span class="size-2 rounded-full bg-coral-400"></span>Rivals</span
+                >
+                <span id="hero-clock">00:00</span>
+              </div>
+              <svg
+                id="hero-pitch"
+                viewBox="-3 -3 111 74"
+                class="w-full rounded-2xl bg-[#0d2419]"
+                role="img"
+                aria-label="A top-down pitch where one team passes the ball around. The player on the ball looks for teammates and picks a pass."
+              >
+                <defs>
+                  <pattern id="stripes" width="15" height="68" patternUnits="userSpaceOnUse">
+                    <rect width="7.5" height="68" fill="rgb(255 255 255 / 0.03)" />
+                  </pattern>
+                  <radialGradient id="cone" cx="0" cy="0.5" r="1">
+                    <stop offset="0" stop-color="#d4ff4f" stop-opacity="0.35" />
+                    <stop offset="1" stop-color="#d4ff4f" stop-opacity="0" />
+                  </radialGradient>
+                </defs>
+                <rect x="-3" y="-3" width="111" height="74" fill="url(#stripes)" />
+                <g fill="none" stroke="rgb(238 244 236 / 0.35)" stroke-width="0.3">
+                  <rect x="0" y="0" width="105" height="68" />
+                  <line x1="52.5" y1="0" x2="52.5" y2="68" />
+                  <circle cx="52.5" cy="34" r="9.15" />
+                  <rect x="0" y="13.84" width="16.5" height="40.32" />
+                  <rect x="88.5" y="13.84" width="16.5" height="40.32" />
+                  <rect x="0" y="24.84" width="5.5" height="18.32" />
+                  <rect x="99.5" y="24.84" width="5.5" height="18.32" />
+                  <path d="M16.5 26.69a9.15 9.15 0 0 1 0 14.62M88.5 26.69a9.15 9.15 0 0 0 0 14.62" />
+                  <rect x="-2" y="30.34" width="2" height="7.32" />
+                  <rect x="105" y="30.34" width="2" height="7.32" />
+                </g>
+                <circle cx="52.5" cy="34" r="0.5" fill="rgb(238 244 236 / 0.5)" />
+                <circle cx="11" cy="34" r="0.4" fill="rgb(238 244 236 / 0.5)" />
+                <circle cx="94" cy="34" r="0.4" fill="rgb(238 244 236 / 0.5)" />
+
+                <!-- Filled in by main.js: vision cone, pass options, players, ball. -->
+                <path id="hero-cone" fill="url(#cone)" />
+                <g id="hero-options" stroke="rgb(238 244 236 / 0.25)" stroke-width="0.35" stroke-dasharray="1 1"></g>
+                <line id="hero-pass" stroke="#d4ff4f" stroke-width="0.5" stroke-linecap="round" />
+                <g id="hero-players"></g>
+                <circle id="hero-ball" r="0.9" fill="#fff" stroke="#040907" stroke-width="0.2" />
+              </svg>
+              <figcaption class="flex flex-wrap items-center gap-x-5 gap-y-2 px-2 pt-3 font-mono text-[11px] text-fog">
+                <span class="flex items-center gap-1.5"><span class="h-2 w-4 rounded-sm bg-volt-400/40"></span>field of view</span>
+                <span class="flex items-center gap-1.5"><span class="h-px w-4 border-t border-dashed border-chalk/50"></span>seen options</span>
+                <span class="flex items-center gap-1.5"><span class="h-0.5 w-4 bg-volt-400"></span>chosen pass</span>
+                <span id="hero-decision" class="ml-auto text-volt-300" aria-live="off"></span>
+              </figcaption>
+            </div>
+          </figure>
+        </div>
+      </section>
+
+      <!-- ======================================================= Marquee -->
+      <div class="border-y border-white/8 bg-night-900 py-5" aria-hidden="true">
+        <div class="flex overflow-hidden [mask-image:linear-gradient(90deg,transparent,black_10%,black_90%,transparent)]">
+          <div class="flex shrink-0 animate-marquee gap-12 pr-12 font-display text-2xl font-bold tracking-wide whitespace-nowrap text-white/25 uppercase font-stretch-condensed">
+            <span>Perceive</span><span class="text-volt-400/60">●</span><span>Decide</span><span class="text-volt-400/60">●</span>
+            <span>Execute</span><span class="text-volt-400/60">●</span><span>Observe</span><span class="text-volt-400/60">●</span>
+            <span>Scout</span><span class="text-volt-400/60">●</span><span>Develop</span><span class="text-volt-400/60">●</span>
+            <span>Delegate</span><span class="text-volt-400/60">●</span><span>Adapt</span><span class="text-volt-400/60">●</span>
+            <span>Perceive</span><span class="text-volt-400/60">●</span><span>Decide</span><span class="text-volt-400/60">●</span>
+            <span>Execute</span><span class="text-volt-400/60">●</span><span>Observe</span><span class="text-volt-400/60">●</span>
+            <span>Scout</span><span class="text-volt-400/60">●</span><span>Develop</span><span class="text-volt-400/60">●</span>
+            <span>Delegate</span><span class="text-volt-400/60">●</span><span>Adapt</span><span class="text-volt-400/60">●</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- ======================================================= Pillars -->
+      <section class="py-24 sm:py-32">
+        <div class="container-page">
+          <div class="max-w-3xl" data-reveal>
+            <p class="eyebrow">Three pillars</p>
+            <h2 class="heading-lg mt-4">Deep football.<br />Meaningful decisions.<br /><span class="text-volt-400">Less busywork.</span></h2>
+            <p class="mt-6 text-lg text-mist">
+              Not more menus — more connected systems. Every decision has consequences you can see, and every routine
+              task can be handed to your staff.
+            </p>
+          </div>
+
+          <div class="mt-16 grid gap-6 md:grid-cols-3">
+            <article class="card group relative overflow-hidden p-8 transition hover:-translate-y-1 hover:border-volt-400/40" data-reveal>
+              <div class="grid size-12 place-items-center rounded-2xl bg-volt-400/15 text-volt-400">
+                <svg class="size-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+                  <circle cx="12" cy="12" r="9" />
+                  <path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18" />
+                </svg>
+              </div>
+              <h3 class="heading-md mt-6">Living Football World</h3>
+              <p class="mt-3 leading-relaxed text-mist">
+                Clubs, leagues, people and markets change. Long saves write their own history instead of freezing in
+                their starting state.
+              </p>
+            </article>
+
+            <article class="card group relative overflow-hidden p-8 transition hover:-translate-y-1 hover:border-volt-400/40" data-reveal>
+              <div class="grid size-12 place-items-center rounded-2xl bg-volt-400/15 text-volt-400">
+                <svg class="size-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+                  <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12Z" />
+                  <circle cx="12" cy="12" r="3" />
+                </svg>
+              </div>
+              <h3 class="heading-md mt-6">Deep Football Simulation</h3>
+              <p class="mt-3 leading-relaxed text-mist">
+                Players perceive, decide and act as individuals. Tactics become visible on the pitch; behaviour emerges
+                from ability, context and principles.
+              </p>
+            </article>
+
+            <article class="card group relative overflow-hidden p-8 transition hover:-translate-y-1 hover:border-volt-400/40" data-reveal>
+              <div class="grid size-12 place-items-center rounded-2xl bg-volt-400/15 text-volt-400">
+                <svg class="size-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+                  <path d="M4 12.5 9 17.5 20 6.5" stroke-linecap="round" stroke-linejoin="round" />
+                </svg>
+              </div>
+              <h3 class="heading-md mt-6">Zero-Busywork Management</h3>
+              <p class="mt-3 leading-relaxed text-mist">
+                No decision, no click. Delegation, policies and an action queue keep you on the choices that matter.
+              </p>
+            </article>
+          </div>
+        </div>
+      </section>
+
+      <!-- ====================================================== Features -->
+      <section id="features" class="relative border-t border-white/8 bg-night-900 py-24 sm:py-32">
+        <div class="container-page space-y-28 sm:space-y-36">
+          <!-- Feature 1: tactics visible on the pitch -->
+          <div id="match" class="grid items-center gap-12 lg:grid-cols-2 lg:gap-20">
+            <div data-reveal>
+              <p class="eyebrow">Match engine</p>
+              <h2 class="heading-lg mt-4">Your ideas, visible on the pitch.</h2>
+              <p class="mt-6 text-lg leading-relaxed text-mist">
+                Every player has his own view of the game. He scans, remembers what he saw, weighs the options he can
+                actually see — and then has to execute. A great playmaker finds the pass behind him; a nervous one only
+                sees the ball at his feet.
+              </p>
+              <ul class="mt-8 space-y-3 text-mist">
+                <li class="flex gap-3"><span class="mt-2 size-1.5 shrink-0 rounded-full bg-volt-400"></span>Individual field of view, scanning and memory</li>
+                <li class="flex gap-3"><span class="mt-2 size-1.5 shrink-0 rounded-full bg-volt-400"></span>Decisions separated from technical execution</li>
+                <li class="flex gap-3"><span class="mt-2 size-1.5 shrink-0 rounded-full bg-volt-400"></span>Deterministic: same match, same seed, same result</li>
+              </ul>
+            </div>
+
+            <div class="card p-6 sm:p-8" data-reveal>
+              <div class="flex items-center justify-between">
+                <p class="font-mono text-xs text-fog">DECISION · 23:41 · #6 Okafor</p>
+                <span class="rounded-full bg-volt-400/15 px-3 py-1 font-mono text-[11px] text-volt-300">under pressure</span>
+              </div>
+              <ol class="mt-6 flex flex-wrap items-center gap-2 font-display text-xs font-semibold tracking-widest uppercase">
+                <li class="rounded-full bg-white/5 px-3 py-1.5 text-mist">Perceive</li>
+                <li class="text-fog" aria-hidden="true">→</li>
+                <li class="rounded-full bg-white/5 px-3 py-1.5 text-mist">Candidates</li>
+                <li class="text-fog" aria-hidden="true">→</li>
+                <li class="rounded-full bg-white/5 px-3 py-1.5 text-mist">Utility</li>
+                <li class="text-fog" aria-hidden="true">→</li>
+                <li class="rounded-full bg-volt-400 px-3 py-1.5 text-night-950">Select</li>
+                <li class="text-fog" aria-hidden="true">→</li>
+                <li class="rounded-full bg-white/5 px-3 py-1.5 text-mist">Execute</li>
+              </ol>
+
+              <div class="mt-8 space-y-4">
+                <div>
+                  <div class="flex justify-between text-sm"><span class="font-semibold">Pass → #8 Lindqvist</span><span class="font-mono text-volt-300">0.62</span></div>
+                  <div class="mt-2 h-2 rounded-full bg-white/5"><div class="h-2 w-[62%] rounded-full bg-volt-400"></div></div>
+                </div>
+                <div>
+                  <div class="flex justify-between text-sm"><span class="text-mist">Pass → #3 Moreau</span><span class="font-mono text-mist">0.24</span></div>
+                  <div class="mt-2 h-2 rounded-full bg-white/5"><div class="h-2 w-[24%] rounded-full bg-chalk/40"></div></div>
+                </div>
+                <div>
+                  <div class="flex justify-between text-sm"><span class="text-mist">Pass → #10 Sato</span><span class="font-mono text-mist">0.14</span></div>
+                  <div class="mt-2 h-2 rounded-full bg-white/5"><div class="h-2 w-[14%] rounded-full bg-chalk/40"></div></div>
+                </div>
+                <div class="opacity-50">
+                  <div class="flex justify-between text-sm"><span class="text-fog line-through">Pass → #9 Adeyemi</span><span class="font-mono text-fog">not seen</span></div>
+                  <div class="mt-2 h-2 rounded-full bg-white/5"></div>
+                </div>
+              </div>
+              <p class="mt-6 border-t border-white/8 pt-4 text-sm text-fog">
+                The striker was free — but he was outside #6's field of view when the ball arrived.
+              </p>
+            </div>
+          </div>
+
+          <!-- Feature 2: delegation -->
+          <div class="grid items-center gap-12 lg:grid-cols-2 lg:gap-20">
+            <div class="lg:order-2" data-reveal>
+              <p class="eyebrow">Management &amp; delegation</p>
+              <h2 class="heading-lg mt-4">A club you can run your way.</h2>
+              <p class="mt-6 text-lg leading-relaxed text-mist">
+                Take charge of recruitment, training and match preparation — or trust your staff with clear goals,
+                limits and escalation rules. Delegated staff run the very same workflow you would, and explain their
+                recommendations and trade-offs.
+              </p>
+              <p class="mt-4 text-lg leading-relaxed text-mist">
+                Delegation is not a casual mode. Good delegation depends on hiring the right people.
+              </p>
+            </div>
+
+            <div class="card p-6 sm:p-8 lg:order-1" data-reveal>
+              <div class="flex flex-col-reverse gap-4 sm:flex-row sm:items-start sm:justify-between">
+                <div>
+                  <p class="font-mono text-xs text-fog">RECRUITMENT POLICY</p>
+                  <p class="mt-1 font-display text-2xl font-bold uppercase font-stretch-condensed">Right centre-back</p>
+                </div>
+                <div class="flex self-start rounded-full bg-white/5 p-1 font-display text-xs font-semibold tracking-widest whitespace-nowrap uppercase">
+                  <span class="rounded-full px-3 py-1.5 text-fog">Take control</span>
+                  <span class="rounded-full bg-volt-400 px-3 py-1.5 text-night-950">Delegate</span>
+                </div>
+              </div>
+
+              <dl class="mt-6 grid grid-cols-2 gap-3 text-sm">
+                <div class="rounded-2xl bg-white/5 p-4"><dt class="text-fog">Age</dt><dd class="mt-1 font-semibold">18 – 24</dd></div>
+                <div class="rounded-2xl bg-white/5 p-4"><dt class="text-fog">Profile</dt><dd class="mt-1 font-semibold">Comfortable in build-up</dd></div>
+                <div class="rounded-2xl bg-white/5 p-4"><dt class="text-fog">Max. fee</dt><dd class="mt-1 font-semibold">€25M</dd></div>
+                <div class="rounded-2xl bg-white/5 p-4"><dt class="text-fog">Owner</dt><dd class="mt-1 font-semibold">Sporting Director</dd></div>
+              </dl>
+
+              <div class="mt-6 rounded-2xl border border-coral-400/30 bg-coral-400/10 p-4 text-sm">
+                <p class="font-semibold text-coral-400">Escalate to me when</p>
+                <ul class="mt-2 space-y-1 text-mist">
+                  <li>· the fee exceeds €18M</li>
+                  <li>· the candidate plays an unusual role</li>
+                  <li>· two candidates are rated alike</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+
+          <!-- Feature 3: scouting under uncertainty -->
+          <div class="grid items-center gap-12 lg:grid-cols-2 lg:gap-20">
+            <div data-reveal>
+              <p class="eyebrow">Scouting &amp; development</p>
+              <h2 class="heading-lg mt-4">Players worth discovering.</h2>
+              <p class="mt-6 text-lg leading-relaxed text-mist">
+                Scouting gives you an imperfect picture: estimates and confidence, not all-knowing numbers. There is no
+                single potential rating. Talent needs opportunity, and development depends on coaching, playing time,
+                challenge and health.
+              </p>
+              <p class="mt-4 text-lg leading-relaxed text-mist">
+                Early bloomers, late bloomers, plateaus and breakthroughs — every generated player has his own story.
+              </p>
+            </div>
+
+            <div class="card p-6 sm:p-8" data-reveal>
+              <div class="flex items-center gap-4">
+                <div class="grid size-14 place-items-center rounded-2xl bg-linear-to-br from-sky-400/30 to-volt-400/20 font-display text-xl font-bold">
+                  JN
+                </div>
+                <div>
+                  <p class="font-display text-2xl font-bold uppercase font-stretch-condensed">Jonas Nyberg</p>
+                  <p class="text-sm text-fog">19 · Central midfielder · 7 scouted matches</p>
+                </div>
+              </div>
+
+              <!-- Ranges: the bar spans the scout's estimate, the marker his best guess. -->
+              <div class="mt-8 space-y-5 text-sm">
+                <div>
+                  <div class="flex justify-between"><span>Scanning</span><span class="font-mono text-mist">14 – 17</span></div>
+                  <div class="relative mt-2 h-2 rounded-full bg-white/5"><div class="absolute inset-y-0 left-[70%] w-[15%] rounded-full bg-volt-400/60"></div><div class="absolute -top-1 left-[78%] h-4 w-0.5 bg-volt-300"></div></div>
+                </div>
+                <div>
+                  <div class="flex justify-between"><span>Short passing</span><span class="font-mono text-mist">11 – 16</span></div>
+                  <div class="relative mt-2 h-2 rounded-full bg-white/5"><div class="absolute inset-y-0 left-[55%] w-[25%] rounded-full bg-volt-400/40"></div><div class="absolute -top-1 left-[66%] h-4 w-0.5 bg-volt-300"></div></div>
+                </div>
+                <div>
+                  <div class="flex justify-between"><span>Composure</span><span class="font-mono text-mist">6 – 15</span></div>
+                  <div class="relative mt-2 h-2 rounded-full bg-white/5"><div class="absolute inset-y-0 left-[30%] w-[45%] rounded-full bg-coral-400/40"></div><div class="absolute -top-1 left-[52%] h-4 w-0.5 bg-coral-400"></div></div>
+                </div>
+              </div>
+
+              <div class="mt-8 rounded-2xl bg-white/5 p-4 text-sm leading-relaxed text-mist">
+                <span class="font-semibold text-chalk">Head scout:</span> “Sees the pitch early and plays forward. I can't
+                tell yet how he copes under pressure — we need to see him against a pressing side.”
+              </div>
+            </div>
+          </div>
+
+          <!-- Feature 4: explainable results -->
+          <div class="grid items-center gap-12 lg:grid-cols-2 lg:gap-20">
+            <div class="lg:order-2" data-reveal>
+              <p class="eyebrow">Analytics &amp; explanations</p>
+              <h2 class="heading-lg mt-4">Results you can learn from.</h2>
+              <p class="mt-6 text-lg leading-relaxed text-mist">
+                The engine knows what each player saw, which options he weighed and how well he executed. So your
+                analysts don't just show statistics — they explain causes: where a passing move broke down, why a press
+                failed, and what your team could do differently next time.
+              </p>
+            </div>
+
+            <div class="card relative overflow-hidden p-6 sm:p-8 lg:order-1" data-reveal>
+              <div aria-hidden="true" class="absolute -top-10 -right-4 font-display text-[10rem] leading-none text-volt-400/10">“</div>
+              <p class="font-mono text-xs text-fog">ASSISTANT MANAGER · POST-MATCH</p>
+              <blockquote class="relative mt-4 text-lg leading-relaxed">
+                Our left centre-back lost the ball <span class="font-semibold text-coral-400">6 times</span> under heavy
+                pressure. In <span class="font-semibold text-volt-300">four</span> situations he spotted our defensive
+                midfielder too late; in <span class="font-semibold text-volt-300">two</span> the decision was right, but
+                the pass was inaccurate.
+              </blockquote>
+              <div class="mt-6 grid grid-cols-3 gap-3 text-center">
+                <div class="rounded-2xl bg-white/5 p-3"><p class="font-display text-3xl font-bold text-coral-400">6</p><p class="text-xs text-fog">losses</p></div>
+                <div class="rounded-2xl bg-white/5 p-3"><p class="font-display text-3xl font-bold">4</p><p class="text-xs text-fog">perception</p></div>
+                <div class="rounded-2xl bg-white/5 p-3"><p class="font-display text-3xl font-bold">2</p><p class="text-xs text-fog">execution</p></div>
+              </div>
+              <div class="mt-4 flex flex-wrap gap-2 text-xs">
+                <span class="rounded-full border border-white/10 px-3 py-1.5 text-mist">Suggest: scanning drills</span>
+                <span class="rounded-full border border-white/10 px-3 py-1.5 text-mist">Suggest: drop the #6 deeper</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ================================================== Living world -->
+      <section class="relative isolate overflow-hidden py-24 sm:py-32">
+        <div
+          aria-hidden="true"
+          class="absolute inset-0 -z-10 bg-[radial-gradient(ellipse_70%_60%_at_50%_100%,rgb(212_255_79/0.10),transparent_70%)]"
+        ></div>
+        <div class="container-page">
+          <div class="mx-auto max-w-3xl text-center" data-reveal>
+            <p class="eyebrow">Living football world</p>
+            <h2 class="heading-lg mt-4">A world that keeps moving.</h2>
+            <p class="mt-6 text-lg text-mist">
+              The world is not a backdrop. Clubs chase their own goals and react to results — with or without you.
+            </p>
+          </div>
+
+          <div class="mt-16 grid gap-px overflow-hidden rounded-3xl border border-white/8 bg-white/8 sm:grid-cols-2 lg:grid-cols-4">
+            <div class="bg-night-950 p-8" data-reveal>
+              <p class="font-display text-5xl font-bold text-volt-400 font-stretch-condensed">01</p>
+              <h3 class="mt-4 font-display text-xl font-bold uppercase font-stretch-condensed">Club identity</h3>
+              <p class="mt-2 text-sm leading-relaxed text-mist">Youth or stars, possession or pressing — shaped by coaches, academies and success, and able to drift.</p>
+            </div>
+            <div class="bg-night-950 p-8" data-reveal>
+              <p class="font-display text-5xl font-bold text-volt-400 font-stretch-condensed">02</p>
+              <h3 class="mt-4 font-display text-xl font-bold uppercase font-stretch-condensed">Dynamic economy</h3>
+              <p class="mt-2 text-sm leading-relaxed text-mist">Leagues gain and lose prestige; transfer markets react to scarcity, contracts and finances.</p>
+            </div>
+            <div class="bg-night-950 p-8" data-reveal>
+              <p class="font-display text-5xl font-bold text-volt-400 font-stretch-condensed">03</p>
+              <h3 class="mt-4 font-display text-xl font-bold uppercase font-stretch-condensed">People &amp; relationships</h3>
+              <p class="mt-2 text-sm leading-relaxed text-mist">Coaches, directors, players and agents build reputations. Rivalries grow out of what happened.</p>
+            </div>
+            <div class="bg-night-950 p-8" data-reveal>
+              <p class="font-display text-5xl font-bold text-volt-400 font-stretch-condensed">04</p>
+              <h3 class="mt-4 font-display text-xl font-bold uppercase font-stretch-condensed">New generations</h3>
+              <p class="mt-2 text-sm leading-relaxed text-mist">Procedurally generated players with their own identity, personality and path — every career is different.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ===================================================== Core loop -->
+      <section class="border-y border-white/8 bg-night-900 py-24 sm:py-28">
+        <div class="container-page">
+          <div class="max-w-2xl" data-reveal>
+            <p class="eyebrow">The core loop</p>
+            <h2 class="heading-lg mt-4">Skip the days that don't matter.</h2>
+            <p class="mt-6 text-lg text-mist">
+              Time advances to the next event that needs you. Critical issues interrupt automatically — the game never
+              becomes a "continue" button simulator.
+            </p>
+          </div>
+
+          <ol class="mt-14 grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
+            <li class="card p-6" data-reveal>
+              <span class="font-mono text-xs text-volt-400">01</span>
+              <p class="mt-3 font-display text-2xl font-bold uppercase font-stretch-condensed">Analyze</p>
+              <p class="mt-2 text-sm text-mist">Your action queue shows only what needs a decision.</p>
+            </li>
+            <li class="card p-6" data-reveal>
+              <span class="font-mono text-xs text-volt-400">02</span>
+              <p class="mt-3 font-display text-2xl font-bold uppercase font-stretch-condensed">Decide</p>
+              <p class="mt-2 text-sm text-mist">Adjust tactics, training, squad or transfers.</p>
+            </li>
+            <li class="card p-6" data-reveal>
+              <span class="font-mono text-xs text-volt-400">03</span>
+              <p class="mt-3 font-display text-2xl font-bold uppercase font-stretch-condensed">Delegate</p>
+              <p class="mt-2 text-sm text-mist">Do it yourself, or hand it to staff with a policy.</p>
+            </li>
+            <li class="card p-6" data-reveal>
+              <span class="font-mono text-xs text-volt-400">04</span>
+              <p class="mt-3 font-display text-2xl font-bold uppercase font-stretch-condensed">Watch</p>
+              <p class="mt-2 text-sm text-mist">Follow the match and react when it counts.</p>
+            </li>
+            <li class="card border-volt-400/40 p-6" data-reveal>
+              <span class="font-mono text-xs text-volt-400">05</span>
+              <p class="mt-3 font-display text-2xl font-bold text-volt-400 uppercase font-stretch-condensed">Adapt</p>
+              <p class="mt-2 text-sm text-mist">Understand causes, development and what's next.</p>
+            </li>
+          </ol>
+        </div>
+      </section>
+
+      <!-- ========================================================= Modes -->
+      <section id="modes" class="py-24 sm:py-32">
+        <div class="container-page">
+          <div class="flex flex-wrap items-end justify-between gap-6" data-reveal>
+            <div class="max-w-2xl">
+              <p class="eyebrow">Ways to play</p>
+              <h2 class="heading-lg mt-4">Pick your job.</h2>
+            </div>
+            <p class="max-w-md text-mist">
+              Difficulty comes from information, resources, club size and competition — never from hidden AI bonuses.
+            </p>
+          </div>
+
+          <div class="mt-14 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+            <article class="card flex flex-col p-7 transition hover:border-volt-400/40" data-reveal>
+              <p class="font-mono text-xs text-fog">MODE</p>
+              <h3 class="heading-md mt-2">Full Management</h3>
+              <p class="mt-3 flex-1 text-sm leading-relaxed text-mist">Every system available. Configure responsibilities exactly the way you like.</p>
+            </article>
+            <article class="card flex flex-col p-7 transition hover:border-volt-400/40" data-reveal>
+              <p class="font-mono text-xs text-fog">MODE</p>
+              <h3 class="heading-md mt-2">Head Coach</h3>
+              <p class="mt-3 flex-1 text-sm leading-relaxed text-mist">Transfers and finances delegated. Focus on tactics, training and the squad.</p>
+            </article>
+            <article class="card flex flex-col p-7 transition hover:border-volt-400/40" data-reveal>
+              <p class="font-mono text-xs text-fog">MODE</p>
+              <h3 class="heading-md mt-2">Director</h3>
+              <p class="mt-3 flex-1 text-sm leading-relaxed text-mist">Squad building and club strategy up front; matchday handled by your coach.</p>
+            </article>
+            <article class="card flex flex-col p-7 transition hover:border-volt-400/40" data-reveal>
+              <p class="font-mono text-xs text-fog">MODE</p>
+              <h3 class="heading-md mt-2">Sandbox</h3>
+              <p class="mt-3 flex-1 text-sm leading-relaxed text-mist">Tactical experiments and match simulation without a career.</p>
+            </article>
+          </div>
+        </div>
+      </section>
+
+      <!-- ================================================ Anti-features -->
+      <section class="border-y border-white/8 bg-night-900 py-24 sm:py-28">
+        <div class="container-page grid gap-12 lg:grid-cols-[1fr_1.4fr] lg:gap-20">
+          <div data-reveal>
+            <p class="eyebrow">What you won't find</p>
+            <h2 class="heading-lg mt-4">No filler.<br />No cheating.</h2>
+            <p class="mt-6 text-lg text-mist">
+              What we leave out matters as much as what we build. Same systems for you and the AI clubs — no shortcuts,
+              no hidden hands.
+            </p>
+          </div>
+          <ul class="grid gap-4 sm:grid-cols-2">
+            <li class="flex gap-4 rounded-2xl border border-white/8 p-5" data-reveal>
+              <span class="grid size-8 shrink-0 place-items-center rounded-full bg-coral-400/15 text-coral-400" aria-hidden="true">✕</span>
+              <span class="text-mist"><span class="font-semibold text-chalk">Mandatory press conferences</span> every week</span>
+            </li>
+            <li class="flex gap-4 rounded-2xl border border-white/8 p-5" data-reveal>
+              <span class="grid size-8 shrink-0 place-items-center rounded-full bg-coral-400/15 text-coral-400" aria-hidden="true">✕</span>
+              <span class="text-mist"><span class="font-semibold text-chalk">Hidden momentum</span> deciding matches</span>
+            </li>
+            <li class="flex gap-4 rounded-2xl border border-white/8 p-5" data-reveal>
+              <span class="grid size-8 shrink-0 place-items-center rounded-full bg-coral-400/15 text-coral-400" aria-hidden="true">✕</span>
+              <span class="text-mist"><span class="font-semibold text-chalk">AI that cheats</span> outside the rules you play by</span>
+            </li>
+            <li class="flex gap-4 rounded-2xl border border-white/8 p-5" data-reveal>
+              <span class="grid size-8 shrink-0 place-items-center rounded-full bg-coral-400/15 text-coral-400" aria-hidden="true">✕</span>
+              <span class="text-mist"><span class="font-semibold text-chalk">Daily micromanagement</span> of training and meetings</span>
+            </li>
+            <li class="flex gap-4 rounded-2xl border border-white/8 p-5" data-reveal>
+              <span class="grid size-8 shrink-0 place-items-center rounded-full bg-coral-400/15 text-coral-400" aria-hidden="true">✕</span>
+              <span class="text-mist"><span class="font-semibold text-chalk">A social feed</span> full of meaningless news</span>
+            </li>
+            <li class="flex gap-4 rounded-2xl border border-white/8 p-5" data-reveal>
+              <span class="grid size-8 shrink-0 place-items-center rounded-full bg-coral-400/15 text-coral-400" aria-hidden="true">✕</span>
+              <span class="text-mist"><span class="font-semibold text-chalk">Sped-up physics</span> — shorter matches, never faster players</span>
+            </li>
+          </ul>
+        </div>
+      </section>
+
+      <!-- ======================================================= Roadmap -->
+      <section id="roadmap" class="py-24 sm:py-32">
+        <div class="container-page">
+          <div class="max-w-2xl" data-reveal>
+            <p class="eyebrow">Where we are</p>
+            <h2 class="heading-lg mt-4">Built from the pitch up.</h2>
+            <p class="mt-6 text-lg text-mist">
+              Elyverse: Football is in pre-production. We start with a small football sandbox to prove movement,
+              passing and player decisions — before building the wider club experience on top.
+            </p>
+          </div>
+
+          <div class="relative mt-16">
+          <div aria-hidden="true" class="absolute top-5 right-0 left-0 hidden h-px bg-linear-to-r from-volt-400 via-white/15 to-white/5 lg:block"></div>
+          <ol class="relative grid gap-6 lg:grid-cols-4">
+
+            <li class="relative" data-reveal>
+              <span class="relative grid size-10 place-items-center rounded-full bg-volt-400 font-display font-bold text-night-950 ring-8 ring-night-950">A</span>
+              <div class="card mt-6 border-volt-400/40 p-6">
+                <p class="flex items-center gap-2 font-mono text-xs text-volt-300"><span class="size-1.5 animate-pulse rounded-full bg-volt-400"></span>IN PROGRESS</p>
+                <h3 class="mt-2 font-display text-2xl font-bold uppercase font-stretch-condensed">Football sandbox</h3>
+                <p class="mt-2 text-sm text-mist">7v7 → 11v11, headless and 2D. Three playing styles that are visibly and statistically distinct.</p>
+                <ul class="mt-4 space-y-1.5 text-sm">
+                  <li class="text-chalk"><span class="text-volt-400">✓</span> Deterministic simulation core</li>
+                  <li class="text-chalk"><span class="text-volt-400">✓</span> Movement, perception, passing</li>
+                  <li class="text-chalk"><span class="text-volt-400">✓</span> Replays &amp; 2D debug viewer</li>
+                  <li class="text-fog"><span>○</span> Dribbling, duels, shooting, tactics</li>
+                </ul>
+              </div>
+            </li>
+            <li class="relative" data-reveal>
+              <span class="relative grid size-10 place-items-center rounded-full border border-white/20 bg-night-900 font-display font-bold ring-8 ring-night-950">B</span>
+              <div class="card mt-6 p-6">
+                <p class="font-mono text-xs text-fog">NEXT</p>
+                <h3 class="mt-2 font-display text-2xl font-bold uppercase font-stretch-condensed">Mini league</h3>
+                <p class="mt-2 text-sm text-mist">Four clubs, a season, fitness, training, development and simple transfers.</p>
+              </div>
+            </li>
+            <li class="relative" data-reveal>
+              <span class="relative grid size-10 place-items-center rounded-full border border-white/20 bg-night-900 font-display font-bold ring-8 ring-night-950">C</span>
+              <div class="card mt-6 p-6">
+                <p class="font-mono text-xs text-fog">LATER</p>
+                <h3 class="mt-2 font-display text-2xl font-bold uppercase font-stretch-condensed">Management layer</h3>
+                <p class="mt-2 text-sm text-mist">Staff, delegation, recruitment policies, the action queue and club AI.</p>
+              </div>
+            </li>
+            <li class="relative" data-reveal>
+              <span class="relative grid size-10 place-items-center rounded-full border border-white/20 bg-night-900 font-display font-bold ring-8 ring-night-950">D</span>
+              <div class="card mt-6 p-6">
+                <p class="font-mono text-xs text-fog">LATER</p>
+                <h3 class="mt-2 font-display text-2xl font-bold uppercase font-stretch-condensed">Matchday in 3D</h3>
+                <p class="mt-2 text-sm text-mist">Camera, animation and UI in Unreal Engine 5 — presenting the simulation, never replacing it.</p>
+              </div>
+            </li>
+          </ol>
+          </div>
+        </div>
+      </section>
+
+      <!-- ======================================================= Sandbox -->
+      <section id="sandbox" class="border-t border-white/8 bg-night-900 py-24 sm:py-32">
+        <div class="container-page grid items-center gap-12 lg:grid-cols-2 lg:gap-20">
+          <div data-reveal>
+            <p class="eyebrow">Try the sandbox</p>
+            <h2 class="heading-lg mt-4">Open source.<br />Open development.</h2>
+            <p class="mt-6 text-lg leading-relaxed text-mist">
+              The sandbox runs headlessly from the command line. Run a passing scenario, record it, and play it back tick
+              for tick — then watch it in the browser, down to what each player sees and why he passed where he did.
+            </p>
+            <div class="mt-8 flex flex-wrap gap-4">
+              <a href="https://github.com/TheElyverse/ProjectFootball#try-the-sandbox" class="btn-primary" rel="noopener">Get started</a>
+              <a href="https://github.com/TheElyverse/ProjectFootball/blob/main/docs/game-design-document.md" class="btn-ghost" rel="noopener">Read the design doc</a>
+            </div>
+          </div>
+
+          <div class="overflow-hidden rounded-3xl border border-white/10 bg-night-950 shadow-2xl shadow-black/50" data-reveal>
+            <div class="flex items-center gap-2 border-b border-white/8 px-5 py-3">
+              <span class="size-3 rounded-full bg-coral-400/80"></span>
+              <span class="size-3 rounded-full bg-volt-400/60"></span>
+              <span class="size-3 rounded-full bg-sky-400/60"></span>
+              <span class="ml-3 font-mono text-xs text-fog">sim-cli</span>
+            </div>
+            <pre class="overflow-x-auto p-6 font-mono text-[13px] leading-relaxed text-mist"><code><span class="text-fog"># run a passing scenario and record it</span>
+<span class="text-volt-400">$</span> sim-cli --scenario pass-chain --seed 7 \
+    --ticks 600 --replay-out pass-chain.json \
+    --frames-out frames.json
+
+<span class="text-fog"># play it back and verify, tick for tick</span>
+<span class="text-volt-400">$</span> sim-cli --play pass-chain.json
+<span class="text-chalk">replay verified</span> <span class="text-volt-300">✓</span></code></pre>
+          </div>
+        </div>
+      </section>
+
+      <!-- =========================================================== CTA -->
+      <section class="relative isolate overflow-hidden py-28 sm:py-36">
+        <div
+          aria-hidden="true"
+          class="absolute inset-0 -z-10 bg-[radial-gradient(ellipse_60%_80%_at_50%_120%,rgb(212_255_79/0.22),transparent_70%)]"
+        ></div>
+        <div class="container-page text-center" data-reveal>
+          <img src="assets/logo.svg" alt="" class="mx-auto size-16" width="64" height="64" />
+          <h2 class="heading-xl mx-auto mt-8 max-w-4xl">Join the squad.</h2>
+          <p class="mx-auto mt-6 max-w-xl text-lg text-mist">
+            Follow the development, star the repository, or help build the match engine.
+          </p>
+          <div class="mt-10 flex flex-wrap justify-center gap-4">
+            <a href="https://github.com/TheElyverse/ProjectFootball" class="btn-primary" rel="noopener">Follow on GitHub</a>
+            <a href="https://github.com/TheElyverse/ProjectFootball/blob/main/CONTRIBUTING.md" class="btn-ghost" rel="noopener">Contribute</a>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <!-- ============================================================ Footer -->
+    <footer class="border-t border-white/8 bg-night-950 py-12">
+      <div class="container-page flex flex-col gap-8 sm:flex-row sm:items-center sm:justify-between">
+        <div class="flex items-center gap-3">
+          <img src="assets/logo.svg" alt="" class="size-8" width="32" height="32" />
+          <div>
+            <p class="font-display font-bold tracking-wide uppercase font-stretch-condensed">Elyverse: Football</p>
+            <p class="text-sm text-fog">Living Football. In pre-production for PC.</p>
+          </div>
+        </div>
+        <ul class="flex flex-wrap gap-x-6 gap-y-2 text-sm text-mist">
+          <li><a class="hover:text-volt-400" href="https://github.com/TheElyverse/ProjectFootball" rel="noopener">GitHub</a></li>
+          <li><a class="hover:text-volt-400" href="https://github.com/TheElyverse/ProjectFootball/milestones" rel="noopener">Milestones</a></li>
+          <li><a class="hover:text-volt-400" href="https://github.com/TheElyverse/ProjectFootball/blob/main/CONTRIBUTING.md" rel="noopener">Contributing</a></li>
+        </ul>
+      </div>
+      <p class="container-page mt-8 text-xs text-fog">© <span data-year>2026</span> The Elyverse. All clubs, players and names shown are fictional.</p>
+    </footer>
+  </body>
+</html>

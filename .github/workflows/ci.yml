@@ -50,6 +50,25 @@ jobs:
       - name: Build and test
         run: npm test
 
+  # The static website (apps/website): Tailwind build of the landing page.
+  website:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/website
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22
+
+      - name: Install
+        run: npm install --no-audit --no-fund
+
+      - name: Build
+        run: npm run build
+
   format:
     runs-on: ubuntu-latest
     steps:

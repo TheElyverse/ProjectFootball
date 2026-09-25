@@ -1,0 +1,156 @@
+/* Tailwind v4 is configured in CSS: the theme below replaces tailwind.config.js.
+   source("./") limits the class scan to src/, so dist/ and node_modules/ are never
+   scanned. */
+@import "tailwindcss" source("./");
+
+@theme {
+  /* Fonts: system stacks only, no web font downloads (fast, and no third-party
+     requests). The display stack prefers condensed DIN-like faces: Bahnschrift
+     ships with Windows, DIN Condensed and Avenir Next Condensed with macOS. */
+  --font-sans:
+    "Inter", "Segoe UI Variable Text", "Segoe UI", system-ui, -apple-system, "Helvetica Neue", Arial,
+    sans-serif;
+  --font-display:
+    "Bahnschrift", "DIN Condensed", "Avenir Next Condensed", "Roboto Condensed", "Arial Narrow",
+    "Segoe UI", system-ui, sans-serif;
+  --font-mono: ui-monospace, "Cascadia Code", "SF Mono", Menlo, Consolas, monospace;
+
+  /* Floodlit night pitch: near-black greens, chalk white and a volt accent. */
+  --color-night-950: #040907;
+  --color-night-900: #08110d;
+  --color-night-850: #0c1813;
+  --color-night-800: #112019;
+  --color-night-700: #1a2e25;
+  --color-night-600: #284236;
+  --color-chalk: #eef4ec;
+  --color-mist: #a9b8ae;
+  --color-fog: #6f8277;
+  --color-volt-300: #e4ff8a;
+  --color-volt-400: #d4ff4f;
+  --color-volt-500: #bfee2a;
+  --color-coral-400: #ff7b67;
+  --color-sky-400: #6fd3ff;
+
+  --animate-float: float 7s ease-in-out infinite;
+  --animate-marquee: marquee 40s linear infinite;
+
+  @keyframes float {
+    0%,
+    100% {
+      transform: translateY(0);
+    }
+    50% {
+      transform: translateY(-10px);
+    }
+  }
+
+  @keyframes marquee {
+    from {
+      transform: translateX(0);
+    }
+    to {
+      transform: translateX(-50%);
+    }
+  }
+}
+
+@layer base {
+  html {
+    scroll-behavior: smooth;
+    scroll-padding-top: 5rem;
+    color-scheme: dark;
+  }
+
+  body {
+    @apply bg-night-950 font-sans text-chalk antialiased;
+  }
+
+  ::selection {
+    @apply bg-volt-400 text-night-950;
+  }
+
+  :focus-visible {
+    @apply outline-2 outline-offset-2 outline-volt-400;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    html {
+      scroll-behavior: auto;
+    }
+
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+}
+
+/* A few named patterns that repeat across the page. Everything else is plain
+   utility classes in the HTML. */
+@layer components {
+  .container-page {
+    @apply mx-auto w-full max-w-7xl px-5 sm:px-8;
+  }
+
+  .eyebrow {
+    @apply font-display text-sm font-semibold tracking-[0.2em] text-volt-400 uppercase;
+  }
+
+  .heading-xl {
+    @apply font-display text-5xl leading-[0.9] font-bold tracking-tight uppercase font-stretch-condensed sm:text-7xl lg:text-8xl;
+  }
+
+  .heading-lg {
+    @apply font-display text-4xl leading-[0.95] font-bold tracking-tight uppercase font-stretch-condensed sm:text-5xl lg:text-6xl;
+  }
+
+  .heading-md {
+    @apply font-display text-2xl leading-tight font-bold tracking-tight uppercase font-stretch-condensed sm:text-3xl;
+  }
+
+  .btn-primary {
+    @apply inline-flex items-center gap-2 rounded-full bg-volt-400 px-6 py-3 font-display text-base font-bold tracking-wide text-night-950 uppercase transition hover:bg-volt-300 hover:shadow-[0_0_40px_-8px] hover:shadow-volt-400/70;
+  }
+
+  .btn-ghost {
+    @apply inline-flex items-center gap-2 rounded-full border border-chalk/20 px-6 py-3 font-display text-base font-bold tracking-wide text-chalk uppercase transition hover:border-volt-400 hover:text-volt-400;
+  }
+
+  .card {
+    @apply rounded-3xl border border-white/8 bg-night-850/80 shadow-2xl shadow-black/40 backdrop-blur;
+  }
+
+  /* Mown-grass stripes, used behind pitch-like panels. */
+  .grass {
+    background-image: repeating-linear-gradient(
+      90deg,
+      rgb(255 255 255 / 0.025) 0 48px,
+      transparent 48px 96px
+    );
+  }
+}
+
+/* Scroll reveal: main.js adds .is-visible when an element enters the viewport.
+   Without JavaScript (no .js class on <html>) everything is simply visible. */
+.js [data-reveal] {
+  opacity: 0;
+  transform: translateY(24px);
+  transition:
+    opacity 0.7s ease,
+    transform 0.7s ease;
+}
+
+.js [data-reveal].is-visible {
+  opacity: 1;
+  transform: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .js [data-reveal] {
+    opacity: 1;
+    transform: none;
+  }
+}

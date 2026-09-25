@@ -62,6 +62,7 @@ libs/
 apps/
   sim-cli        runs scenarios, records and plays back replays               [exists]
   sim-viewer     TypeScript/Canvas debug viewer for sim-cli's frames (npm)    [exists]
+  website        static landing page, HTML + Tailwind CSS v4 (npm)          [exists]
   sim-benchmark, sim-replay, unreal-game                                       [planned]
 data/            schemas, tactics, competitions, fixtures (JSON/YAML, schema-validated) [planned]
 tests/unit/      Catch2 tests, mirrors libs/ by subdirectory                   [exists: sim-core, sim-match, sim-replay]
@@ -116,6 +117,11 @@ Record debug frames and watch them in the web viewer (Node.js 22+, see `docs/deb
 ./build/debug/apps/sim-cli/sim-cli --scenario m0-acceptance --seed 42 --frames-out frames.json
 cd apps/sim-viewer && npm install && npm run build && npm run serve -- ../../frames.json
 cd apps/sim-viewer && npm test
+```
+
+Build and preview the static website (see `docs/website.md`):
+```
+cd apps/website && npm install && npm run build && npm run serve
 ```
 
 Run only the acceptance scenarios (CI runs them in their own step):
