@@ -125,7 +125,11 @@ test("describeEvent names the players involved", () => {
     }),
     "away switches to pressing",
   );
-    assert.equal(describeEvent({ tick: 0, type: "somethingNew" }), "somethingNew");
+      assert.equal(describeEvent({ tick: 0, type: "somethingNew" }), "somethingNew");
+  assert.equal(
+    describeEvent({ tick: 0, type: "restartTaken", kind: "throwIn", player: 3, position: [20, 0] }),
+    "throwIn to #3",
+  );
   assert.equal(
     describeEvent({ tick: 0, type: "pitchControlSampled", homeShare: 0.614, ball: [30, 20] }),
     "home controls 61% of the pitch",

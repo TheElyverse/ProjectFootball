@@ -233,7 +233,8 @@ using SimMatch::TeamSide;
             {"winChance", config.challenge.winChance},
             {"attemptSeconds", config.challenge.attemptSeconds},
             {"protectSeconds", config.challenge.protectSeconds}}},
-          {"pressing", pressingJson(config.pressing)}};
+          {"pressing", pressingJson(config.pressing)},
+          {"restarts", {{"enabled", config.restarts.enabled}}}};
 }
 
 void addCommandFields(Json& json, const MovePlayerCommand& command) {
@@ -360,6 +361,13 @@ class Field {
       fail(std::format("expected an integer from {} to {}, got {}", min, max, value));
     }
     return value;
+  }
+
+  [[nodiscard]] bool boolean() const {
+    if (!value_->is_boolean()) {
+      fail("expected true or false");
+    }
+    return value_->get<bool>();
   }
 
   [[nodiscard]] std::string string() const {
@@ -658,7 +666,8 @@ constexpr std::int64_t kMaxTick = std::int64_t{1} << 53;
       .offBall = readOffBall(field.member("offBall")),
       .defensive = readDefensive(field.member("defensive")),
       .challenge = readChallenge(field.member("challenge")),
-      .pressing = readPressing(field.member("pressing"))};
+      .pressing = readPressing(field.member("pressing")),
+      .restarts = {.enabled = field.member("restarts").member("enabled").boolean()}};
 }
 
 [[nodiscard]] MatchCommand readCommand(const Field& field) {

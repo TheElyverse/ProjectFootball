@@ -149,7 +149,8 @@ export type MatchEvent = { readonly tick: number } & (
       readonly position: Vec2;
     }
   | { readonly type: "looseBallRecovered"; readonly player: number; readonly position: Vec2 }
-  | { readonly type: "pitchControlSampled"; readonly homeShare: number; readonly ball: Vec2 }
+    | { readonly type: "pitchControlSampled"; readonly homeShare: number; readonly ball: Vec2 }
+  | { readonly type: "restartTaken"; readonly kind: string; readonly player: number; readonly position: Vec2 }
   | {
       readonly type: "possessionChanged";
       readonly previousOwner: number | null;
@@ -390,6 +391,8 @@ export function describeEvent(event: MatchEvent): string {
             return `${event.side} press ends: ${event.outcome}`;
         case "tacticChanged":
       return `${event.side} switches to ${event.tactic}`;
+        case "restartTaken":
+      return `${event.kind} to #${event.player}`;
     case "pitchControlSampled":
       return `home controls ${Math.round(event.homeShare * 100)}% of the pitch`;
     default:

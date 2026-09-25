@@ -27,6 +27,7 @@ Every event carries the `tick` of its step and the players involved:
 | `PressingStarted`    | `side`, `carrier`, `trigger`, `assignments`                  | a side starts a [coordinated press](pressing.md); `trigger` is empty for a press of the pressing phase |
 | `PressingEnded`      | `side`, `outcome`                                            | the press ends: `ballRegained`, `passedOut` or `carrierEscaped` |
 | `PitchControlSampled` | `homeShare`, `ball`                                         | the [pitch control](pitch-control.md) grid is updated: home's share of the pitch and the ball's position, a regular sample for [analytics](match-analytics.md) |
+| `RestartTaken`       | `kind`, `player`, `position`                                 | play [restarts](restarts.md) after the ball went out: `throwIn`, `goalKick` or `corner`, to `player`; `position` is where the ball left the pitch. `PossessionChanged` follows |
 | `TacticChanged`      | `side`, `tactic`, `contentHash`                              | a [tactic change command](match-loop.md#tactic-changes) applies; `tactic` is the new tactic's name |
 
 `speed` is the speed the ball left the foot with, execution error included. A

@@ -179,6 +179,7 @@ TEST_CASE("A replay survives the JSON round trip unchanged", "[replay]") {
   MatchSetup matchSetup = setup(std::numeric_limits<std::uint64_t>::max());
   // Values without a short decimal form must come back bit for bit.
   matchSetup.config.ball.rollingDeceleration = 1.0 / 3.0;
+  matchSetup.config.restarts.enabled = true;
   matchSetup.commands.push_back(move(120, 5, 0.1, 1e-300));
   matchSetup.commands.push_back(
       {.tick = SimTick(60),

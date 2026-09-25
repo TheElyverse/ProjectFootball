@@ -247,6 +247,13 @@ void addEventFields(Json& json, const SimMatch::PitchControlSampled& event) {
   json["ball"] = vec2Json(event.ball);
 }
 
+void addEventFields(Json& json, const SimMatch::RestartTaken& event) {
+  json["type"] = "restartTaken";
+  json["kind"] = SimMatch::restartKindName(event.kind);
+  json["player"] = event.player.value();
+  json["position"] = vec2Json(event.position);
+}
+
 [[nodiscard]] Json eventJson(const SimMatch::MatchEvent& event) {
   Json json;
   // The step's tick, one before the frame's: the event happened during the

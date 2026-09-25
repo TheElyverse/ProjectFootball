@@ -134,7 +134,7 @@ a replay reproduces.
 
 `matchSetup.hpp` assembles the systems a real match runs. `MatchConfig` holds
 every tunable parameter of those systems — the tick rate, ball physics and
-perception, passing, reception, pursuit, decisions, phases, pitch control, positioning, off-ball and defensive decisions, challenges and presses so far — and `makeMatchSystems(config)` returns them in their fixed order:
+perception, passing, reception, pursuit, decisions, phases, pitch control, positioning, off-ball and defensive decisions, challenges, presses and restarts so far — and `makeMatchSystems(config)` returns them in their fixed order:
 
 | Order | System          | Rate       | Writes                         |
 |-------|-----------------|------------|--------------------------------|
@@ -148,6 +148,7 @@ perception, passing, reception, pursuit, decisions, phases, pitch control, posit
 | 8     | ball challenge  | 10 Hz      | ball owner and last touch after a won challenge, players' last challenge; clears the pending pass |
 | 9     | player movement | every tick | player positions, velocities, facings |
 | 10    | ball movement   | every tick | ball position, velocity, owner, last touch; clears the pending pass |
+| 11    | restart         | every tick | ball owner, position, velocity and last touch after the ball went out; only with `restarts.enabled` ([restarts](restarts.md)) |
 
 `MatchSetup` is everything such a match starts from: initial state, config, seed
 and commands. `startMatch(setup)` builds the simulation. A replay records a

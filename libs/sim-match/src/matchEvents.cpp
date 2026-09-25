@@ -89,6 +89,13 @@ void addFields(StableHasher& hasher, const TacticChanged& event) noexcept {
   hasher.addU64(event.contentHash);
 }
 
+void addFields(StableHasher& hasher, const RestartTaken& event) noexcept {
+  hasher.addU64(static_cast<std::uint64_t>(event.kind));
+  hasher.addU64(event.player.value());
+  hasher.addDouble(event.position.x);
+  hasher.addDouble(event.position.y);
+}
+
 }  // namespace
 
 std::string_view eventName(const MatchEvent& event) {
@@ -123,6 +130,9 @@ std::string_view eventName(const MatchEvent& event) {
     }
     std::string_view operator()(const PitchControlSampled& /*event*/) const noexcept {
       return "pitch control sampled";
+    }
+    std::string_view operator()(const RestartTaken& /*event*/) const noexcept {
+      return "restart taken";
     }
   };
   return std::visit(Names{}, event);

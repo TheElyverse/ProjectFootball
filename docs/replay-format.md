@@ -19,7 +19,7 @@ validation leaves no file behind.
 ```json
 {
     "schemaVersion": 4,
-  "coreVersion": "0.17.0",
+  "coreVersion": "0.18.0",
   "createdAt": "2026-09-24T10:00:00Z",
   "seed": "18446744073709551615",
   "gameTime": 300,
@@ -128,9 +128,10 @@ validation leaves no file behind.
       "facingOwnGoal": -0.3,
       "backPassMeters": 2.0,
       "maxJoiners": 4,
-      "phaseIntensity": 0.5,
+            "phaseIntensity": 0.5,
       "maxPressSeconds": 4.0
-    }
+    },
+    "restarts": { "enabled": false }
   },
   "initialState": {
     "pitch": { "length": 60.0, "width": 40.0 },

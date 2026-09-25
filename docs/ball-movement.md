@@ -46,7 +46,8 @@ pass planner can compute where a ball will stop without simulating it.
 A ball that crosses a touchline or goal line stops on the line at the crossing
 point, with no velocity: the ball is out of play and waits there. This is the
 documented stand-in until a rules system decides on throw-ins, goal kicks,
-corners and goals. A ball rolling along a line, or resting on it, is on the
+corners and goals; the opt-in [restart](restarts.md) system gives such a ball to
+the side due to restart. A ball rolling along a line, or resting on it, is on the
 pitch (`Pitch::contains()` includes the edges) and keeps rolling.
 
 A ball that already lies off the pitch — only possible in a hand-built state —

@@ -16,6 +16,7 @@
 #include "pitchControl.hpp"
 #include "pursuit.hpp"
 #include "reception.hpp"
+#include "restart.hpp"
 #include "tacticalMovement.hpp"
 #include "tacticalPhases.hpp"
 #include "teamPressing.hpp"
@@ -40,6 +41,7 @@ struct MatchConfig {
   DefensiveConfig defensive;
   ChallengeConfig challenge;
   PressingConfig pressing;
+  RestartConfig restarts;
 
   friend bool operator==(const MatchConfig&, const MatchConfig&) = default;
 };
@@ -70,6 +72,7 @@ struct MatchSetup {
 //   8. ball challenge   every challenge.intervalTicks ticks
 //   9. player movement  every tick
 //  10. ball movement    every tick
+//  11. restart          every tick, if restarts.enabled
 //
 // Tactical movement runs before pursuit, so in a step where both write the
 // same player's target -- a new chaser -- pursuit's wins.

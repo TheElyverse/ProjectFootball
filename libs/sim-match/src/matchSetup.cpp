@@ -24,6 +24,10 @@ std::vector<MatchSystem> makeMatchSystems(const MatchConfig& config) {
   systems.push_back(makeChallengeSystem(config.challenge));
   systems.push_back(makePlayerMovementSystem());
   systems.push_back(makeBallMovementSystem(config.ball, config.passing, config.reception));
+  // Only when enabled, so matches without restarts keep their system list.
+  if (config.restarts.enabled) {
+    systems.push_back(makeRestartSystem(config.restarts, config.ball));
+  }
   return systems;
 }
 

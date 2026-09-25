@@ -13,6 +13,7 @@
 #include "matchState.hpp"
 #include "observation.hpp"
 #include "passCandidate.hpp"
+#include "restartKind.hpp"
 #include "simTime.hpp"
 #include "stableHash.hpp"
 #include "tacticalPhase.hpp"
@@ -113,6 +114,17 @@ struct PitchControlSampled {
   friend bool operator==(const PitchControlSampled&, const PitchControlSampled&) = default;
 };
 
+// Play restarted after the ball went out (docs/restarts.md): how, who got
+// the ball, and where it had left the pitch.
+struct RestartTaken {
+  SimCore::SimTick tick;
+  RestartKind kind = RestartKind::kThrowIn;
+  SimCore::PlayerId player;
+  SimCore::Vec2 position;
+
+  friend bool operator==(const RestartTaken&, const RestartTaken&) = default;
+};
+
 // A presser won the ball from the carrier in a challenge (docs/pressing.md),
 // at the ball's position.
 struct BallWon {
@@ -148,7 +160,7 @@ struct PressingEnded {
 
 using MatchEvent = std::variant<PassAttempted, PassReceived, PassIntercepted, LooseBallRecovered,
                                 PossessionChanged, PhaseChanged, BallWon, PressingStarted,
-                                PressingEnded, TacticChanged, PitchControlSampled>;
+                                PressingEnded, TacticChanged, PitchControlSampled, RestartTaken>;
 
 // "pass attempted", "pass received", ... for logs and diagnostics.
 [[nodiscard]] std::string_view eventName(const MatchEvent& event);
