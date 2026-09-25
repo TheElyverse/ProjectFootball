@@ -154,3 +154,21 @@ expect_failure("only apply to --scenario tactic-match" --scenario kickoff --home
 expect_failure("cannot read" --away-tactic "${TEST_OUTPUT_DIR}/missing-tactic.json")
 expect_failure("cannot be combined" --play "${replay}" --home-tactic
         "${DATA_DIR}/tactics/pressing.json")
+
+# Match statistics come from the same run and are the same for the same run.
+set(stats "${TEST_OUTPUT_DIR}/stats.json")
+run_cli(--scenario tactic-match --seed 5 --ticks 300 --replay-out "${replay}" --stats-out "${stats}")
+if(NOT result STREQUAL "0" OR NOT output MATCHES "stats: +[^\n]*stats.json\n")
+    message(FATAL_ERROR "Run with stats failed: ${result}: ${output}${error}")
+endif()
+file(READ "${stats}" firstStats)
+string(JSON statsFormat GET "${firstStats}" format)
+if(NOT statsFormat STREQUAL "elyverse-match-stats")
+    message(FATAL_ERROR "Unexpected stats: ${firstStats}")
+endif()
+run_cli(--scenario tactic-match --seed 5 --ticks 300 --replay-out "${replay}" --stats-out "${stats}")
+file(READ "${stats}" secondStats)
+if(NOT firstStats STREQUAL secondStats)
+    message(FATAL_ERROR "The same run wrote different stats")
+endif()
+expect_failure("same file" --ticks 1 --replay-out "${replay}" --stats-out "${replay}")

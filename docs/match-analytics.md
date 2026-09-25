@@ -24,6 +24,13 @@ one step in order; events of players the context does not know are ignored.
 `finish(tick)` closes the last possession at `tick`, the tick after the last
 step.
 
+`sim-cli` writes the statistics of a run with `--stats-out`:
+
+```sh
+./build/debug/apps/sim-cli/sim-cli --home-tactic data/tactics/pressing.json --seed 2 \
+  --ticks 1800 --stats-out stats.json
+```
+
 ## Metrics
 
 Every metric is per side. Depths and thirds are measured in the side's own

@@ -39,6 +39,8 @@ struct CliOptions {
   std::string replayOut = "replay.json";
   // Where to write debug frames for the web viewer; empty writes none.
   std::string framesOut;
+  // Where to write the match statistics; empty writes none.
+  std::string statsOut;
   std::string playPath;
   // Tactic files for the tactic-match scenario; empty plays the reference
   // tactic on that side.
@@ -48,7 +50,7 @@ struct CliOptions {
 
 inline constexpr std::string_view kUsage =
     "usage: sim-cli [--scenario <name>] [--seed <u64>] [--ticks <n>] [--replay-out <path>] "
-    "[--frames-out <path>] [--tui]\n"
+    "[--frames-out <path>] [--stats-out <path>] [--tui]\n"
     "       sim-cli [--home-tactic <tactic.json>] [--away-tactic <tactic.json>] [run options]\n"
     "       sim-cli --play <replay.json> [--tui]\n"
     "       sim-cli --list-scenarios\n"

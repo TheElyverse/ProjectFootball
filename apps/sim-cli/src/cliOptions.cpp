@@ -88,8 +88,8 @@ std::expected<CliOptions, std::string> parseCliOptions(const std::span<char* con
       play = true;
       options.playPath = *path;
     } else if (arg == "--scenario" || arg == "--seed" || arg == "--ticks" ||
-               arg == "--replay-out" || arg == "--frames-out" || arg == "--home-tactic" ||
-               arg == "--away-tactic") {
+               arg == "--replay-out" || arg == "--frames-out" || arg == "--stats-out" ||
+               arg == "--home-tactic" || arg == "--away-tactic") {
       const auto value = reader.value(arg);
       if (!value) {
         return std::unexpected(value.error());
@@ -106,6 +106,8 @@ std::expected<CliOptions, std::string> parseCliOptions(const std::span<char* con
         options.replayOut = *value;
       } else if (arg == "--frames-out") {
         options.framesOut = *value;
+      } else if (arg == "--stats-out") {
+        options.statsOut = *value;
       } else if (arg == "--seed") {
         const auto seed = parseInteger<std::uint64_t>(arg, *value);
         if (!seed) {
@@ -135,12 +137,12 @@ std::expected<CliOptions, std::string> parseCliOptions(const std::span<char* con
   if (play && newRunOption) {
     return std::unexpected(
         "--play takes everything from the replay file and cannot be combined with --scenario, "
-        "--seed, --ticks, --replay-out, --frames-out or a tactic");
+        "--seed, --ticks, --replay-out, --frames-out, --stats-out or a tactic");
   }
   if (listScenarios && newRunOption) {
     return std::unexpected(
         "--list-scenarios runs nothing and cannot be combined with --scenario, --seed, --ticks, "
-        "--replay-out, --frames-out or a tactic");
+        "--replay-out, --frames-out, --stats-out or a tactic");
   }
   if (!options.homeTactic.empty() || !options.awayTactic.empty()) {
     if (scenarioGiven && options.scenario != kTacticMatchScenario) {

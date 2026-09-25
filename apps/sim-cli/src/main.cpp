@@ -5,24 +5,28 @@
 #include <expected>
 #include <filesystem>
 #include <format>
+#include <fstream>
 #include <iostream>
 #include <optional>
 #include <random>
 #include <span>
 #include <stdexcept>
 #include <string>
+#include <string_view>
 #include <system_error>
 #include <utility>
 #include <vector>
 
 #include "cliOptions.hpp"
 #include "debugFrames.hpp"
+#include "matchAnalyzer.hpp"
 #include "matchSetup.hpp"
 #include "referenceTactic.hpp"
 #include "replay.hpp"
 #include "replayJson.hpp"
 #include "scenarios.hpp"
 #include "simTime.hpp"
+#include "statsJson.hpp"
 #include "tactic.hpp"
 #include "tacticJson.hpp"
 #include "terminalUi.hpp"
@@ -90,6 +94,20 @@ bool sameFile(const std::filesystem::path& first, const std::filesystem::path& s
   return resolve(first) == resolve(second);
 }
 
+// Writes text to a file, replacing it.
+std::expected<void, std::string> writeText(const std::filesystem::path& path,
+                                           const std::string_view text) {
+  std::ofstream file(path, std::ios::binary | std::ios::trunc);
+  if (!file) {
+    return std::unexpected(path.string() + ": cannot open for writing");
+  }
+  file << text;
+  if (!file.flush()) {
+    return std::unexpected(path.string() + ": cannot write");
+  }
+  return {};
+}
+
 int fail(const std::string& message) {
   std::cerr << "sim-cli: " << message << "\n";
   return EXIT_FAILURE;
@@ -142,6 +160,19 @@ std::expected<MatchSetup, std::string> makeSetup(
       {.home = *std::move(home), .away = *std::move(away)}, seed);
 }
 
+// Why the run's output files would overwrite each other, if they would.
+std::optional<std::string> outputClash(const CliOptions& options) {
+  if (!options.framesOut.empty() && sameFile(options.framesOut, options.replayOut)) {
+    return "--frames-out and --replay-out name the same file '" + options.framesOut + "'";
+  }
+  if (!options.statsOut.empty() &&
+      (sameFile(options.statsOut, options.replayOut) ||
+       (!options.framesOut.empty() && sameFile(options.statsOut, options.framesOut)))) {
+    return "--stats-out names the same file as another output: '" + options.statsOut + "'";
+  }
+  return std::nullopt;
+}
+
 // Runs a scenario, records it, writes the replay and, with --frames-out, the
 // debug frames, then reports. Files are written before the terminal
 // interface opens.
@@ -150,8 +181,8 @@ int runScenario(const CliOptions& options) {
   if (scenario == nullptr) {
     return fail("unknown scenario '" + options.scenario + "'; see --list-scenarios");
   }
-  if (!options.framesOut.empty() && sameFile(options.framesOut, options.replayOut)) {
-    return fail("--frames-out and --replay-out name the same file '" + options.framesOut + "'");
+  if (const auto clash = outputClash(options)) {
+    return fail(*clash);
   }
   const std::uint64_t seed = resolveSeed(options);
   const auto setup = makeSetup(options, *scenario, seed);
@@ -169,6 +200,11 @@ int runScenario(const CliOptions& options) {
     simulation.setCollectDiagnostics(true);
     frames.emplace(*setup, options.scenario);
   }
+  std::optional<ElyverseFootball::SimAnalytics::MatchAnalyzer> analyzer;
+  if (!options.statsOut.empty()) {
+    analyzer.emplace(ElyverseFootball::SimAnalytics::contextOf(setup->initialState,
+                                                               setup->config.ticksPerSecond));
+  }
   while (simulation.tick() < SimTick(options.ticks)) {
     if (const auto stepped = simulation.step(); !stepped) {
       return fail(std::format("the simulation failed at tick {} in system '{}'",
@@ -177,6 +213,9 @@ int runScenario(const CliOptions& options) {
     recorder.recordStep(simulation);
     if (frames) {
       frames->recordStep(simulation);
+    }
+    if (analyzer) {
+      analyzer->observeStep(simulation.events());
     }
   }
   const Replay replay = recorder.finish(simulation, iso8601Now());
@@ -189,6 +228,15 @@ int runScenario(const CliOptions& options) {
             ElyverseFootball::SimReplay::saveDebugFrames(frames->recording(), options.framesOut);
         !saved) {
       return fail(saved.error());
+    }
+  }
+
+  if (analyzer) {
+    if (const auto written = writeText(
+            options.statsOut,
+            ElyverseFootball::SimAnalytics::toStatsJson(analyzer->finish(simulation.tick())));
+        !written) {
+      return fail(written.error());
     }
   }
 
@@ -209,6 +257,9 @@ int runScenario(const CliOptions& options) {
                              {"replay", options.replayOut}});
   if (frames) {
     lines.emplace_back("frames", options.framesOut);
+  }
+  if (analyzer) {
+    lines.emplace_back("stats", options.statsOut);
   }
   report(options, "Scenario run", lines);
   return EXIT_SUCCESS;
