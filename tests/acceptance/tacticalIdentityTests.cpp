@@ -22,6 +22,8 @@
 #include "matchSimulation.hpp"
 #include "matchState.hpp"
 #include "pitch.hpp"
+#include "replay.hpp"
+#include "replayJson.hpp"
 #include "scenarios.hpp"
 #include "simTime.hpp"
 #include "tactic.hpp"
@@ -198,4 +200,42 @@ TEST_CASE("P2: the counter tactic plays forward straight after a regain",
   CAPTURE(counter, possession);
   // Out of twenty; at the time of writing 18 against 5.
   REQUIRE(counter >= possession + 8);
+}
+
+TEST_CASE("P2: matches of every tactical identity replay identically",
+          "[acceptance][p2][identities][replay]") {
+  using ElyverseFootball::SimMatch::ChangeTacticCommand;
+  using ElyverseFootball::SimReplay::parseReplayJson;
+  using ElyverseFootball::SimReplay::playReplay;
+  using ElyverseFootball::SimReplay::recordMatch;
+  using ElyverseFootball::SimReplay::toReplayJson;
+  struct Pairing {
+    const char* home;
+    const char* away;
+    // A mid-match switch of the away side, if any.
+    const char* switchTo;
+  };
+  constexpr std::array<Pairing, 4> kPairings{{{"possession", "counter", nullptr},
+                                              {"counter", "pressing", nullptr},
+                                              {"pressing", "possession", nullptr},
+                                              {"possession", "counter", "pressing"}}};
+  for (const Pairing& pairing : kPairings) {
+    CAPTURE(pairing.home, pairing.away, pairing.switchTo != nullptr);
+    auto setup = makeTacticMatch({.home = preset(pairing.home), .away = preset(pairing.away)}, 21);
+    REQUIRE(setup.has_value());
+    if (pairing.switchTo != nullptr) {
+      setup->commands.push_back({.tick = SimTick(450),
+                                 .command = ChangeTacticCommand{
+                                     .side = TeamSide::kAway, .tactic = preset(pairing.switchTo)}});
+    }
+    const auto replay = recordMatch(*setup, SimTick(900), 30, "2026-09-25T12:00:00Z");
+    REQUIRE(replay.has_value());
+    const auto parsed = parseReplayJson(toReplayJson(*replay));
+    REQUIRE(parsed.has_value());
+    REQUIRE(*parsed == *replay);
+    const auto playback = playReplay(*parsed);
+    CAPTURE(playback ? std::string() : playback.error().message);
+    REQUIRE(playback.has_value());
+    REQUIRE(playback->checkpointsVerified == replay->checkpoints.size());
+  }
 }

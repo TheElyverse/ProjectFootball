@@ -195,7 +195,7 @@ int runScenario(const CliOptions& options) {
   // numbers, so it leaves the replay unchanged.
   ElyverseFootball::SimMatch::MatchSimulation simulation =
       ElyverseFootball::SimMatch::startMatch(*setup);
-  ElyverseFootball::SimReplay::ReplayRecorder recorder(*setup);
+  ElyverseFootball::SimReplay::ReplayRecorder recorder(*setup, options.checkpointInterval);
   std::optional<DebugFrameRecorder> frames;
   if (!options.framesOut.empty()) {
     simulation.setCollectDiagnostics(true);

@@ -148,7 +148,7 @@ std::expected<CliOptions, std::string> parseCliOptions(const std::span<char* con
       traceOption = true;
     } else if (arg == "--scenario" || arg == "--seed" || arg == "--ticks" ||
                arg == "--replay-out" || arg == "--frames-out" || arg == "--stats-out" ||
-               arg == "--home-tactic" || arg == "--away-tactic") {
+               arg == "--checkpoint-interval" || arg == "--home-tactic" || arg == "--away-tactic") {
       const auto value = reader.value(arg);
       if (!value) {
         return std::unexpected(value.error());
@@ -167,6 +167,13 @@ std::expected<CliOptions, std::string> parseCliOptions(const std::span<char* con
         options.framesOut = *value;
       } else if (arg == "--stats-out") {
         options.statsOut = *value;
+      } else if (arg == "--checkpoint-interval") {
+        const auto interval = parseInteger<int>(arg, *value);
+        if (!interval || *interval < 1) {
+          return std::unexpected("invalid --checkpoint-interval value '" + std::string(*value) +
+                                 "', expected a positive number of ticks");
+        }
+        options.checkpointInterval = *interval;
       } else if (arg == "--seed") {
         const auto seed = parseInteger<std::uint64_t>(arg, *value);
         if (!seed) {

@@ -8,6 +8,8 @@
 #include <string_view>
 #include <vector>
 
+#include "replay.hpp"
+
 namespace ElyverseFootball::Cli {
 
 enum class CliMode : std::uint8_t {
@@ -42,6 +44,8 @@ struct CliOptions {
   std::string framesOut;
   // Where to write the match statistics; empty writes none.
   std::string statsOut;
+  // Ticks between the replay's checkpoints; 1 locates a divergence exactly.
+  int checkpointInterval = SimReplay::kDefaultCheckpointIntervalTicks;
   std::string playPath;
   // With --play: where to write the decision trace, empty writes none, and
   // which players and ticks it covers; empty means all.
@@ -57,7 +61,7 @@ struct CliOptions {
 
 inline constexpr std::string_view kUsage =
     "usage: sim-cli [--scenario <name>] [--seed <u64>] [--ticks <n>] [--replay-out <path>] "
-    "[--frames-out <path>] [--stats-out <path>] [--tui]\n"
+    "[--frames-out <path>] [--stats-out <path>] [--checkpoint-interval <n>] [--tui]\n"
     "       sim-cli [--home-tactic <tactic.json>] [--away-tactic <tactic.json>] [run options]\n"
     "       sim-cli --play <replay.json> [--trace <trace.txt> [--trace-players <id,id,...>]\n"
     "               [--trace-from <tick>] [--trace-to <tick>]] [--tui]\n"

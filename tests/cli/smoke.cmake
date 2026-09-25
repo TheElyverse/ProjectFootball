@@ -191,3 +191,12 @@ expect_failure("need --trace" --play "${replay}" --trace-players 1)
 expect_failure("invalid --trace-players" --play "${replay}" --trace "${trace}" --trace-players 1,x)
 expect_failure("must not come after" --play "${replay}" --trace "${trace}" --trace-from 9 --trace-to 3)
 
+# A checkpoint per tick.
+run_cli(--scenario kickoff --seed 1 --ticks 20 --checkpoint-interval 1 --replay-out "${replay}")
+file(READ "${replay}" contents)
+string(JSON checkpointCount LENGTH "${contents}" checkpoints)
+string(JSON interval GET "${contents}" checkpointIntervalTicks)
+if(NOT result STREQUAL "0" OR NOT checkpointCount EQUAL 21 OR NOT interval EQUAL 1)
+    message(FATAL_ERROR "Checkpoint interval not recorded: ${result}: ${output}${error}")
+endif()
+expect_failure("invalid --checkpoint-interval" --checkpoint-interval 0)
