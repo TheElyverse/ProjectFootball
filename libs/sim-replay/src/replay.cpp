@@ -129,7 +129,8 @@ std::expected<Replay, SimMatch::MatchStepError> recordMatch(const SimMatch::Matc
   return recorder.finish(simulation, std::move(createdAt));
 }
 
-std::expected<ReplayPlayback, ReplayError> playReplay(const Replay& replay) {
+std::expected<ReplayPlayback, ReplayError> playReplay(const Replay& replay,
+                                                      const PlaybackObserver& observer) {
   if (replay.coreVersion != SimCore::coreVersion()) {
     return fail(ReplayErrorCode::kIncompatibleCoreVersion,
                 std::format("replay was recorded with core version {}, this build is {}",
@@ -151,6 +152,10 @@ std::expected<ReplayPlayback, ReplayError> playReplay(const Replay& replay) {
     return std::unexpected(std::move(started.error()));
   }
   MatchSimulation& simulation = *started;
+  if (observer.diagnostics) {
+    simulation.setCollectDiagnostics(true);
+    simulation.setDiagnosticsFilter(*observer.diagnostics);
+  }
 
   ReplayPlayback playback{.finalTick = SimTick(0)};
   SimCore::StableHasher events;
@@ -186,6 +191,9 @@ std::expected<ReplayPlayback, ReplayError> playReplay(const Replay& replay) {
                               stepped.error().tick.value(), stepped.error().systemName));
     }
     addEvents(events, simulation);
+    if (observer.afterStep) {
+      observer.afterStep(simulation);
+    }
     if (auto verified = verify(); !verified) {
       return std::unexpected(std::move(verified.error()));
     }

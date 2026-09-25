@@ -3,6 +3,8 @@
 #include <cstddef>
 #include <cstdint>
 #include <expected>
+#include <functional>
+#include <optional>
 #include <string>
 #include <vector>
 
@@ -114,6 +116,18 @@ struct ReplayPlayback {
 // state and event hashes at every checkpoint. Rejects a replay from another core version,
 // an invalid setup, a failing step, and the first checkpoint with a differing
 // hash.
-[[nodiscard]] std::expected<ReplayPlayback, ReplayError> playReplay(const Replay& replay);
+//
+// An observer watches the playback step by step -- the decision tracer, for
+// instance -- and may turn diagnostics on for it. Diagnostics change nothing
+// in the match, so a watched playback verifies exactly like an unwatched one.
+struct PlaybackObserver {
+  // Collect diagnostics, narrowed by this filter; empty collects none.
+  std::optional<SimMatch::DiagnosticsFilter> diagnostics;
+  // Called after every successful step.
+  std::function<void(const SimMatch::MatchSimulation&)> afterStep;
+};
+
+[[nodiscard]] std::expected<ReplayPlayback, ReplayError> playReplay(
+    const Replay& replay, const PlaybackObserver& observer = {});
 
 }  // namespace ElyverseFootball::SimReplay

@@ -1,5 +1,6 @@
 add_library(sim-replay STATIC
         src/debugFrames.cpp
+        src/decisionTrace.cpp
         src/replay.cpp
         src/replayJson.cpp
 )
