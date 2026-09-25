@@ -14,6 +14,7 @@
 #include "matchSimulation.hpp"
 #include "matchStateHash.hpp"
 #include "referenceTactic.hpp"
+#include "scenarios.hpp"
 #include "tactic.hpp"
 #include "version.hpp"
 
@@ -177,6 +178,25 @@ TEST_CASE("Frames show team shapes, regions, assignments and action decisions", 
   CHECK(home.at("shape").at("defensiveLine").is_number());
   CHECK(home.at("shape").at("width").is_number());
   CHECK(last.at("teams").at(1).at("phase") == "defensiveBlock");
+  CHECK(home.at("tactic") == "reference");
+  CHECK(home.at("instruction").at("lineHeight") == 0.35);
+  CHECK(home.at("press").is_null());
+
+  // The zones, once in the header.
+  CHECK(json.at("zones").at("laneBoundaries") == nlohmann::json({8.0, 16.0, 24.0, 32.0}));
+  CHECK(json.at("zones").at("thirdBoundaries") == nlohmann::json({20.0, 40.0}));
+
+  // Pitch control only in the frames whose step refreshed it: every tenth.
+  int grids = 0;
+  for (const auto& frame : json.at("frames")) {
+    if (!frame.at("pitchControl").is_null()) {
+      ++grids;
+      CHECK(frame.at("pitchControl").at("home").size() ==
+            frame.at("pitchControl").at("columns").get<std::size_t>() *
+                frame.at("pitchControl").at("rows").get<std::size_t>());
+    }
+  }
+  CHECK(grids == 3);
 
   const auto& centreBack = last.at("players").at(1);
   CHECK(centreBack.at("region").at("center").size() == 2);
@@ -193,4 +213,38 @@ TEST_CASE("Frames show team shapes, regions, assignments and action decisions", 
     }
   }
   CHECK(decided);
+}
+
+TEST_CASE("Frames show a team's press with its roles", "[debugFrames]") {
+  using ElyverseFootball::SimTactics::PressingTrigger;
+  using ElyverseFootball::SimTactics::referenceTacticSpec;
+  using ElyverseFootball::SimTactics::Tactic;
+  auto spec = referenceTacticSpec();
+  spec.principles.pressingLine = 0.3;
+  spec.principles.pressingTriggers = {PressingTrigger::kReceiverFacingOwnGoal,
+                                      PressingTrigger::kBackPass, PressingTrigger::kPoorFirstTouch,
+                                      PressingTrigger::kIsolatedReceiver};
+  for (auto& phase : spec.phases) {
+    phase.pressingIntensity = 1.0;
+  }
+  const auto presser = Tactic::create(spec);
+  const auto reference = Tactic::create(referenceTacticSpec());
+  REQUIRE(presser.has_value());
+  REQUIRE(reference.has_value());
+  const auto setup =
+      ElyverseFootball::SimMatch::makeTacticMatch({.home = *reference, .away = *presser}, 3);
+  REQUIRE(setup.has_value());
+  const auto json = nlohmann::json::parse(toDebugFramesJson(record(*setup, 900)));
+
+  bool pressed = false;
+  for (const auto& frame : json.at("frames")) {
+    const auto& press = frame.at("teams").at(1).at("press");
+    if (!press.is_null()) {
+      CHECK(press.at("carrier") <= 7);
+      CHECK_FALSE(press.at("assignments").empty());
+      CHECK(press.at("assignments").at(0).at("role").is_string());
+      pressed = true;
+    }
+  }
+  CHECK(pressed);
 }

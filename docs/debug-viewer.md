@@ -88,8 +88,8 @@ abridged example with illustrative values:
 
 ```json
 {
-  "format": "elyverse-debug-frames",
-  "version": 1,
+    "format": "elyverse-debug-frames",
+  "version": 2,
   "coreVersion": "0.7.0",
   "scenario": "m0-acceptance",
   "seed": "42",
@@ -153,24 +153,34 @@ abridged example with illustrative values:
 - `observations` of a player are his memory after the step. The observations
   of a decision are the memory the decision was made from, which is the
   previous frame's.
-- Frames of a match with tactics also carry `teams` -- each side's `phase` and
-  `shape` (lines, length, width, centroid) -- each player's `region` (tactical
-  target, centre, cost) and `action` (type, target, subject), and the `actions`
-  decisions of players without the ball, each candidate with its weighted
-  `scores`, `utility` and `dominant` part; see
-  [off-ball movement](off-ball-movement.md) and
-  [defensive shape](defensive-shape.md). They are `null` or empty for a
-  scripted side.
-- Event `type`s are `passAttempted`, `passReceived`, `passIntercepted`,
-  `looseBallRecovered`, `possessionChanged` and `phaseChanged`, with the fields
-  of [match events](match-events.md); sides and phases are spelled `home`,
+- The header's `zones` hold the pitch `y` of every boundary between lanes and
+  the pitch `x` of the boundaries between thirds ([zones](zones.md)).
+- Frames carry `teams`: each side's `tactic` name, `phase`, the phase's
+  `instruction` (`lineHeight`, `blockLength`, `blockWidth` as fractions of the
+  pitch, `pressingIntensity`), its running `press` (`carrier`, `since`,
+  `trigger`, `assignments` of `player`, `role` and `subject`) and its `shape`
+  (lines as depths from its own goal line, length, width, centroid). Each
+  player has his `region` (tactical target, centre, cost) and `action` (type,
+  target, subject), and `actions` lists the decisions of players without the
+  ball, each candidate with its weighted `scores`, `utility` and `dominant`
+  part; see [off-ball movement](off-ball-movement.md),
+  [defensive shape](defensive-shape.md) and [pressing](pressing.md). They are
+  `null` or empty for a scripted side.
+- `pitchControl` is home's control of every cell of the
+  [pitch control](pitch-control.md) grid, column by column, rounded to
+  hundredths -- away's is the rest -- in the frames whose step refreshed the
+  grid, `null` in all others: the viewer shows the latest.
+- Event `type`s are the [match events](match-events.md) in lower camel case --
+  `passAttempted`, `pressingStarted`, `pitchControlSampled`, ... -- with their
+  fields; sides and phases are spelled `home`,
   `buildUp`, ... as in [tactics](tactics.md). The viewer shows an event type it
   does not know by its name. A decision's `outcome` is `passed` or
   `noValidOption`, `chosen` indexes `candidates`, and `rejection` is `valid` or
   the reason a candidate cannot be played.
 
 A change that breaks existing readers raises `version`; the viewer rejects
-versions it does not know.
+versions it does not know. Version 2 added `zones`, `pitchControl` and the
+teams' `tactic`, `instruction` and `press`.
 
 ## Development
 

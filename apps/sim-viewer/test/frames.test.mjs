@@ -2,12 +2,15 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 
 import {
+  depthToX,
   describeEvent,
-    frameSeconds,
+  frameSeconds,
   isLoggedEvent,
+  latestActionDecision,
   latestDecision,
+  latestPitchControl,
   parseRecording,
-    sideOf,
+  sideOf,
 } from "../dist/frames.js";
 import { fixture } from "./fixture.mjs";
 
@@ -27,8 +30,8 @@ test("parseRecording rejects other documents with a reason", () => {
     /not a debug frame file/,
   );
   assert.throws(
-    () => parseRecording(JSON.stringify({ ...fixture(), version: 2 })),
-    /unsupported .* version 2/,
+        () => parseRecording(JSON.stringify({ ...fixture(), version: 1 })),
+    /unsupported .* version 1/,
   );
   assert.throws(
     () => parseRecording(JSON.stringify({ ...fixture(), frames: [] })),
@@ -47,6 +50,26 @@ test("latestDecision finds the decision at or before a frame", () => {
   assert.equal(latestDecision(recording, 1, 1)?.frameIndex, 1);
   assert.equal(latestDecision(recording, 2, 1)?.frameIndex, 1);
   assert.equal(latestDecision(recording, 2, 2), undefined);
+});
+
+test("latestActionDecision finds a decision without the ball", () => {
+  const recording = parseRecording(JSON.stringify(fixture()));
+  assert.equal(latestActionDecision(recording, 0, 2), undefined);
+  assert.equal(latestActionDecision(recording, 2, 2)?.frameIndex, 1);
+  assert.equal(latestActionDecision(recording, 2, 2)?.decision.candidates[0].dominant, "responsibility");
+  assert.equal(latestActionDecision(recording, 2, 1), undefined);
+});
+
+test("latestPitchControl keeps the last refreshed grid", () => {
+  const recording = parseRecording(JSON.stringify(fixture()));
+  assert.equal(latestPitchControl(recording, 0), undefined);
+  assert.deepEqual(latestPitchControl(recording, 2)?.home, [0.8, 0.3]);
+});
+
+test("depthToX measures from each side's own goal line", () => {
+  const recording = parseRecording(JSON.stringify(fixture()));
+  assert.equal(depthToX(recording, "home", 15), 15);
+  assert.equal(depthToX(recording, "away", 15), 45);
 });
 
 test("describeEvent names the players involved", () => {

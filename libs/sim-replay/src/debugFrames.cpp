@@ -1,16 +1,19 @@
 #include "debugFrames.hpp"
 
+#include <algorithm>
 #include <cmath>
 #include <cstddef>
 #include <format>
 #include <fstream>
 #include <nlohmann/json.hpp>
 #include <optional>
+#include <set>
 #include <span>
 #include <string>
 #include <string_view>
 #include <utility>
 #include <variant>
+#include <vector>
 
 #include "matchStateHash.hpp"
 #include "observation.hpp"
@@ -89,14 +92,46 @@ using SimMatch::MatchState;
   return json;
 }
 
-// Each team's phase and shape: its lines, compactness and width.
+// A side's press: on whom, what triggered it and who plays which role.
+[[nodiscard]] Json pressJson(const std::optional<SimMatch::TeamPress>& press) {
+  if (!press) {
+    return nullptr;
+  }
+  Json json;
+  json["carrier"] = press->carrier.value();
+  json["since"] = press->since.value();
+  json["trigger"] =
+      press->trigger ? Json(SimTactics::pressingTriggerName(*press->trigger)) : Json(nullptr);
+  json["assignments"] = Json::array();
+  for (const SimMatch::PressAssignment& assignment : press->assignments) {
+    json["assignments"].push_back({{"player", assignment.player.value()},
+                                   {"role", SimMatch::pressRoleName(assignment.role)},
+                                   {"subject", assignment.subject.value()}});
+  }
+  return json;
+}
+
+// Each team's tactic, phase with its instruction, press and shape: its lines,
+// compactness and width.
 [[nodiscard]] Json teamsJson(const MatchState& state) {
   Json json = Json::array();
   for (const SimMatch::TeamSide side : {SimMatch::TeamSide::kHome, SimMatch::TeamSide::kAway}) {
     Json team;
     team["side"] = SimMatch::teamSideName(side);
+    const auto& tactic = state.tactics().of(side);
+    team["tactic"] = tactic ? Json(tactic->name()) : Json(nullptr);
     const auto& phase = state.phase(side);
     team["phase"] = phase ? Json(SimTactics::phaseName(phase->phase)) : Json(nullptr);
+    if (tactic && phase) {
+      const SimTactics::PhaseInstruction& instruction = tactic->instruction(phase->phase);
+      team["instruction"] = {{"lineHeight", instruction.lineHeight},
+                             {"blockLength", instruction.blockLength},
+                             {"blockWidth", instruction.blockWidth},
+                             {"pressingIntensity", instruction.pressingIntensity}};
+    } else {
+      team["instruction"] = nullptr;
+    }
+    team["press"] = pressJson(state.press(side));
     const auto shape = SimMatch::measureTeamShape(state, side);
     team["shape"] = shape ? Json{{"defensiveLine", rounded(shape->defensiveLine)},
                                  {"midfieldLine", rounded(shape->midfieldLine)},
@@ -291,6 +326,32 @@ void addEventFields(Json& json, const SimMatch::PitchControlSampled& event) {
   return json;
 }
 
+// The pitch control grid, as home's control per cell, column by column --
+// away's is the rest. Only in frames whose step refreshed it, so a recording
+// holds each grid once; the viewer shows the latest.
+[[nodiscard]] Json pitchControlJson(const DebugFrame& frame) {
+  const auto& grid = frame.state.pitchControl();
+  const bool refreshed = std::ranges::any_of(frame.events, [](const SimMatch::MatchEvent& event) {
+    return std::holds_alternative<SimMatch::PitchControlSampled>(event);
+  });
+  if (!grid || !refreshed) {
+    return nullptr;
+  }
+  Json home = Json::array();
+  for (std::size_t column = 0; column < grid->columns(); ++column) {
+    for (std::size_t row = 0; row < grid->rows(); ++row) {
+      home.push_back(
+          std::round(grid->control(SimMatch::TeamSide::kHome, {.column = column, .row = row}) *
+                     100.0) /
+          100.0);
+    }
+  }
+  return {{"columns", grid->columns()},
+          {"rows", grid->rows()},
+          {"cellSize", grid->cellSize()},
+          {"home", std::move(home)}};
+}
+
 [[nodiscard]] Json frameJson(const DebugFrame& frame) {
   Json json;
   json["tick"] = frame.tick.value();
@@ -298,6 +359,7 @@ void addEventFields(Json& json, const SimMatch::PitchControlSampled& event) {
   json["ball"] = ballJson(frame.state.ball());
   json["pendingPass"] = pendingPassJson(frame.state.pendingPass());
   json["teams"] = teamsJson(frame.state);
+  json["pitchControl"] = pitchControlJson(frame);
   json["players"] = Json::array();
   for (std::size_t index = 0; index < frame.state.players().size(); ++index) {
     json["players"].push_back(playerJson(frame.state, index));
@@ -341,6 +403,43 @@ void DebugFrameRecorder::recordStep(const SimMatch::MatchSimulation& simulation)
       .actions = {simulation.actionDiagnostics().begin(), simulation.actionDiagnostics().end()}});
 }
 
+namespace {
+
+// Where the lanes and thirds of docs/zones.md meet: pitch y between lanes,
+// pitch x between thirds. The same for both sides.
+[[nodiscard]] Json zonesJson(const SimMatch::Pitch& pitch) {
+  constexpr auto home = SimMatch::TeamSide::kHome;
+  std::set<double> lanes;
+  for (const SimMatch::Lane lane :
+       {SimMatch::Lane::kLeftWing, SimMatch::Lane::kLeftHalfspace, SimMatch::Lane::kCentre,
+        SimMatch::Lane::kRightHalfspace, SimMatch::Lane::kRightWing}) {
+    const SimMatch::PitchRect rect = SimMatch::laneRect(home, lane, pitch);
+    lanes.insert({rect.min.y, rect.max.y});
+  }
+  std::set<double> thirds;
+  for (const SimMatch::Third third :
+       {SimMatch::Third::kDefensive, SimMatch::Third::kMiddle, SimMatch::Third::kAttacking}) {
+    const SimMatch::PitchRect rect = SimMatch::thirdRect(home, third, pitch);
+    thirds.insert({rect.min.x, rect.max.x});
+  }
+  // Only the boundaries between zones, not the touchlines and goal lines,
+  // to the millimetre: two rectangles may compute the same edge a rounding
+  // error apart.
+  const auto inner = [](const std::set<double>& edges, const double end) {
+    std::set<double> rounded;
+    for (const double edge : edges) {
+      if (edge > 0.0 && edge < end) {
+        rounded.insert(std::round(edge * 1000.0) / 1000.0);
+      }
+    }
+    return Json(std::vector<double>(rounded.begin(), rounded.end()));
+  };
+  return {{"laneBoundaries", inner(lanes, pitch.widthMeters())},
+          {"thirdBoundaries", inner(thirds, pitch.lengthMeters())}};
+}
+
+}  // namespace
+
 std::string toDebugFramesJson(const DebugRecording& recording) {
   const SimMatch::MatchConfig& config = recording.config;
   Json json;
@@ -363,6 +462,7 @@ std::string toDebugFramesJson(const DebugRecording& recording) {
     const MatchState& state = recording.frames.front().state;
     json["pitch"] = {{"length", state.pitch().lengthMeters()},
                      {"width", state.pitch().widthMeters()}};
+    json["zones"] = zonesJson(state.pitch());
     for (const SimMatch::PlayerMatchState& player : state.players()) {
       json["players"].push_back(
           {{"id", player.playerId.value()}, {"side", SimMatch::teamSideName(player.side)}});

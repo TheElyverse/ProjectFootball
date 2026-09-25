@@ -3,7 +3,7 @@
 // change a match.
 
 export const FRAMES_FORMAT = "elyverse-debug-frames";
-export const FRAMES_VERSION = 1;
+export const FRAMES_VERSION = 2;
 
 // [x, y] in meters; x along the pitch length, y across it.
 export type Vec2 = readonly [number, number];
@@ -24,6 +24,20 @@ export interface Observation {
   readonly lastSeen: number;
 }
 
+// Where the tactic wants a player (docs/desired-region.md).
+export interface DesiredRegion {
+  readonly tacticalTarget: Vec2;
+  readonly center: Vec2;
+  readonly cost: number;
+}
+
+// A player's decided action without the ball: his assignment.
+export interface PlayerAction {
+  readonly type: string;
+  readonly target: Vec2;
+  readonly subject: number | null;
+}
+
 export interface PlayerFrame {
   readonly id: number;
   readonly position: Vec2;
@@ -31,6 +45,75 @@ export interface PlayerFrame {
   readonly facing: Vec2;
   readonly target: Vec2 | null;
   readonly observations: readonly Observation[];
+  // Null for a player of a scripted side, and for goalkeepers' actions.
+  readonly region: DesiredRegion | null;
+  readonly action: PlayerAction | null;
+}
+
+// Depths are meters from the side's own goal line (docs/zones.md).
+export interface TeamShape {
+  readonly defensiveLine: number;
+  readonly midfieldLine: number;
+  readonly frontLine: number;
+  readonly length: number;
+  readonly width: number;
+  readonly centroid: Vec2;
+}
+
+// The current phase's instruction; heights and sizes are fractions of the
+// pitch (docs/tactics.md).
+export interface PhaseInstruction {
+  readonly lineHeight: number;
+  readonly blockLength: number;
+  readonly blockWidth: number;
+  readonly pressingIntensity: number;
+}
+
+export interface PressAssignment {
+  readonly player: number;
+  readonly role: string;
+  readonly subject: number;
+}
+
+export interface TeamPress {
+  readonly carrier: number;
+  readonly since: number;
+  readonly trigger: string | null;
+  readonly assignments: readonly PressAssignment[];
+}
+
+export interface TeamFrame {
+  readonly side: TeamSide;
+  readonly tactic: string | null;
+  readonly phase: string | null;
+  readonly instruction: PhaseInstruction | null;
+  readonly press: TeamPress | null;
+  readonly shape: TeamShape | null;
+}
+
+// Home's control of each cell, column by column; away's is the rest.
+export interface PitchControlFrame {
+  readonly columns: number;
+  readonly rows: number;
+  readonly cellSize: number;
+  readonly home: readonly number[];
+}
+
+export interface ActionCandidate {
+  readonly type: string;
+  readonly target: Vec2;
+  readonly subject: number | null;
+  readonly scores: Readonly<Record<string, number>>;
+  readonly utility: number;
+  readonly dominant: string;
+}
+
+export interface ActionDecision {
+  readonly tick: number;
+  readonly player: number;
+  readonly chosen: number | null;
+  readonly assigned: boolean;
+  readonly candidates: readonly ActionCandidate[];
 }
 
 export interface BallFrame {
@@ -136,8 +219,12 @@ export interface Frame {
   readonly ball: BallFrame;
   readonly pendingPass: PendingPass | null;
   readonly players: readonly PlayerFrame[];
-  readonly events: readonly MatchEvent[];
+    readonly events: readonly MatchEvent[];
   readonly decisions: readonly Decision[];
+  readonly actions: readonly ActionDecision[];
+  readonly teams: readonly TeamFrame[];
+  // Only in frames whose step refreshed the grid; see latestPitchControl().
+  readonly pitchControl: PitchControlFrame | null;
 }
 
 export interface Recording {
@@ -153,7 +240,12 @@ export interface Recording {
     readonly awarenessRadius: number;
   };
   readonly reception: { readonly controlRadius: number };
-  readonly pitch: { readonly length: number; readonly width: number };
+    readonly pitch: { readonly length: number; readonly width: number };
+  // Pitch y between lanes and pitch x between thirds.
+  readonly zones: {
+    readonly laneBoundaries: readonly number[];
+    readonly thirdBoundaries: readonly number[];
+  };
   readonly players: readonly PlayerInfo[];
   readonly frames: readonly Frame[];
 }
@@ -227,6 +319,42 @@ export function latestDecision(
     }
   }
   return undefined;
+}
+
+// The latest action decision of a player at or before frameIndex, like
+// latestDecision() for players without the ball.
+export function latestActionDecision(
+  recording: Recording,
+  frameIndex: number,
+  playerId: number,
+): { readonly decision: ActionDecision; readonly frameIndex: number } | undefined {
+  for (let index = Math.min(frameIndex, recording.frames.length - 1); index >= 0; index -= 1) {
+    const decision = recording.frames[index]?.actions.find((entry) => entry.player === playerId);
+    if (decision !== undefined) {
+      return { decision, frameIndex: index };
+    }
+  }
+  return undefined;
+}
+
+// The pitch control grid in force at frameIndex: the latest one recorded at
+// or before it.
+export function latestPitchControl(
+  recording: Recording,
+  frameIndex: number,
+): PitchControlFrame | undefined {
+  for (let index = Math.min(frameIndex, recording.frames.length - 1); index >= 0; index -= 1) {
+    const grid = recording.frames[index]?.pitchControl;
+    if (grid !== undefined && grid !== null) {
+      return grid;
+    }
+  }
+  return undefined;
+}
+
+// The pitch x of a depth measured from a side's own goal line.
+export function depthToX(recording: Recording, side: TeamSide, depth: number): number {
+  return side === "home" ? depth : recording.pitch.length - depth;
 }
 
 // Whether the event log lists an event: the pitch control system's regular
