@@ -122,6 +122,11 @@ std::uint64_t hashMatchState(const MatchState& state) noexcept {
     }
   }
   addPitchControl(hasher, state.pitchControl());
+  for (const TeamSide side : {TeamSide::kHome, TeamSide::kAway}) {
+    const auto& chaser = state.chaser(side);
+    hasher.addBool(chaser.has_value());
+    hasher.addU64(chaser.value_or(SimCore::PlayerId::invalid()).value());
+  }
   return hasher.value();
 }
 

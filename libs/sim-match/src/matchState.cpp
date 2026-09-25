@@ -334,6 +334,18 @@ void MatchStateWriter::setPhase(const TeamSide side, const std::optional<TeamPha
   (side == TeamSide::kHome ? state_->phases_[0] : state_->phases_[1]) = phase;
 }
 
+void MatchStateWriter::setChaser(const TeamSide side,
+                                 const std::optional<SimCore::PlayerId> chaser) {
+  if (chaser) {
+    const auto index = findPlayerIndex(*state_, *chaser);
+    if (!index || state_->players_[*index].side != side) {
+      throw std::invalid_argument(std::format("MatchStateWriter: player {} cannot chase for {}",
+                                              chaser->value(), teamSideName(side)));
+    }
+  }
+  (side == TeamSide::kHome ? state_->chasers_[0] : state_->chasers_[1]) = chaser;
+}
+
 PlayerPerception& MatchStateWriter::perception(const std::size_t playerIndex) {
   return state_->perceptions_.at(playerIndex);
 }

@@ -60,7 +60,7 @@ TEST_CASE("Equal states hash equally", "[matchStateHash]") {
 TEST_CASE("The kickoff hash is pinned", "[matchStateHash]") {
   // Changes when the fixture, a state field or the hash encoding changes;
   // each of those invalidates recorded replays, so update it deliberately.
-  REQUIRE(hashOf(kickoffSpec()) == 0x172f58f16ce4360eULL);
+  REQUIRE(hashOf(kickoffSpec()) == 0x0c2fb60e497cdbeeULL);
 }
 
 // Guards against a field that is added to the state but forgotten here.

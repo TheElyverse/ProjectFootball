@@ -255,6 +255,13 @@ class MatchState {
   // Which team has the ball; no team in every state created from a spec.
   [[nodiscard]] const TeamPossession& possession() const noexcept { return possession_; }
 
+  // The player each side has sent after the free ball, if any
+  // (docs/reception.md). The ball pursuit system owns his movement target
+  // while he chases; no other system writes it.
+  [[nodiscard]] const std::optional<SimCore::PlayerId>& chaser(const TeamSide side) const noexcept {
+    return side == TeamSide::kHome ? chasers_[0] : chasers_[1];
+  }
+
   // The pitch-control grid as last refreshed (docs/pitch-control.md); empty
   // in every state created from a spec, until the pitch-control system has
   // run.
@@ -300,12 +307,14 @@ class MatchState {
   // Home, away.
   std::array<std::optional<TeamPhase>, 2> phases_;
   std::optional<PitchControlGrid> pitchControl_;
+  // Home, away.
+  std::array<std::optional<SimCore::PlayerId>, 2> chasers_;
 };
 
 // What a simulation system or command may change in a state: positions,
 // velocities, movement targets, facings, perception memories, who owns and
 // last touched the ball, the pending pass, team possession and phases, the
-// pitch-control grid, nothing else. Squad, ids, sides,
+// pitch-control grid and the chasers, nothing else. Squad, ids, sides,
 // attributes, player order and the pitch have no setter, so a system cannot break those invariants
 // and nothing has to re-check them every tick. Players are addressed by their index in
 // MatchState::players(); an index past the end throws std::out_of_range.
@@ -338,6 +347,8 @@ class MatchStateWriter {
   // Throws std::invalid_argument for a phase given to a side without a
   // tactic: only a tactic says what a phase means.
   void setPhase(TeamSide side, std::optional<TeamPhase> phase);
+  // Throws std::invalid_argument for a player not on that side.
+  void setChaser(TeamSide side, std::optional<SimCore::PlayerId> chaser);
   void setPitchControl(std::optional<PitchControlGrid> grid) {
     state_->pitchControl_ = std::move(grid);
   }

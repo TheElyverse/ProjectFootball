@@ -50,14 +50,21 @@ it, ten times a second:
    [spatial queries](spatial-queries.md)). If he reaches none before the ball
    stops, his interception is where it stops, when he gets there.
 2. **Chaser.** Per side, the player with the earliest interception chases it; ties
-   go to the lower id. His movement target becomes the interception point,
-   overriding any target a command gave him. Everyone else keeps his target.
+   go to the lower id. He becomes his side's chaser, `MatchState::chaser(side)`,
+   and his movement target the interception point, overriding any target a
+   command gave him. Everyone else keeps his target.
 3. **The passer does not chase his own pass** while the ball still moves.
+4. **Handing over.** A chaser's target belongs to pursuit. A player who stops
+   being the chaser -- a teammate reaches the ball earlier, or anyone controls
+   it -- has his target cleared and stops where he is, instead of running on to
+   where the ball was going to be. A receiver who has the ball does not keep
+   running to his interception point.
 
 Pursuit reads the ball directly rather than through
 [perception](perception.md): a simplification until off-ball movement uses
 perceived positions. A player who has chased the ball stays where he ran to once
-someone controls it; positioning belongs to later tactical systems.
+someone controls it; for a side with a tactic, the
+[desired region](desired-region.md) gives him his next target.
 
 ## Configuration
 

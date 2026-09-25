@@ -37,6 +37,9 @@ using ElyverseFootball::SimMatch::makePursuitSystem;
 using ElyverseFootball::SimMatch::MatchSetup;
 using ElyverseFootball::SimMatch::MatchSimulation;
 using ElyverseFootball::SimMatch::MatchState;
+using ElyverseFootball::SimMatch::MatchStateWriter;
+using ElyverseFootball::SimMatch::MatchStepContext;
+using ElyverseFootball::SimMatch::MatchSystem;
 using ElyverseFootball::SimMatch::MovePlayerCommand;
 using ElyverseFootball::SimMatch::PassCommand;
 using ElyverseFootball::SimMatch::Pitch;
@@ -373,4 +376,94 @@ TEST_CASE("One player per side goes after a free ball", "[reception]") {
   REQUIRE(players[1].target.has_value());
   REQUIRE(players[2].target.has_value());
   REQUIRE_FALSE(players[3].target.has_value());
+}
+
+TEST_CASE("Pursuit records each side's chaser", "[reception]") {
+  const MatchState state = twoASide({{.x = 10.0, .y = 20.0},
+                                     {.x = 30.0, .y = 20.0},
+                                     {.x = 45.0, .y = 30.0},
+                                     {.x = 50.0, .y = 5.0}},
+                                    freeBall({.x = 10.0, .y = 20.0}));
+  MatchSimulation simulation = passFrom(state, {.x = 30.0, .y = 20.0});
+  for (int tick = 0; tick < 4; ++tick) {
+    REQUIRE(simulation.step().has_value());
+  }
+  REQUIRE(simulation.state().chaser(TeamSide::kHome) == PlayerId(2));
+  REQUIRE(simulation.state().chaser(TeamSide::kAway) == PlayerId(3));
+}
+
+TEST_CASE("A receiver stops chasing once he has the ball", "[reception]") {
+  // Player 2 runs to meet a pass; once he has it, the interception point is
+  // no longer his target and he does not run on to it.
+  const MatchState state = twoASide({{.x = 10.0, .y = 20.0},
+                                     {.x = 30.0, .y = 20.0},
+                                     {.x = 55.0, .y = 38.0},
+                                     {.x = 58.0, .y = 2.0}},
+                                    freeBall({.x = 10.0, .y = 20.0}));
+  MatchSimulation simulation = passFrom(state, {.x = 30.0, .y = 20.0});
+  stepUntilTaken(simulation, 120);
+  REQUIRE(simulation.state().ball().owner == PlayerId(2));
+  // Pursuit runs every third tick; after its next run nobody chases.
+  for (int tick = 0; tick < 3; ++tick) {
+    REQUIRE(simulation.step().has_value());
+  }
+  const MatchState& after = simulation.state();
+  REQUIRE_FALSE(after.chaser(TeamSide::kHome).has_value());
+  REQUIRE_FALSE(after.chaser(TeamSide::kAway).has_value());
+  for (const PlayerMatchState& player : after.players()) {
+    CAPTURE(player.playerId.value());
+    REQUIRE_FALSE(player.target.has_value());
+  }
+}
+
+TEST_CASE("A player who is no longer the closest stops chasing", "[reception]") {
+  // Away player 3 was sent after the ball at tick 0, far from it; player 4
+  // stands next to it. When pursuit runs again, player 4 takes over and
+  // player 3 stops where he is instead of running on to his old target.
+  const MatchState state = twoASide(
+      {{.x = 5.0, .y = 5.0}, {.x = 5.0, .y = 35.0}, {.x = 55.0, .y = 38.0}, {.x = 31.0, .y = 21.0}},
+      freeBall({.x = 30.0, .y = 20.0}));
+  const MatchSystem sendPlayer3{
+      .name = "send player 3",
+      .update =
+          [](const MatchStepContext&, const MatchState&, MatchStateWriter& next) {
+            next.setChaser(TeamSide::kAway, PlayerId(3));
+            next.setPlayerTarget(2, Vec2{.x = 30.0, .y = 20.0});
+          },
+      .intervalTicks = 1000,
+      .phaseTicks = 0};
+  // Pursuit first runs in the step from tick 1, after player 3 was sent.
+  MatchSystem pursuit = makePursuitSystem(BallPhysics{}, {});
+  pursuit.phaseTicks = 1;
+  MatchSimulation simulation({.initialState = state,
+                              .seed = 5,
+                              .ticksPerSecond = 30,
+                              .systems = {sendPlayer3, pursuit},
+                              .commands = {}});
+  REQUIRE(simulation.step().has_value());
+  REQUIRE(simulation.state().chaser(TeamSide::kAway) == PlayerId(3));
+  REQUIRE(simulation.state().players()[2].target.has_value());
+
+  REQUIRE(simulation.step().has_value());
+  REQUIRE(simulation.state().chaser(TeamSide::kAway) == PlayerId(4));
+  REQUIRE_FALSE(simulation.state().players()[2].target.has_value());
+  REQUIRE(simulation.state().players()[3].target.has_value());
+}
+
+TEST_CASE("Only a player of the side can chase for it", "[reception]") {
+  const auto chaseForHome =
+      MatchSystem{.name = "chase",
+                  .update = [](const MatchStepContext&, const MatchState&, MatchStateWriter& next) {
+                    next.setChaser(TeamSide::kHome, PlayerId(3));
+                  }};
+  MatchSimulation simulation({.initialState = twoASide({{.x = 10.0, .y = 20.0},
+                                                        {.x = 30.0, .y = 20.0},
+                                                        {.x = 45.0, .y = 30.0},
+                                                        {.x = 50.0, .y = 5.0}},
+                                                       freeBall({.x = 30.0, .y = 20.0})),
+                              .seed = 1,
+                              .ticksPerSecond = 30,
+                              .systems = {chaseForHome},
+                              .commands = {}});
+  REQUIRE_THROWS_AS((void)simulation.step(), std::invalid_argument);
 }

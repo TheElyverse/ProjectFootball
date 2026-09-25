@@ -50,11 +50,18 @@ struct Interception {
 inline constexpr std::string_view kPursuitSystemName = "ball pursuit";
 
 // While the ball is free, sends one player per side after it: the one with
-// the earliest interception, ties to the lower id. His movement target
-// becomes the interception point, overriding any assigned target; everyone
-// else keeps his. The last player to touch the ball does not chase it while
-// it still moves -- he just passed it. Runs every config.intervalTicks ticks
-// and writes movement targets only. The ball is read directly, not through
+// the earliest interception, ties to the lower id. He becomes his side's
+// chaser (MatchState::chaser()) and his movement target the interception
+// point, overriding any assigned target; everyone else keeps his. The last
+// player to touch the ball does not chase it while it still moves -- he just
+// passed it.
+//
+// The chaser's target belongs to pursuit. A player who stops being the
+// chaser -- someone else is closer, or anyone controls the ball -- has his
+// target cleared and stops, rather than running on to where the ball was
+// going to be; the tactical systems give a player of a side with a tactic his
+// next target. Runs every config.intervalTicks ticks and writes movement
+// targets and chasers only. The ball is read directly, not through
 // perception. Throws std::invalid_argument for an interval below one tick, a
 // sample or horizon that is not positive and finite, or a horizon of more
 // than kMaxPursuitSamples samples.

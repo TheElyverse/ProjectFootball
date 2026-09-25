@@ -19,7 +19,7 @@ validation leaves no file behind.
 ```json
 {
   "schemaVersion": 3,
-  "coreVersion": "0.9.0",
+  "coreVersion": "0.10.0",
   "createdAt": "2026-09-24T10:00:00Z",
   "seed": "18446744073709551615",
   "gameTime": 300,
