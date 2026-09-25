@@ -13,6 +13,8 @@
 #include "matchSetup.hpp"
 #include "matchSimulation.hpp"
 #include "matchStateHash.hpp"
+#include "referenceTactic.hpp"
+#include "tactic.hpp"
 #include "version.hpp"
 
 using ElyverseFootball::SimCore::PlayerId;
@@ -152,3 +154,43 @@ TEST_CASE("saveDebugFrames reports a write that fails on close", "[debugFrames]"
   CHECK(saved.error().find("write failed") != std::string::npos);
 }
 #endif
+
+TEST_CASE("Frames show team shapes, regions, assignments and action decisions", "[debugFrames]") {
+  using ElyverseFootball::SimTactics::referenceTacticSpec;
+  using ElyverseFootball::SimTactics::Tactic;
+  auto tactic = Tactic::create(referenceTacticSpec());
+  REQUIRE(tactic.has_value());
+  auto state = makeSevenASideKickoff(Pitch(60.0, 40.0), {}, {.home = *tactic, .away = *tactic});
+  REQUIRE(state.has_value());
+  const MatchSetup tactical{
+      .initialState = *std::move(state),
+      .config = {},
+      .seed = 42,
+      .commands = {{.tick = SimTick(0), .command = GiveBallCommand{.playerId = PlayerId(4)}}}};
+  const DebugRecording recording = record(tactical, 30);
+  const auto json = nlohmann::json::parse(toDebugFramesJson(recording));
+
+  const auto& last = json.at("frames").back();
+  const auto& home = last.at("teams").at(0);
+  CHECK(home.at("side") == "home");
+  CHECK(home.at("phase") == "progression");
+  CHECK(home.at("shape").at("defensiveLine").is_number());
+  CHECK(home.at("shape").at("width").is_number());
+  CHECK(last.at("teams").at(1).at("phase") == "defensiveBlock");
+
+  const auto& centreBack = last.at("players").at(1);
+  CHECK(centreBack.at("region").at("center").size() == 2);
+  CHECK(centreBack.at("action").at("type").is_string());
+  // The goalkeeper holds his region and decides nothing.
+  CHECK(last.at("players").at(0).at("action").is_null());
+
+  bool decided = false;
+  for (const auto& frame : json.at("frames")) {
+    for (const auto& action : frame.at("actions")) {
+      CHECK(action.at("candidates").at(0).at("type") == "holdPosition");
+      CHECK(action.at("candidates").at(0).at("dominant").is_string());
+      decided = true;
+    }
+  }
+  CHECK(decided);
+}

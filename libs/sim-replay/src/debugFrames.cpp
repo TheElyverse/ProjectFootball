@@ -16,6 +16,7 @@
 #include "observation.hpp"
 #include "passCandidate.hpp"
 #include "version.hpp"
+#include "zones.hpp"
 
 namespace ElyverseFootball::SimReplay {
 namespace {
@@ -60,6 +61,19 @@ using SimMatch::MatchState;
   return json;
 }
 
+[[nodiscard]] Json regionJson(const SimMatch::DesiredRegion& region) {
+  return {{"tacticalTarget", vec2Json(region.tacticalTarget)},
+          {"center", vec2Json(region.center)},
+          {"cost", rounded(region.cost.total)}};
+}
+
+// A player's decided action: his assignment.
+[[nodiscard]] Json actionJson(const SimMatch::PlayerAction& action) {
+  return {{"type", SimMatch::actionName(action.type)},
+          {"target", vec2Json(action.target)},
+          {"subject", idJson(action.subject)}};
+}
+
 [[nodiscard]] Json playerJson(const MatchState& state, const std::size_t index) {
   const SimMatch::PlayerMatchState& player = state.players()[index];
   Json json;
@@ -69,6 +83,30 @@ using SimMatch::MatchState;
   json["facing"] = vec2Json(player.facing);
   json["target"] = player.target ? vec2Json(*player.target) : Json(nullptr);
   json["observations"] = observationsJson(state.perception(index).observations);
+  const SimMatch::PlayerTacticalState& tactical = state.tactical(index);
+  json["region"] = tactical.region ? regionJson(*tactical.region) : Json(nullptr);
+  json["action"] = tactical.action ? actionJson(*tactical.action) : Json(nullptr);
+  return json;
+}
+
+// Each team's phase and shape: its lines, compactness and width.
+[[nodiscard]] Json teamsJson(const MatchState& state) {
+  Json json = Json::array();
+  for (const SimMatch::TeamSide side : {SimMatch::TeamSide::kHome, SimMatch::TeamSide::kAway}) {
+    Json team;
+    team["side"] = SimMatch::teamSideName(side);
+    const auto& phase = state.phase(side);
+    team["phase"] = phase ? Json(SimTactics::phaseName(phase->phase)) : Json(nullptr);
+    const auto shape = SimMatch::measureTeamShape(state, side);
+    team["shape"] = shape ? Json{{"defensiveLine", rounded(shape->defensiveLine)},
+                                 {"midfieldLine", rounded(shape->midfieldLine)},
+                                 {"frontLine", rounded(shape->frontLine)},
+                                 {"length", rounded(shape->length)},
+                                 {"width", rounded(shape->width)},
+                                 {"centroid", vec2Json(shape->centroid)}}
+                          : Json(nullptr);
+    json.push_back(std::move(team));
+  }
   return json;
 }
 
@@ -216,6 +254,7 @@ void addEventFields(Json& json, const SimMatch::PhaseChanged& event) {
   json["stateHash"] = std::format("{:016x}", SimMatch::hashMatchState(frame.state));
   json["ball"] = ballJson(frame.state.ball());
   json["pendingPass"] = pendingPassJson(frame.state.pendingPass());
+  json["teams"] = teamsJson(frame.state);
   json["players"] = Json::array();
   for (std::size_t index = 0; index < frame.state.players().size(); ++index) {
     json["players"].push_back(playerJson(frame.state, index));
