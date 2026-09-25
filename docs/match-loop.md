@@ -121,14 +121,14 @@ a replay reproduces.
 
 `matchSetup.hpp` assembles the systems a real match runs. `MatchConfig` holds
 every tunable parameter of those systems — the tick rate, ball physics and
-perception, passing, reception, pursuit, decisions, phases, pitch control and positioning so far — and `makeMatchSystems(config)` returns them in their fixed order:
+perception, passing, reception, pursuit, decisions, phases, pitch control, positioning and off-ball decisions so far — and `makeMatchSystems(config)` returns them in their fixed order:
 
 | Order | System          | Rate       | Writes                         |
 |-------|-----------------|------------|--------------------------------|
 | 1     | perception      | 10 Hz      | perception memories            |
 | 2     | tactical phase  | 3 Hz       | team possession, phases of sides with a tactic |
 | 3     | pitch control   | 3 Hz       | the pitch-control grid         |
-| 4     | tactical movement | 5 Hz     | movement targets and desired regions of players of sides with a tactic |
+| 4     | tactical movement | 5 Hz     | movement targets, desired regions and off-ball actions of players of sides with a tactic |
 | 5     | ball pursuit    | 10 Hz      | movement targets of the chasers, the chasers |
 | 6     | pass decision   | 5 Hz       | pending pass                   |
 | 7     | player movement | every tick | player positions, velocities, facings |

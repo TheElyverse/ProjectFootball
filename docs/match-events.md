@@ -57,6 +57,12 @@ A `DecisionDiagnostic` explains one decision of a player on the ball (see
 | `outcome`      | `kPassed` or `kNoValidOption`                               |
 | `chosen`       | index of the chosen candidate, if he passed                 |
 
+An `ActionDiagnostic` explains one decision of a player without the ball (see
+[off-ball movement](off-ball-movement.md)): the `tick`, the `player`, every
+`candidates` action with its target, subject, weighted `scores` and utility, and
+the index of the `chosen` one. `MatchSimulation::actionDiagnostics()` holds those
+of the last step.
+
 Diagnostics are off by default. `MatchSimulation::setCollectDiagnostics(true)`
 turns them on; `diagnostics()` then holds the diagnostics of the last step.
 

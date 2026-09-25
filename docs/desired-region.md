@@ -92,7 +92,9 @@ centre as his movement target, except:
 - the player on the ball, and
 - the side's chaser, whose target belongs to the [ball pursuit](reception.md).
 
-A scripted side is left alone. The system runs fourth in the
+While his team has the ball, a player may run to the target of an
+[off-ball action](off-ball-movement.md) instead of his region's centre. A
+scripted side is left alone. The system runs fourth in the
 [standard order](match-loop.md), before pursuit, so a player pursuit sends after
 the ball in the same step keeps pursuit's target.
 

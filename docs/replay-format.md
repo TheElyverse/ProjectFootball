@@ -19,7 +19,7 @@ validation leaves no file behind.
 ```json
 {
   "schemaVersion": 3,
-  "coreVersion": "0.10.0",
+  "coreVersion": "0.11.0",
   "createdAt": "2026-09-24T10:00:00Z",
   "seed": "18446744073709551615",
   "gameTime": 300,
@@ -69,7 +69,26 @@ validation leaves no file behind.
       "pressureRadius": 8.0,
       "minConfidence": 0.3,
       "hysteresisCost": 0.15,
-      "maxShiftMeters": 3.0
+            "maxShiftMeters": 3.0
+    },
+    "offBall": {
+      "nearBallRadius": 20.0,
+      "nearIntervalTicks": 6,
+      "farIntervalTicks": 18,
+      "supportDistance": 10.0,
+      "spaceSearchRadius": 12.0,
+      "runDepth": 6.0,
+      "laneRadius": 4.0,
+      "pressedRadius": 6.0,
+      "effortScale": 20.0,
+      "holdResponsibility": 0.4,
+      "temperature": 0.2,
+      "responsibilityWeight": 1.0,
+      "regionWeight": 0.5,
+      "spaceWeight": 0.6,
+      "laneWeight": 0.8,
+      "urgencyWeight": 0.6,
+      "effortWeight": 0.3
     }
   },
   "initialState": {
