@@ -15,6 +15,9 @@ namespace {
 TacticSpec referenceTacticSpec() {
   TacticSpec spec{
       .name = "reference",
+      .description =
+          "A neutral 1-2-1-3 for tests and hand-built fixtures: middling heights, no "
+          "pressing triggers.",
       .slots = {slot(0.04, 0.50, RolePreset::kGoalkeeper),
                 slot(0.20, 0.30, RolePreset::kCentreBack),
                 slot(0.20, 0.70, RolePreset::kCentreBack),

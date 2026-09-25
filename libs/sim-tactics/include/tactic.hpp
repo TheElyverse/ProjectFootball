@@ -105,6 +105,9 @@ struct TeamPrinciples {
 // Unvalidated input for Tactic::create(), in the shape tactic files have.
 struct TacticSpec {
   std::string name;
+  // What the tactic is for and which parameters express it. Free text for
+  // people; nothing in the match reads it.
+  std::string description;
   std::vector<TacticSlot> slots;
   TeamPrinciples principles;
   // Indexed by phaseIndex().
@@ -151,6 +154,7 @@ class Tactic {
   [[nodiscard]] static std::expected<Tactic, std::vector<TacticError>> create(TacticSpec spec);
 
   [[nodiscard]] const std::string& name() const noexcept { return spec_.name; }
+  [[nodiscard]] const std::string& description() const noexcept { return spec_.description; }
   [[nodiscard]] std::span<const TacticSlot> slots() const noexcept { return spec_.slots; }
   [[nodiscard]] const TeamPrinciples& principles() const noexcept { return spec_.principles; }
   // Throws std::out_of_range for a value outside the enumerators.

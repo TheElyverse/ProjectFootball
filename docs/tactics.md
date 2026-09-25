@@ -10,7 +10,7 @@ and the [game design document](game-design-document.md), section 8.
 
 ```text
 Tactic
-├─ name
+├─ name, description
 ├─ slots[7]                      base shape + responsibilities
 │   ├─ position { depth, width }
 │   └─ responsibilities[] { responsibility, weight }
@@ -22,6 +22,9 @@ Tactic
     └─ lineHeight, blockLength, blockWidth, ballShift,
        pressingIntensity, passingRisk, runFrequency
 ```
+
+The description is free text for people -- what the tactic is for and which
+parameters express it; nothing in the match reads it.
 
 `Tactic::create(TacticSpec)` is the only way to get a `Tactic`, so every tactic
 that exists is valid. It reports every rule a spec breaks, each with a code, the

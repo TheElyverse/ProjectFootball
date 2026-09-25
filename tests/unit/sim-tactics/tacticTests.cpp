@@ -46,6 +46,7 @@ TEST_CASE("The reference tactic is valid", "[tactic]") {
   const auto tactic = Tactic::create(referenceTacticSpec());
   REQUIRE(tactic.has_value());
   REQUIRE(tactic->name() == "reference");
+  REQUIRE_FALSE(tactic->description().empty());
   REQUIRE(tactic->slots().size() == kSlotsPerTactic);
   REQUIRE(tactic->spec() == referenceTacticSpec());
 }
