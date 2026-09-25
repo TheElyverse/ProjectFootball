@@ -116,6 +116,17 @@ using SimMatch::TeamSide;
             {"riskWeight", scoring.riskWeight}}}};
 }
 
+[[nodiscard]] Json positioningJson(const SimMatch::PositioningConfig& positioning) {
+  return {{"intervalTicks", positioning.intervalTicks},
+          {"candidateSpacing", positioning.candidateSpacing},
+          {"targetDistanceScale", positioning.targetDistanceScale},
+          {"spacingRadius", positioning.spacingRadius},
+          {"pressureRadius", positioning.pressureRadius},
+          {"minConfidence", positioning.minConfidence},
+          {"hysteresisCost", positioning.hysteresisCost},
+          {"maxShiftMeters", positioning.maxShiftMeters}};
+}
+
 [[nodiscard]] Json configJson(const MatchConfig& config) {
   const SimMatch::PerceptionConfig& perception = config.perception;
   return {{"ticksPerSecond", config.ticksPerSecond},
@@ -149,7 +160,8 @@ using SimMatch::TeamSide;
           {"pitchControl",
            {{"intervalTicks", config.pitchControl.intervalTicks},
             {"cellSize", config.pitchControl.cellSize},
-            {"controlSeconds", config.pitchControl.controlSeconds}}}};
+            {"controlSeconds", config.pitchControl.controlSeconds}}},
+          {"positioning", positioningJson(config.positioning)}};
 }
 
 void addCommandFields(Json& json, const MovePlayerCommand& command) {
@@ -440,6 +452,17 @@ constexpr std::int64_t kMaxTick = std::int64_t{1} << 53;
           .hysteresisMeters = field.member("hysteresisMeters").number()};
 }
 
+[[nodiscard]] SimMatch::PositioningConfig readPositioning(const Field& field) {
+  return {.intervalTicks = static_cast<int>(field.member("intervalTicks").integerIn(1, 100000)),
+          .candidateSpacing = field.member("candidateSpacing").number(),
+          .targetDistanceScale = field.member("targetDistanceScale").number(),
+          .spacingRadius = field.member("spacingRadius").number(),
+          .pressureRadius = field.member("pressureRadius").number(),
+          .minConfidence = field.member("minConfidence").number(),
+          .hysteresisCost = field.member("hysteresisCost").number(),
+          .maxShiftMeters = field.member("maxShiftMeters").number()};
+}
+
 [[nodiscard]] MatchConfig readConfig(const Field& field) {
   return {
       .ticksPerSecond = static_cast<int>(field.member("ticksPerSecond").integerIn(1, 100000)),
@@ -453,11 +476,12 @@ constexpr std::int64_t kMaxTick = std::int64_t{1} << 53;
       .pursuit = readPursuit(field.member("pursuit")),
       .decisions = readDecisions(field.member("decisions")),
       .phases = readPhases(field.member("phases")),
-      .pitchControl = {
-          .intervalTicks = static_cast<int>(
-              field.member("pitchControl").member("intervalTicks").integerIn(1, 100000)),
-          .cellSize = field.member("pitchControl").member("cellSize").number(),
-          .controlSeconds = field.member("pitchControl").member("controlSeconds").number()}};
+      .pitchControl =
+          {.intervalTicks = static_cast<int>(
+               field.member("pitchControl").member("intervalTicks").integerIn(1, 100000)),
+           .cellSize = field.member("pitchControl").member("cellSize").number(),
+           .controlSeconds = field.member("pitchControl").member("controlSeconds").number()},
+      .positioning = readPositioning(field.member("positioning"))};
 }
 
 [[nodiscard]] MatchCommand readCommand(const Field& field) {

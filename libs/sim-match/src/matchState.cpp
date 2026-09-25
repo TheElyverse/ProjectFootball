@@ -264,7 +264,8 @@ MatchState::MatchState(MatchStateSpec spec, TeamTactics tactics)
       ball_(spec.ball),
       playersPerSide_(spec.playersPerSide),
       tactics_(std::move(tactics)),
-      perceptions_(players_.size()) {}
+      perceptions_(players_.size()),
+      tactical_(players_.size()) {}
 
 std::expected<MatchState, std::vector<MatchStateError>> MatchState::create(MatchStateSpec spec,
                                                                            TeamTactics tactics) {

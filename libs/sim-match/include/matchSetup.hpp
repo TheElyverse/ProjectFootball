@@ -4,6 +4,7 @@
 #include <vector>
 
 #include "ballMovement.hpp"
+#include "desiredRegion.hpp"
 #include "matchCommand.hpp"
 #include "matchSimulation.hpp"
 #include "matchState.hpp"
@@ -30,6 +31,7 @@ struct MatchConfig {
   DecisionConfig decisions;
   PhaseConfig phases;
   PitchControlConfig pitchControl;
+  PositioningConfig positioning;
 
   friend bool operator==(const MatchConfig&, const MatchConfig&) = default;
 };
@@ -53,10 +55,14 @@ struct MatchSetup {
 //   1. perception       every perception.intervalTicks ticks
 //   2. tactical phase   every phases.intervalTicks ticks
 //   3. pitch control    every pitchControl.intervalTicks ticks
-//   4. ball pursuit     every pursuit.intervalTicks ticks
-//   5. pass decision    every decisions.intervalTicks ticks
-//   6. player movement  every tick
-//   7. ball movement    every tick
+//   4. tactical movement every positioning.intervalTicks ticks
+//   5. ball pursuit     every pursuit.intervalTicks ticks
+//   6. pass decision    every decisions.intervalTicks ticks
+//   7. player movement  every tick
+//   8. ball movement    every tick
+//
+// Tactical movement runs before pursuit, so in a step where both write the
+// same player's target -- a new chaser -- pursuit's wins.
 //
 // Throws std::invalid_argument for invalid parameters.
 [[nodiscard]] std::vector<MatchSystem> makeMatchSystems(const MatchConfig& config);

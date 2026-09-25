@@ -64,6 +64,24 @@ void addPitchControl(StableHasher& hasher, const std::optional<PitchControlGrid>
   }
 }
 
+void addCost(StableHasher& hasher, const PositionCost& cost) noexcept {
+  hasher.addDouble(cost.targetDistance);
+  hasher.addDouble(cost.spacing);
+  hasher.addDouble(cost.pressure);
+  hasher.addDouble(cost.occupancy);
+  hasher.addDouble(cost.transitionRisk);
+  hasher.addDouble(cost.total);
+}
+
+void addTactical(StableHasher& hasher, const PlayerTacticalState& tactical) noexcept {
+  hasher.addBool(tactical.region.has_value());
+  if (tactical.region) {
+    addVec2(hasher, tactical.region->tacticalTarget);
+    addVec2(hasher, tactical.region->center);
+    addCost(hasher, tactical.region->cost);
+  }
+}
+
 }  // namespace
 
 std::uint64_t hashMatchState(const MatchState& state) noexcept {
@@ -126,6 +144,9 @@ std::uint64_t hashMatchState(const MatchState& state) noexcept {
     const auto& chaser = state.chaser(side);
     hasher.addBool(chaser.has_value());
     hasher.addU64(chaser.value_or(SimCore::PlayerId::invalid()).value());
+  }
+  for (std::size_t index = 0; index < state.players().size(); ++index) {
+    addTactical(hasher, state.tactical(index));
   }
   return hasher.value();
 }

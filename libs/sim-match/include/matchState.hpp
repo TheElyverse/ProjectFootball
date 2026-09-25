@@ -17,6 +17,7 @@
 #include "simTime.hpp"
 #include "tactic.hpp"
 #include "tacticalPhase.hpp"
+#include "tacticalState.hpp"
 #include "vec2.hpp"
 
 namespace ElyverseFootball::SimMatch {
@@ -255,6 +256,14 @@ class MatchState {
   // Which team has the ball; no team in every state created from a spec.
   [[nodiscard]] const TeamPossession& possession() const noexcept { return possession_; }
 
+  // The tactical runtime state of the player at this index in players():
+  // his desired region and, with later systems, his chosen action. Empty for
+  // every player of a state created from a spec. Throws std::out_of_range
+  // past the end.
+  [[nodiscard]] const PlayerTacticalState& tactical(std::size_t playerIndex) const {
+    return tactical_.at(playerIndex);
+  }
+
   // The player each side has sent after the free ball, if any
   // (docs/reception.md). The ball pursuit system owns his movement target
   // while he chases; no other system writes it.
@@ -309,12 +318,14 @@ class MatchState {
   std::optional<PitchControlGrid> pitchControl_;
   // Home, away.
   std::array<std::optional<SimCore::PlayerId>, 2> chasers_;
+  // Parallel to players_.
+  std::vector<PlayerTacticalState> tactical_;
 };
 
 // What a simulation system or command may change in a state: positions,
 // velocities, movement targets, facings, perception memories, who owns and
 // last touched the ball, the pending pass, team possession and phases, the
-// pitch-control grid and the chasers, nothing else. Squad, ids, sides,
+// pitch-control grid, the chasers and players' tactical states, nothing else. Squad, ids, sides,
 // attributes, player order and the pitch have no setter, so a system cannot break those invariants
 // and nothing has to re-check them every tick. Players are addressed by their index in
 // MatchState::players(); an index past the end throws std::out_of_range.
@@ -347,6 +358,10 @@ class MatchStateWriter {
   // Throws std::invalid_argument for a phase given to a side without a
   // tactic: only a tactic says what a phase means.
   void setPhase(TeamSide side, std::optional<TeamPhase> phase);
+  // The tactical state of the player at this index, to update in place.
+  [[nodiscard]] PlayerTacticalState& tactical(std::size_t playerIndex) {
+    return state_->tactical_.at(playerIndex);
+  }
   // Throws std::invalid_argument for a player not on that side.
   void setChaser(TeamSide side, std::optional<SimCore::PlayerId> chaser);
   void setPitchControl(std::optional<PitchControlGrid> grid) {

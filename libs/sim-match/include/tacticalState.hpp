@@ -1,0 +1,49 @@
+#pragma once
+
+#include <optional>
+
+#include "vec2.hpp"
+
+namespace ElyverseFootball::SimMatch {
+
+// The parts of a candidate position's cost (implementation plan section 7.2,
+// docs/desired-region.md), each inspectable on its own before the tactic's
+// positioning weights combine them into total.
+struct PositionCost {
+  // Distance from the tactical target, in units of targetDistanceScale.
+  double targetDistance = 0.0;
+  // Crowding: teammates closer than the spacing radius.
+  double spacing = 0.0;
+  // Opponents closer than the pressure radius.
+  double pressure = 0.0;
+  // How much of the position the opponent controls, in [0, 1].
+  double occupancy = 0.0;
+  // How far ahead of the ball the position leaves the team if it loses it,
+  // in [0, 1]; 0 without the ball.
+  double transitionRisk = 0.0;
+  // The weighted sum.
+  double total = 0.0;
+
+  friend bool operator==(const PositionCost&, const PositionCost&) = default;
+};
+
+// Where a player wants to be: the tactical target his shape gives him, the
+// centre of the region he settled on around it, and what that centre costs.
+// The centre is his movement target.
+struct DesiredRegion {
+  SimCore::Vec2 tacticalTarget;
+  SimCore::Vec2 center;
+  PositionCost cost;
+
+  friend bool operator==(const DesiredRegion&, const DesiredRegion&) = default;
+};
+
+// A player's tactical runtime state, kept in the match state because
+// systems keep nothing between ticks. Empty for a player of a scripted side.
+struct PlayerTacticalState {
+  std::optional<DesiredRegion> region;
+
+  friend bool operator==(const PlayerTacticalState&, const PlayerTacticalState&) = default;
+};
+
+}  // namespace ElyverseFootball::SimMatch
