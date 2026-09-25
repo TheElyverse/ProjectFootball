@@ -1,0 +1,19 @@
+{
+  "name": "website",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Static marketing website for Elyverse: Football (docs/website.md)",
+  "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "build": "node scripts/copyStatic.mjs && tailwindcss --input src/styles.css --output dist/styles.css --minify",
+    "watch:css": "tailwindcss --input src/styles.css --output dist/styles.css --watch",
+    "serve": "node scripts/serve.mjs"
+  },
+  "devDependencies": {
+    "@tailwindcss/cli": "4.3.3",
+    "tailwindcss": "4.3.3"
+  }
+}
