@@ -19,7 +19,7 @@ validation leaves no file behind.
 ```json
 {
   "schemaVersion": 3,
-  "coreVersion": "0.11.0",
+  "coreVersion": "0.12.0",
   "createdAt": "2026-09-24T10:00:00Z",
   "seed": "18446744073709551615",
   "gameTime": 300,
@@ -88,6 +88,22 @@ validation leaves no file behind.
       "spaceWeight": 0.6,
       "laneWeight": 0.8,
       "urgencyWeight": 0.6,
+            "effortWeight": 0.3
+    },
+    "defensive": {
+      "markRadius": 12.0,
+      "markDistance": 1.5,
+      "trackRadius": 15.0,
+      "runnerSpeed": 3.0,
+      "trackLeadSeconds": 0.5,
+      "coverDistance": 6.0,
+      "effortScale": 20.0,
+      "holdResponsibility": 0.4,
+      "temperature": 0.2,
+      "responsibilityWeight": 1.0,
+      "regionWeight": 0.5,
+      "spaceWeight": 0.4,
+      "urgencyWeight": 0.8,
       "effortWeight": 0.3
     }
   },

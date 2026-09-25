@@ -153,6 +153,14 @@ abridged example with illustrative values:
 - `observations` of a player are his memory after the step. The observations
   of a decision are the memory the decision was made from, which is the
   previous frame's.
+- Frames of a match with tactics also carry `teams` -- each side's `phase` and
+  `shape` (lines, length, width, centroid) -- each player's `region` (tactical
+  target, centre, cost) and `action` (type, target, subject), and the `actions`
+  decisions of players without the ball, each candidate with its weighted
+  `scores`, `utility` and `dominant` part; see
+  [off-ball movement](off-ball-movement.md) and
+  [defensive shape](defensive-shape.md). They are `null` or empty for a
+  scripted side.
 - Event `type`s are `passAttempted`, `passReceived`, `passIntercepted`,
   `looseBallRecovered`, `possessionChanged` and `phaseChanged`, with the fields
   of [match events](match-events.md); sides and phases are spelled `home`,

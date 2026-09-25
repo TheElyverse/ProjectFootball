@@ -54,11 +54,13 @@ so the decision can be explained:
 action, its target, whom it is about and the tick are the player's
 `PlayerAction`, part of his tactical state and of the state hash. He runs to its
 target until he decides again; holding position follows his desired region as it
-moves. When his team loses the ball the action ends.
+moves.
 
 **Relevance.** A player decides more often where it matters: within
 `nearBallRadius` (20 m) of the ball every `nearIntervalTicks` (6), farther away
 every `farIntervalTicks` (18) -- five and five-thirds times a second at 30 Hz.
+When his team loses the ball he decides again at once, then as a
+[defender](defensive-shape.md). The goalkeeper decides nothing.
 
 **Diagnostics.** Every decision is reported as an `ActionDiagnostic`: all
 candidates with their weighted parts and utility, and the index of the chosen
