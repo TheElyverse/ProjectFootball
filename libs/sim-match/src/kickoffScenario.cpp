@@ -54,7 +54,8 @@ constexpr double kCenterFraction = 0.5;
 
 }  // namespace
 
-std::expected<MatchState, std::vector<MatchStateError>> makeSevenASideKickoff(const Pitch& pitch) {
+std::expected<MatchState, std::vector<MatchStateError>> makeSevenASideKickoff(
+    const Pitch& pitch, const SimCore::Vec2 ballVelocity) {
   std::vector<PlayerMatchState> players;
   players.reserve(2U * kHomeFormation.size());
 
@@ -86,7 +87,7 @@ std::expected<MatchState, std::vector<MatchStateError>> makeSevenASideKickoff(co
               .x = kCenterFraction * pitch.lengthMeters(),
               .y = kCenterFraction * pitch.widthMeters(),
           },
-      .velocity = {},
+      .velocity = ballVelocity,
   };
 
   auto state = MatchState::create({

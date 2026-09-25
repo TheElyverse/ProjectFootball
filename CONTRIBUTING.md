@@ -31,8 +31,12 @@ before starting a change.
   order and schedule, commands, and failure handling.
 - [Player movement](docs/player-movement.md): movement targets, speed and
   acceleration limits, and the pitch boundary rule.
-- [Replay metadata](docs/replay-metadata.md): the file `sim-cli` writes and its
-  seed encoding contract.
+- [Ball movement](docs/ball-movement.md): the rolling ball, ground friction, and
+  what happens when it leaves the pitch.
+- [Replay format](docs/replay-format.md): the replay file `sim-cli` writes, its
+  versioning and seed encoding contract, and replay playback.
+- [Scenarios](docs/scenarios.md): the named, reproducible match setups `sim-cli`
+  runs.
 
 The simulation uses standard C++23 and runs independently of Unreal Engine.
 Unreal will consume simulation state for presentation. Keep simulation behavior
@@ -40,10 +44,12 @@ in the core and rendering or input handling in adapters.
 
 `sim-core` contains shared types and utilities. `sim-match` provides configurable
 metric pitch geometry, the validated match state, the seven-a-side kickoff
-fixture, the fixed-timestep match loop with its commands, and player movement; it
-depends on `sim-core`. New libraries follow the existing
+fixture, the fixed-timestep match loop with its commands, and player and ball
+movement; it depends on `sim-core`. `sim-replay` records, writes, reads and plays
+back replays on top of `sim-match`. New libraries follow the existing
 CMake target pattern and expose an `ElyverseFootball::<name>` alias. Unit tests live
-under `tests/unit/`, grouped by module.
+under `tests/unit/`, grouped by module. Acceptance tests under `tests/acceptance/`
+run whole scenarios and carry the CTest label `acceptance`.
 
 ## Build and test
 
@@ -62,7 +68,9 @@ ctest --preset debug
 ```
 
 The first configure downloads pinned dependencies through CPM, including Catch2
-for tests and [FTXUI 6.1.9](https://github.com/ArthurSonzogni/FTXUI/releases/tag/v6.1.9)
+for tests, [nlohmann/json 3.12.0](https://github.com/nlohmann/json/releases/tag/v3.12.0)
+for replay files, and
+[FTXUI 6.1.9](https://github.com/ArthurSonzogni/FTXUI/releases/tag/v6.1.9)
 for the terminal interface.
 
 Additional configure/build presets include `relwithdebinfo`, `release`, `ci`, and
@@ -71,29 +79,48 @@ and compiled artifacts are not interchangeable.
 
 ## Run the CLI
 
-From an interactive terminal, with Make available:
+`sim-cli` runs a scenario headlessly, records it as a replay, and plays replays
+back. After building on Linux or WSL:
 
 ```sh
-make run ARGS="--tui --seed 42 --replay-out replay_metadata.json"
+./build/debug/apps/sim-cli/sim-cli --scenario kickoff --seed 42 --ticks 300 --replay-out replay.json
 ```
 
-Alternatively, after building on Linux or WSL:
-
-```sh
-./build/debug/apps/sim-cli/sim-cli --tui --seed 42 --replay-out replay_metadata.json
+```text
+scenario:     kickoff
+seed:         42
+ticks:        300
+time:         10 s
+state hash:   c22d772ab92fca0c
+replay:       replay.json
 ```
 
 On Windows, run `sim-cli.exe` from the CMake build output directory with the same
-arguments.
+arguments. With Make available, `make run ARGS="..."` builds and runs it.
 
-The CLI currently starts an empty simulation and writes replay metadata. It does
-not yet run a match. The terminal screen displays the core version, seed, game
-time, and metadata path. Press Enter on Close, `q`, or Escape to exit. Metadata is
-written before the screen opens; [replay metadata](docs/replay-metadata.md)
-describes the file's schema.
+| Option                | Default       | Meaning                                              |
+|-----------------------|---------------|------------------------------------------------------|
+| `--scenario <name>`   | `kickoff`     | the scenario to run; `--list-scenarios` lists them   |
+| `--seed <u64>`        | random        | the master seed; a random one is reported            |
+| `--ticks <n>`         | `300`         | how many ticks to simulate, 0 to 10,000,000          |
+| `--replay-out <path>` | `replay.json` | where to write the replay                            |
+| `--play <path>`       |               | play a replay of at most 10,000,000 ticks back and verify its checkpoints |
+| `--tui`               |               | show the result in a terminal screen                 |
 
-Omit `--tui` for one-shot execution suitable for scripts and redirected output.
-`--tui` requires both stdin and stdout to be terminals.
+A run prints the tick count, the simulated time and the final state hash, and
+writes a [replay](docs/replay-format.md). `--play` rebuilds the match from the
+file, verifies every recorded state hash, and prints the same summary; it takes
+everything from the file, so it cannot be combined with the run options or with
+`--list-scenarios`, which cannot be combined with the run options either.
+`--help` wins over every other option. [Scenarios](docs/scenarios.md) describes
+the scenario catalog.
+
+Invalid arguments, an unknown scenario, a replay that cannot be read, and a
+replay that does not reproduce all end with a message on stderr and a nonzero
+exit code.
+
+`--tui` requires both stdin and stdout to be terminals. The replay is written
+before the screen opens; press Enter on Close, `q`, or Escape to exit.
 
 ## Check a change
 

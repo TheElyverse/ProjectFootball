@@ -9,3 +9,4 @@ CMakeUserPresets.json
 .vscode/
 .idea/
 replay_metadata.json
+replay.json

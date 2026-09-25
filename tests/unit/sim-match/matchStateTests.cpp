@@ -16,6 +16,7 @@ using ElyverseFootball::SimMatch::checkStartingPositions;
 using ElyverseFootball::SimMatch::kDefaultAcceleration;
 using ElyverseFootball::SimMatch::kDefaultMaxSpeed;
 using ElyverseFootball::SimMatch::kDefaultPlayersPerSide;
+using ElyverseFootball::SimMatch::kMaxBallSpeed;
 using ElyverseFootball::SimMatch::MatchState;
 using ElyverseFootball::SimMatch::MatchStateError;
 using ElyverseFootball::SimMatch::MatchStateErrorCode;
@@ -353,6 +354,20 @@ TEST_CASE("MatchState::create rejects a non-finite ball state", "[matchState]") 
   REQUIRE_FALSE(state.has_value());
   REQUIRE(codesOf(state.error()) == std::vector{MatchStateErrorCode::kNonFiniteBallPosition,
                                                 MatchStateErrorCode::kNonFiniteBallVelocity});
+}
+
+TEST_CASE("MatchState::create rejects a ball faster than any kick", "[matchState]") {
+  MatchStateSpec spec = validSpec();
+  // Squaring this speed would overflow.
+  spec.ball.velocity = {.x = 1e155, .y = 0.0};
+
+  const auto state = MatchState::create(spec);
+
+  REQUIRE_FALSE(state.has_value());
+  REQUIRE(codesOf(state.error()) == std::vector{MatchStateErrorCode::kBallTooFast});
+
+  spec.ball.velocity = {.x = 0.0, .y = -kMaxBallSpeed};
+  REQUIRE(MatchState::create(spec).has_value());
 }
 
 TEST_CASE("MatchState::create reports every broken rule in a fixed order", "[matchState]") {

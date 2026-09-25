@@ -8,7 +8,8 @@ This repository is in **early bootstrap stage**. The P0 Foundation milestone (re
 IDs, sim clock, deterministic RNG, a minimal event bus, and a CLI) exists under `libs/sim-core` and
 `apps/sim-cli`, and `libs/sim-match` has started with pitch geometry, the validated match state, the
 seven-a-side kickoff fixture, the fixed-timestep match loop with commands (`docs/match-loop.md`), and
-player movement (`docs/player-movement.md`); almost everything described in the design/implementation docs below is still unbuilt.
+player and ball movement (`docs/player-movement.md`, `docs/ball-movement.md`); almost everything
+described in the design/implementation docs below is still unbuilt.
 When implementing a new system, check whether it belongs in an existing module (see layout below) before
 adding a new one.
 
@@ -47,15 +48,17 @@ libs/
   sim-core       IDs, time, RNG, events, base types (depends on: STL only)      [exists]
   sim-player     Capabilities, match/world player state, development           [planned]
   sim-tactics    Principles, phases, responsibilities, spatial targets         [planned]
-  sim-match      Pitch, ball, perception, decisions, actions, rules            [exists: pitch, state, loop, movement]
+  sim-match      Pitch, ball, perception, decisions, actions, rules            [exists: pitch, state, loop, movement, ball]
   sim-world      Calendar, clubs, competitions, economy, careers               [planned]
   sim-ai         Club planning, coach decisions, staff behavior                [planned]
   sim-analytics  Events, metrics, explanations (read-only over domain events)  [planned]
+  sim-replay     Replay recording, JSON file format, playback verification     [exists]
 apps/
-  sim-cli        starts an empty simulation, writes replay metadata           [exists]
+  sim-cli        runs scenarios, records and plays back replays               [exists]
   sim-benchmark, sim-replay, unreal-game                                       [planned]
 data/            schemas, tactics, competitions, fixtures (JSON/YAML, schema-validated) [planned]
-tests/unit/      Catch2 tests, mirrors libs/ by subdirectory                   [exists: sim-core, sim-match]
+tests/unit/      Catch2 tests, mirrors libs/ by subdirectory                   [exists: sim-core, sim-match, sim-replay]
+tests/acceptance/ whole-match scenarios: stability, determinism, pinned hashes [exists: M0]
 ```
 
 Stack in use: C++23, CMake + Ninja presets, CPM.cmake for dependencies (see `cmake/get_cpm.cmake`),
@@ -95,9 +98,15 @@ Run a single test (Catch2 tag or exact name), after building:
 ./build/debug/tests/unit/sim-match-tests "[matchSimulation]"
 ```
 
-Run the CLI (writes `replay_metadata.json` to the given path):
+Run a scenario headlessly and play its replay back (see `docs/replay-format.md`, `docs/scenarios.md`):
 ```
-./build/debug/apps/sim-cli/sim-cli --seed 42 --replay-out /tmp/replay.json
+./build/debug/apps/sim-cli/sim-cli --scenario kickoff --seed 42 --ticks 300 --replay-out /tmp/replay.json
+./build/debug/apps/sim-cli/sim-cli --play /tmp/replay.json
+```
+
+Run only the acceptance scenarios (CI runs them in their own step):
+```
+ctest --preset debug --label-regex acceptance
 ```
 
 Run the complete local CI target (warnings-as-errors build, tests, format check, and clang-tidy):

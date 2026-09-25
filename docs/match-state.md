@@ -61,6 +61,7 @@ one.
 | player targets, where set, are finite             | `kNonFinitePlayerTarget`   |
 | the ball position is finite                       | `kNonFiniteBallPosition`   |
 | the ball velocity is finite                       | `kNonFiniteBallVelocity`   |
+| the ball is not faster than `kMaxBallSpeed` (100 m/s) | `kBallTooFast`         |
 
 These rules hold for every state of a match, from kickoff to the final whistle.
 The match loop only changes positions, velocities and targets, and checks the
@@ -115,11 +116,11 @@ different type.
 
 ## The seven-a-side kickoff fixture
 
-`makeSevenASideKickoff(pitch)` builds the fixed starting scenario. It is a pure
-function of the pitch: no seed, no random number generator, no clock. The same
-pitch always produces the same state, which is what makes it usable as the
-`InitialSnapshot` of a replay ([implementation plan](implementation-plan.md)
-section 5.3).
+`makeSevenASideKickoff(pitch, ballVelocity = {})` builds the fixed starting
+scenario. It is a pure function of its arguments: no seed, no random number
+generator, no clock. The same arguments always produce the same state, which is
+what makes it usable as the `InitialSnapshot` of a replay
+([implementation plan](implementation-plan.md) section 5.3).
 
 Home defends `x = 0` and attacks `+x`. Positions are fractions of the pitch
 dimensions rather than fixed meters, so the fixture fits any valid pitch:
@@ -136,7 +137,9 @@ dimensions rather than fixed meters, so the fixture fits any valid pitch:
 | 8–14 | away | mirror of 1–7   | length − x    | unchanged    |
 
 Away is home's mirror image through the halfway line, so each side starts in
-its own half. The ball rests on the center spot and every velocity is zero.
+its own half. The ball lies on the center spot and every player velocity is
+zero. The ball is at rest unless the optional `ballVelocity` argument sets it
+rolling; see [ball movement](ball-movement.md).
 Role names describe the layout; they are not a field of the state, because
 responsibilities belong to the tactics module.
 
@@ -152,8 +155,9 @@ treat the table above as a contract, not a default.
 
 ## What this is not
 
-There is no clock, no movement, no ball physics, no possession, and no rules
-here: no offside, no out of play, no fouls. `Pitch::contains()` decides whether
+The state does not advance itself: the clock is the [match loop](match-loop.md)'s,
+and movement and ball physics are systems that run in it. There is no possession
+and there are no rules here: no offside, no out of play, no fouls. `Pitch::contains()` decides whether
 a position is on the rectangle, nothing more. A player standing on the goal
 line is a valid state, and so is a ball behind it; whether that ball is a goal
 is for the rules to decide.

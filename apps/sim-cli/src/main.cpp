@@ -1,82 +1,33 @@
 #include <array>
-#include <charconv>
+#include <cstdint>
 #include <cstdlib>
 #include <ctime>
 #include <expected>
-#include <fstream>
+#include <format>
 #include <iostream>
-#include <optional>
 #include <random>
 #include <span>
 #include <stdexcept>
 #include <string>
-#include <string_view>
+#include <utility>
+#include <vector>
 
-#include "random.hpp"
+#include "cliOptions.hpp"
+#include "matchSetup.hpp"
+#include "replay.hpp"
+#include "replayJson.hpp"
+#include "scenarios.hpp"
 #include "simTime.hpp"
 #include "terminalUi.hpp"
-#include "version.hpp"
 
 namespace {
-struct CliOptions {
-  bool tui = false;
-  std::optional<std::uint64_t> seed;
-  std::string replayOut = "replay_metadata.json";
-};
 
-constexpr std::string_view kUsage = "usage: sim-cli [--tui] [--seed <u64>] [--replay-out <path>]";
-
-// std::span has no bounds-checked at() (unlike std::vector/std::array), so this
-// is span's missing at(): the one place a bounds check plus the actual element
-// access happen together, instead of trusting every call site to have checked
-// first. Mirrors what std::vector::at()/gsl::at() do internally.
-[[nodiscard]] char* checkedAt(const std::span<char* const> args, const std::size_t index) {
-  if (index >= args.size()) {
-    throw std::out_of_range("sim-cli: argument index out of range");
-  }
-  return args[index];  // NOLINT(cppcoreguidelines-pro-bounds-avoid-unchecked-container-access)
-}
-
-std::expected<std::uint64_t, std::string> parseSeed(const std::string_view token) {
-  std::uint64_t value = 0;
-  // NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic) -- std::from_chars only takes a
-  // raw [begin, end) pointer range, there is no std::string_view overload.
-  const auto [ptr, ec] = std::from_chars(token.data(), token.data() + token.size(), value);
-  if (ec != std::errc{} || ptr != token.data() + token.size()) {
-    // NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
-    return std::unexpected("invalid --seed value '" + std::string(token) + "'");
-  }
-  return value;
-}
-
-// Takes a span instead of (argc, char**) so indexing goes through
-// std::span::operator[] rather than raw pointer arithmetic on argv.
-std::expected<CliOptions, std::string> parseArgs(const std::span<char* const> args) {
-  CliOptions options;
-  for (std::size_t i = 1; i < args.size(); ++i) {
-    const std::string_view arg = checkedAt(args, i);
-    if (arg == "--tui") {
-      options.tui = true;
-    } else if (arg == "--seed") {
-      if (i + 1 >= args.size()) {
-        return std::unexpected("--seed requires a value");
-      }
-      const auto seed = parseSeed(checkedAt(args, ++i));
-      if (!seed) {
-        return std::unexpected(seed.error());
-      }
-      options.seed = *seed;
-    } else if (arg == "--replay-out") {
-      if (i + 1 >= args.size()) {
-        return std::unexpected("--replay-out requires a value");
-      }
-      options.replayOut = checkedAt(args, ++i);
-    } else {
-      return std::unexpected("unknown argument '" + std::string(arg) + "'");
-    }
-  }
-  return options;
-}
+using ElyverseFootball::Cli::CliMode;
+using ElyverseFootball::Cli::CliOptions;
+using ElyverseFootball::Cli::SummaryLine;
+using ElyverseFootball::SimCore::SimTick;
+using ElyverseFootball::SimMatch::MatchSetup;
+using ElyverseFootball::SimReplay::Replay;
 
 // Only the CLI (an adapter, not the simulation core) may pull entropy from a
 // non-deterministic source, and only to pick the *master* seed when the user
@@ -103,72 +54,136 @@ std::string iso8601Now() {
   return buffer.data();
 }
 
-// "Empty simulation": a clock that exists and could tick, with no domain
-// state yet. This proves the core + CLI + replay-metadata wiring per the P0
-// exit criteria without pretending real simulation content exists.
-//
-// Defined here rather than inside main(): SimClock::withTicksPerSecond() can
-// throw, and bugprone-exception-escape flags any call to it from main() even
-// though a constexpr variable is initialized at compile time -- an invalid
-// tick rate fails the build, never the run.
-constexpr auto kEmptySimulationClock = ElyverseFootball::SimCore::SimClock::withTicksPerSecond(30);
+std::string hashText(const std::uint64_t hash) {
+  return std::format("{:016x}", hash);
+}
+
+// Prints aligned "label: value" lines to stdout, or shows them in the terminal
+// interface with --tui.
+void report(const CliOptions& options, const std::string& title,
+            const std::vector<SummaryLine>& lines) {
+  if (options.tui) {
+    ElyverseFootball::Cli::showSummary(title, lines);
+    return;
+  }
+  for (const auto& [label, value] : lines) {
+    std::cout << std::format("{:<14}{}\n", label + ":", value);
+  }
+}
+
+int fail(const std::string& message) {
+  std::cerr << "sim-cli: " << message << "\n";
+  return EXIT_FAILURE;
+}
+
+void listScenarios() {
+  for (const auto& scenario : ElyverseFootball::SimMatch::scenarios()) {
+    std::cout << std::format("{:<16}{}\n", scenario.name, scenario.description);
+  }
+}
+
+// Runs a scenario, records it, writes the replay, then reports. The replay is
+// written before the terminal interface opens.
+int runScenario(const CliOptions& options) {
+  const auto* scenario = ElyverseFootball::SimMatch::findScenario(options.scenario);
+  if (scenario == nullptr) {
+    return fail("unknown scenario '" + options.scenario + "'; see --list-scenarios");
+  }
+  const std::uint64_t seed = resolveSeed(options);
+  const auto setup = scenario->make(seed);
+  if (!setup) {
+    return fail(setup.error());
+  }
+  const auto replay = ElyverseFootball::SimReplay::recordMatch(
+      *setup, SimTick(options.ticks), ElyverseFootball::SimReplay::kDefaultCheckpointIntervalTicks,
+      iso8601Now());
+  if (!replay) {
+    return fail(std::format("the simulation failed at tick {} in system '{}'",
+                            replay.error().tick.value(), replay.error().systemName));
+  }
+  if (const auto saved = ElyverseFootball::SimReplay::saveReplay(*replay, options.replayOut);
+      !saved) {
+    return fail(saved.error().message);
+  }
+
+  // Elapsed time as the simulation clock computes it: one division.
+  const double elapsedSeconds = static_cast<double>(replay->finalTick.value()) /
+                                static_cast<double>(setup->config.ticksPerSecond);
+  report(options, "Scenario run",
+         {{"scenario", options.scenario},
+          {"seed", std::to_string(seed)},
+          {"ticks", std::to_string(replay->finalTick.value())},
+          {"time", std::format("{} s", elapsedSeconds)},
+          {"state hash", hashText(replay->checkpoints.back().stateHash)},
+          {"replay", options.replayOut}});
+  return EXIT_SUCCESS;
+}
+
+// Loads a replay, plays it back and verifies every checkpoint.
+int playReplayFile(const CliOptions& options) {
+  const auto replay = ElyverseFootball::SimReplay::loadReplay(options.playPath);
+  if (!replay) {
+    return fail(replay.error().message);
+  }
+  // A replay file may claim any length the format allows; playback steps
+  // tick by tick, so hold it to the limit of a new run.
+  if (replay->finalTick.value() > ElyverseFootball::Cli::kMaxTicks) {
+    return fail(std::format("{}: the replay runs {} ticks, sim-cli plays at most {}",
+                            options.playPath, replay->finalTick.value(),
+                            ElyverseFootball::Cli::kMaxTicks));
+  }
+  const auto playback = ElyverseFootball::SimReplay::playReplay(*replay);
+  if (!playback) {
+    return fail(options.playPath + ": " + playback.error().message);
+  }
+  report(options, "Replay verified",
+         {{"replay", options.playPath},
+          {"seed", std::to_string(replay->setup.seed)},
+          {"ticks", std::to_string(playback->finalTick.value())},
+          {"time", std::format("{} s", playback->elapsedSeconds)},
+          {"state hash", hashText(playback->finalStateHash)},
+          {"checkpoints", std::format("{} verified", playback->checkpointsVerified)}});
+  return EXIT_SUCCESS;
+}
+
 }  // namespace
 
 int main(int argc, char** argv) {
   std::expected<CliOptions, std::string> parsed;
   try {
-    parsed = parseArgs(std::span<char* const>(argv, static_cast<std::size_t>(argc)));
+    parsed = ElyverseFootball::Cli::parseCliOptions(
+        std::span<char* const>(argv, static_cast<std::size_t>(argc)));
   } catch (const std::out_of_range&) {
-    // checkedAt()'s bounds check should be unreachable given parseArgs()'s own
+    // checkedAt()'s bounds check should be unreachable given the parser's own
     // guards; if it ever fires (e.g. a future refactor drops a guard), report
     // it the same way as any other malformed input instead of letting the
     // exception escape main() and std::terminate().
     parsed = std::unexpected("internal error: argument index out of range");
   }
   if (!parsed) {
-    std::cerr << "sim-cli: " << parsed.error() << "\n" << kUsage << "\n";
+    std::cerr << "sim-cli: " << parsed.error() << "\n" << ElyverseFootball::Cli::kUsage << "\n";
     return EXIT_FAILURE;
   }
   const CliOptions& options = *parsed;
   if (options.tui && !ElyverseFootball::Cli::hasInteractiveTerminal()) {
-    std::cerr << "sim-cli: --tui requires an interactive terminal on stdin and stdout\n";
-    return EXIT_FAILURE;
-  }
-  const std::uint64_t seed = resolveSeed(options);
-
-  ElyverseFootball::SimCore::RandomNumberGenerator executionRng(
-      ElyverseFootball::SimCore::deriveSeed(
-          seed, ElyverseFootball::SimCore::RandomNumberGeneratorDomain::kExecution));
-  (void)executionRng.nextU64();
-
-  std::ofstream out(options.replayOut);
-  if (!out) {
-    std::cerr << "Failed to open " << options.replayOut << " for writing\n";
-    return EXIT_FAILURE;
+    return fail("--tui requires an interactive terminal on stdin and stdout");
   }
 
-  // seed is quoted deliberately: a JSON number may be decoded as a double and
-  // rounded above 2^53, which would silently change the simulation. See
-  // docs/replay-metadata.md.
-  out << "{\n"
-      << "  \"schemaVersion\": 1,\n"
-      << R"(  "coreVersion": ")" << ElyverseFootball::SimCore::coreVersion() << "\",\n"
-      << R"(  "createdAt": ")" << iso8601Now() << "\",\n"
-      << R"(  "seed": ")" << seed << "\",\n"
-      << "  \"gameTime\": " << kEmptySimulationClock.tick().value() << "\n"
-      << "}\n";
-
-  out.close();
-  if (!out) {
-    std::cerr << "Failed to write replay metadata to " << options.replayOut << "\n";
-    return EXIT_FAILURE;
+  try {
+    switch (options.mode) {
+      case CliMode::kHelp:
+        std::cout << ElyverseFootball::Cli::kUsage << "\n";
+        return EXIT_SUCCESS;
+      case CliMode::kListScenarios:
+        listScenarios();
+        return EXIT_SUCCESS;
+      case CliMode::kPlay:
+        return playReplayFile(options);
+      case CliMode::kRun:
+        return runScenario(options);
+    }
+  } catch (const std::exception& error) {
+    return fail(std::string("unexpected error: ") + error.what());
   }
-
-  if (options.tui) {
-    ElyverseFootball::Cli::showSimulationSummary(seed, kEmptySimulationClock.tick(),
-                                                 options.replayOut);
-  } else {
-    std::cout << "Started empty simulation. Wrote replay metadata to " << options.replayOut << "\n";
-  }
-  return EXIT_SUCCESS;
+  return EXIT_FAILURE;
 }

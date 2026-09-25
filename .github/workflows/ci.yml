@@ -22,7 +22,13 @@ jobs:
         run: cmake --build --preset ci
 
       - name: Test
-        run: ctest --preset ci
+        run: ctest --preset ci --label-exclude acceptance
+
+      # Whole-match scenarios: stability over minutes of simulated time,
+      # identical hashes on repeated runs, replay playback and batch sizes,
+      # and pinned state hashes that must match on every platform.
+      - name: Acceptance scenarios
+        run: ctest --preset ci --label-regex acceptance --output-on-failure
 
   format:
     runs-on: ubuntu-latest

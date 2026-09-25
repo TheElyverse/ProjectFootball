@@ -113,6 +113,22 @@ ticks, so the schedule stays exact over a whole match.
 `deriveSeed()`. Systems draw in their fixed order, so the draws are part of what
 a replay reproduces.
 
+## The standard systems
+
+`matchSetup.hpp` assembles the systems a real match runs. `MatchConfig` holds
+every tunable parameter of those systems — the tick rate and the ball physics so
+far — and `makeMatchSystems(config)` returns them in their fixed order:
+
+| Order | System          | Rate       | Writes                         |
+|-------|-----------------|------------|--------------------------------|
+| 1     | player movement | every tick | player positions, velocities   |
+| 2     | ball movement   | every tick | ball position, velocity        |
+
+`MatchSetup` is everything such a match starts from: initial state, config, seed
+and commands. `startMatch(setup)` builds the simulation. A replay records a
+setup (see [replay format](replay-format.md)); a parameter added to
+`MatchConfig` must be added to the replay format too.
+
 ## Invariants and failures
 
 The loop enforces the [match state](match-state.md) invariants every tick. The
