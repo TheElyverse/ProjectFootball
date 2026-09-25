@@ -19,6 +19,7 @@
 
 #include "cliOptions.hpp"
 #include "debugFrames.hpp"
+#include "decisionTrace.hpp"
 #include "matchAnalyzer.hpp"
 #include "matchSetup.hpp"
 #include "referenceTactic.hpp"
@@ -265,7 +266,23 @@ int runScenario(const CliOptions& options) {
   return EXIT_SUCCESS;
 }
 
-// Loads a replay, plays it back and verifies every checkpoint.
+// The players and ticks --trace covers.
+ElyverseFootball::SimMatch::DiagnosticsFilter traceFilter(const CliOptions& options) {
+  ElyverseFootball::SimMatch::DiagnosticsFilter filter;
+  for (const std::uint32_t player : options.tracePlayers) {
+    filter.players.emplace_back(player);
+  }
+  if (options.traceFrom) {
+    filter.from = SimTick(*options.traceFrom);
+  }
+  if (options.traceTo) {
+    filter.to = SimTick(*options.traceTo);
+  }
+  return filter;
+}
+
+// Loads a replay, plays it back and verifies every checkpoint, and with
+// --trace writes the decision trace of the playback.
 int playReplayFile(const CliOptions& options) {
   const auto replay = ElyverseFootball::SimReplay::loadReplay(options.playPath);
   if (!replay) {
@@ -278,18 +295,39 @@ int playReplayFile(const CliOptions& options) {
                             options.playPath, replay->finalTick.value(),
                             ElyverseFootball::Cli::kMaxTicks));
   }
-  const auto playback = ElyverseFootball::SimReplay::playReplay(*replay);
+  std::optional<ElyverseFootball::SimReplay::DecisionTracer> tracer;
+  ElyverseFootball::SimReplay::PlaybackObserver observer;
+  if (!options.tracePath.empty()) {
+    tracer.emplace(replay->setup.config);
+    observer.diagnostics = traceFilter(options);
+    observer.afterStep = [&tracer](const ElyverseFootball::SimMatch::MatchSimulation& simulation) {
+      tracer->recordStep(simulation);
+    };
+  }
+  const auto playback = ElyverseFootball::SimReplay::playReplay(*replay, observer);
   if (!playback) {
     return fail(options.playPath + ": " + playback.error().message);
   }
-  report(options, "Replay verified",
-         {{"replay", options.playPath},
-          {"seed", std::to_string(replay->setup.seed)},
-          {"ticks", std::to_string(playback->finalTick.value())},
-          {"time", std::format("{} s", playback->elapsedSeconds)},
-          {"state hash", hashText(playback->finalStateHash)},
-          {"event hash", hashText(playback->finalEventHash)},
-          {"checkpoints", std::format("{} verified", playback->checkpointsVerified)}});
+  if (tracer) {
+    if (const auto written = writeText(options.tracePath,
+                                       ElyverseFootball::SimReplay::formatTrace(tracer->entries()));
+        !written) {
+      return fail(written.error());
+    }
+  }
+  std::vector<SummaryLine> lines{
+      {"replay", options.playPath},
+      {"seed", std::to_string(replay->setup.seed)},
+      {"ticks", std::to_string(playback->finalTick.value())},
+      {"time", std::format("{} s", playback->elapsedSeconds)},
+      {"state hash", hashText(playback->finalStateHash)},
+      {"event hash", hashText(playback->finalEventHash)},
+      {"checkpoints", std::format("{} verified", playback->checkpointsVerified)}};
+  if (tracer) {
+    lines.emplace_back(
+        "trace", std::format("{} ({} decisions)", options.tracePath, tracer->entries().size()));
+  }
+  report(options, "Replay verified", lines);
   return EXIT_SUCCESS;
 }
 

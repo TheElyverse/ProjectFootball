@@ -1,9 +1,13 @@
 #include "cliOptions.hpp"
 
+#include <algorithm>
 #include <charconv>
 #include <cstddef>
 #include <stdexcept>
+#include <string>
 #include <system_error>
+#include <utility>
+#include <vector>
 
 namespace ElyverseFootball::Cli {
 namespace {
@@ -55,6 +59,50 @@ class ArgumentReader {
   std::size_t index_ = 1;  // skip the program name
 };
 
+// "4,7,12": player ids, each positive.
+[[nodiscard]] std::expected<std::vector<std::uint32_t>, std::string> parsePlayerList(
+    const std::string_view token) {
+  std::vector<std::uint32_t> players;
+  std::size_t start = 0;
+  while (start <= token.size()) {
+    const std::size_t comma = std::min(token.find(',', start), token.size());
+    const auto player =
+        parseInteger<std::uint32_t>("--trace-players", token.substr(start, comma - start));
+    if (!player || *player == 0) {
+      return std::unexpected("invalid --trace-players value '" + std::string(token) +
+                             "', expected player ids like 4,7");
+    }
+    players.push_back(*player);
+    start = comma + 1;
+  }
+  return players;
+}
+
+// The value of one of the --trace options.
+[[nodiscard]] std::expected<void, std::string> parseTraceOption(const std::string_view option,
+                                                                const std::string_view value,
+                                                                CliOptions& options) {
+  if (option == "--trace") {
+    options.tracePath = value;
+    return {};
+  }
+  if (option == "--trace-players") {
+    auto players = parsePlayerList(value);
+    if (!players) {
+      return std::unexpected(players.error());
+    }
+    options.tracePlayers = *std::move(players);
+    return {};
+  }
+  const auto tick = parseInteger<std::int64_t>(option, value);
+  if (!tick || *tick < 0 || *tick > kMaxTicks) {
+    return std::unexpected("invalid " + std::string(option) + " value '" + std::string(value) +
+                           "', expected 0 to " + std::to_string(kMaxTicks));
+  }
+  (option == "--trace-from" ? options.traceFrom : options.traceTo) = *tick;
+  return {};
+}
+
 }  // namespace
 
 // One branch per option keeps the grammar readable in one place.
@@ -68,6 +116,7 @@ std::expected<CliOptions, std::string> parseCliOptions(const std::span<char* con
   bool play = false;
   bool newRunOption = false;
   bool scenarioGiven = false;
+  bool traceOption = false;
   ArgumentReader reader(args);
   while (!reader.done()) {
     const std::string_view arg = reader.next();
@@ -87,6 +136,16 @@ std::expected<CliOptions, std::string> parseCliOptions(const std::span<char* con
       }
       play = true;
       options.playPath = *path;
+    } else if (arg == "--trace" || arg == "--trace-players" || arg == "--trace-from" ||
+               arg == "--trace-to") {
+      const auto value = reader.value(arg);
+      if (!value) {
+        return std::unexpected(value.error());
+      }
+      if (const auto parsed = parseTraceOption(arg, *value, options); !parsed) {
+        return std::unexpected(parsed.error());
+      }
+      traceOption = true;
     } else if (arg == "--scenario" || arg == "--seed" || arg == "--ticks" ||
                arg == "--replay-out" || arg == "--frames-out" || arg == "--stats-out" ||
                arg == "--home-tactic" || arg == "--away-tactic") {
@@ -130,6 +189,15 @@ std::expected<CliOptions, std::string> parseCliOptions(const std::span<char* con
   if (help) {
     options.mode = CliMode::kHelp;
     return options;
+  }
+  if (traceOption && !play) {
+    return std::unexpected("--trace options only apply to --play");
+  }
+  if (traceOption && options.tracePath.empty()) {
+    return std::unexpected("--trace-players, --trace-from and --trace-to need --trace");
+  }
+  if (options.traceFrom && options.traceTo && *options.traceFrom > *options.traceTo) {
+    return std::unexpected("--trace-from must not come after --trace-to");
   }
   if (play && listScenarios) {
     return std::unexpected("--play and --list-scenarios cannot be combined");

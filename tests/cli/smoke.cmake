@@ -172,3 +172,21 @@ if(NOT firstStats STREQUAL secondStats)
     message(FATAL_ERROR "The same run wrote different stats")
 endif()
 expect_failure("same file" --ticks 1 --replay-out "${replay}" --stats-out "${replay}")
+
+# The decision trace of a playback: the P1 interception, blamed on the
+# decision, and the playback still verifies.
+set(trace "${TEST_OUTPUT_DIR}/trace.txt")
+run_cli(--scenario intercepted-pass --seed 7 --ticks 150 --replay-out "${replay}")
+run_cli(--play "${replay}" --trace "${trace}" --trace-players 1 --trace-to 120)
+if(NOT result STREQUAL "0" OR NOT output MATCHES "checkpoints: +6 verified"
+        OR NOT output MATCHES "trace: +[^\n]*trace.txt \\(1 decisions\\)")
+    message(FATAL_ERROR "Trace failed: ${result}: ${output}${error}")
+endif()
+file(READ "${trace}" traceText)
+if(NOT traceText MATCHES "^t=18 #1 passes to #2 .* -> intercepted by #8 at t=70: decision\n$")
+    message(FATAL_ERROR "Unexpected trace: ${traceText}")
+endif()
+expect_failure("only apply to --play" --scenario kickoff --trace "${trace}")
+expect_failure("need --trace" --play "${replay}" --trace-players 1)
+expect_failure("invalid --trace-players" --play "${replay}" --trace "${trace}" --trace-players 1,x)
+expect_failure("must not come after" --play "${replay}" --trace "${trace}" --trace-from 9 --trace-to 3)

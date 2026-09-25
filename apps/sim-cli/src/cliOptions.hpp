@@ -6,6 +6,7 @@
 #include <span>
 #include <string>
 #include <string_view>
+#include <vector>
 
 namespace ElyverseFootball::Cli {
 
@@ -42,6 +43,12 @@ struct CliOptions {
   // Where to write the match statistics; empty writes none.
   std::string statsOut;
   std::string playPath;
+  // With --play: where to write the decision trace, empty writes none, and
+  // which players and ticks it covers; empty means all.
+  std::string tracePath;
+  std::vector<std::uint32_t> tracePlayers;
+  std::optional<std::int64_t> traceFrom;
+  std::optional<std::int64_t> traceTo;
   // Tactic files for the tactic-match scenario; empty plays the reference
   // tactic on that side.
   std::string homeTactic;
@@ -52,7 +59,8 @@ inline constexpr std::string_view kUsage =
     "usage: sim-cli [--scenario <name>] [--seed <u64>] [--ticks <n>] [--replay-out <path>] "
     "[--frames-out <path>] [--stats-out <path>] [--tui]\n"
     "       sim-cli [--home-tactic <tactic.json>] [--away-tactic <tactic.json>] [run options]\n"
-    "       sim-cli --play <replay.json> [--tui]\n"
+    "       sim-cli --play <replay.json> [--trace <trace.txt> [--trace-players <id,id,...>]\n"
+    "               [--trace-from <tick>] [--trace-to <tick>]] [--tui]\n"
     "       sim-cli --list-scenarios\n"
     "       sim-cli --help";
 
