@@ -39,6 +39,17 @@ if (PF_ENABLE_SANITIZERS AND NOT MSVC)
     add_link_options(-fsanitize=address,undefined)
 endif ()
 
+# JSON for data files (tactics) and replays; shared by several libraries, so
+# it is declared once here.
+CPMAddPackage(
+        NAME nlohmann_json
+        GITHUB_REPOSITORY nlohmann/json
+        GIT_TAG v3.12.0
+        OPTIONS
+        "JSON_BuildTests OFF"
+        "JSON_Install OFF"
+)
+
 add_subdirectory(libs/sim-core)
 add_subdirectory(libs/sim-tactics)
 add_subdirectory(libs/sim-match)

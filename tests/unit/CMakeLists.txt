@@ -61,9 +61,11 @@ add_executable(sim-tactics-tests
         sim-tactics/rolePresetTests.cpp
         sim-tactics/tacticTests.cpp
         sim-tactics/tacticHashTests.cpp
+        sim-tactics/tacticJsonTests.cpp
 )
 target_link_libraries(sim-tactics-tests PRIVATE
         ElyverseFootball::sim-tactics
+        nlohmann_json::nlohmann_json
         Catch2::Catch2WithMain
         pf_compiler_warnings
 )
