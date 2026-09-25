@@ -8,8 +8,13 @@ This repository is in **early bootstrap stage**. The P0 Foundation milestone (re
 IDs, sim clock, deterministic RNG, a minimal event bus, and a CLI) exists under `libs/sim-core` and
 `apps/sim-cli`, and `libs/sim-match` has started with pitch geometry, the validated match state, the
 seven-a-side kickoff fixture, the fixed-timestep match loop with commands (`docs/match-loop.md`), and
-player and ball movement (`docs/player-movement.md`, `docs/ball-movement.md`); almost everything
-described in the design/implementation docs below is still unbuilt.
+player and ball movement (`docs/player-movement.md`, `docs/ball-movement.md`), spatial queries,
+perception, possession, passing, reception and pass decisions (`docs/spatial-queries.md`,
+`docs/perception.md`, `docs/possession.md`, `docs/passing.md`, `docs/reception.md`,
+`docs/pass-candidates.md`, `docs/pass-decisions.md`) with events and diagnostics
+(`docs/match-events.md`), a web debug viewer in `apps/sim-viewer` (`docs/debug-viewer.md`), and the P1
+passing scenarios with their acceptance tests (`docs/scenarios.md`);
+almost everything described in the design/implementation docs below is still unbuilt.
 When implementing a new system, check whether it belongs in an existing module (see layout below) before
 adding a new one.
 
@@ -48,17 +53,19 @@ libs/
   sim-core       IDs, time, RNG, events, base types (depends on: STL only)      [exists]
   sim-player     Capabilities, match/world player state, development           [planned]
   sim-tactics    Principles, phases, responsibilities, spatial targets         [planned]
-  sim-match      Pitch, ball, perception, decisions, actions, rules            [exists: pitch, state, loop, movement, ball]
+  sim-match      Pitch, ball, perception, decisions, actions, rules            [exists: pitch, state, loop, movement, ball, perception, possession, passing, reception, decisions, events]
   sim-world      Calendar, clubs, competitions, economy, careers               [planned]
   sim-ai         Club planning, coach decisions, staff behavior                [planned]
   sim-analytics  Events, metrics, explanations (read-only over domain events)  [planned]
-  sim-replay     Replay recording, JSON file format, playback verification     [exists]
+  sim-replay     Replay recording, JSON file format, playback verification,
+                 debug frames for the viewer                                   [exists]
 apps/
   sim-cli        runs scenarios, records and plays back replays               [exists]
+  sim-viewer     TypeScript/Canvas debug viewer for sim-cli's frames (npm)    [exists]
   sim-benchmark, sim-replay, unreal-game                                       [planned]
 data/            schemas, tactics, competitions, fixtures (JSON/YAML, schema-validated) [planned]
 tests/unit/      Catch2 tests, mirrors libs/ by subdirectory                   [exists: sim-core, sim-match, sim-replay]
-tests/acceptance/ whole-match scenarios: stability, determinism, pinned hashes [exists: M0]
+tests/acceptance/ whole-match scenarios: stability, determinism, pinned hashes [exists: M0, P1]
 ```
 
 Stack in use: C++23, CMake + Ninja presets, CPM.cmake for dependencies (see `cmake/get_cpm.cmake`),
@@ -102,6 +109,13 @@ Run a scenario headlessly and play its replay back (see `docs/replay-format.md`,
 ```
 ./build/debug/apps/sim-cli/sim-cli --scenario kickoff --seed 42 --ticks 300 --replay-out /tmp/replay.json
 ./build/debug/apps/sim-cli/sim-cli --play /tmp/replay.json
+```
+
+Record debug frames and watch them in the web viewer (Node.js 22+, see `docs/debug-viewer.md`):
+```
+./build/debug/apps/sim-cli/sim-cli --scenario m0-acceptance --seed 42 --frames-out frames.json
+cd apps/sim-viewer && npm install && npm run build && npm run serve -- ../../frames.json
+cd apps/sim-viewer && npm test
 ```
 
 Run only the acceptance scenarios (CI runs them in their own step):

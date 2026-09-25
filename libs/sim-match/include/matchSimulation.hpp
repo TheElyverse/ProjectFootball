@@ -11,6 +11,7 @@
 #include <vector>
 
 #include "matchCommand.hpp"
+#include "matchEvents.hpp"
 #include "matchState.hpp"
 #include "random.hpp"
 #include "simTime.hpp"
@@ -39,16 +40,35 @@ class MatchStepContext {
   [[nodiscard]] SimCore::RandomNumberGenerator& random(
       SimCore::RandomNumberGeneratorDomain domain) const;
 
+  // Records a domain event of this step. Events are part of the match: a
+  // replay reproduces them in the order systems record them.
+  void record(const MatchEvent& event) const;
+
+  // Whether anyone asked for decision diagnostics. A system may skip building
+  // them when not; it must decide the same either way.
+  [[nodiscard]] bool collectsDiagnostics() const noexcept { return diagnostics_ != nullptr; }
+
+  // Keeps a decision diagnostic of this step if diagnostics are collected,
+  // and drops it otherwise.
+  void diagnose(DecisionDiagnostic diagnostic) const;
+
  private:
   friend class MatchSimulation;
 
   MatchStepContext(const SimCore::SimTick tick, const double secondsPerTick,
-                   MatchRandomStreams& random) noexcept
-      : tick_(tick), secondsPerTick_(secondsPerTick), random_(&random) {}
+                   MatchRandomStreams& random, std::vector<MatchEvent>& events,
+                   std::vector<DecisionDiagnostic>* diagnostics) noexcept
+      : tick_(tick),
+        secondsPerTick_(secondsPerTick),
+        random_(&random),
+        events_(&events),
+        diagnostics_(diagnostics) {}
 
   SimCore::SimTick tick_;
   double secondsPerTick_;
   MatchRandomStreams* random_;
+  std::vector<MatchEvent>* events_;
+  std::vector<DecisionDiagnostic>* diagnostics_;
 };
 
 // A system reads the current tick's state and writes the next one. It never
@@ -149,6 +169,21 @@ class MatchSimulation {
 
   [[nodiscard]] bool hasFailed() const noexcept { return failure_.has_value(); }
 
+  // The events of the last successful step, in the order systems recorded
+  // them; empty before the first step. A command that changes possession
+  // records its event before the systems run.
+  [[nodiscard]] std::span<const MatchEvent> events() const noexcept { return events_; }
+
+  // Turns decision diagnostics on or off for the following steps; off by
+  // default. Diagnostics are read-only output: collecting them changes
+  // nothing in the match and draws no random numbers.
+  void setCollectDiagnostics(bool collect) noexcept { collectDiagnostics_ = collect; }
+
+  // The decision diagnostics of the last successful step, if collected.
+  [[nodiscard]] std::span<const DecisionDiagnostic> diagnostics() const noexcept {
+    return diagnostics_;
+  }
+
   [[nodiscard]] SimCore::SimTick tick() const noexcept { return clock_.tick(); }
   [[nodiscard]] double elapsedSeconds() const noexcept { return clock_.elapsedSeconds(); }
   [[nodiscard]] int ticksPerSecond() const noexcept { return clock_.ticksPerSecond(); }
@@ -182,6 +217,13 @@ class MatchSimulation {
   // allocating.
   MatchState next_;
   std::optional<MatchStepError> failure_;
+  // Scratch buffers for the step in progress, swapped in on success so a
+  // failed step leaves the last step's output untouched.
+  std::vector<MatchEvent> stepEvents_;
+  std::vector<DecisionDiagnostic> stepDiagnostics_;
+  std::vector<MatchEvent> events_;
+  std::vector<DecisionDiagnostic> diagnostics_;
+  bool collectDiagnostics_ = false;
 };
 
 }  // namespace ElyverseFootball::SimMatch

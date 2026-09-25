@@ -3,6 +3,7 @@
 #include <cmath>
 #include <cstddef>
 #include <limits>
+#include <stdexcept>
 #include <string>
 #include <utility>
 #include <vector>
@@ -21,6 +22,7 @@ using ElyverseFootball::SimMatch::MatchState;
 using ElyverseFootball::SimMatch::MatchStateError;
 using ElyverseFootball::SimMatch::MatchStateErrorCode;
 using ElyverseFootball::SimMatch::MatchStateSpec;
+using ElyverseFootball::SimMatch::ObservedEntity;
 using ElyverseFootball::SimMatch::Pitch;
 using ElyverseFootball::SimMatch::PlayerAttributes;
 using ElyverseFootball::SimMatch::PlayerMatchState;
@@ -46,12 +48,16 @@ constexpr double kWidthMeters = 40.0;
                          .position = {.x = lineX, .y = 2.0 + (2.0 * static_cast<double>(slot))},
                          .velocity = {},
                          .attributes = {},
-                         .target = std::nullopt});
+                         .target = std::nullopt,
+                         .facing = {.x = 1.0, .y = 0.0}});
     }
   }
   return {.pitch = Pitch(kLengthMeters, kWidthMeters),
           .players = std::move(players),
-          .ball = {.position = {.x = kLengthMeters / 2.0, .y = kWidthMeters / 2.0}, .velocity = {}},
+          .ball = {.position = {.x = kLengthMeters / 2.0, .y = kWidthMeters / 2.0},
+                   .velocity = {},
+                   .owner = std::nullopt,
+                   .lastTouch = std::nullopt},
           .playersPerSide = playersPerSide};
 }
 
@@ -80,6 +86,24 @@ TEST_CASE("MatchState::create accepts a valid seven-a-side spec", "[matchState]"
   REQUIRE(state->pitch() == Pitch(kLengthMeters, kWidthMeters));
   REQUIRE(state->ball() == spec.ball);
   REQUIRE(state->players().front() == spec.players.front());
+}
+
+TEST_CASE("Every player starts with an empty memory", "[matchState]") {
+  const auto state = MatchState::create(validSpec());
+
+  REQUIRE(state.has_value());
+  for (std::size_t index = 0; index < state->players().size(); ++index) {
+    REQUIRE(state->perception(index).observations.empty());
+  }
+  REQUIRE_THROWS_AS(state->perception(state->players().size()), std::out_of_range);
+}
+
+TEST_CASE("Observed entities order the ball first, then players by id", "[matchState]") {
+  REQUIRE(ObservedEntity::ball() < ObservedEntity::player(PlayerId(1)));
+  REQUIRE(ObservedEntity::player(PlayerId(1)) < ObservedEntity::player(PlayerId(2)));
+  REQUIRE(ObservedEntity::ball().isBall());
+  REQUIRE_FALSE(ObservedEntity::ball().playerId().isValid());
+  REQUIRE(ObservedEntity::player(PlayerId(4)).playerId() == PlayerId(4));
 }
 
 TEST_CASE("MatchState::create accepts squad sizes other than seven", "[matchState]") {
@@ -342,6 +366,30 @@ TEST_CASE("MatchState::create rejects a non-finite target", "[matchState]") {
   CAPTURE(state.error().front().message);
   REQUIRE(mentions(state.error().front().message, "index 10"));
   REQUIRE(mentions(state.error().front().message, "non-finite target"));
+}
+
+TEST_CASE("MatchState::create rejects a facing that is not a unit vector", "[matchState]") {
+  const Vec2 facing = GENERATE(Vec2{}, Vec2{.x = 0.5, .y = 0.0}, Vec2{.x = 1.0, .y = 1.0},
+                               Vec2{.x = std::numeric_limits<double>::quiet_NaN(), .y = 0.0});
+  CAPTURE(facing.x, facing.y);
+  MatchStateSpec spec = validSpec();
+  spec.players.at(12).facing = facing;
+
+  const auto state = MatchState::create(spec);
+
+  REQUIRE_FALSE(state.has_value());
+  REQUIRE(codesOf(state.error()) == std::vector{MatchStateErrorCode::kInvalidPlayerFacing});
+  CAPTURE(state.error().front().message);
+  REQUIRE(mentions(state.error().front().message, "index 12"));
+  REQUIRE(mentions(state.error().front().message, "not a finite unit vector"));
+}
+
+TEST_CASE("MatchState::create accepts any unit facing", "[matchState]") {
+  MatchStateSpec spec = validSpec();
+  spec.players.at(0).facing = {.x = 0.6, .y = -0.8};
+  spec.players.at(1).facing = {.x = 0.0, .y = 1.0};
+
+  REQUIRE(MatchState::create(spec).has_value());
 }
 
 TEST_CASE("MatchState::create rejects a non-finite ball state", "[matchState]") {

@@ -1,6 +1,6 @@
 SOURCES := $(shell find libs apps tests -name '*.hpp' -o -name '*.cpp')
 
-.PHONY: help configure build test run ci sanitize format format-check lint clean
+.PHONY: help configure build test run ci sanitize format format-check lint clean viewer-test
 
 help:
 	@echo "Targets:"
@@ -13,6 +13,7 @@ help:
 	@echo "  format        Auto-format all sources with clang-format"
 	@echo "  format-check  Check formatting without modifying files"
 	@echo "  lint          Run clang-tidy (incl. camelCase/PascalCase naming rule); needs a configured build dir"
+	@echo "  viewer-test   Install, build and test the web debug viewer (needs Node.js 22+ and npm)"
 	@echo "  clean         Remove all build directories"
 
 configure:
@@ -33,6 +34,9 @@ ci:
 	ctest --preset ci
 	$(MAKE) format-check
 	$(MAKE) lint BUILD_DIR=build/ci
+
+viewer-test:
+	cd apps/sim-viewer && npm install --no-audit --no-fund && npm test
 
 sanitize:
 	cmake --preset sanitize

@@ -3,8 +3,11 @@
 A free ball rolls on the pitch under ground friction. The model lives in
 `sim-match` (`ballMovement.hpp`) and plugs into the [match loop](match-loop.md)
 as the system `makeBallMovementSystem(BallPhysics)`, which runs every tick and
-writes the ball's position and velocity. It knows nothing about players: the
-ball moves the same with or without them.
+writes the ball's position and velocity. A free ball knows nothing about players:
+it moves the same with or without them. A controlled ball follows its carrier;
+see [possession](possession.md). The same system plays pending passes, which
+turn a controlled ball into a free one (see [passing](passing.md)), and hands a
+free ball to the first player to reach it (see [reception](reception.md)).
 
 ## Friction
 
@@ -57,6 +60,5 @@ like any other invalid state.
 
 ## What this is not
 
-The ball has no height, spin, bounce or air resistance yet, and no player can
-touch it: possession, passes and receptions come with later systems. Collisions
+The ball has no height, spin, bounce or air resistance yet. Collisions
 with players are not modeled.

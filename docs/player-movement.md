@@ -3,7 +3,7 @@
 Players move toward targets assigned by commands. The movement model lives in
 `sim-match` (`playerMovement.hpp`) and plugs into the [match loop](match-loop.md)
 as the system `makePlayerMovementSystem()`, which runs every tick and writes
-player positions and velocities.
+player positions, velocities and facings.
 
 ## Targets
 
@@ -64,6 +64,18 @@ Lengths use `std::sqrt` of the squared length rather than `std::hypot`:
 `sqrt` is correctly rounded by IEEE 754, so the result does not depend on the
 platform's math library.
 
+## Facing
+
+The movement system also turns players, with `facingAfterMove()`:
+
+- a player moving faster than `kFacingRunSpeed` (1 m/s) looks where he runs,
+- a slower or standing player looks at the ball,
+- a player standing exactly on the ball keeps his facing.
+
+He turns at once. A turning rate, and looking elsewhere than where he runs,
+belong to later body-orientation work. Facing decides what a player can see; see
+[perception](perception.md).
+
 ## Example
 
 From rest, a player covers 20 m in about 4.5 s at the default limits: 1.9 s to
@@ -71,7 +83,7 @@ reach 7.5 m/s over 7 m, 0.8 s at full speed, and 1.9 s braking over the last 7 m
 
 ## What this is not
 
-There is no reaction time, no fatigue, no body orientation, and no collision
+There is no reaction time, no fatigue, no turning rate, and no collision
 between players: two players can stand on the same spot. Off-ball positioning
 — where a player should go — is for later tactical systems; this model only
 decides how he gets there.

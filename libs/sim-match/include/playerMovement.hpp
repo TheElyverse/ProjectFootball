@@ -27,10 +27,23 @@ struct PlayerKinematics {
 [[nodiscard]] PlayerKinematics stepPlayerMovement(const PlayerMatchState& player,
                                                   double secondsPerTick) noexcept;
 
+// Speed above which a player looks where he runs.
+inline constexpr double kFacingRunSpeed = 1.0;  // m/s
+
+// Where a player looks after a tick of movement took him to `moved`: along
+// his run while he moves faster than kFacingRunSpeed, otherwise toward the
+// ball, and where he looked before if the ball lies exactly on his spot. He
+// turns at once; a turning rate comes with body orientation. Always a unit
+// vector.
+[[nodiscard]] SimCore::Vec2 facingAfterMove(const PlayerMatchState& player,
+                                            const PlayerKinematics& moved,
+                                            SimCore::Vec2 ballPosition) noexcept;
+
 inline constexpr std::string_view kPlayerMovementSystemName = "player movement";
 
-// Moves every player one tick with stepPlayerMovement(). Writes player
-// positions and velocities, every tick.
+// Moves every player one tick with stepPlayerMovement() and turns him with
+// facingAfterMove(). Writes player positions, velocities and facings, every
+// tick.
 [[nodiscard]] MatchSystem makePlayerMovementSystem();
 
 }  // namespace ElyverseFootball::SimMatch

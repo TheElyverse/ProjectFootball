@@ -6,16 +6,25 @@
 #include <vector>
 
 #include "kickoffScenario.hpp"
+#include "matchSimulation.hpp"
 #include "matchState.hpp"
 #include "matchStateHash.hpp"
 #include "vec2.hpp"
 
 using ElyverseFootball::SimCore::PlayerId;
+using ElyverseFootball::SimCore::SimTick;
 using ElyverseFootball::SimCore::Vec2;
+using ElyverseFootball::SimMatch::BallTouch;
 using ElyverseFootball::SimMatch::hashMatchState;
 using ElyverseFootball::SimMatch::makeSevenASideKickoff;
+using ElyverseFootball::SimMatch::MatchSimulation;
 using ElyverseFootball::SimMatch::MatchState;
 using ElyverseFootball::SimMatch::MatchStateSpec;
+using ElyverseFootball::SimMatch::MatchStateWriter;
+using ElyverseFootball::SimMatch::MatchStepContext;
+using ElyverseFootball::SimMatch::MatchSystem;
+using ElyverseFootball::SimMatch::Observation;
+using ElyverseFootball::SimMatch::ObservedEntity;
 using ElyverseFootball::SimMatch::Pitch;
 using ElyverseFootball::SimMatch::PlayerMatchState;
 using ElyverseFootball::SimMatch::TeamSide;
@@ -49,7 +58,7 @@ TEST_CASE("Equal states hash equally", "[matchStateHash]") {
 TEST_CASE("The kickoff hash is pinned", "[matchStateHash]") {
   // Changes when the fixture, a state field or the hash encoding changes;
   // each of those invalidates recorded replays, so update it deliberately.
-  REQUIRE(hashOf(kickoffSpec()) == 0xc22d772ab92fca0cULL);
+  REQUIRE(hashOf(kickoffSpec()) == 0x6c4fd8e47c35f20aULL);
 }
 
 // Guards against a field that is added to the state but forgotten here.
@@ -70,8 +79,14 @@ TEST_CASE("Every field of the state changes the hash", "[matchStateHash]") {
       {"max speed", [](auto& spec) { spec.players.at(2).attributes.maxSpeed = 8.0; }},
       {"acceleration", [](auto& spec) { spec.players.at(2).attributes.acceleration = 3.0; }},
       {"target", [](auto& spec) { spec.players.at(9).target = Vec2{}; }},
+      {"facing", [](auto& spec) { spec.players.at(4).facing = Vec2{.x = 0.0, .y = 1.0}; }},
       {"ball position", [](auto& spec) { spec.ball.position.y = 1.0; }},
       {"ball velocity", [](auto& spec) { spec.ball.velocity.x = -1.0; }},
+      {"ball owner", [](auto& spec) { spec.ball.owner = PlayerId(7); }},
+      {"last touch",
+       [](auto& spec) {
+         spec.ball.lastTouch = BallTouch{.playerId = PlayerId(7), .tick = SimTick(0)};
+       }},
   };
 
   for (const auto& [field, change] : changes) {
@@ -80,4 +95,41 @@ TEST_CASE("Every field of the state changes the hash", "[matchStateHash]") {
     change(spec);
     REQUIRE(hashOf(spec) != original);
   }
+}
+
+TEST_CASE("Perception memories are part of the hash", "[matchStateHash]") {
+  const auto kickoff = makeSevenASideKickoff(Pitch(60.0, 40.0));
+  REQUIRE(kickoff.has_value());
+  const auto remember = [](const Observation observation) {
+    return MatchSystem{.name = "remember",
+                       .update = [observation](const MatchStepContext&, const MatchState&,
+                                               MatchStateWriter& next) {
+                         next.perception(2).observations = {observation};
+                       }};
+  };
+  const Observation seenBall{.entity = ObservedEntity::ball(),
+                             .position = {.x = 30.0, .y = 20.0},
+                             .velocity = {},
+                             .confidence = 1.0,
+                             .lastSeen = SimTick(0)};
+  Observation older = seenBall;
+  older.confidence = 0.5;
+  Observation seenPlayer = seenBall;
+  seenPlayer.entity = ObservedEntity::player(PlayerId(9));
+
+  const auto hashAfter = [&](const Observation observation) {
+    MatchSimulation simulation({.initialState = *kickoff,
+                                .seed = 1,
+                                .ticksPerSecond = 30,
+                                .systems = {remember(observation)},
+                                .commands = {}});
+    REQUIRE(simulation.step().has_value());
+    return hashMatchState(simulation.state());
+  };
+
+  const std::uint64_t empty = hashMatchState(*kickoff);
+  REQUIRE(hashAfter(seenBall) != empty);
+  REQUIRE(hashAfter(seenBall) != hashAfter(older));
+  REQUIRE(hashAfter(seenBall) != hashAfter(seenPlayer));
+  REQUIRE(hashAfter(seenBall) == hashAfter(seenBall));
 }

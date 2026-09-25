@@ -1,0 +1,153 @@
+:root {
+  --background: #111418;
+  --surface: #1a1f25;
+  --text: #e6e6e6;
+  --muted: #8b949e;
+  --accent: #ffd33d;
+  --border: #30363d;
+  color-scheme: dark;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--background);
+  color: var(--text);
+  font: 14px/1.4 system-ui, sans-serif;
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+}
+
+header {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: baseline;
+  padding: 8px 16px;
+  border-bottom: 1px solid var(--border);
+}
+
+h1 {
+  font-size: 16px;
+  margin: 0;
+}
+
+h2 {
+  font-size: 14px;
+  margin: 12px 0 4px;
+  color: var(--accent);
+}
+
+h3 {
+  font-size: 13px;
+  margin: 10px 0 4px;
+}
+
+main {
+  flex: 1;
+  display: flex;
+  min-height: 0;
+}
+
+.stage {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+canvas {
+  flex: 1;
+  width: 100%;
+  min-height: 0;
+  cursor: pointer;
+}
+
+.controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  padding: 8px 16px;
+  border-top: 1px solid var(--border);
+}
+
+#scrub {
+  flex: 1;
+  min-width: 120px;
+}
+
+.tick {
+  font-variant-numeric: tabular-nums;
+  min-width: 110px;
+}
+
+aside {
+  width: 380px;
+  max-width: 45vw;
+  overflow-y: auto;
+  padding: 0 16px 16px;
+  background: var(--surface);
+  border-left: 1px solid var(--border);
+}
+
+dl {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 2px 12px;
+  margin: 0;
+}
+
+dt {
+  color: var(--muted);
+}
+
+dd {
+  margin: 0;
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}
+
+table {
+  border-collapse: collapse;
+  width: 100%;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+
+th,
+td {
+  text-align: left;
+  padding: 2px 4px;
+  border-bottom: 1px solid var(--border);
+}
+
+.events {
+  margin: 0;
+  padding-left: 18px;
+}
+
+.events .current {
+  color: var(--accent);
+}
+
+.muted {
+  color: var(--muted);
+}
+
+@media (max-width: 800px) {
+  main {
+    flex-direction: column;
+  }
+
+  aside {
+    width: auto;
+    max-width: none;
+    border-left: none;
+    border-top: 1px solid var(--border);
+  }
+}
