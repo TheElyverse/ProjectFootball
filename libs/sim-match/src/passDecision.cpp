@@ -1,5 +1,6 @@
 #include "passDecision.hpp"
 
+#include <algorithm>
 #include <limits>
 #include <stdexcept>
 #include <string>
@@ -48,6 +49,15 @@ std::optional<std::size_t> choosePass(const std::span<const PassCandidate> candi
   return chooseByUtility(utilities, temperature, random);
 }
 
+PassScoringConfig scoringForRisk(const PassScoringConfig& scoring,
+                                 const double passingRisk) noexcept {
+  PassScoringConfig adjusted = scoring;
+  adjusted.progressionWeight = scoring.progressionWeight * (0.5 + passingRisk);
+  adjusted.riskWeight = scoring.riskWeight * (1.5 - passingRisk);
+  adjusted.minCompletion = std::min(1.0, scoring.minCompletion * (1.3 - (0.6 * passingRisk)));
+  return adjusted;
+}
+
 MatchSystem makePassDecisionSystem(const DecisionConfig& config, const PassCandidateRules& rules) {
   validate(config);
   PassCandidateRules scored = rules;
@@ -69,8 +79,16 @@ MatchSystem makePassDecisionSystem(const DecisionConfig& config, const PassCandi
             if (!carrier) {
               return;
             }
+            PassCandidateRules carrierRules = scored;
+            const TeamSide side = current.players()[*carrier].side;
+            const auto& tactic = current.tactics().of(side);
+            const auto& phase = current.phase(side);
+            if (tactic && phase) {
+              carrierRules.scoring =
+                  scoringForRisk(scored.scoring, tactic->instruction(phase->phase).passingRisk);
+            }
             const std::vector<PassCandidate> candidates = generatePassCandidates(
-                current, *carrier, context.tick(), context.secondsPerTick(), scored);
+                current, *carrier, context.tick(), context.secondsPerTick(), carrierRules);
             const auto chosen =
                 choosePass(candidates, config.temperature,
                            context.random(SimCore::RandomNumberGeneratorDomain::kAi));

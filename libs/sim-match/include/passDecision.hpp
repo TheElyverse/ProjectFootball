@@ -36,6 +36,14 @@ struct DecisionConfig {
                                                     double temperature,
                                                     SimCore::RandomNumberGenerator& random);
 
+// Scoring adjusted to how much risk a carrier's tactic accepts, passingRisk
+// in [0, 1] (docs/pass-decisions.md): progression counts (0.5 + risk) times
+// as much, interception risk (1.5 - risk) times, and the completion a pass
+// needs to be offered (1.3 - 0.6 risk) times, at most 1. At 0.5 -- the
+// reference tactic's -- nothing changes.
+[[nodiscard]] PassScoringConfig scoringForRisk(const PassScoringConfig& scoring,
+                                               double passingRisk) noexcept;
+
 inline constexpr std::string_view kPassDecisionSystemName = "pass decision";
 
 // Every config.intervalTicks ticks, the player on the ball decides:
@@ -43,7 +51,8 @@ inline constexpr std::string_view kPassDecisionSystemName = "pass decision";
 //   1. Nothing to decide if the ball is free or a pass is already pending.
 //   2. He keeps a ball he took less than minHoldSeconds ago.
 //   3. He lists and scores his options with generatePassCandidates(), from
-//      his perception only.
+//      his perception only -- scored for the passing risk of his side's
+//      tactic in its current phase (scoringForRisk()), if it has one.
 //   4. He picks one with choosePass(), drawing from the kAi random stream, and
 //      writes it as the pending pass -- the ball system plays it in the next
 //      step. Without a valid option he keeps the ball.

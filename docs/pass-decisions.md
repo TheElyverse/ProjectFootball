@@ -73,6 +73,23 @@ twice:
 The system rejects an interval below one tick, a negative or non-finite hold and
 a temperature that is not positive and finite.
 
+## Passing risk
+
+A team with a tactic scales the scoring by the `passingRisk` `r` of its current
+phase instruction ([tactics](tactics.md)) before the carrier decides;
+`scoringForRisk()` does the arithmetic:
+
+| Field               | Scaled by               | Effect of a bold tactic (`r` near 1)  |
+|---------------------|-------------------------|---------------------------------------|
+| `progressionWeight` | `0.5 + r`               | values ground gained more             |
+| `riskWeight`        | `1.5 - r`               | fears interception less               |
+| `minCompletion`     | `1.3 - 0.6 r`, at most 1 | offers less likely passes too        |
+
+`r = 0.5`, the reference tactic's value, leaves the scoring unchanged, so a
+team without a tactic and the reference tactic decide alike. The factors are
+deliberately simple and linear: they make the styles distinguishable without a
+second tuning surface next to the scoring itself.
+
 ## What this is not
 
 A player on the ball only passes or keeps the ball: no dribble, no shot, no

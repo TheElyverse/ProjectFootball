@@ -281,3 +281,19 @@ TEST_CASE("The seeded softmax chooses among any options", "[passDecision]") {
   }
   REQUIRE(best > 990);
 }
+
+TEST_CASE("A tactic's passing risk shifts how passes are scored", "[passDecision]") {
+  using ElyverseFootball::SimMatch::scoringForRisk;
+  const PassScoringConfig base;
+  // The reference tactic's middle risk changes nothing.
+  REQUIRE(scoringForRisk(base, 0.5) == base);
+  const PassScoringConfig bold = scoringForRisk(base, 1.0);
+  REQUIRE(bold.progressionWeight == base.progressionWeight * 1.5);
+  REQUIRE(bold.riskWeight == base.riskWeight * 0.5);
+  REQUIRE(bold.minCompletion < base.minCompletion);
+  const PassScoringConfig safe = scoringForRisk(base, 0.0);
+  REQUIRE(safe.progressionWeight == base.progressionWeight * 0.5);
+  REQUIRE(safe.riskWeight == base.riskWeight * 1.5);
+  REQUIRE(safe.minCompletion > base.minCompletion);
+  REQUIRE(safe.minCompletion <= 1.0);
+}
