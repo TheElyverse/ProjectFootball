@@ -167,5 +167,5 @@ TEST_CASE("M0: the final state hash is pinned", "[acceptance][m0]") {
   // Identical on every platform and compiler CI builds with. It changes only
   // with the simulation's behavior, the scenario or the state layout -- each
   // of which must bump the core version and update this value deliberately.
-  REQUIRE(record().checkpoints.back().stateHash == 0xcad3b490e4ca1c8bULL);
+  REQUIRE(record().checkpoints.back().stateHash == 0x7b1d5a7abf85b953ULL);
 }

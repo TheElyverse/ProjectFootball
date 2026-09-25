@@ -71,15 +71,8 @@ struct PositioningConfig {
                                                 const PositioningConfig& config,
                                                 const PerceptionConfig& perception);
 
-inline constexpr std::string_view kTacticalMovementSystemName = "tactical movement";
-
-// Every config.intervalTicks ticks, for every side with a tactic and a
-// phase: each player but the one on the ball and the side's chaser gets a
-// new desired region, and its centre as his movement target. Writes
-// movement targets and tactical states only. Throws std::invalid_argument
-// for an interval below one tick or a distance, confidence or cost outside
-// its range.
-[[nodiscard]] MatchSystem makeTacticalMovementSystem(const PositioningConfig& config,
-                                                     const PerceptionConfig& perception);
+// Throws std::invalid_argument for an interval below one tick or a
+// distance, confidence or cost outside its range.
+void validate(const PositioningConfig& config);
 
 }  // namespace ElyverseFootball::SimMatch

@@ -80,6 +80,14 @@ void addTactical(StableHasher& hasher, const PlayerTacticalState& tactical) noex
     addVec2(hasher, tactical.region->center);
     addCost(hasher, tactical.region->cost);
   }
+  hasher.addBool(tactical.action.has_value());
+  if (tactical.action) {
+    hasher.addU64(static_cast<std::uint64_t>(tactical.action->type));
+    addVec2(hasher, tactical.action->target);
+    hasher.addBool(tactical.action->subject.has_value());
+    hasher.addU64(tactical.action->subject.value_or(SimCore::PlayerId::invalid()).value());
+    hasher.addI64(tactical.action->decidedAt.value());
+  }
 }
 
 }  // namespace

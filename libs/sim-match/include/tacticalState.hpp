@@ -61,10 +61,22 @@ enum class ActionType : std::uint8_t {
 // "holdPosition", "supportCarrier", ...; "unknown" outside the enumerators.
 [[nodiscard]] std::string_view actionName(ActionType type) noexcept;
 
+// A decided action: where it takes the player, whom it is about if anyone,
+// and when he decided it. He keeps it until he decides again.
+struct PlayerAction {
+  ActionType type = ActionType::kHoldPosition;
+  SimCore::Vec2 target;
+  std::optional<SimCore::PlayerId> subject;
+  SimCore::SimTick decidedAt;
+
+  friend bool operator==(const PlayerAction&, const PlayerAction&) = default;
+};
+
 // A player's tactical runtime state, kept in the match state because
 // systems keep nothing between ticks. Empty for a player of a scripted side.
 struct PlayerTacticalState {
   std::optional<DesiredRegion> region;
+  std::optional<PlayerAction> action;
 
   friend bool operator==(const PlayerTacticalState&, const PlayerTacticalState&) = default;
 };

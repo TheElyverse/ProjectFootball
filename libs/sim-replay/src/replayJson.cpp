@@ -127,6 +127,26 @@ using SimMatch::TeamSide;
           {"maxShiftMeters", positioning.maxShiftMeters}};
 }
 
+[[nodiscard]] Json offBallJson(const SimMatch::OffBallConfig& offBall) {
+  return {{"nearBallRadius", offBall.nearBallRadius},
+          {"nearIntervalTicks", offBall.nearIntervalTicks},
+          {"farIntervalTicks", offBall.farIntervalTicks},
+          {"supportDistance", offBall.supportDistance},
+          {"spaceSearchRadius", offBall.spaceSearchRadius},
+          {"runDepth", offBall.runDepth},
+          {"laneRadius", offBall.laneRadius},
+          {"pressedRadius", offBall.pressedRadius},
+          {"effortScale", offBall.effortScale},
+          {"holdResponsibility", offBall.holdResponsibility},
+          {"temperature", offBall.temperature},
+          {"responsibilityWeight", offBall.responsibilityWeight},
+          {"regionWeight", offBall.regionWeight},
+          {"spaceWeight", offBall.spaceWeight},
+          {"laneWeight", offBall.laneWeight},
+          {"urgencyWeight", offBall.urgencyWeight},
+          {"effortWeight", offBall.effortWeight}};
+}
+
 [[nodiscard]] Json configJson(const MatchConfig& config) {
   const SimMatch::PerceptionConfig& perception = config.perception;
   return {{"ticksPerSecond", config.ticksPerSecond},
@@ -161,7 +181,8 @@ using SimMatch::TeamSide;
            {{"intervalTicks", config.pitchControl.intervalTicks},
             {"cellSize", config.pitchControl.cellSize},
             {"controlSeconds", config.pitchControl.controlSeconds}}},
-          {"positioning", positioningJson(config.positioning)}};
+          {"positioning", positioningJson(config.positioning)},
+          {"offBall", offBallJson(config.offBall)}};
 }
 
 void addCommandFields(Json& json, const MovePlayerCommand& command) {
@@ -463,6 +484,30 @@ constexpr std::int64_t kMaxTick = std::int64_t{1} << 53;
           .maxShiftMeters = field.member("maxShiftMeters").number()};
 }
 
+[[nodiscard]] SimMatch::OffBallConfig readOffBall(const Field& field) {
+  const auto ticks = [&field](const std::string_view key) {
+    return static_cast<int>(field.member(key).integerIn(1, 100000));
+  };
+  const auto number = [&field](const std::string_view key) { return field.member(key).number(); };
+  return {.nearBallRadius = number("nearBallRadius"),
+          .nearIntervalTicks = ticks("nearIntervalTicks"),
+          .farIntervalTicks = ticks("farIntervalTicks"),
+          .supportDistance = number("supportDistance"),
+          .spaceSearchRadius = number("spaceSearchRadius"),
+          .runDepth = number("runDepth"),
+          .laneRadius = number("laneRadius"),
+          .pressedRadius = number("pressedRadius"),
+          .effortScale = number("effortScale"),
+          .holdResponsibility = number("holdResponsibility"),
+          .temperature = number("temperature"),
+          .responsibilityWeight = number("responsibilityWeight"),
+          .regionWeight = number("regionWeight"),
+          .spaceWeight = number("spaceWeight"),
+          .laneWeight = number("laneWeight"),
+          .urgencyWeight = number("urgencyWeight"),
+          .effortWeight = number("effortWeight")};
+}
+
 [[nodiscard]] MatchConfig readConfig(const Field& field) {
   return {
       .ticksPerSecond = static_cast<int>(field.member("ticksPerSecond").integerIn(1, 100000)),
@@ -481,7 +526,8 @@ constexpr std::int64_t kMaxTick = std::int64_t{1} << 53;
                field.member("pitchControl").member("intervalTicks").integerIn(1, 100000)),
            .cellSize = field.member("pitchControl").member("cellSize").number(),
            .controlSeconds = field.member("pitchControl").member("controlSeconds").number()},
-      .positioning = readPositioning(field.member("positioning"))};
+      .positioning = readPositioning(field.member("positioning")),
+      .offBall = readOffBall(field.member("offBall"))};
 }
 
 [[nodiscard]] MatchCommand readCommand(const Field& field) {

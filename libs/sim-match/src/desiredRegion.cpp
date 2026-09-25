@@ -19,6 +19,8 @@ using SimCore::Vec2;
 using SimTactics::Responsibility;
 using SimTactics::TacticalPhase;
 
+}  // namespace
+
 void validate(const PositioningConfig& config) {
   constexpr double kMax = std::numeric_limits<double>::max();
   const auto positive = [](const double value) { return value > 0.0 && value <= kMax; };
@@ -31,6 +33,8 @@ void validate(const PositioningConfig& config) {
     throw std::invalid_argument("tactical movement: invalid configuration");
   }
 }
+
+namespace {
 
 // The goalkeeper's lateral range: he follows the ball across the goal, not
 // out to the wings.
@@ -254,32 +258,6 @@ DesiredRegion chooseDesiredRegion(const MatchState& state, const std::size_t pla
           .center = center,
           .cost = evaluatePosition(state, playerIndex, center, target, now, secondsPerTick, config,
                                    perception)};
-}
-
-MatchSystem makeTacticalMovementSystem(const PositioningConfig& config,
-                                       const PerceptionConfig& perception) {
-  validate(config);
-  return {.name = std::string(kTacticalMovementSystemName),
-          .update =
-              [config, perception](const MatchStepContext& context, const MatchState& current,
-                                   MatchStateWriter& next) {
-                for (std::size_t index = 0; index < current.players().size(); ++index) {
-                  const PlayerMatchState& player = current.players()[index];
-                  const auto& phase = current.phase(player.side);
-                  const bool onTheBall = current.ball().owner == player.playerId;
-                  const bool chasing = current.chaser(player.side) == player.playerId;
-                  if (!phase || onTheBall || chasing) {
-                    continue;
-                  }
-                  const DesiredRegion region =
-                      chooseDesiredRegion(current, index, phase->phase, context.tick(),
-                                          context.secondsPerTick(), config, perception);
-                  next.tactical(index).region = region;
-                  next.setPlayerTarget(index, region.center);
-                }
-              },
-          .intervalTicks = config.intervalTicks,
-          .phaseTicks = 0};
 }
 
 }  // namespace ElyverseFootball::SimMatch

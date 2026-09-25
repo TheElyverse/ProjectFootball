@@ -24,7 +24,9 @@ add_library(sim-match STATIC
                 src/zones.cpp
                 src/desiredRegion.cpp
         src/tacticalState.cpp
-        src/actionCandidate.cpp
+                src/actionCandidate.cpp
+        src/offBallActions.cpp
+        src/tacticalMovement.cpp
 )
 add_library(ElyverseFootball::sim-match ALIAS sim-match)
 

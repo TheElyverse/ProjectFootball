@@ -8,12 +8,14 @@
 #include "matchCommand.hpp"
 #include "matchSimulation.hpp"
 #include "matchState.hpp"
+#include "offBallActions.hpp"
 #include "passDecision.hpp"
 #include "passing.hpp"
 #include "perception.hpp"
 #include "pitchControl.hpp"
 #include "pursuit.hpp"
 #include "reception.hpp"
+#include "tacticalMovement.hpp"
 #include "tacticalPhases.hpp"
 
 namespace ElyverseFootball::SimMatch {
@@ -32,6 +34,7 @@ struct MatchConfig {
   PhaseConfig phases;
   PitchControlConfig pitchControl;
   PositioningConfig positioning;
+  OffBallConfig offBall;
 
   friend bool operator==(const MatchConfig&, const MatchConfig&) = default;
 };

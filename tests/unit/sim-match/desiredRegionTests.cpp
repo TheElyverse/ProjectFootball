@@ -16,6 +16,7 @@
 #include "matchStateHash.hpp"
 #include "referenceTactic.hpp"
 #include "tactic.hpp"
+#include "tacticalMovement.hpp"
 #include "tacticalPhase.hpp"
 
 using Catch::Matchers::WithinAbs;
@@ -76,14 +77,16 @@ constexpr double kSecondsPerTick = 1.0 / 30.0;
   return *std::move(moved);
 }
 
-// A match in which nobody passes: home's forward keeps the ball from kickoff.
-[[nodiscard]] MatchSimulation holdingMatch(MatchState state, MatchConfig config = {}) {
+// A match in which nobody passes: a forward -- home's by default -- keeps the
+// ball from kickoff.
+[[nodiscard]] MatchSimulation holdingMatch(MatchState state, const PlayerId carrier = PlayerId(7)) {
+  MatchConfig config;
   config.decisions.minHoldSeconds = 1.0e6;
   return startMatch(MatchSetup{
       .initialState = std::move(state),
       .config = config,
       .seed = 4,
-      .commands = {{.tick = SimTick(0), .command = GiveBallCommand{.playerId = PlayerId(7)}}}});
+      .commands = {{.tick = SimTick(0), .command = GiveBallCommand{.playerId = carrier}}}});
 }
 
 void run(MatchSimulation& simulation, const SimTick::ValueType ticks) {
@@ -227,25 +230,23 @@ TEST_CASE("Smoothing moves a region at most maxShiftMeters at a time", "[desired
 }
 
 TEST_CASE("Players of a side with a tactic take up their regions", "[desiredRegion]") {
-  MatchSimulation simulation =
-      holdingMatch(kickoff({.x = 30.0, .y = 20.0}, {.home = referenceTactic(), .away = {}}));
+  // Without the ball, players hold their regions: away's forward (14) keeps
+  // it, and away is scripted.
+  MatchSimulation simulation = holdingMatch(
+      kickoff({.x = 30.0, .y = 20.0}, {.home = referenceTactic(), .away = {}}), PlayerId(14));
   run(simulation, 300);
   const MatchState& state = simulation.state();
   for (std::size_t index = 0; index < 7; ++index) {
     CAPTURE(index);
     const auto& region = state.tactical(index).region;
-    if (index == 6) {
-      // The forward is on the ball; tactical movement leaves him alone.
-      REQUIRE_FALSE(region.has_value());
-      continue;
-    }
     REQUIRE(region.has_value());
+    REQUIRE_FALSE(state.tactical(index).action.has_value());
     const DesiredRegion& settled = region.value_or(DesiredRegion{});
     REQUIRE(state.players()[index].target == settled.center);
     REQUIRE(distanceBetween(state.players()[index].position, settled.center) < 1.5);
   }
   // The scripted away side has no regions and nowhere to go.
-  for (std::size_t index = 7; index < 14; ++index) {
+  for (std::size_t index = 7; index < 13; ++index) {
     REQUIRE_FALSE(state.tactical(index).region.has_value());
     REQUIRE_FALSE(state.players()[index].target.has_value());
   }
@@ -286,14 +287,18 @@ TEST_CASE("Tactical movement is deterministic", "[desiredRegion]") {
 }
 
 TEST_CASE("Tactical movement rejects an invalid configuration", "[desiredRegion]") {
+  const auto withPositioning = [](const PositioningConfig& positioning) {
+    return makeTacticalMovementSystem(
+        {.positioning = positioning, .offBall = {}, .perception = {}});
+  };
   PositioningConfig config;
   config.intervalTicks = 0;
-  REQUIRE_THROWS_AS(makeTacticalMovementSystem(config, {}), std::invalid_argument);
+  REQUIRE_THROWS_AS(withPositioning(config), std::invalid_argument);
   config = {};
   config.minConfidence = 1.5;
-  REQUIRE_THROWS_AS(makeTacticalMovementSystem(config, {}), std::invalid_argument);
+  REQUIRE_THROWS_AS(withPositioning(config), std::invalid_argument);
   config = {};
   config.maxShiftMeters = 0.0;
-  REQUIRE_THROWS_AS(makeTacticalMovementSystem(config, {}), std::invalid_argument);
-  REQUIRE_NOTHROW(makeTacticalMovementSystem({}, {}));
+  REQUIRE_THROWS_AS(withPositioning(config), std::invalid_argument);
+  REQUIRE_NOTHROW(withPositioning({}));
 }
