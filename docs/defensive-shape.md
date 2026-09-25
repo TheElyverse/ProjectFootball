@@ -21,7 +21,9 @@ block. Two layers make the block:
 | `holdPosition`  | the centre of his desired region: his place in the block             | always |
 | `markOpponent`  | `markDistance` (1.5 m) goal-side of the opponent, between him and the centre of the own goal | an opponent he remembers stands within `markRadius` (12 m) of his region: the nearest one |
 | `trackRunner`   | goal-side of where the runner will be `trackLeadSeconds` (0.5 s) later | an opponent he remembers runs at the own goal at `runnerSpeed` (3 m/s) or more within `trackRadius` (15 m) of him: the fastest one |
-| `cover`         | `coverDistance` (6 m) behind the teammate nearest the ball, toward the own goal | he remembers a teammate |
+| `cover`         | `coverDistance` (6 m) behind a teammate who presses the carrier, otherwise behind the teammate nearest the ball, toward the own goal | he remembers a teammate |
+| `pressCarrier`  | a meter from the carrier on his line to his nearest option; see [pressing](pressing.md) | he remembers the carrier within `pressRadius` (15 m) |
+| `blockLane`     | on the lane from the carrier to the option nearest him; see [pressing](pressing.md) | that point lies within `pressRadius` |
 
 Opponents come from the defender's [memory](perception.md): **a run he has not
 seen is not tracked**, and he marks where he believes his man is. The opponent's
@@ -35,10 +37,10 @@ defensive meanings:
 
 | Part             | Weight (default)             | Value |
 |------------------|------------------------------|-------|
-| `responsibility` | `responsibilityWeight` (1.0) | holding: the larger of `holdResponsibility` (0.4) and his `holdDefensiveLine` weight; marking: `markOpponent`; tracking: the larger of `markOpponent` and `cover`; covering: `cover` |
+| `responsibility` | `responsibilityWeight` (1.0) | holding: the larger of `holdResponsibility` (0.4) and his `holdDefensiveLine` weight; marking: `markOpponent`; tracking: the larger of `markOpponent` and `cover`; covering: `cover`; pressing and blocking: `closePressingLine` |
 | `region`         | `regionWeight` (0.5)         | minus how much the target costs more than his desired region, capped at 2 |
 | `space`          | `spaceWeight` (0.4)          | the opponent's pitch control at the target: the danger of leaving that space open |
-| `urgency`        | `urgencyWeight` (0.8)        | marking: the man's threat -- half how close he is to the own goal, half how close to the ball (within 30 m); tracking: the runner's speed over the defender's top speed; covering: how close the covered teammate is to the ball (within 15 m) |
+| `urgency`        | `urgencyWeight` (0.8)        | marking: the man's threat -- half how close he is to the own goal, half how close to the ball (within 30 m); tracking: the runner's speed over the defender's top speed; covering: 1 behind a presser, otherwise how close the covered teammate is to the ball (within 15 m); pressing and blocking: the phase's `pressingIntensity` times how close he is, 1 − distance / `pressRadius` |
 | `effort`         | `effortWeight` (0.3)         | minus the distance to the target over `effortScale` (20 m) |
 
 The choice uses `temperature` (0.2). `DefensiveConfig` is part of `MatchConfig`

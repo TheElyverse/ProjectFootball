@@ -19,7 +19,7 @@ validation leaves no file behind.
 ```json
 {
   "schemaVersion": 3,
-  "coreVersion": "0.12.0",
+  "coreVersion": "0.13.0",
   "createdAt": "2026-09-24T10:00:00Z",
   "seed": "18446744073709551615",
   "gameTime": 300,
@@ -38,7 +38,9 @@ validation leaves no file behind.
       "arrivalSpeed": 4.0,
       "maxSpeed": 22.0,
             "directionError": 0.03,
-      "speedError": 0.05
+            "speedError": 0.05,
+      "pressureRadius": 3.0,
+      "pressureErrorFactor": 1.0
     },
     "reception": { "controlRadius": 1.0, "reclaimDelaySeconds": 0.3 },
         "pursuit": { "intervalTicks": 3, "sampleSeconds": 0.1, "horizonSeconds": 8.0 },
@@ -96,15 +98,25 @@ validation leaves no file behind.
       "trackRadius": 15.0,
       "runnerSpeed": 3.0,
       "trackLeadSeconds": 0.5,
-      "coverDistance": 6.0,
+            "coverDistance": 6.0,
+      "pressRadius": 15.0,
+      "pressDistance": 1.0,
+      "laneMinDistance": 2.0,
       "effortScale": 20.0,
       "holdResponsibility": 0.4,
       "temperature": 0.2,
       "responsibilityWeight": 1.0,
       "regionWeight": 0.5,
       "spaceWeight": 0.4,
-      "urgencyWeight": 0.8,
+            "urgencyWeight": 0.8,
       "effortWeight": 0.3
+    },
+    "challenge": {
+      "intervalTicks": 3,
+      "radius": 1.2,
+      "winChance": 0.2,
+      "attemptSeconds": 0.5,
+      "protectSeconds": 0.5
     }
   },
   "initialState": {

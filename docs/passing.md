@@ -40,7 +40,13 @@ In the next step it runs, the ball system plays the pending pass:
    toward the target, at the intended speed, off by a random execution error:
    - direction: up to `directionError` (0.03) meters off line per meter along
      it, uniformly distributed — about ±1.7°,
-   - speed: up to `speedError` (5 %) harder or softer, uniformly distributed,
+      - speed: up to `speedError` (5 %) harder or softer, uniformly distributed,
+   - both grown by pressure: with an opponent within `pressureRadius` (3 m)
+     of the passer, the errors are multiplied by `1 + pressureErrorFactor ×
+     pressure`, where pressure is 1 − distance / `pressureRadius` for the
+     nearest opponent (`passPressure()`, from true positions: pressure is
+     physical). At full pressure the default factor of 1 doubles them; an
+     unpressed pass is exactly as before,
    - never faster than `maxSpeed`.
 
    A target on the ball itself is played along the passer's facing.
@@ -67,9 +73,12 @@ test can set both errors to zero to predict a pass exactly.
 | `maxSpeed`       | 22 m/s   | the hardest ground pass                              |
 | `directionError` | 0.03     | largest sideways deviation per meter along the line  |
 | `speedError`     | 0.05     | largest relative deviation of the speed              |
+| `pressureRadius` | 3 m      | an opponent this close puts the passer under pressure |
+| `pressureErrorFactor` | 1.0 | how much full pressure grows both errors             |
 
-The ball system rejects non-positive speeds, negative errors, a speed error of
-1 or more, and any non-finite value.
+The ball system rejects non-positive speeds and pressure radius, negative
+errors and factor, a speed error that could reach 1 under full pressure
+(`speedError × (1 + pressureErrorFactor)`), and any non-finite value.
 
 ## What this is not
 
