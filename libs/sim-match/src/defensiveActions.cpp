@@ -6,6 +6,7 @@
 #include <stdexcept>
 
 #include "actionGeometry.hpp"
+#include "pressingActions.hpp"
 #include "responsibility.hpp"
 #include "teamFrame.hpp"
 
@@ -53,6 +54,22 @@ class DefensiveScorer {
   [[nodiscard]] Vec2 ownGoal() const {
     const Pitch& pitch = state_->pitch();
     return {.x = xAtDepth(player().side, 0.0, pitch), .y = pitch.widthMeters() / 2.0};
+  }
+
+  // How eagerly the phase presses, in [0, 1].
+  [[nodiscard]] double pressingIntensity() const {
+    const auto& phase = state_->phase(player().side);
+    return phase ? ActionGeometry::tacticOf(*state_, player().side)
+                       .instruction(phase->phase)
+                       .pressingIntensity
+                 : 0.0;
+  }
+
+  // Whether a remembered teammate is pressing the carrier right now: his
+  // decided action says so. Teammates see each other's intent.
+  [[nodiscard]] bool isPressing(const RememberedPlayer& teammate) const {
+    const auto& action = state_->tactical(teammate.index).action;
+    return action && action->type == ActionType::kPressCarrier;
   }
 
   // A point this far from `from`, toward the own goal: goal-side of it.
@@ -114,6 +131,59 @@ class DefensiveScorer {
   std::vector<RememberedPlayer> remembered_;
 };
 
+// The carrier's option nearest to a point: an opponent of the defender
+// other than the carrier and the goalkeeper.
+[[nodiscard]] const RememberedPlayer* nearestOption(const DefensiveScorer& scorer,
+                                                    const RememberedPlayer& carrier,
+                                                    const Vec2 point) {
+  const RememberedPlayer* nearest = nullptr;
+  double nearestDistance = std::numeric_limits<double>::infinity();
+  for (const RememberedPlayer& other : scorer.remembered()) {
+    if (other.teammate || other.playerId == carrier.playerId || scorer.isKeeper(other)) {
+      continue;
+    }
+    if (const double distance = distanceBetween(other.position, point);
+        distance < nearestDistance) {
+      nearest = &other;
+      nearestDistance = distance;
+    }
+  }
+  return nearest;
+}
+
+// Pressing the carrier and blocking a lane, for a player close enough.
+void addPressingCandidates(const DefensiveScorer& scorer, const RememberedPlayer& carrier,
+                           const DefensiveConfig& config,
+                           std::vector<ActionCandidate>& candidates) {
+  const PlayerMatchState& player = scorer.player();
+  const double intensity = scorer.pressingIntensity();
+  const double closePressing = scorer.weight(Responsibility::kClosePressingLine);
+  const auto proximity = [&config](const double distance) {
+    return 1.0 - std::min(1.0, distance / config.pressRadius);
+  };
+
+  if (const double distance = distanceBetween(player.position, carrier.position);
+      distance <= config.pressRadius) {
+    // Cut off the option the carrier most likely plays: his nearest.
+    const RememberedPlayer* option = nearestOption(scorer, carrier, carrier.position);
+    const Vec2 target = pressTarget(
+        carrier.position, option != nullptr ? std::optional(option->position) : std::nullopt,
+        scorer.ownGoal(), config.pressDistance);
+    candidates.push_back(scorer.score(ActionType::kPressCarrier, target, closePressing,
+                                      intensity * proximity(distance), carrier.playerId));
+  }
+  // Block the lane to the option nearest to him.
+  if (const RememberedPlayer* option = nearestOption(scorer, carrier, player.position)) {
+    const Vec2 target = laneBlockTarget({.carrier = carrier.position, .receiver = option->position},
+                                        player.position, config.laneMinDistance);
+    if (const double distance = distanceBetween(player.position, target);
+        distance <= config.pressRadius) {
+      candidates.push_back(scorer.score(ActionType::kBlockLane, target, closePressing,
+                                        intensity * proximity(distance), option->playerId));
+    }
+  }
+}
+
 }  // namespace
 
 void validate(const DefensiveConfig& config) {
@@ -123,11 +193,12 @@ void validate(const DefensiveConfig& config) {
   const bool valid = positive(config.markRadius) && positive(config.markDistance) &&
                      positive(config.trackRadius) && positive(config.runnerSpeed) &&
                      weight(config.trackLeadSeconds) && positive(config.coverDistance) &&
-                     positive(config.effortScale) && config.holdResponsibility >= 0.0 &&
-                     config.holdResponsibility <= 1.0 && positive(config.temperature) &&
-                     weight(config.responsibilityWeight) && weight(config.regionWeight) &&
-                     weight(config.spaceWeight) && weight(config.urgencyWeight) &&
-                     weight(config.effortWeight);
+                     positive(config.pressRadius) && positive(config.pressDistance) &&
+                     weight(config.laneMinDistance) && positive(config.effortScale) &&
+                     config.holdResponsibility >= 0.0 && config.holdResponsibility <= 1.0 &&
+                     positive(config.temperature) && weight(config.responsibilityWeight) &&
+                     weight(config.regionWeight) && weight(config.spaceWeight) &&
+                     weight(config.urgencyWeight) && weight(config.effortWeight);
   if (!valid) {
     throw std::invalid_argument("defensive decisions: invalid configuration");
   }
@@ -146,21 +217,31 @@ std::vector<ActionCandidate> generateDefensiveCandidates(const MatchState& state
       std::max(config.holdResponsibility, scorer.weight(Responsibility::kHoldDefensiveLine)), 0.0,
       std::nullopt));
 
-  // The nearest opponent in his zone, and the fastest runner near him.
+  // The nearest opponent in his zone, the fastest runner near him, the
+  // teammate to cover -- a presser first, else the one nearest the ball --
+  // and the carrier if he remembers him.
   const RememberedPlayer* marked = nullptr;
   const RememberedPlayer* runner = nullptr;
   double markedDistance = config.markRadius;
   double runnerSpeed = config.runnerSpeed;
   const RememberedPlayer* covered = nullptr;
   double coveredDistance = std::numeric_limits<double>::infinity();
+  bool coveringPresser = false;
+  const RememberedPlayer* carrier = nullptr;
   for (const RememberedPlayer& other : scorer.remembered()) {
     if (other.teammate) {
       const double toBall = distanceBetween(other.position, state.ball().position);
-      if (toBall < coveredDistance) {
+      const bool presser = scorer.isPressing(other);
+      if ((presser && !coveringPresser) ||
+          (presser == coveringPresser && toBall < coveredDistance)) {
         covered = &other;
         coveredDistance = toBall;
+        coveringPresser = presser;
       }
       continue;
+    }
+    if (other.playerId == state.ball().owner) {
+      carrier = &other;
     }
     if (scorer.isKeeper(other)) {
       continue;
@@ -192,10 +273,15 @@ std::vector<ActionCandidate> generateDefensiveCandidates(const MatchState& state
                      std::min(1.0, runnerSpeed / player.attributes.maxSpeed), runner->playerId));
   }
   if (covered != nullptr) {
-    candidates.push_back(
-        scorer.score(ActionType::kCover, scorer.goalSideOf(covered->position, config.coverDistance),
-                     scorer.weight(Responsibility::kCover),
-                     1.0 - std::min(1.0, coveredDistance / kCoverRange), covered->playerId));
+    candidates.push_back(scorer.score(
+        ActionType::kCover,
+        state.pitch().clamp(coverTarget(covered->position, scorer.ownGoal(), config.coverDistance)),
+        scorer.weight(Responsibility::kCover),
+        coveringPresser ? 1.0 : 1.0 - std::min(1.0, coveredDistance / kCoverRange),
+        covered->playerId));
+  }
+  if (carrier != nullptr) {
+    addPressingCandidates(scorer, *carrier, config, candidates);
   }
   return candidates;
 }

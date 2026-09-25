@@ -261,9 +261,11 @@ TEST_CASE("Players of a side with a tactic take up their regions", "[desiredRegi
 }
 
 TEST_CASE("Settled players do not oscillate between regions", "[desiredRegion]") {
-  // A ball held on the centre spot: the situation does not change, so once
-  // settled no region may flip back to one it left.
-  MatchSimulation simulation = holdingMatch(kickoff());
+  // A ball held on the centre spot against a scripted side that stands
+  // still: the situation does not change, so once settled no region may flip
+  // back to one it left.
+  MatchSimulation simulation =
+      holdingMatch(kickoff({.x = 30.0, .y = 20.0}, {.home = referenceTactic(), .away = {}}));
   run(simulation, 150);
   std::vector<std::vector<Vec2>> centres(14);
   while (simulation.tick() < SimTick(450)) {

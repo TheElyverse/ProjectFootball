@@ -27,6 +27,14 @@ struct DefensiveConfig {
   double trackLeadSeconds = 0.5;
   // A coverer stands this far behind the teammate he covers, toward the goal.
   double coverDistance = 6.0;  // m
+  // A player this close to the carrier can press him, and one this close to
+  // a lane can block it.
+  double pressRadius = 15.0;  // m
+  // A presser aims this far from the carrier, on the line to his option.
+  double pressDistance = 1.0;  // m
+  // A lane blocker stands at least this far from the carrier and the
+  // receiver.
+  double laneMinDistance = 2.0;  // m
   // The distance that costs one unit of effort.
   double effortScale = 20.0;  // m
   // How strongly holding the block counts as a duty on its own, in [0, 1].
@@ -60,10 +68,14 @@ struct DefensiveRules {
 // The options of the player at this index, whose team does not have the
 // ball, with region his desired region: holding the block; marking the
 // nearest opponent in his zone -- within markRadius of his region -- goal-side;
-// tracking the most dangerous runner he has seen; and covering behind the
-// teammate nearest the ball. Opponents come from his memory only, so a run he
-// has not seen is not tracked. In that fixed order, each only if its subject
-// exists. Deterministic.
+// tracking the most dangerous runner he has seen; covering -- behind a
+// teammate who presses the carrier, otherwise behind the teammate nearest the
+// ball; pressing the carrier on the line to his nearest option
+// (pressTarget()); and blocking the lane to the carrier's option nearest to
+// him (laneBlockTarget()). Opponents come from his memory only, so a run he
+// has not seen is not tracked and a carrier he does not remember is not
+// pressed. In that fixed order, each only if its subject exists.
+// Deterministic.
 [[nodiscard]] std::vector<ActionCandidate> generateDefensiveCandidates(const MatchState& state,
                                                                        std::size_t playerIndex,
                                                                        const DesiredRegion& region,

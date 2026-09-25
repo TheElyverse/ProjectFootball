@@ -60,8 +60,13 @@ enum class ActionType : std::uint8_t {
   kMarkOpponent,
   // Without the ball: follow an opponent running at the goal.
   kTrackRunner,
-  // Without the ball: protect the space behind a teammate who may step out.
+  // Without the ball: protect the space behind a teammate who may step out,
+  // or behind the teammate pressing the carrier.
   kCover,
+  // Without the ball: close the carrier down on the line to a passing option.
+  kPressCarrier,
+  // Without the ball: stand in the lane from the carrier to a receiver.
+  kBlockLane,
 };
 
 // "holdPosition", "supportCarrier", ...; "unknown" outside the enumerators.

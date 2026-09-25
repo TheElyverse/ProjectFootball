@@ -22,6 +22,10 @@ std::string_view actionName(const ActionType type) noexcept {
       return "trackRunner";
     case ActionType::kCover:
       return "cover";
+    case ActionType::kPressCarrier:
+      return "pressCarrier";
+    case ActionType::kBlockLane:
+      return "blockLane";
   }
   return "unknown";
 }
