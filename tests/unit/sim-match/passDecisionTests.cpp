@@ -7,6 +7,7 @@
 #include <utility>
 #include <vector>
 
+#include "choicePolicy.hpp"
 #include "kickoffScenario.hpp"
 #include "matchCommand.hpp"
 #include "matchSetup.hpp"
@@ -258,4 +259,25 @@ TEST_CASE("Players string passes together", "[passDecision]") {
   }
   CAPTURE(completed);
   REQUIRE(completed >= 3);
+}
+
+TEST_CASE("The seeded softmax chooses among any options", "[passDecision]") {
+  using ElyverseFootball::SimMatch::chooseByUtility;
+  RandomNumberGenerator random(9);
+  RandomNumberGenerator untouched(9);
+  // Nothing to choose from: no option and no draw.
+  REQUIRE_FALSE(chooseByUtility({}, 0.2, random).has_value());
+  REQUIRE(random.nextU64() == untouched.nextU64());
+
+  const std::vector<double> single{0.3};
+  REQUIRE(chooseByUtility(single, 0.2, random) == 0);
+
+  // A clearly better option is chosen almost always, the order of options
+  // does not matter.
+  const std::vector<double> utilities{0.0, 2.0, 0.1};
+  std::size_t best = 0;
+  for (int draw = 0; draw < 1000; ++draw) {
+    best += chooseByUtility(utilities, 0.2, random) == 1 ? 1U : 0U;
+  }
+  REQUIRE(best > 990);
 }

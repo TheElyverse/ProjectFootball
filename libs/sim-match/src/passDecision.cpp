@@ -5,8 +5,8 @@
 #include <string>
 #include <vector>
 
+#include "choicePolicy.hpp"
 #include "passCandidates.hpp"
-#include "stableMath.hpp"
 
 namespace ElyverseFootball::SimMatch {
 namespace {
@@ -38,31 +38,14 @@ std::optional<std::size_t> choosePass(const std::span<const PassCandidate> candi
                                       const double temperature,
                                       SimCore::RandomNumberGenerator& random) {
   // Valid candidates come first, the best of them at the front.
-  std::size_t valid = 0;
-  while (valid < candidates.size() && candidates[valid].isValid()) {
-    ++valid;
-  }
-  if (valid == 0) {
-    return std::nullopt;
-  }
-
-  // Weights relative to the best utility, so the largest is exactly 1 and no
-  // weight overflows.
-  const double best = candidates.front().utility;
-  double total = 0.0;
-  for (std::size_t index = 0; index < valid; ++index) {
-    total += SimCore::stableExp((candidates[index].utility - best) / temperature);
-  }
-  const double draw = random.nextUniform() * total;
-  double cumulative = 0.0;
-  for (std::size_t index = 0; index < valid; ++index) {
-    cumulative += SimCore::stableExp((candidates[index].utility - best) / temperature);
-    if (draw < cumulative) {
-      return index;
+  std::vector<double> utilities;
+  for (const PassCandidate& candidate : candidates) {
+    if (!candidate.isValid()) {
+      break;
     }
+    utilities.push_back(candidate.utility);
   }
-  // Only reachable through rounding of the sum: the last valid candidate.
-  return valid - 1;
+  return chooseByUtility(utilities, temperature, random);
 }
 
 MatchSystem makePassDecisionSystem(const DecisionConfig& config, const PassCandidateRules& rules) {
