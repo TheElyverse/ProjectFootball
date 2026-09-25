@@ -40,6 +40,7 @@ if (PF_ENABLE_SANITIZERS AND NOT MSVC)
 endif ()
 
 add_subdirectory(libs/sim-core)
+add_subdirectory(libs/sim-tactics)
 add_subdirectory(libs/sim-match)
 add_subdirectory(libs/sim-replay)
 add_subdirectory(apps/sim-cli)

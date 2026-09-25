@@ -55,3 +55,13 @@ target_link_libraries(sim-replay-tests PRIVATE
         pf_compiler_warnings
 )
 catch_discover_tests(sim-replay-tests)
+
+add_executable(sim-tactics-tests
+        sim-tactics/tacticalPhaseTests.cpp
+)
+target_link_libraries(sim-tactics-tests PRIVATE
+        ElyverseFootball::sim-tactics
+        Catch2::Catch2WithMain
+        pf_compiler_warnings
+)
+catch_discover_tests(sim-tactics-tests)
