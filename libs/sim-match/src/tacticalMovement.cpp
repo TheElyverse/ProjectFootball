@@ -33,7 +33,7 @@ namespace {
       chooseByUtility(utilities, temperature,
                       context.random(SimCore::RandomNumberGeneratorDomain::kAi))
           .value_or(0);
-  if (context.collectsDiagnostics()) {
+  if (context.collectsDiagnostics(current.players()[index].playerId)) {
     context.diagnose(ActionDiagnostic{.tick = context.tick(),
                                       .player = current.players()[index].playerId,
                                       .candidates = candidates,
@@ -126,7 +126,7 @@ namespace {
       break;
   }
   action.target = pitch.clamp(action.target);
-  if (context.collectsDiagnostics()) {
+  if (context.collectsDiagnostics(player.playerId)) {
     context.diagnose(ActionDiagnostic{.tick = context.tick(),
                                       .player = player.playerId,
                                       .candidates = {action},

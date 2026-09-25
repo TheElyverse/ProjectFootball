@@ -94,7 +94,7 @@ MatchSystem makePassDecisionSystem(const DecisionConfig& config, const PassCandi
                            context.random(SimCore::RandomNumberGeneratorDomain::kAi));
             // Built only on request, and after the choice: diagnostics can
             // neither change the decision nor draw a number.
-            if (context.collectsDiagnostics()) {
+            if (context.collectsDiagnostics(*ball.owner)) {
               context.diagnose(DecisionDiagnostic{
                   .tick = context.tick(),
                   .player = *ball.owner,

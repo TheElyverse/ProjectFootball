@@ -8,8 +8,10 @@
 #include <optional>
 #include <span>
 #include <string>
+#include <utility>
 #include <vector>
 
+#include "ids.hpp"
 #include "matchCommand.hpp"
 #include "matchEvents.hpp"
 #include "matchState.hpp"
@@ -28,6 +30,24 @@ inline constexpr int kDefaultTicksPerSecond = 30;
 // with the same draws as the original.
 using MatchRandomStreams = std::array<SimCore::RandomNumberGenerator, 5>;
 
+// Which decisions to explain when diagnostics are on: those of some players,
+// in a range of ticks. The default explains every decision. A narrow filter
+// keeps the cost of diagnostics to what a debugging session looks at; the
+// match itself is the same with any filter.
+struct DiagnosticsFilter {
+  // The players to explain; empty explains everyone.
+  std::vector<SimCore::PlayerId> players;
+  // The first and last tick of the steps to explain, both inclusive; empty
+  // leaves that end open.
+  std::optional<SimCore::SimTick> from;
+  std::optional<SimCore::SimTick> to;
+
+  [[nodiscard]] bool includesTick(SimCore::SimTick tick) const noexcept;
+  [[nodiscard]] bool includesPlayer(SimCore::PlayerId player) const noexcept;
+
+  friend bool operator==(const DiagnosticsFilter&, const DiagnosticsFilter&) = default;
+};
+
 // What a system learns about the step it runs in. tick() is the tick being
 // simulated: a step from tick t to t + 1 reports t.
 class MatchStepContext {
@@ -44,14 +64,19 @@ class MatchStepContext {
   // replay reproduces them in the order systems record them.
   void record(const MatchEvent& event) const;
 
-  // Whether anyone asked for decision diagnostics. A system may skip building
-  // them when not; it must decide the same either way.
+  // Whether anyone asked for diagnostics of this step. A system may skip
+  // building them when not; it must decide the same either way.
   [[nodiscard]] bool collectsDiagnostics() const noexcept {
     return diagnostics_.decisions != nullptr;
   }
+  // Whether anyone asked for diagnostics of this player's decisions in this
+  // step: collectsDiagnostics() and the filter includes him.
+  [[nodiscard]] bool collectsDiagnostics(SimCore::PlayerId player) const noexcept {
+    return collectsDiagnostics() && diagnostics_.filter->includesPlayer(player);
+  }
 
-  // Keeps a decision diagnostic of this step if diagnostics are collected,
-  // and drops it otherwise.
+  // Keeps a diagnostic of this step if diagnostics of its player are
+  // collected, and drops it otherwise.
   void diagnose(DecisionDiagnostic diagnostic) const;
   void diagnose(ActionDiagnostic diagnostic) const;
 
@@ -62,6 +87,7 @@ class MatchStepContext {
   struct Diagnostics {
     std::vector<DecisionDiagnostic>* decisions = nullptr;
     std::vector<ActionDiagnostic>* actions = nullptr;
+    const DiagnosticsFilter* filter = nullptr;
   };
 
   MatchStepContext(const SimCore::SimTick tick, const double secondsPerTick,
@@ -188,6 +214,10 @@ class MatchSimulation {
   // nothing in the match and draws no random numbers.
   void setCollectDiagnostics(bool collect) noexcept { collectDiagnostics_ = collect; }
 
+  // Restricts collected diagnostics to some players and ticks; see
+  // DiagnosticsFilter. Takes effect with the next step.
+  void setDiagnosticsFilter(DiagnosticsFilter filter) { diagnosticsFilter_ = std::move(filter); }
+
   // The decision diagnostics of the last successful step, if collected.
   [[nodiscard]] std::span<const DecisionDiagnostic> diagnostics() const noexcept {
     return diagnostics_;
@@ -241,6 +271,7 @@ class MatchSimulation {
   std::vector<DecisionDiagnostic> diagnostics_;
   std::vector<ActionDiagnostic> actionDiagnostics_;
   bool collectDiagnostics_ = false;
+  DiagnosticsFilter diagnosticsFilter_;
 };
 
 }  // namespace ElyverseFootball::SimMatch

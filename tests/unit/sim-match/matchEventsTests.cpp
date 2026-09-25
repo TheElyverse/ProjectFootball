@@ -2,6 +2,7 @@
 #include <cmath>
 #include <cstdint>
 #include <optional>
+#include <set>
 #include <utility>
 #include <variant>
 #include <vector>
@@ -15,7 +16,10 @@
 #include "matchState.hpp"
 #include "matchStateHash.hpp"
 #include "passing.hpp"
+#include "referenceTactic.hpp"
+#include "scenarios.hpp"
 #include "stableHash.hpp"
+#include "tactic.hpp"
 #include "vec2.hpp"
 
 using ElyverseFootball::SimCore::PlayerId;
@@ -290,6 +294,45 @@ TEST_CASE("Collecting diagnostics changes nothing in the match", "[matchEvents]"
   };
 
   REQUIRE(run(true) == run(false));
+}
+
+TEST_CASE("A diagnostics filter keeps the chosen players and ticks only", "[matchEvents]") {
+  const auto reference = ElyverseFootball::SimTactics::Tactic::create(
+      ElyverseFootball::SimTactics::referenceTacticSpec());
+  REQUIRE(reference.has_value());
+  const auto setup =
+      ElyverseFootball::SimMatch::makeTacticMatch({.home = *reference, .away = *reference}, 8);
+  REQUIRE(setup.has_value());
+  const auto run =
+      [&setup](const std::optional<ElyverseFootball::SimMatch::DiagnosticsFilter>& filter) {
+        MatchSimulation simulation = startMatch(*setup);
+        if (filter) {
+          simulation.setCollectDiagnostics(true);
+          simulation.setDiagnosticsFilter(*filter);
+        }
+        std::set<std::uint32_t> players;
+        std::vector<std::uint64_t> hashes;
+        for (int step = 0; step < 300; ++step) {
+          REQUIRE(simulation.step().has_value());
+          hashes.push_back(hashMatchState(simulation.state()));
+          for (const DecisionDiagnostic& diagnostic : simulation.diagnostics()) {
+            REQUIRE(diagnostic.tick >= SimTick(60));
+            REQUIRE(diagnostic.tick <= SimTick(180));
+            players.insert(diagnostic.player.value());
+          }
+          for (const auto& diagnostic : simulation.actionDiagnostics()) {
+            REQUIRE(diagnostic.tick >= SimTick(60));
+            REQUIRE(diagnostic.tick <= SimTick(180));
+            players.insert(diagnostic.player.value());
+          }
+        }
+        return std::pair(players, hashes);
+      };
+  const auto [filtered, filteredHashes] = run(ElyverseFootball::SimMatch::DiagnosticsFilter{
+      .players = {PlayerId(3), PlayerId(10)}, .from = SimTick(60), .to = SimTick(180)});
+  REQUIRE(filtered == std::set<std::uint32_t>{3, 10});
+  // Filtering changes what is explained, never the match.
+  REQUIRE(filteredHashes == run(std::nullopt).second);
 }
 
 TEST_CASE("A failed step publishes no events", "[matchEvents]") {

@@ -190,14 +190,22 @@ void MatchStepContext::record(const MatchEvent& event) const {
   events_->push_back(event);
 }
 
+bool DiagnosticsFilter::includesTick(const SimCore::SimTick tick) const noexcept {
+  return (!from || tick >= *from) && (!to || tick <= *to);
+}
+
+bool DiagnosticsFilter::includesPlayer(const SimCore::PlayerId player) const noexcept {
+  return players.empty() || std::ranges::find(players, player) != players.end();
+}
+
 void MatchStepContext::diagnose(DecisionDiagnostic diagnostic) const {
-  if (diagnostics_.decisions != nullptr) {
+  if (collectsDiagnostics(diagnostic.player)) {
     diagnostics_.decisions->push_back(std::move(diagnostic));
   }
 }
 
 void MatchStepContext::diagnose(ActionDiagnostic diagnostic) const {
-  if (diagnostics_.actions != nullptr) {
+  if (collectsDiagnostics(diagnostic.player)) {
     diagnostics_.actions->push_back(std::move(diagnostic));
   }
 }
@@ -278,9 +286,11 @@ std::expected<SimCore::SimTick, MatchStepError> MatchSimulation::step() {
   MatchStateWriter writer(next_);
   const MatchStepContext context(
       clock_.tick(), clock_.secondsPerTick(), random_, stepEvents_,
-      collectDiagnostics_ ? MatchStepContext::Diagnostics{.decisions = &stepDiagnostics_,
-                                                          .actions = &stepActionDiagnostics_}
-                          : MatchStepContext::Diagnostics{});
+      collectDiagnostics_ && diagnosticsFilter_.includesTick(clock_.tick())
+          ? MatchStepContext::Diagnostics{.decisions = &stepDiagnostics_,
+                                          .actions = &stepActionDiagnostics_,
+                                          .filter = &diagnosticsFilter_}
+          : MatchStepContext::Diagnostics{});
   for (const MatchSystem& system : systems_) {
     if (!isDue(system, context.tick())) {
       continue;

@@ -70,6 +70,10 @@ of the last step.
 
 Diagnostics are off by default. `MatchSimulation::setCollectDiagnostics(true)`
 turns them on; `diagnostics()` then holds the diagnostics of the last step.
+`setDiagnosticsFilter()` narrows them to some `players` and a tick range
+`from`–`to` (both inclusive, either open): outside the range a step collects
+nothing at all, and inside it the systems build diagnostics only for the
+chosen players. Off, diagnostics cost one pointer check per decision.
 
 Diagnostics are read-only output: the decision system builds them only on
 request and only after it has chosen, so they cannot change a decision, and
@@ -80,6 +84,5 @@ identical states and events at every tick.
 ## What this is not
 
 There is no event history inside the simulation — each step publishes its own
-events, and whoever needs a log keeps one — and no match statistics yet:
-possession share, pass completion and similar metrics belong to analytics built
-on these events.
+events, and whoever needs a log keeps one. Match statistics are
+[analytics](match-analytics.md) built on these events.
