@@ -12,7 +12,8 @@ seven-a-side kickoff fixture, the fixed-timestep match loop with commands (`docs
 player and ball movement (`docs/player-movement.md`, `docs/ball-movement.md`), spatial queries,
 perception, possession, passing, reception and pass decisions (`docs/spatial-queries.md`,
 `docs/perception.md`, `docs/possession.md`, `docs/passing.md`, `docs/reception.md`,
-`docs/pass-candidates.md`, `docs/pass-decisions.md`), tactical phases and pitch control (`docs/match-phases.md`, `docs/pitch-control.md`) with events and diagnostics
+`docs/pass-candidates.md`, `docs/pass-decisions.md`), tactical phases, pitch control, zones and team shape (`docs/match-phases.md`,
+`docs/pitch-control.md`, `docs/zones.md`) with events and diagnostics
 (`docs/match-events.md`), a web debug viewer in `apps/sim-viewer` (`docs/debug-viewer.md`), and the P1
 passing scenarios with their acceptance tests (`docs/scenarios.md`);
 almost everything described in the design/implementation docs below is still unbuilt.
@@ -54,7 +55,7 @@ libs/
   sim-core       IDs, time, RNG, events, base types (depends on: STL only)      [exists]
   sim-player     Capabilities, match/world player state, development           [planned]
   sim-tactics    Principles, phases, responsibilities, spatial targets         [exists: tactic model]
-  sim-match      Pitch, ball, perception, decisions, actions, rules            [exists: pitch, state, loop, movement, ball, perception, possession, passing, reception, decisions, events, phases, pitch control]
+  sim-match      Pitch, ball, perception, decisions, actions, rules            [exists: pitch, state, loop, movement, ball, perception, possession, passing, reception, decisions, events, phases, pitch control, zones]
   sim-world      Calendar, clubs, competitions, economy, careers               [planned]
   sim-ai         Club planning, coach decisions, staff behavior                [planned]
   sim-analytics  Events, metrics, explanations (read-only over domain events)  [planned]
