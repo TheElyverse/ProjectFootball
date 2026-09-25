@@ -66,6 +66,12 @@ export type MatchEvent = { readonly tick: number } & (
       readonly previousOwner: number | null;
       readonly newOwner: number | null;
     }
+  | {
+      readonly type: "phaseChanged";
+      readonly side: TeamSide;
+      readonly previous: string | null;
+      readonly phase: string;
+    }
 );
 
 export interface PassCandidate {
@@ -210,5 +216,10 @@ export function describeEvent(event: MatchEvent): string {
       return event.newOwner === null
         ? `ball free (was #${event.previousOwner ?? "-"})`
         : `#${event.newOwner} has the ball`;
+    case "phaseChanged":
+      return `${event.side}: ${event.phase}`;
+    default:
+      // A newer core may record events this viewer does not know yet.
+      return (event as { readonly type: string }).type;
   }
 }

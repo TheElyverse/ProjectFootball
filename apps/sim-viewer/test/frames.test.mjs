@@ -68,4 +68,9 @@ test("describeEvent names the players involved", () => {
     describeEvent({ tick: 0, type: "possessionChanged", previousOwner: 4, newOwner: null }),
     "ball free (was #4)",
   );
+  assert.equal(
+    describeEvent({ tick: 0, type: "phaseChanged", side: "away", previous: null, phase: "pressing" }),
+    "away: pressing",
+  );
+  assert.equal(describeEvent({ tick: 0, type: "somethingNew" }), "somethingNew");
 });
