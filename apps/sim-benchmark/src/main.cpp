@@ -1,11 +1,14 @@
 // sim-benchmark: plays a series of seven-a-side matches between two tactic
 // files and writes their statistics (docs/sim-benchmark.md).
 
+#include <algorithm>
 #include <charconv>
+#include <cstddef>
 #include <cstdint>
 #include <cstdlib>
 #include <exception>
 #include <expected>
+#include <filesystem>
 #include <format>
 #include <fstream>
 #include <iostream>
@@ -14,6 +17,7 @@
 #include <string>
 #include <string_view>
 #include <system_error>
+#include <utility>
 #include <vector>
 
 #include "benchmark.hpp"
@@ -26,9 +30,11 @@ using ElyverseFootball::Benchmark::BenchmarkSpec;
 using ElyverseFootball::Benchmark::MatchResult;
 
 constexpr std::string_view kUsage =
-    "usage: sim-benchmark --home <tactic.json> --away <tactic.json> [--matches <n>]\n"
-    "                     [--seed <u64>] [--minutes <n>] [--jobs <n>] [--out <path>]\n"
-    "                     [--no-restarts] [--max-seconds-per-match <s>]";
+    "usage: sim-benchmark --home <tactic.json> --away <tactic.json> [options]\n"
+    "       sim-benchmark --style <tactic.json> --style <tactic.json> [--style ...] [options]\n"
+    "options: [--matches <n>] [--seed <u64>] [--minutes <n>] [--jobs <n>] [--out <path>]\n"
+    "         [--no-restarts] [--verify-replays <n>] [--max-seconds-per-match <s>]\n"
+    "         [--max-seconds-total <s>]";
 
 struct Options {
   std::string home;
@@ -39,7 +45,12 @@ struct Options {
   int jobs = 1;
   std::string out;
   bool restarts = true;
+  // Round robin: every ordered pairing of these, --matches each.
+  std::vector<std::string> styles;
+  // Matches per series to record as a replay and play back.
+  int verifyReplays = 0;
   std::optional<double> maxSecondsPerMatch;
+  std::optional<double> maxSecondsTotal;
 };
 
 int fail(const std::string& message) {
@@ -92,6 +103,10 @@ std::expected<Options, std::string> parseOptions(const std::span<char* const> ar
       options.away = value;
     } else if (arg == "--out") {
       options.out = value;
+    } else if (arg == "--style") {
+      options.styles.emplace_back(value);
+    } else if (arg == "--verify-replays") {
+      positive(options.verifyReplays);
     } else if (arg == "--matches") {
       positive(options.matches);
     } else if (arg == "--minutes") {
@@ -104,12 +119,13 @@ std::expected<Options, std::string> parseOptions(const std::span<char* const> ar
         return std::unexpected(seed.error());
       }
       options.seed = *seed;
-    } else if (arg == "--max-seconds-per-match") {
+    } else if (arg == "--max-seconds-per-match" || arg == "--max-seconds-total") {
       const auto seconds = parseNumber<double>(arg, value);
       if (!seconds || !(*seconds > 0.0)) {
         return std::unexpected(std::format("invalid {} value '{}'", arg, value));
       }
-      options.maxSecondsPerMatch = *seconds;
+      (arg == "--max-seconds-total" ? options.maxSecondsTotal : options.maxSecondsPerMatch) =
+          *seconds;
     } else {
       return std::unexpected(std::format("unknown argument '{}'", arg));
     }
@@ -117,8 +133,15 @@ std::expected<Options, std::string> parseOptions(const std::span<char* const> ar
       return std::unexpected(parsed.error());
     }
   }
-  if (options.home.empty() || options.away.empty()) {
-    return std::unexpected("--home and --away are required");
+  const bool series = !options.home.empty() || !options.away.empty();
+  if (series && !options.styles.empty()) {
+    return std::unexpected("--home and --away cannot be combined with --style");
+  }
+  if (!series && options.styles.size() < 2) {
+    return std::unexpected("--home and --away, or at least two --style, are required");
+  }
+  if (series && (options.home.empty() || options.away.empty())) {
+    return std::unexpected("--home and --away are required together");
   }
   return options;
 }
@@ -155,7 +178,78 @@ void printSummary(const std::vector<MatchResult>& results) {
   }
 }
 
-int run(const Options& options) {
+std::string failureText(const ElyverseFootball::Benchmark::BenchmarkFailure& failure) {
+  return std::format("match {} (seed {}) failed at tick {}: {}", failure.index, failure.seed,
+                     failure.tick, failure.message);
+}
+
+// The series settings shared by both modes.
+template <typename Spec>
+void applyOptions(const Options& options, Spec& spec) {
+  spec.baseSeed = options.seed;
+  spec.ticks = static_cast<std::int64_t>(options.minutes) * 60 * spec.config.ticksPerSecond;
+  spec.config.restarts.enabled = options.restarts;
+  spec.jobs = options.jobs;
+}
+
+// Plays the first --verify-replays matches of the series again as replays.
+std::expected<void, std::string> verifyReplays(const Options& options, const BenchmarkSpec& spec) {
+  for (int index = 0; index < std::min(options.verifyReplays, spec.matches); ++index) {
+    if (const auto verified = ElyverseFootball::Benchmark::verifyReplay(spec, index); !verified) {
+      return std::unexpected(failureText(verified.error()));
+    }
+  }
+  return {};
+}
+
+// Writes the text to the file, if there is a path.
+std::expected<void, std::string> writeFile(const std::filesystem::path& path,
+                                           const std::string_view text) {
+  if (path.empty()) {
+    return {};
+  }
+  std::ofstream file(path, std::ios::binary | std::ios::trunc);
+  file << text;
+  if (!file.flush()) {
+    return std::unexpected(path.string() + ": cannot write");
+  }
+  return {};
+}
+
+// Wall-clock times of the matches: the slowest and the sum.
+struct Timing {
+  double slowest = 0.0;
+  double total = 0.0;
+  std::size_t matches = 0;
+
+  void add(const MatchResult& result) {
+    slowest = std::max(slowest, result.wallSeconds);
+    total += result.wallSeconds;
+    ++matches;
+  }
+};
+
+// The time budgets, checked after the results are written.
+std::expected<void, std::string> checkBudgets(const Options& options, const Timing& timing) {
+  std::cout << std::format(
+      "{} matches of {} minutes: mean {:.3f} s, slowest {:.3f} s, total "
+      "{:.1f} s wall time\n",
+      timing.matches, options.minutes, timing.total / static_cast<double>(timing.matches),
+      timing.slowest, timing.total);
+  if (options.maxSecondsPerMatch && timing.slowest > *options.maxSecondsPerMatch) {
+    return std::unexpected(
+        std::format("the slowest match took {:.3f} s, over the budget of "
+                    "{:.3f} s",
+                    timing.slowest, *options.maxSecondsPerMatch));
+  }
+  if (options.maxSecondsTotal && timing.total > *options.maxSecondsTotal) {
+    return std::unexpected(std::format("the matches took {:.1f} s, over the budget of {:.1f} s",
+                                       timing.total, *options.maxSecondsTotal));
+  }
+  return {};
+}
+
+int runSeries(const Options& options) {
   const auto home = ElyverseFootball::SimTactics::loadTactic(options.home);
   if (!home) {
     return fail(home.error().message);
@@ -166,44 +260,83 @@ int run(const Options& options) {
   }
   BenchmarkSpec spec{.home = *home, .away = *away};
   spec.matches = options.matches;
-  spec.baseSeed = options.seed;
-  spec.ticks = static_cast<std::int64_t>(options.minutes) * 60 * spec.config.ticksPerSecond;
-  spec.config.restarts.enabled = options.restarts;
-  spec.jobs = options.jobs;
+  applyOptions(options, spec);
 
   const auto results = ElyverseFootball::Benchmark::runBenchmark(spec);
   if (!results) {
-    const auto& failure = results.error();
-    return fail(std::format("match {} (seed {}) failed at tick {}: {}", failure.index, failure.seed,
-                            failure.tick, failure.message));
+    return fail(failureText(results.error()));
   }
-  double slowest = 0.0;
-  double total = 0.0;
+  Timing timing;
   for (const MatchResult& result : *results) {
     std::cout << std::format("match {:>3}  seed {:>20}  {:.2f} s\n", result.index, result.seed,
                              result.wallSeconds);
-    slowest = std::max(slowest, result.wallSeconds);
-    total += result.wallSeconds;
+    timing.add(result);
   }
+  std::cout << std::format("{} vs {}\n", home->name(), away->name());
   printSummary(*results);
-  std::cout << std::format(
-      "{} matches of {} minutes, {} vs {}: {:.2f} s simulated time per match, "
-      "mean {:.3f} s, slowest {:.3f} s wall time\n",
-      results->size(), options.minutes, home->name(), away->name(),
-      static_cast<double>(spec.ticks) / spec.config.ticksPerSecond,
-      total / static_cast<double>(results->size()), slowest);
-  if (!options.out.empty()) {
-    std::ofstream file(options.out, std::ios::binary | std::ios::trunc);
-    file << ElyverseFootball::Benchmark::toBenchmarkJson(spec, *results);
-    if (!file.flush()) {
-      return fail(options.out + ": cannot write");
-    }
+  if (const auto verified = verifyReplays(options, spec); !verified) {
+    return fail(verified.error());
   }
-  if (options.maxSecondsPerMatch && slowest > *options.maxSecondsPerMatch) {
-    return fail(std::format("the slowest match took {:.3f} s, over the budget of {:.3f} s", slowest,
-                            *options.maxSecondsPerMatch));
+  if (const auto written =
+          writeFile(options.out, ElyverseFootball::Benchmark::toBenchmarkJson(spec, *results));
+      !written) {
+    return fail(written.error());
+  }
+  if (const auto budget = checkBudgets(options, timing); !budget) {
+    return fail(budget.error());
   }
   return EXIT_SUCCESS;
+}
+
+int runStyles(const Options& options) {
+  ElyverseFootball::Benchmark::RoundRobinSpec spec;
+  for (const std::string& path : options.styles) {
+    auto style = ElyverseFootball::SimTactics::loadTactic(path);
+    if (!style) {
+      return fail(style.error().message);
+    }
+    spec.styles.push_back(*std::move(style));
+  }
+  spec.matchesPerPairing = options.matches;
+  applyOptions(options, spec);
+
+  const auto pairings = ElyverseFootball::Benchmark::runRoundRobin(spec);
+  if (!pairings) {
+    return fail(failureText(pairings.error()));
+  }
+  Timing timing;
+  for (const auto& pairing : *pairings) {
+    for (const MatchResult& result : pairing.results) {
+      timing.add(result);
+    }
+    std::cout << std::format("\n{} vs {}\n", spec.styles.at(pairing.home).name(),
+                             spec.styles.at(pairing.away).name());
+    printSummary(pairing.results);
+    if (const auto verified =
+            verifyReplays(options, ElyverseFootball::Benchmark::seriesOf(spec, pairing));
+        !verified) {
+      return fail(verified.error());
+    }
+  }
+  std::cout << "\nseparated beyond chance (95 % intervals):\n";
+  for (const auto& separation : ElyverseFootball::Benchmark::separations(spec, *pairings)) {
+    std::cout << std::format("  {:<28}{} > {}\n", separation.metric,
+                             spec.styles.at(separation.higher).name(),
+                             spec.styles.at(separation.lower).name());
+  }
+  if (const auto written =
+          writeFile(options.out, ElyverseFootball::Benchmark::toRoundRobinJson(spec, *pairings));
+      !written) {
+    return fail(written.error());
+  }
+  if (const auto budget = checkBudgets(options, timing); !budget) {
+    return fail(budget.error());
+  }
+  return EXIT_SUCCESS;
+}
+
+int run(const Options& options) {
+  return options.styles.empty() ? runSeries(options) : runStyles(options);
 }
 
 }  // namespace

@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cstddef>
 #include <cstdint>
 #include <expected>
 #include <optional>
@@ -71,5 +72,62 @@ struct BenchmarkFailure {
 // always gives the same bytes.
 [[nodiscard]] std::string toBenchmarkJson(const BenchmarkSpec& spec,
                                           std::span<const MatchResult> results);
+
+// A round robin of tactical styles (docs/sim-benchmark.md): every ordered
+// pairing of the styles, each style against itself included, played as a
+// series of its own.
+struct RoundRobinSpec {
+  std::vector<SimTactics::Tactic> styles;
+  int matchesPerPairing = 10;
+  std::uint64_t baseSeed = 1;
+  std::int64_t ticks = 18'000;
+  SimMatch::MatchConfig config = benchmarkConfig();
+  int jobs = 1;
+};
+
+struct PairingResult {
+  // Indices into RoundRobinSpec::styles.
+  std::size_t home = 0;
+  std::size_t away = 0;
+  // The series' base seed: matchSeed() of the round robin's base seed and
+  // the pairing's index, so pairings play unrelated matches.
+  std::uint64_t baseSeed = 0;
+  std::vector<MatchResult> results;
+};
+
+// The series spec of one pairing of a round robin.
+[[nodiscard]] BenchmarkSpec seriesOf(const RoundRobinSpec& spec, const PairingResult& pairing);
+
+// The series of every pairing, home style by home style: (0, 0), (0, 1), ...
+// Stops at the first failing pairing with its failure.
+[[nodiscard]] std::expected<std::vector<PairingResult>, BenchmarkFailure> runRoundRobin(
+    const RoundRobinSpec& spec);
+
+// A metric on which two styles differ beyond chance: their 95 % intervals
+// over all their matches do not overlap.
+struct Separation {
+  std::string metric;
+  std::size_t higher = 0;
+  std::size_t lower = 0;
+
+  friend bool operator==(const Separation&, const Separation&) = default;
+};
+
+// For every metric and every pair of styles, whether the styles separate:
+// each style's values from all its matches, home or away.
+[[nodiscard]] std::vector<Separation> separations(const RoundRobinSpec& spec,
+                                                  std::span<const PairingResult> pairings);
+
+// The round robin's results file: the styles, each style's summary over all
+// its matches, the separations, and every pairing's summary and matches.
+// Like toBenchmarkJson(), free of timing and independent of the jobs.
+[[nodiscard]] std::string toRoundRobinJson(const RoundRobinSpec& spec,
+                                           std::span<const PairingResult> pairings);
+
+// Records match `index` of the series as a replay, plays it back and checks
+// every checkpoint: the determinism check of a benchmark. The message of a
+// failure names the divergence.
+[[nodiscard]] std::expected<void, BenchmarkFailure> verifyReplay(const BenchmarkSpec& spec,
+                                                                 int index);
 
 }  // namespace ElyverseFootball::Benchmark
