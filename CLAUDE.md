@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 This repository is in **early bootstrap stage**. The P0 Foundation milestone (repo, CMake, CI, strong
 IDs, sim clock, deterministic RNG, a minimal event bus, and a CLI) exists under `libs/sim-core` and
-`apps/sim-cli`, and `libs/sim-match` has started with pitch geometry, the validated match state, the
+`apps/sim-cli`, and `libs/sim-tactics` holds the tactic data model (`docs/tactics.md`), and `libs/sim-match` has started with pitch geometry, the validated match state, the
 seven-a-side kickoff fixture, the fixed-timestep match loop with commands (`docs/match-loop.md`), and
 player and ball movement (`docs/player-movement.md`, `docs/ball-movement.md`), spatial queries,
 perception, possession, passing, reception and pass decisions (`docs/spatial-queries.md`,
@@ -52,7 +52,7 @@ Key architectural rules to preserve once code exists:
 libs/
   sim-core       IDs, time, RNG, events, base types (depends on: STL only)      [exists]
   sim-player     Capabilities, match/world player state, development           [planned]
-  sim-tactics    Principles, phases, responsibilities, spatial targets         [planned]
+  sim-tactics    Principles, phases, responsibilities, spatial targets         [exists: tactic model]
   sim-match      Pitch, ball, perception, decisions, actions, rules            [exists: pitch, state, loop, movement, ball, perception, possession, passing, reception, decisions, events]
   sim-world      Calendar, clubs, competitions, economy, careers               [planned]
   sim-ai         Club planning, coach decisions, staff behavior                [planned]
@@ -65,7 +65,7 @@ apps/
   website        static landing page, HTML + Tailwind CSS v4 (npm)          [exists]
   sim-benchmark, sim-replay, unreal-game                                       [planned]
 data/            schemas, tactics, competitions, fixtures (JSON/YAML, schema-validated) [planned]
-tests/unit/      Catch2 tests, mirrors libs/ by subdirectory                   [exists: sim-core, sim-match, sim-replay]
+tests/unit/      Catch2 tests, mirrors libs/ by subdirectory                   [exists: sim-core, sim-tactics, sim-match, sim-replay]
 tests/acceptance/ whole-match scenarios: stability, determinism, pinned hashes [exists: M0, P1]
 ```
 
