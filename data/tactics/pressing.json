@@ -1,0 +1,35 @@
+{
+  "format": "elyverse-tactic",
+  "version": 1,
+  "name": "pressing",
+  "description": "Hunts the ball high: a high line and short block that presses on every trigger with several players and attacks quickly after a regain.",
+  "slots": [
+    { "position": { "depth": 0.06, "width": 0.5 }, "role": "goalkeeper" },
+    { "position": { "depth": 0.3, "width": 0.3 }, "role": "centreBack" },
+    { "position": { "depth": 0.3, "width": 0.7 }, "role": "centreBack" },
+    { "position": { "depth": 0.45, "width": 0.5 }, "role": "centralMidfielder" },
+    { "position": { "depth": 0.62, "width": 0.15 }, "role": "winger" },
+    { "position": { "depth": 0.62, "width": 0.85 }, "role": "winger" },
+    { "position": { "depth": 0.75, "width": 0.5 }, "role": "striker" }
+  ],
+  "principles": {
+    "pressingLine": 0.4,
+    "pressingTriggers": ["poorFirstTouch", "backPass", "receiverFacingOwnGoal", "isolatedReceiver", "slowPass"],
+    "positioning": {
+      "targetDistance": 1.0,
+      "spacing": 1.0,
+      "pressure": 0.4,
+      "occupancy": 0.5,
+      "transitionRisk": 0.4
+    }
+  },
+  "phases": {
+    "buildUp": { "lineHeight": 0.35, "blockLength": 0.4, "blockWidth": 0.85, "ballShift": 0.4, "pressingIntensity": 1.0, "passingRisk": 0.5, "runFrequency": 0.4 },
+    "progression": { "lineHeight": 0.45, "blockLength": 0.35, "blockWidth": 0.85, "ballShift": 0.4, "pressingIntensity": 1.0, "passingRisk": 0.6, "runFrequency": 0.5 },
+    "finalThird": { "lineHeight": 0.55, "blockLength": 0.3, "blockWidth": 0.85, "ballShift": 0.4, "pressingIntensity": 1.0, "passingRisk": 0.6, "runFrequency": 0.5 },
+    "attackingTransition": { "lineHeight": 0.5, "blockLength": 0.35, "blockWidth": 0.85, "ballShift": 0.4, "pressingIntensity": 1.0, "passingRisk": 0.75, "runFrequency": 0.7 },
+    "defensiveBlock": { "lineHeight": 0.4, "blockLength": 0.3, "blockWidth": 0.65, "ballShift": 0.6, "pressingIntensity": 1.0, "passingRisk": 0.5, "runFrequency": 0.3 },
+    "pressing": { "lineHeight": 0.45, "blockLength": 0.3, "blockWidth": 0.65, "ballShift": 0.7, "pressingIntensity": 1.0, "passingRisk": 0.5, "runFrequency": 0.3 },
+    "defensiveTransition": { "lineHeight": 0.45, "blockLength": 0.3, "blockWidth": 0.65, "ballShift": 0.7, "pressingIntensity": 1.0, "passingRisk": 0.5, "runFrequency": 0.3 }
+  }
+}

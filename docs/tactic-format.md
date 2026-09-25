@@ -117,6 +117,9 @@ need a new version; a new required one does.
 | File                          | Tactic                                               |
 |-------------------------------|------------------------------------------------------|
 | `data/tactics/reference.json` | the neutral reference tactic of `referenceTacticSpec()` |
+| `data/tactics/possession.json` | keeps the ball, counterpresses ([tactical identities](tactical-identities.md)) |
+| `data/tactics/counter.json`   | deep block, vertical after a regain                  |
+| `data/tactics/pressing.json`  | high line, presses on every trigger                  |
 
 `tests/unit/sim-tactics/tacticFilesTests.cpp` loads every file in
 `data/tactics/`, checks that each is named after its tactic, and that
