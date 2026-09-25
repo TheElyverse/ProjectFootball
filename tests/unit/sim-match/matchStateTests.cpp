@@ -13,12 +13,15 @@ using ElyverseFootball::SimCore::PlayerId;
 using ElyverseFootball::SimCore::Vec2;
 using ElyverseFootball::SimMatch::BallState;
 using ElyverseFootball::SimMatch::checkStartingPositions;
+using ElyverseFootball::SimMatch::kDefaultAcceleration;
+using ElyverseFootball::SimMatch::kDefaultMaxSpeed;
 using ElyverseFootball::SimMatch::kDefaultPlayersPerSide;
 using ElyverseFootball::SimMatch::MatchState;
 using ElyverseFootball::SimMatch::MatchStateError;
 using ElyverseFootball::SimMatch::MatchStateErrorCode;
 using ElyverseFootball::SimMatch::MatchStateSpec;
 using ElyverseFootball::SimMatch::Pitch;
+using ElyverseFootball::SimMatch::PlayerAttributes;
 using ElyverseFootball::SimMatch::PlayerMatchState;
 using ElyverseFootball::SimMatch::TeamSide;
 using ElyverseFootball::SimMatch::teamSideName;
@@ -40,7 +43,9 @@ constexpr double kWidthMeters = 40.0;
       players.push_back({.playerId = PlayerId(nextId++),
                          .side = side,
                          .position = {.x = lineX, .y = 2.0 + (2.0 * static_cast<double>(slot))},
-                         .velocity = {}});
+                         .velocity = {},
+                         .attributes = {},
+                         .target = std::nullopt});
     }
   }
   return {.pitch = Pitch(kLengthMeters, kWidthMeters),
@@ -254,6 +259,22 @@ TEST_CASE("MatchState::create rejects a non-finite player position", "[matchStat
   REQUIRE(mentions(state.error().front().message, "non-finite position"));
 }
 
+TEST_CASE("MatchState::create rejects a player faster than his max speed", "[matchState]") {
+  MatchStateSpec spec = validSpec();
+  spec.players.at(6).velocity = {.x = 10.0, .y = 0.0};
+
+  const auto state = MatchState::create(spec);
+
+  REQUIRE_FALSE(state.has_value());
+  REQUIRE(codesOf(state.error()) == std::vector{MatchStateErrorCode::kPlayerTooFast});
+  CAPTURE(state.error().front().message);
+  REQUIRE(mentions(state.error().front().message, "index 6"));
+
+  // Exactly at the limit is fine.
+  spec.players.at(6).velocity = {.x = 0.0, .y = spec.players.at(6).attributes.maxSpeed};
+  REQUIRE(MatchState::create(spec).has_value());
+}
+
 TEST_CASE("MatchState::create rejects a non-finite player velocity", "[matchState]") {
   const double invalidValue =
       GENERATE(std::numeric_limits<double>::quiet_NaN(), std::numeric_limits<double>::infinity());
@@ -268,6 +289,58 @@ TEST_CASE("MatchState::create rejects a non-finite player velocity", "[matchStat
   CAPTURE(state.error().front().message);
   REQUIRE(mentions(state.error().front().message, "index 6"));
   REQUIRE(mentions(state.error().front().message, ") m/s"));
+}
+
+TEST_CASE("Players default to the documented movement limits and no target", "[matchState]") {
+  const PlayerMatchState player{};
+
+  REQUIRE(player.attributes.maxSpeed == kDefaultMaxSpeed);
+  REQUIRE(player.attributes.acceleration == kDefaultAcceleration);
+  REQUIRE_FALSE(player.target.has_value());
+}
+
+TEST_CASE("MatchState::create accepts a target outside the pitch", "[matchState]") {
+  // Commands keep targets on the pitch; the state itself only requires them
+  // to be finite, like positions.
+  MatchStateSpec spec = validSpec();
+  spec.players.at(3).target = Vec2{.x = -5.0, .y = 50.0};
+
+  const auto state = MatchState::create(spec);
+
+  REQUIRE(state.has_value());
+  REQUIRE(state->players()[3].target == Vec2{.x = -5.0, .y = 50.0});
+}
+
+TEST_CASE("MatchState::create rejects attributes that are not positive and finite",
+          "[matchState]") {
+  const double invalidValue = GENERATE(0.0, -1.0, std::numeric_limits<double>::quiet_NaN(),
+                                       std::numeric_limits<double>::infinity());
+  const bool breakSpeed = GENERATE(true, false);
+  CAPTURE(invalidValue, breakSpeed);
+  MatchStateSpec spec = validSpec();
+  PlayerAttributes& attributes = spec.players.at(5).attributes;
+  (breakSpeed ? attributes.maxSpeed : attributes.acceleration) = invalidValue;
+
+  const auto state = MatchState::create(spec);
+
+  REQUIRE_FALSE(state.has_value());
+  REQUIRE(codesOf(state.error()) == std::vector{MatchStateErrorCode::kInvalidPlayerAttributes});
+  CAPTURE(state.error().front().message);
+  REQUIRE(mentions(state.error().front().message, "index 5"));
+  REQUIRE(mentions(state.error().front().message, "expected both positive and finite"));
+}
+
+TEST_CASE("MatchState::create rejects a non-finite target", "[matchState]") {
+  MatchStateSpec spec = validSpec();
+  spec.players.at(10).target = Vec2{.x = std::numeric_limits<double>::quiet_NaN(), .y = 3.0};
+
+  const auto state = MatchState::create(spec);
+
+  REQUIRE_FALSE(state.has_value());
+  REQUIRE(codesOf(state.error()) == std::vector{MatchStateErrorCode::kNonFinitePlayerTarget});
+  CAPTURE(state.error().front().message);
+  REQUIRE(mentions(state.error().front().message, "index 10"));
+  REQUIRE(mentions(state.error().front().message, "non-finite target"));
 }
 
 TEST_CASE("MatchState::create rejects a non-finite ball state", "[matchState]") {

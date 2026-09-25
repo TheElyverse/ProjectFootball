@@ -3,6 +3,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <expected>
+#include <optional>
 #include <span>
 #include <string>
 #include <string_view>
@@ -35,16 +36,37 @@ enum class TeamSide : std::uint8_t {
 // is a default, not a rule built into the types.
 inline constexpr int kDefaultPlayersPerSide = 7;
 
+// Movement limits used when a caller does not state any: a fast amateur
+// rather than an elite sprinter. They belong to the predefined test players of
+// the sandbox; generated players will derive theirs from capabilities.
+inline constexpr double kDefaultMaxSpeed = 7.5;      // m/s
+inline constexpr double kDefaultAcceleration = 4.0;  // m/s²
+
+// What a player's body allows, fixed for a match. Both values must be positive
+// and finite. The same acceleration limits speeding up, slowing down and
+// turning (see docs/player-movement.md).
+struct PlayerAttributes {
+  double maxSpeed = kDefaultMaxSpeed;
+  double acceleration = kDefaultAcceleration;
+
+  friend bool operator==(const PlayerAttributes&, const PlayerAttributes&) = default;
+};
+
 // One player as the match simulation sees it. Positions are in meters in pitch
 // coordinates, velocities in meters per second. Deliberately minimal: the
 // orientation, energy, action and perception components of
 // docs/implementation-plan.md section 6.2 arrive with the systems that fill
 // them.
+//
+// target is where the player is moving to, assigned by a command and kept on
+// the pitch; without one the player comes to a stop where he is.
 struct PlayerMatchState {
   SimCore::PlayerId playerId;
   TeamSide side = TeamSide::kHome;
   SimCore::Vec2 position;
   SimCore::Vec2 velocity;
+  PlayerAttributes attributes;
+  std::optional<SimCore::Vec2> target;
 
   friend bool operator==(const PlayerMatchState&, const PlayerMatchState&) = default;
 };
@@ -64,9 +86,12 @@ enum class MatchStateErrorCode : std::uint8_t {
   kInvalidTeamSide,
   kInvalidPlayerId,
   kDuplicatePlayerId,
+  kInvalidPlayerAttributes,
   kNonFinitePlayerPosition,
   kPlayerOutsidePitch,
   kNonFinitePlayerVelocity,
+  kPlayerTooFast,
+  kNonFinitePlayerTarget,
   kNonFiniteBallPosition,
   kBallOutsidePitch,
   kNonFiniteBallVelocity,
@@ -99,8 +124,9 @@ class MatchStateWriter;
 // Nothing here advances time -- MatchSimulation owns that.
 //
 // The invariants hold for every state, from kickoff to the final whistle:
-// both squads have the stated size, every player has a unique valid id and a
-// declared side, and every position and velocity is finite. Being on the
+// both squads have the stated size, every player has a unique valid id, a
+// declared side and positive finite attributes, and every position, velocity
+// and target is finite. Being on the
 // pitch is deliberately not one of them: a ball that crossed the touchline or
 // a player standing behind the goal line is football, not a broken state.
 // checkStartingPositions() holds that rule for states a match starts from.
@@ -135,10 +161,10 @@ class MatchState {
   int playersPerSide_;
 };
 
-// What a simulation system may change in the next tick's state: positions and
-// velocities, nothing else. Squad, ids, sides, player order and the pitch have
-// no setter, so a system cannot break those invariants and nothing has to
-// re-check them every tick. Players are addressed by their index in
+// What a simulation system or command may change in a state: positions,
+// velocities and movement targets, nothing else. Squad, ids, sides, attributes,
+// player order and the pitch have no setter, so a system cannot break those
+// invariants and nothing has to re-check them every tick. Players are addressed by their index in
 // MatchState::players(); an index past the end throws std::out_of_range.
 //
 // Only MatchSimulation hands out writers, and a writer only lives for one step.
@@ -146,6 +172,7 @@ class MatchStateWriter {
  public:
   void setPlayerPosition(std::size_t playerIndex, SimCore::Vec2 position);
   void setPlayerVelocity(std::size_t playerIndex, SimCore::Vec2 velocity);
+  void setPlayerTarget(std::size_t playerIndex, std::optional<SimCore::Vec2> target);
   void setBallPosition(SimCore::Vec2 position) noexcept { state_->ball_.position = position; }
   void setBallVelocity(SimCore::Vec2 velocity) noexcept { state_->ball_.velocity = velocity; }
 
@@ -157,8 +184,13 @@ class MatchStateWriter {
   MatchState* state_;
 };
 
+// The index of the player with this id in MatchState::players(), or nothing
+// if no player has it.
+[[nodiscard]] std::optional<std::size_t> findPlayerIndex(const MatchState& state,
+                                                         SimCore::PlayerId playerId) noexcept;
+
 // The finiteness rules of MatchState::create(), for a state the simulation
-// has just written: every non-finite position and velocity, players by index
+// has just written: every non-finite position, velocity and target, players by index
 // first and then the ball, with the same codes and messages create() uses.
 // Empty for a state without defects.
 [[nodiscard]] std::vector<MatchStateError> findNonFiniteValues(const MatchState& state);

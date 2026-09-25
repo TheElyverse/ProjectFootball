@@ -51,7 +51,8 @@ constexpr std::uint64_t kSeed = 42;
   return MatchSimulation({.initialState = std::move(initialState),
                           .seed = seed,
                           .ticksPerSecond = kDefaultTicksPerSecond,
-                          .systems = std::move(systems)});
+                          .systems = std::move(systems),
+                          .commands = {}});
 }
 
 void stepTimes(MatchSimulation& simulation, const int steps) {
@@ -174,8 +175,11 @@ TEST_CASE("300 ticks at 30 Hz are ten seconds of simulation time", "[matchSimula
 }
 
 TEST_CASE("The tick rate is a setting", "[matchSimulation]") {
-  MatchSimulation simulation(
-      {.initialState = kickoff(), .seed = kSeed, .ticksPerSecond = 60, .systems = {}});
+  MatchSimulation simulation({.initialState = kickoff(),
+                              .seed = kSeed,
+                              .ticksPerSecond = 60,
+                              .systems = {},
+                              .commands = {}});
 
   stepTimes(simulation, 300);
 
@@ -449,10 +453,12 @@ TEST_CASE("MatchSimulation rejects an invalid configuration", "[matchSimulation]
   const auto noop = [](const MatchStepContext&, const MatchState&, MatchStateWriter&) {};
 
   SECTION("a tick rate below one") {
-    REQUIRE_THROWS_AS(
-        MatchSimulation(
-            {.initialState = kickoff(), .seed = kSeed, .ticksPerSecond = 0, .systems = {}}),
-        std::invalid_argument);
+    REQUIRE_THROWS_AS(MatchSimulation({.initialState = kickoff(),
+                                       .seed = kSeed,
+                                       .ticksPerSecond = 0,
+                                       .systems = {},
+                                       .commands = {}}),
+                      std::invalid_argument);
   }
   SECTION("a system without a name") {
     REQUIRE_THROWS_AS(simulationOf({{.name = "", .update = noop}}), std::invalid_argument);

@@ -2,6 +2,7 @@
 
 #include <array>
 #include <cstdint>
+#include <optional>
 #include <utility>
 #include <vector>
 
@@ -64,6 +65,8 @@ std::expected<MatchState, std::vector<MatchStateError>> makeSevenASideKickoff(co
         .side = TeamSide::kHome,
         .position = homePosition(pitch, slot),
         .velocity = {},
+        .attributes = {},
+        .target = std::nullopt,
     });
   }
   for (const FormationSlot slot : kHomeFormation) {
@@ -72,6 +75,8 @@ std::expected<MatchState, std::vector<MatchStateError>> makeSevenASideKickoff(co
         .side = TeamSide::kAway,
         .position = awayPosition(pitch, slot),
         .velocity = {},
+        .attributes = {},
+        .target = std::nullopt,
     });
   }
 

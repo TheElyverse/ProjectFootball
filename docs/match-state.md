@@ -13,7 +13,8 @@ and ball physics are separate concerns.
 | Type               | Contents                                                                        |
 |--------------------|---------------------------------------------------------------------------------|
 | `MatchState`       | the `Pitch`, the players in order, the `BallState`, and the squad size per side |
-| `PlayerMatchState` | `playerId`, `side`, `position`, `velocity`                                      |
+| `PlayerMatchState` | `playerId`, `side`, `position`, `velocity`, `attributes`, `target`              |
+| `PlayerAttributes` | `maxSpeed` (m/s) and `acceleration` (m/s²), fixed for the match                 |
 | `BallState`        | `position`, `velocity`                                                          |
 | `TeamSide`         | `kHome` or `kAway`                                                              |
 
@@ -22,6 +23,12 @@ the plane described by [match geometry](match-geometry.md). The pitch
 coordinate system is fixed, so `TeamSide` says which squad a player belongs to,
 not which way that squad attacks; a scenario decides which side defends
 `x = 0`.
+
+`target` is where the player is moving to. It is empty until a command assigns
+one, and without a target a player comes to a stop where he is; see
+[player movement](player-movement.md). `attributes` default to `kDefaultMaxSpeed` (7.5 m/s) and
+`kDefaultAcceleration` (4 m/s²); they describe the predefined test players of the
+sandbox, not a generated player.
 
 The fields are deliberately few. Orientation, energy, action, perception, and
 tactical runtime state from [implementation plan](implementation-plan.md)
@@ -47,15 +54,18 @@ one.
 | every player's side is home or away               | `kInvalidTeamSide`         |
 | every player has a valid id                       | `kInvalidPlayerId`         |
 | player ids are unique                             | `kDuplicatePlayerId`       |
+| player attributes are positive and finite         | `kInvalidPlayerAttributes` |
 | player positions are finite                       | `kNonFinitePlayerPosition` |
 | player velocities are finite                      | `kNonFinitePlayerVelocity` |
+| no player moves faster than his max speed         | `kPlayerTooFast`           |
+| player targets, where set, are finite             | `kNonFinitePlayerTarget`   |
 | the ball position is finite                       | `kNonFiniteBallPosition`   |
 | the ball velocity is finite                       | `kNonFiniteBallVelocity`   |
 
 These rules hold for every state of a match, from kickoff to the final whistle.
-The match loop only changes positions and velocities, and checks the state it
-writes with `findNonFiniteValues(const MatchState&)`, which applies the four
-finiteness rules with the same codes and messages as `create()`.
+The match loop only changes positions, velocities and targets, and checks the
+state it writes with `findNonFiniteValues(const MatchState&)`, which applies the
+five finiteness rules with the same codes and messages as `create()`.
 Being on the pitch is deliberately not one of them: a ball that crossed the
 touchline or a player standing behind the goal line is football, not a broken
 state. Deciding what such a position means — a throw-in, a goal kick, a goal —

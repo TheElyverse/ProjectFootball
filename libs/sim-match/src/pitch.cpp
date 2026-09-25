@@ -1,5 +1,6 @@
 #include "pitch.hpp"
 
+#include <algorithm>
 #include <cmath>
 #include <stdexcept>
 
@@ -16,6 +17,11 @@ Pitch::Pitch(const double lengthMeters, const double widthMeters)
 bool Pitch::contains(const SimCore::Vec2 position) const noexcept {
   return position.isFinite() && position.x >= 0.0 && position.x <= lengthMeters_ &&
          position.y >= 0.0 && position.y <= widthMeters_;
+}
+
+SimCore::Vec2 Pitch::clamp(const SimCore::Vec2 position) const noexcept {
+  return {.x = std::clamp(position.x, 0.0, lengthMeters_),
+          .y = std::clamp(position.y, 0.0, widthMeters_)};
 }
 
 }  // namespace ElyverseFootball::SimMatch

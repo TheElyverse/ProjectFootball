@@ -1,6 +1,7 @@
 #include <array>
 #include <catch2/catch_test_macros.hpp>
 #include <cstddef>
+#include <optional>
 #include <set>
 #include <vector>
 
@@ -42,7 +43,9 @@ constexpr std::array<Vec2, 7> kExpectedHomePositions{{
           .side = isHome ? TeamSide::kHome : TeamSide::kAway,
           .position = isHome ? homePosition
                              : Vec2{.x = kLengthMeters - homePosition.x, .y = homePosition.y},
-          .velocity = {}};
+          .velocity = {},
+          .attributes = {},
+          .target = std::nullopt};
 }
 
 [[nodiscard]] MatchState kickoffOn(const Pitch& pitch) {
