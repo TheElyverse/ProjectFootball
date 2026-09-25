@@ -39,6 +39,13 @@ void addFields(StableHasher& hasher, const PossessionChanged& event) noexcept {
   addPlayer(hasher, event.newOwner);
 }
 
+void addFields(StableHasher& hasher, const BallWon& event) noexcept {
+  hasher.addU64(event.winner.value());
+  hasher.addU64(event.loser.value());
+  hasher.addDouble(event.position.x);
+  hasher.addDouble(event.position.y);
+}
+
 void addFields(StableHasher& hasher, const PhaseChanged& event) noexcept {
   hasher.addU64(static_cast<std::uint64_t>(event.side));
   hasher.addBool(event.previous.has_value());
@@ -69,6 +76,7 @@ std::string_view eventName(const MatchEvent& event) {
     std::string_view operator()(const PhaseChanged& /*event*/) const noexcept {
       return "phase changed";
     }
+    std::string_view operator()(const BallWon& /*event*/) const noexcept { return "ball won"; }
   };
   return std::visit(Names{}, event);
 }

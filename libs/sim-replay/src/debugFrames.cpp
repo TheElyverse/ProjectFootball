@@ -170,6 +170,13 @@ void addEventFields(Json& json, const SimMatch::PhaseChanged& event) {
   json["phase"] = SimTactics::phaseName(event.phase);
 }
 
+void addEventFields(Json& json, const SimMatch::BallWon& event) {
+  json["type"] = "ballWon";
+  json["winner"] = event.winner.value();
+  json["loser"] = event.loser.value();
+  json["position"] = vec2Json(event.position);
+}
+
 [[nodiscard]] Json eventJson(const SimMatch::MatchEvent& event) {
   Json json;
   // The step's tick, one before the frame's: the event happened during the

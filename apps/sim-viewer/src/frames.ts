@@ -66,6 +66,12 @@ export type MatchEvent = { readonly tick: number } & (
       readonly previousOwner: number | null;
       readonly newOwner: number | null;
     }
+    | {
+      readonly type: "ballWon";
+      readonly winner: number;
+      readonly loser: number;
+      readonly position: Vec2;
+    }
   | {
       readonly type: "phaseChanged";
       readonly side: TeamSide;
@@ -216,8 +222,10 @@ export function describeEvent(event: MatchEvent): string {
       return event.newOwner === null
         ? `ball free (was #${event.previousOwner ?? "-"})`
         : `#${event.newOwner} has the ball`;
-    case "phaseChanged":
+        case "phaseChanged":
       return `${event.side}: ${event.phase}`;
+    case "ballWon":
+      return `#${event.winner} wins the ball from #${event.loser}`;
     default:
       // A newer core may record events this viewer does not know yet.
       return (event as { readonly type: string }).type;

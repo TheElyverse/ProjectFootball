@@ -4,6 +4,7 @@
 #include <vector>
 
 #include "ballMovement.hpp"
+#include "challenge.hpp"
 #include "desiredRegion.hpp"
 #include "matchCommand.hpp"
 #include "matchSimulation.hpp"
@@ -36,6 +37,7 @@ struct MatchConfig {
   PositioningConfig positioning;
   OffBallConfig offBall;
   DefensiveConfig defensive;
+  ChallengeConfig challenge;
 
   friend bool operator==(const MatchConfig&, const MatchConfig&) = default;
 };
@@ -62,8 +64,9 @@ struct MatchSetup {
 //   4. tactical movement every positioning.intervalTicks ticks
 //   5. ball pursuit     every pursuit.intervalTicks ticks
 //   6. pass decision    every decisions.intervalTicks ticks
-//   7. player movement  every tick
-//   8. ball movement    every tick
+//   7. ball challenge   every challenge.intervalTicks ticks
+//   8. player movement  every tick
+//   9. ball movement    every tick
 //
 // Tactical movement runs before pursuit, so in a step where both write the
 // same player's target -- a new chaser -- pursuit's wins.

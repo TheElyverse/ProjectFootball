@@ -205,7 +205,13 @@ using SimMatch::TeamSide;
             {"controlSeconds", config.pitchControl.controlSeconds}}},
           {"positioning", positioningJson(config.positioning)},
           {"offBall", offBallJson(config.offBall)},
-          {"defensive", defensiveJson(config.defensive)}};
+          {"defensive", defensiveJson(config.defensive)},
+          {"challenge",
+           {{"intervalTicks", config.challenge.intervalTicks},
+            {"radius", config.challenge.radius},
+            {"winChance", config.challenge.winChance},
+            {"attemptSeconds", config.challenge.attemptSeconds},
+            {"protectSeconds", config.challenge.protectSeconds}}}};
 }
 
 void addCommandFields(Json& json, const MovePlayerCommand& command) {
@@ -554,6 +560,14 @@ constexpr std::int64_t kMaxTick = std::int64_t{1} << 53;
           .effortWeight = number("effortWeight")};
 }
 
+[[nodiscard]] SimMatch::ChallengeConfig readChallenge(const Field& field) {
+  return {.intervalTicks = static_cast<int>(field.member("intervalTicks").integerIn(1, 100000)),
+          .radius = field.member("radius").number(),
+          .winChance = field.member("winChance").number(),
+          .attemptSeconds = field.member("attemptSeconds").number(),
+          .protectSeconds = field.member("protectSeconds").number()};
+}
+
 [[nodiscard]] MatchConfig readConfig(const Field& field) {
   return {
       .ticksPerSecond = static_cast<int>(field.member("ticksPerSecond").integerIn(1, 100000)),
@@ -574,7 +588,8 @@ constexpr std::int64_t kMaxTick = std::int64_t{1} << 53;
            .controlSeconds = field.member("pitchControl").member("controlSeconds").number()},
       .positioning = readPositioning(field.member("positioning")),
       .offBall = readOffBall(field.member("offBall")),
-      .defensive = readDefensive(field.member("defensive"))};
+      .defensive = readDefensive(field.member("defensive")),
+      .challenge = readChallenge(field.member("challenge"))};
 }
 
 [[nodiscard]] MatchCommand readCommand(const Field& field) {

@@ -89,6 +89,8 @@ void addTactical(StableHasher& hasher, const PlayerTacticalState& tactical) noex
     hasher.addI64(tactical.action->decidedAt.value());
     hasher.addBool(tactical.action->withBall);
   }
+  hasher.addBool(tactical.lastChallenge.has_value());
+  hasher.addI64(tactical.lastChallenge.value_or(SimCore::SimTick(0)).value());
 }
 
 }  // namespace

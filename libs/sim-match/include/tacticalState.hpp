@@ -90,6 +90,8 @@ struct PlayerAction {
 struct PlayerTacticalState {
   std::optional<DesiredRegion> region;
   std::optional<PlayerAction> action;
+  // When he last challenged the carrier for the ball (docs/pressing.md).
+  std::optional<SimCore::SimTick> lastChallenge;
 
   friend bool operator==(const PlayerTacticalState&, const PlayerTacticalState&) = default;
 };

@@ -85,8 +85,19 @@ struct PhaseChanged {
   friend bool operator==(const PhaseChanged&, const PhaseChanged&) = default;
 };
 
+// A presser won the ball from the carrier in a challenge (docs/pressing.md),
+// at the ball's position.
+struct BallWon {
+  SimCore::SimTick tick;
+  SimCore::PlayerId winner;
+  SimCore::PlayerId loser;
+  SimCore::Vec2 position;
+
+  friend bool operator==(const BallWon&, const BallWon&) = default;
+};
+
 using MatchEvent = std::variant<PassAttempted, PassReceived, PassIntercepted, LooseBallRecovered,
-                                PossessionChanged, PhaseChanged>;
+                                PossessionChanged, PhaseChanged, BallWon>;
 
 // "pass attempted", "pass received", ... for logs and diagnostics.
 [[nodiscard]] std::string_view eventName(const MatchEvent& event);
