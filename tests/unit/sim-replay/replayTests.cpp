@@ -42,6 +42,7 @@ using ElyverseFootball::SimReplay::playReplay;
 using ElyverseFootball::SimReplay::recordMatch;
 using ElyverseFootball::SimReplay::Replay;
 using ElyverseFootball::SimReplay::ReplayCheckpoint;
+using ElyverseFootball::SimReplay::ReplayDivergence;
 using ElyverseFootball::SimReplay::ReplayErrorCode;
 using ElyverseFootball::SimReplay::ReplayRecorder;
 using ElyverseFootball::SimReplay::saveReplay;
@@ -67,9 +68,10 @@ namespace {
 }
 
 [[nodiscard]] Replay recorded(const MatchSetup& matchSetup = setup(),
-                              const std::int64_t ticks = 300) {
-  auto replay = recordMatch(matchSetup, SimTick(ticks), kDefaultCheckpointIntervalTicks,
-                            "2026-09-24T10:00:00Z");
+                              const std::int64_t ticks = 300,
+                              const int checkpointIntervalTicks = kDefaultCheckpointIntervalTicks) {
+  auto replay =
+      recordMatch(matchSetup, SimTick(ticks), checkpointIntervalTicks, "2026-09-24T10:00:00Z");
   REQUIRE(replay.has_value());
   return *std::move(replay);
 }
@@ -271,7 +273,12 @@ TEST_CASE("Playback detects a replay that does not reproduce", "[replay]") {
     REQUIRE_FALSE(playback.has_value());
     REQUIRE(playback.error().code == ReplayErrorCode::kCheckpointMismatch);
     CAPTURE(playback.error().message);
-    REQUIRE(mentions(playback.error().message, "state hash at tick 120"));
+    REQUIRE(mentions(playback.error().message,
+                     "diverged after tick 90, at or before tick 120: state hash at tick 120"));
+    REQUIRE(playback.error().divergence == ReplayDivergence{.lastMatching = SimTick(90),
+                                                            .firstDiverging = SimTick(120),
+                                                            .stateDiffers = true,
+                                                            .eventsDiffer = false});
   }
   SECTION("a changed event hash") {
     Replay replay = recorded();
@@ -280,7 +287,11 @@ TEST_CASE("Playback detects a replay that does not reproduce", "[replay]") {
     REQUIRE_FALSE(playback.has_value());
     REQUIRE(playback.error().code == ReplayErrorCode::kCheckpointMismatch);
     CAPTURE(playback.error().message);
-    REQUIRE(mentions(playback.error().message, "event hash at tick 120"));
+    REQUIRE(mentions(playback.error().message, ": event hash at tick 120"));
+    REQUIRE(playback.error().divergence == ReplayDivergence{.lastMatching = SimTick(90),
+                                                            .firstDiverging = SimTick(120),
+                                                            .stateDiffers = false,
+                                                            .eventsDiffer = true});
   }
   SECTION("a changed command") {
     Replay replay = recorded();
@@ -289,6 +300,21 @@ TEST_CASE("Playback detects a replay that does not reproduce", "[replay]") {
     REQUIRE_FALSE(playback.has_value());
     REQUIRE(playback.error().code == ReplayErrorCode::kCheckpointMismatch);
     REQUIRE(mentions(playback.error().message, "state hash at tick 60"));
+  }
+  SECTION("a changed command, found to the tick with a checkpoint per tick") {
+    const Replay original = recorded(setup(), 150, 1);
+    REQUIRE(original.checkpointIntervalTicks == 1);
+    REQUIRE(original.checkpoints.size() == 151);
+    Replay replay = original;
+    replay.setup.commands.at(2) = move(45, 7, 10.0, 34.0);
+    const auto playback = playReplay(replay);
+    REQUIRE_FALSE(playback.has_value());
+    // The command applies in the step from tick 45, whose state is tick 46's.
+    REQUIRE(playback.error().divergence == ReplayDivergence{.lastMatching = SimTick(45),
+                                                            .firstDiverging = SimTick(46),
+                                                            .stateDiffers = true,
+                                                            .eventsDiffer = false});
+    REQUIRE(mentions(playback.error().message, "diverged after tick 45, at or before tick 46"));
   }
 }
 

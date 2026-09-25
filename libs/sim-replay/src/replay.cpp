@@ -36,7 +36,31 @@ void addEvents(SimCore::StableHasher& hasher, const MatchSimulation& simulation)
 }
 
 [[nodiscard]] std::unexpected<ReplayError> fail(const ReplayErrorCode code, std::string message) {
-  return std::unexpected(ReplayError{.code = code, .message = std::move(message)});
+  return std::unexpected(
+      ReplayError{.code = code, .message = std::move(message), .divergence = std::nullopt});
+}
+
+// "diverged after tick 30, at or before tick 60: state hash at tick 60 is
+// ..., the replay recorded ...".
+[[nodiscard]] std::string divergenceMessage(const ReplayDivergence& divergence,
+                                            const std::uint64_t stateHash,
+                                            const std::uint64_t eventHash,
+                                            const ReplayCheckpoint& recorded) {
+  const std::int64_t tick = divergence.firstDiverging.value();
+  std::string message = divergence.lastMatching == divergence.firstDiverging
+                            ? std::format("diverged at tick {}", tick)
+                            : std::format("diverged after tick {}, at or before tick {}",
+                                          divergence.lastMatching.value(), tick);
+  if (divergence.stateDiffers) {
+    message += std::format(": state hash at tick {} is {}, the replay recorded {}", tick,
+                           hex(stateHash), hex(recorded.stateHash));
+  }
+  if (divergence.eventsDiffer) {
+    message += std::format("{} event hash at tick {} is {}, the replay recorded {}",
+                           divergence.stateDiffers ? ";" : ":", tick, hex(eventHash),
+                           hex(recorded.eventHash));
+  }
+  return message;
 }
 
 // The recorded checkpoints must be usable before anything runs: ascending,
@@ -105,6 +129,7 @@ Replay ReplayRecorder::finish(const MatchSimulation& simulation, std::string cre
                 .createdAt = std::move(createdAt),
                 .setup = setup_,
                 .finalTick = simulation.tick(),
+                .checkpointIntervalTicks = checkpointIntervalTicks_,
                 .checkpoints = checkpoints_};
   replay.setup.commands.assign(simulation.appliedCommands().begin(),
                                simulation.appliedCommands().end());
@@ -144,8 +169,10 @@ std::expected<ReplayPlayback, ReplayError> playReplay(const Replay& replay,
     try {
       return std::expected<MatchSimulation, ReplayError>(SimMatch::startMatch(replay.setup));
     } catch (const std::invalid_argument& error) {
-      return std::expected<MatchSimulation, ReplayError>(std::unexpected(
-          ReplayError{.code = ReplayErrorCode::kInvalidSetup, .message = error.what()}));
+      return std::expected<MatchSimulation, ReplayError>(
+          std::unexpected(ReplayError{.code = ReplayErrorCode::kInvalidSetup,
+                                      .message = error.what(),
+                                      .divergence = std::nullopt}));
     }
   }();
   if (!started) {
@@ -165,16 +192,17 @@ std::expected<ReplayPlayback, ReplayError> playReplay(const Replay& replay,
       return {};
     }
     const std::uint64_t actual = hashMatchState(simulation.state());
-    if (actual != checkpoint->stateHash) {
-      return fail(ReplayErrorCode::kCheckpointMismatch,
-                  std::format("state hash at tick {} is {}, the replay recorded {}",
-                              simulation.tick().value(), hex(actual), hex(checkpoint->stateHash)));
-    }
-    if (events.value() != checkpoint->eventHash) {
-      return fail(
-          ReplayErrorCode::kCheckpointMismatch,
-          std::format("event hash at tick {} is {}, the replay recorded {}",
-                      simulation.tick().value(), hex(events.value()), hex(checkpoint->eventHash)));
+    const ReplayDivergence divergence{.lastMatching = checkpoint == replay.checkpoints.begin()
+                                                          ? checkpoint->tick
+                                                          : std::prev(checkpoint)->tick,
+                                      .firstDiverging = checkpoint->tick,
+                                      .stateDiffers = actual != checkpoint->stateHash,
+                                      .eventsDiffer = events.value() != checkpoint->eventHash};
+    if (divergence.stateDiffers || divergence.eventsDiffer) {
+      return std::unexpected(
+          ReplayError{.code = ReplayErrorCode::kCheckpointMismatch,
+                      .message = divergenceMessage(divergence, actual, events.value(), *checkpoint),
+                      .divergence = divergence});
     }
     ++checkpoint;
     ++playback.checkpointsVerified;

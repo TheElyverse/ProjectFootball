@@ -37,7 +37,7 @@ string(JSON seedType TYPE "${contents}" seed)
 string(JSON gameTime GET "${contents}" gameTime)
 string(JSON schemaVersion GET "${contents}" schemaVersion)
 if(NOT seedType STREQUAL "STRING" OR NOT seed STREQUAL "42" OR NOT gameTime STREQUAL "300"
-        OR NOT schemaVersion STREQUAL "3")
+        OR NOT schemaVersion STREQUAL "4")
     message(FATAL_ERROR "Unexpected replay: ${contents}")
 endif()
 
@@ -190,3 +190,4 @@ expect_failure("only apply to --play" --scenario kickoff --trace "${trace}")
 expect_failure("need --trace" --play "${replay}" --trace-players 1)
 expect_failure("invalid --trace-players" --play "${replay}" --trace "${trace}" --trace-players 1,x)
 expect_failure("must not come after" --play "${replay}" --trace "${trace}" --trace-from 9 --trace-to 3)
+

@@ -8,6 +8,7 @@
 #include "referenceTactic.hpp"
 #include "replay.hpp"
 #include "replayJson.hpp"
+#include "scenarios.hpp"
 #include "tactic.hpp"
 
 using ElyverseFootball::SimCore::SimTick;
@@ -60,16 +61,24 @@ TEST_CASE("A valid document parses", "[replayJson]") {
 }
 
 TEST_CASE("Documents that are not JSON objects are rejected", "[replayJson]") {
-  requireRejected("{\"schemaVersion\": 3,", kMalformed, "not a valid JSON document");
+  requireRejected("{\"schemaVersion\": 4,", kMalformed, "not a valid JSON document");
   requireRejected("[1, 2]", kMalformed, "expected a JSON object");
 }
 
 TEST_CASE("Other schema versions are rejected with the version found", "[replayJson]") {
-  requireRejected(validJsonWith("\"schemaVersion\": 3", "\"schemaVersion\": 1"),
+  requireRejected(validJsonWith("\"schemaVersion\": 4", "\"schemaVersion\": 1"),
                   ReplayErrorCode::kUnsupportedSchemaVersion,
                   "schema version 1 holds replay metadata only");
-  requireRejected(validJsonWith("\"schemaVersion\": 3", "\"schemaVersion\": 2"),
-                  ReplayErrorCode::kUnsupportedSchemaVersion, "unsupported schema version 2");
+  // Older playable versions name the way to a current file.
+  for (const char* version : {"2", "3"}) {
+    requireRejected(
+        validJsonWith("\"schemaVersion\": 4", std::string("\"schemaVersion\": ") + version),
+        ReplayErrorCode::kUnsupportedSchemaVersion,
+        std::string("schema version ") + version +
+            " is no longer supported, expected 4; record the scenario again");
+  }
+  requireRejected(validJsonWith("\"schemaVersion\": 4", "\"schemaVersion\": 5"),
+                  ReplayErrorCode::kUnsupportedSchemaVersion, "unsupported schema version 5");
 }
 
 TEST_CASE("A replay from another core version is rejected", "[replayJson]") {
@@ -198,4 +207,33 @@ TEST_CASE("A tactic change needs a side and a tactic", "[replayJson]") {
   requireRejected(withCommand(R"({"tick": 1, "order": 0, "type": "changeTactic", "side": "home",
                                   "tactic": {"format": "elyverse-tactic"}})"),
                   kMalformed, "commands[0].tactic");
+}
+
+TEST_CASE("A tactic whose content does not match its hash is rejected", "[replayJson]") {
+  using ElyverseFootball::SimTactics::referenceTacticSpec;
+  using ElyverseFootball::SimTactics::Tactic;
+  const auto tactic = Tactic::create(referenceTacticSpec());
+  REQUIRE(tactic.has_value());
+  const auto setup =
+      ElyverseFootball::SimMatch::makeTacticMatch({.home = *tactic, .away = *tactic}, 5);
+  REQUIRE(setup.has_value());
+  const auto replay = recordMatch(*setup, SimTick(3), 1, "2026-09-25T10:00:00Z");
+  REQUIRE(replay.has_value());
+  const std::string json = toReplayJson(*replay);
+  // The reference tactic's pinned content hash (tacticHashTests.cpp).
+  REQUIRE(json.find(R"("contentHash": "d1f008d25b46aabf")") != std::string::npos);
+
+  // An edited tactic no longer matches the hash recorded with it.
+  std::string edited = json;
+  const std::string from = R"("pressingLine": 0.6)";
+  edited.replace(edited.find(from), from.size(), R"("pressingLine": 0.5)");
+  requireRejected(edited, ReplayErrorCode::kInvalidSetup,
+                  "initialState.tactics.home.contentHash: tactic 'reference' has content hash ");
+}
+
+TEST_CASE("The checkpoint interval is recorded and must be positive", "[replayJson]") {
+  REQUIRE(validJson().find(R"("checkpointIntervalTicks": 1)") != std::string::npos);
+  requireRejected(
+      validJsonWith(R"("checkpointIntervalTicks": 1)", R"("checkpointIntervalTicks": 0)"),
+      kMalformed, "checkpointIntervalTicks");
 }

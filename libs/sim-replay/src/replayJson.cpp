@@ -21,6 +21,7 @@
 #include "matchCommand.hpp"
 #include "matchSetup.hpp"
 #include "matchState.hpp"
+#include "tacticHash.hpp"
 #include "tacticJson.hpp"
 #include "version.hpp"
 
@@ -70,10 +71,20 @@ using SimMatch::TeamSide;
   return {{"playerId", touch->playerId.value()}, {"tick", touch->tick.value()}};
 }
 
+[[nodiscard]] std::string hashText(const std::uint64_t hash) {
+  return std::format("{:016x}", hash);
+}
+
 // A tactic is embedded in its own file format (docs/tactic-format.md), so a
-// replay's tactic can be cut out and loaded as a tactic file.
+// replay's tactic can be cut out and loaded as a tactic file, next to its
+// content hash, which identifies the version played and is checked on
+// reading.
 [[nodiscard]] Json tacticJson(const std::optional<SimTactics::Tactic>& tactic) {
-  return tactic ? Json::parse(SimTactics::toTacticJson(*tactic)) : Json(nullptr);
+  if (!tactic) {
+    return nullptr;
+  }
+  return {{"contentHash", hashText(SimTactics::contentHash(*tactic))},
+          {"tactic", Json::parse(SimTactics::toTacticJson(*tactic))}};
 }
 
 [[nodiscard]] Json tacticsJson(const SimMatch::TeamTactics& tactics) {
@@ -269,10 +280,6 @@ void addCommandFields(Json& json, const SimMatch::ChangeTacticCommand& command) 
   return json;
 }
 
-[[nodiscard]] std::string hashText(const std::uint64_t hash) {
-  return std::format("{:016x}", hash);
-}
-
 // ---------------------------------------------------------------------------
 // Reading
 
@@ -420,16 +427,45 @@ constexpr std::int64_t kMaxTick = std::int64_t{1} << 53;
           .facing = readVec2(field.member("facing"))};
 }
 
+[[nodiscard]] std::uint64_t readUnsigned(const Field& field, const int base,
+                                         const std::string_view expected) {
+  const std::string text = field.string();
+  std::uint64_t value = 0;
+  // NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic) -- std::from_chars only takes a
+  // raw [begin, end) pointer range.
+  const char* const end = text.data() + text.size();
+  const auto [ptr, error] = std::from_chars(text.data(), end, value, base);
+  // NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
+  if (text.empty() || error != std::errc{} || ptr != end) {
+    field.fail(std::format("expected {}, got \"{}\"", expected, text));
+  }
+  return value;
+}
+
+[[nodiscard]] std::uint64_t readHash(const Field& field) {
+  if (field.string().size() != 16) {
+    field.fail("expected 16 hexadecimal digits");
+  }
+  return readUnsigned(field, 16, "16 hexadecimal digits");
+}
+
 [[nodiscard]] std::optional<SimTactics::Tactic> readTactic(const Field& field) {
   if (field.isNull()) {
     return std::nullopt;
   }
-  auto tactic = SimTactics::parseTacticJson(field.json().dump(), field.path());
+  const Field content = field.member("tactic");
+  auto tactic = SimTactics::parseTacticJson(content.json().dump(), content.path());
   if (!tactic) {
     throw FormatError(tactic.error().code == SimTactics::TacticFileErrorCode::kInvalidTactic
                           ? ReplayErrorCode::kInvalidSetup
                           : ReplayErrorCode::kMalformed,
                       tactic.error().message);
+  }
+  const Field recorded = field.member("contentHash");
+  if (const std::uint64_t hash = SimTactics::contentHash(*tactic); hash != readHash(recorded)) {
+    recorded.fail(std::format("tactic '{}' has content hash {}, the replay recorded {}",
+                              tactic->name(), hashText(hash), recorded.string()),
+                  ReplayErrorCode::kInvalidSetup);
   }
   return *std::move(tactic);
 }
@@ -675,28 +711,6 @@ constexpr std::int64_t kMaxTick = std::int64_t{1} << 53;
   return commands;
 }
 
-[[nodiscard]] std::uint64_t readUnsigned(const Field& field, const int base,
-                                         const std::string_view expected) {
-  const std::string text = field.string();
-  std::uint64_t value = 0;
-  // NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic) -- std::from_chars only takes a
-  // raw [begin, end) pointer range.
-  const char* const end = text.data() + text.size();
-  const auto [ptr, error] = std::from_chars(text.data(), end, value, base);
-  // NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
-  if (text.empty() || error != std::errc{} || ptr != end) {
-    field.fail(std::format("expected {}, got \"{}\"", expected, text));
-  }
-  return value;
-}
-
-[[nodiscard]] std::uint64_t readHash(const Field& field) {
-  if (field.string().size() != 16) {
-    field.fail("expected 16 hexadecimal digits");
-  }
-  return readUnsigned(field, 16, "16 hexadecimal digits");
-}
-
 [[nodiscard]] std::vector<ReplayCheckpoint> readCheckpoints(const Field& field) {
   std::vector<ReplayCheckpoint> checkpoints;
   for (const Field& entry : field.elements()) {
@@ -713,6 +727,12 @@ void checkVersions(const Field& root) {
   if (version == 1) {
     schema.fail("schema version 1 holds replay metadata only and cannot be played back; expected " +
                     std::to_string(kReplaySchemaVersion),
+                ReplayErrorCode::kUnsupportedSchemaVersion);
+  }
+  if (version > 1 && version < kReplaySchemaVersion) {
+    schema.fail(std::format("schema version {} is no longer supported, expected {}; record the "
+                            "scenario again with the same seed",
+                            version, kReplaySchemaVersion),
                 ReplayErrorCode::kUnsupportedSchemaVersion);
   }
   if (version != kReplaySchemaVersion) {
@@ -737,6 +757,8 @@ void checkVersions(const Field& root) {
                     .seed = readUnsigned(root.member("seed"), 10, "an unsigned 64-bit integer"),
                     .commands = readCommands(root.member("commands"))},
           .finalTick = SimTick(root.member("gameTime").integerIn(0, kMaxTick)),
+          .checkpointIntervalTicks =
+              static_cast<int>(root.member("checkpointIntervalTicks").integerIn(1, kMaxTick)),
           .checkpoints = readCheckpoints(root.member("checkpoints"))};
 }
 
@@ -753,6 +775,7 @@ std::string toReplayJson(const Replay& replay) {
   json["config"] = configJson(replay.setup.config);
   json["initialState"] = stateJson(replay.setup.initialState);
   json["commands"] = commandsJson(replay.setup.commands);
+  json["checkpointIntervalTicks"] = replay.checkpointIntervalTicks;
   json["checkpoints"] = Json::array();
   for (const ReplayCheckpoint& checkpoint : replay.checkpoints) {
     json["checkpoints"].push_back({{"tick", checkpoint.tick.value()},
@@ -765,17 +788,20 @@ std::string toReplayJson(const Replay& replay) {
 std::expected<Replay, ReplayError> parseReplayJson(const std::string_view json) {
   const Json document = Json::parse(json, nullptr, false);
   if (document.is_discarded()) {
-    return std::unexpected(
-        ReplayError{.code = ReplayErrorCode::kMalformed, .message = "not a valid JSON document"});
+    return std::unexpected(ReplayError{.code = ReplayErrorCode::kMalformed,
+                                       .message = "not a valid JSON document",
+                                       .divergence = std::nullopt});
   }
   if (!document.is_object()) {
     return std::unexpected(ReplayError{.code = ReplayErrorCode::kMalformed,
-                                       .message = "expected a JSON object at the top level"});
+                                       .message = "expected a JSON object at the top level",
+                                       .divergence = std::nullopt});
   }
   try {
     return readReplay(Field(document, ""));
   } catch (const FormatError& error) {
-    return std::unexpected(ReplayError{.code = error.code(), .message = error.what()});
+    return std::unexpected(
+        ReplayError{.code = error.code(), .message = error.what(), .divergence = std::nullopt});
   }
 }
 
@@ -785,8 +811,9 @@ std::expected<void, ReplayError> saveReplay(const Replay& replay,
   out << toReplayJson(replay);
   out.close();
   if (!out) {
-    return std::unexpected(
-        ReplayError{.code = ReplayErrorCode::kIoError, .message = "cannot write " + path.string()});
+    return std::unexpected(ReplayError{.code = ReplayErrorCode::kIoError,
+                                       .message = "cannot write " + path.string(),
+                                       .divergence = std::nullopt});
   }
   return {};
 }
@@ -794,8 +821,9 @@ std::expected<void, ReplayError> saveReplay(const Replay& replay,
 std::expected<Replay, ReplayError> loadReplay(const std::filesystem::path& path) {
   std::ifstream input(path, std::ios::binary);
   if (!input) {
-    return std::unexpected(
-        ReplayError{.code = ReplayErrorCode::kIoError, .message = "cannot read " + path.string()});
+    return std::unexpected(ReplayError{.code = ReplayErrorCode::kIoError,
+                                       .message = "cannot read " + path.string(),
+                                       .divergence = std::nullopt});
   }
   const std::string contents{std::istreambuf_iterator<char>(input),
                              std::istreambuf_iterator<char>()};

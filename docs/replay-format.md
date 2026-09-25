@@ -14,11 +14,11 @@ default is `replay.json` in the working directory, and `--play` plays one back. 
 before the terminal interface opens, so a run rejected by argument or terminal
 validation leaves no file behind.
 
-## Schema version 3
+## Schema version 4
 
 ```json
 {
-  "schemaVersion": 3,
+    "schemaVersion": 4,
   "coreVersion": "0.17.0",
   "createdAt": "2026-09-24T10:00:00Z",
   "seed": "18446744073709551615",
@@ -152,13 +152,20 @@ validation leaves no file behind.
             "owner": null,
       "lastTouch": null
     },
-    "tactics": { "home": { "format": "elyverse-tactic", "version": 1, "name": "reference" }, "away": null }
+        "tactics": {
+      "home": {
+        "contentHash": "d1f008d25b46aabf",
+        "tactic": { "format": "elyverse-tactic", "version": 1, "name": "reference" }
+      },
+      "away": null
+    }
   },
   "commands": [
     { "tick": 0, "order": 0, "type": "movePlayer", "playerId": 7, "target": { "x": 40.0, "y": 10.0 } },
     { "tick": 45, "order": 0, "type": "movePlayer", "playerId": 7, "target": { "x": 10.0, "y": 35.0 } },
-    { "tick": 45, "order": 1, "type": "movePlayer", "playerId": 2, "target": { "x": 30.0, "y": 20.0 } }
+        { "tick": 45, "order": 1, "type": "movePlayer", "playerId": 2, "target": { "x": 30.0, "y": 20.0 } }
   ],
+  "checkpointIntervalTicks": 30,
   "checkpoints": [
     { "tick": 0, "stateHash": "172f58f16ce4360e", "eventHash": "cbf29ce484222325" },
     { "tick": 30, "stateHash": "...", "eventHash": "..." }
@@ -171,7 +178,7 @@ player and the whole tactic.
 
 | Field           | JSON type | Meaning                                                       |
 |-----------------|-----------|---------------------------------------------------------------|
-| `schemaVersion` | number    | Version of this format. Currently `3`.                        |
+| `schemaVersion` | number    | Version of this format. Currently `4`.                        |
 | `coreVersion`   | string    | The `sim-core` version that recorded the match.               |
 | `createdAt`     | string    | Creation time in UTC, `%Y-%m-%dT%H:%M:%SZ`. Metadata only.    |
 | `seed`          | string    | Unsigned 64-bit master seed, in decimal.                      |
@@ -179,16 +186,21 @@ player and the whole tactic.
 | `config`        | object    | Parameters of the standard systems (`MatchConfig`).           |
 | `initialState`  | object    | The match state at tick 0: every field of `MatchState` except the perception memories, which are empty in every initial state: the recorder rejects a state copied from a running match that already remembers something. |
 | `commands`      | array     | Every applied command, in execution order.                    |
+| `checkpointIntervalTicks` | number | Ticks between checkpoints, at least 1: the resolution at which playback locates a divergence. |
 | `checkpoints`   | array     | State and event hashes after the steps that reached these ticks. |
 
 Positions are meters and velocities meters per second, as in the
 [match state](match-state.md). A player's `target` is `null` when he has none,
 the ball's `owner` is `null` while it is free, and its `lastTouch` is `null` or
 `{ "playerId": 7, "tick": 120 }`. The pending pass is not recorded: every
-initial state has none. `tactics` holds each side's tactic as a complete
-[tactic file](tactic-format.md) document, or `null` for a scripted side; a
-replay's tactic can be cut out and loaded as a tactic file. An invalid tactic is
-rejected with `kInvalidSetup`, a malformed one with `kMalformed`.
+initial state has none. `tactics` holds, for each side, the tactic as a complete
+[tactic file](tactic-format.md) document under `tactic` next to its
+`contentHash` (`tacticHash.hpp`, 16 hexadecimal digits), or `null` for a
+scripted side; a replay's tactic can be cut out and loaded as a tactic file,
+and the hash names the exact version played. A reader recomputes the hash and
+rejects a tactic whose content does not match it with `kInvalidSetup`, as it
+does an invalid tactic; a malformed one is `kMalformed`. Every tactic of a
+`changeTactic` command is written the same way.
 
 ### Commands and their order
 
@@ -203,7 +215,7 @@ were scheduled (see [match loop](match-loop.md), section *Commands*).
 | `movePlayer` | `playerId`, `target`   | `MovePlayerCommand` |
 | `giveBall`   | `playerId`             | `GiveBallCommand`   |
 | `pass`       | `playerId`, `target`, `speed`, `receiver` (or `null`) | `PassCommand` |
-| `changeTactic` | `side`, `tactic` (a whole tactic file, see [tactic format](tactic-format.md)) | `ChangeTacticCommand` |
+| `changeTactic` | `side`, `tactic` (`contentHash` and `tactic` as in `initialState.tactics`) | `ChangeTacticCommand` |
 
 A recorded replay holds the commands the simulation applied. A command scheduled
 during the run is included; one scheduled for a tick the match never reached is
@@ -220,7 +232,8 @@ steps up to and including that one, in order, fed with `addEvent()` to one
 value, `cbf29ce484222325`. The state hash shows that playback ends up in the same
 state, the event hash that it got there through the same passes, receptions and
 possession changes. The recorder takes one of the initial state (tick
-0), one every 30 ticks by default, and one of the final state. Checkpoints are
+0), one every `checkpointIntervalTicks` ticks — 30 by default, `sim-cli
+--checkpoint-interval` sets it — and one of the final state. Checkpoints are
 ascending, unique, and never past `gameTime`; the first is at tick 0 and the last
 at `gameTime`, so playback always compares the initial and the final state. Every
 command runs before `gameTime`: a command at or after it would never be applied
@@ -230,9 +243,20 @@ and is not part of the recorded match.
 
 `playReplay()` rebuilds the match from `initialState`, `config`, `seed` and
 `commands` with the standard systems, runs it to `gameTime`, and compares the
-state and event hashes at every checkpoint. It reports the first mismatch with the
-tick and both hashes. Recording, saving, loading and playing back reproduce every
-checkpoint exactly; the unit tests in `tests/unit/sim-replay` hold that.
+state and event hashes at every checkpoint. The first checkpoint that differs
+ends the playback with `kCheckpointMismatch` and a `ReplayDivergence`: the last
+checkpoint that still matched, the first that did not, and whether the state
+hash, the event hash or both differ there:
+
+```text
+diverged after tick 90, at or before tick 120: state hash at tick 120 is 5c0e…, the replay recorded 5c0f…
+```
+
+The first differing tick lies in between. A replay recorded with a checkpoint
+per tick (`--checkpoint-interval 1`) names it exactly, at the cost of a larger
+file. Recording, saving, loading and playing back reproduce every checkpoint
+exactly; the unit tests in `tests/unit/sim-replay` hold that, and the P2
+acceptance tests replay matches of every tactical identity.
 
 ## Rejected files
 
@@ -244,7 +268,7 @@ number`.
 |-----------------------------|------------------------------------------------------------------------|
 | `kIoError`                  | the file cannot be read or written                                     |
 | `kMalformed`                | not JSON, a missing or mistyped field, commands out of order           |
-| `kUnsupportedSchemaVersion` | a `schemaVersion` other than 3                                         |
+| `kUnsupportedSchemaVersion` | a `schemaVersion` other than 4                                         |
 | `kIncompatibleCoreVersion`  | recorded with another `coreVersion`                                    |
 | `kInvalidSetup`             | an invalid initial state, command or checkpoint list                   |
 | `kSimulationFailed`         | a step of the playback failed                                          |
@@ -311,3 +335,4 @@ recorded replays without changing the file format, and surfaces as a new
 | 1       | Initial schema: metadata only (`coreVersion`, `createdAt`, `seed`, `gameTime`).            |
 | 2       | A playable replay: adds `config`, `initialState`, `commands` and `checkpoints`; `gameTime` is the final tick. Version 1 files cannot be played back and are rejected. |
 | 3       | Checkpoints add `eventHash`. Version 2 files are rejected; record the scenario again with the same seed to get a version 3 file of the same match. |
+| 4       | Tactics carry their `contentHash` next to the tactic, `changeTactic` commands, and `checkpointIntervalTicks`. Versions 2 and 3 are rejected with a message to record the scenario again with the same seed. |

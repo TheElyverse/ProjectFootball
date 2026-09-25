@@ -17,7 +17,7 @@ namespace ElyverseFootball::SimReplay {
 
 // The version of the replay file format written by this build; see
 // docs/replay-format.md.
-inline constexpr int kReplaySchemaVersion = 3;
+inline constexpr int kReplaySchemaVersion = 4;
 
 // One checkpoint per simulated second at the default 30 Hz.
 inline constexpr int kDefaultCheckpointIntervalTicks = 30;
@@ -47,6 +47,8 @@ struct Replay {
   std::string createdAt;
   SimMatch::MatchSetup setup;
   SimCore::SimTick finalTick;
+  // Ticks between checkpoints, the resolution a divergence is found at.
+  int checkpointIntervalTicks = kDefaultCheckpointIntervalTicks;
   // Ascending by tick, each tick at most once, none past finalTick.
   std::vector<ReplayCheckpoint> checkpoints;
 
@@ -63,9 +65,25 @@ enum class ReplayErrorCode : std::uint8_t {
   kCheckpointMismatch,
 };
 
+// Where a playback left the recorded match: the last checkpoint it still
+// matched and the first it did not, and which of the two hashes differed
+// there. The first differing tick lies after lastMatching and at or before
+// firstDiverging; a replay recorded with a checkpoint interval of one tick
+// names it exactly.
+struct ReplayDivergence {
+  SimCore::SimTick lastMatching;
+  SimCore::SimTick firstDiverging;
+  bool stateDiffers = false;
+  bool eventsDiffer = false;
+
+  friend bool operator==(const ReplayDivergence&, const ReplayDivergence&) = default;
+};
+
 struct ReplayError {
   ReplayErrorCode code = ReplayErrorCode::kMalformed;
   std::string message;
+  // For kCheckpointMismatch only.
+  std::optional<ReplayDivergence> divergence;
 
   friend bool operator==(const ReplayError&, const ReplayError&) = default;
 };
