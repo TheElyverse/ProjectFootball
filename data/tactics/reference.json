@@ -1,0 +1,35 @@
+{
+  "format": "elyverse-tactic",
+  "version": 1,
+  "name": "reference",
+  "description": "A neutral 1-2-1-3 for tests and hand-built fixtures: middling heights, no pressing triggers.",
+  "slots": [
+    { "position": { "depth": 0.04, "width": 0.5 }, "role": "goalkeeper" },
+    { "position": { "depth": 0.2, "width": 0.3 }, "role": "centreBack" },
+    { "position": { "depth": 0.2, "width": 0.7 }, "role": "centreBack" },
+    { "position": { "depth": 0.35, "width": 0.5 }, "role": "holdingMidfielder" },
+    { "position": { "depth": 0.5, "width": 0.12 }, "role": "winger" },
+    { "position": { "depth": 0.5, "width": 0.88 }, "role": "winger" },
+    { "position": { "depth": 0.65, "width": 0.5 }, "role": "striker" }
+  ],
+  "principles": {
+    "pressingLine": 0.6,
+    "pressingTriggers": [],
+    "positioning": {
+      "targetDistance": 1.0,
+      "spacing": 1.0,
+      "pressure": 0.5,
+      "occupancy": 0.5,
+      "transitionRisk": 0.5
+    }
+  },
+  "phases": {
+    "buildUp": { "lineHeight": 0.35, "blockLength": 0.45, "blockWidth": 0.85, "ballShift": 0.4, "pressingIntensity": 0.3, "passingRisk": 0.5, "runFrequency": 0.3 },
+    "progression": { "lineHeight": 0.35, "blockLength": 0.45, "blockWidth": 0.85, "ballShift": 0.4, "pressingIntensity": 0.3, "passingRisk": 0.5, "runFrequency": 0.3 },
+    "finalThird": { "lineHeight": 0.35, "blockLength": 0.45, "blockWidth": 0.85, "ballShift": 0.4, "pressingIntensity": 0.3, "passingRisk": 0.5, "runFrequency": 0.3 },
+    "attackingTransition": { "lineHeight": 0.35, "blockLength": 0.45, "blockWidth": 0.85, "ballShift": 0.4, "pressingIntensity": 0.3, "passingRisk": 0.5, "runFrequency": 0.3 },
+    "defensiveBlock": { "lineHeight": 0.25, "blockLength": 0.4, "blockWidth": 0.6, "ballShift": 0.5, "pressingIntensity": 0.3, "passingRisk": 0.5, "runFrequency": 0.3 },
+    "pressing": { "lineHeight": 0.25, "blockLength": 0.4, "blockWidth": 0.6, "ballShift": 0.5, "pressingIntensity": 0.3, "passingRisk": 0.5, "runFrequency": 0.3 },
+    "defensiveTransition": { "lineHeight": 0.25, "blockLength": 0.4, "blockWidth": 0.6, "ballShift": 0.5, "pressingIntensity": 0.3, "passingRisk": 0.5, "runFrequency": 0.3 }
+  }
+}

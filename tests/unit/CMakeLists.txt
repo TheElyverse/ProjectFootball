@@ -62,6 +62,7 @@ add_executable(sim-tactics-tests
         sim-tactics/tacticTests.cpp
         sim-tactics/tacticHashTests.cpp
         sim-tactics/tacticJsonTests.cpp
+        sim-tactics/tacticFilesTests.cpp
 )
 target_link_libraries(sim-tactics-tests PRIVATE
         ElyverseFootball::sim-tactics
@@ -69,4 +70,6 @@ target_link_libraries(sim-tactics-tests PRIVATE
         Catch2::Catch2WithMain
         pf_compiler_warnings
 )
+# The data files under test live in the source tree.
+target_compile_definitions(sim-tactics-tests PRIVATE PF_DATA_DIR="${PROJECT_SOURCE_DIR}/data")
 catch_discover_tests(sim-tactics-tests)

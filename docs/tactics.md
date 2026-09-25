@@ -33,7 +33,8 @@ path of the offending field as a tactic file spells it
 `Tactic` is immutable; a team changes tactics by getting another one.
 
 `referenceTacticSpec()` (`referenceTactic.hpp`) is a neutral, valid tactic for
-tests and hand-built fixtures. The tactical identities are data, not code.
+tests and hand-built fixtures. Tactics are data: tactic files under
+`data/tactics/` describe them in the [tactic file format](tactic-format.md).
 
 ## Units and conventions
 

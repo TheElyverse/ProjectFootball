@@ -6,7 +6,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 This repository is in **early bootstrap stage**. The P0 Foundation milestone (repo, CMake, CI, strong
 IDs, sim clock, deterministic RNG, a minimal event bus, and a CLI) exists under `libs/sim-core` and
-`apps/sim-cli`, and `libs/sim-tactics` holds the tactic data model (`docs/tactics.md`), and `libs/sim-match` has started with pitch geometry, the validated match state, the
+`apps/sim-cli`, and `libs/sim-tactics` holds the tactic data model and its file format (`docs/tactics.md`,
+`docs/tactic-format.md`, files under `data/tactics/`), and `libs/sim-match` has started with pitch geometry, the validated match state, the
 seven-a-side kickoff fixture, the fixed-timestep match loop with commands (`docs/match-loop.md`), and
 player and ball movement (`docs/player-movement.md`, `docs/ball-movement.md`), spatial queries,
 perception, possession, passing, reception and pass decisions (`docs/spatial-queries.md`,
@@ -64,7 +65,7 @@ apps/
   sim-viewer     TypeScript/Canvas debug viewer for sim-cli's frames (npm)    [exists]
   website        static landing page, HTML + Tailwind CSS v4 (npm)          [exists]
   sim-benchmark, sim-replay, unreal-game                                       [planned]
-data/            schemas, tactics, competitions, fixtures (JSON/YAML, schema-validated) [planned]
+data/            schemas, tactics, competitions, fixtures (JSON/YAML, schema-validated) [exists: tactics]
 tests/unit/      Catch2 tests, mirrors libs/ by subdirectory                   [exists: sim-core, sim-tactics, sim-match, sim-replay]
 tests/acceptance/ whole-match scenarios: stability, determinism, pinned hashes [exists: M0, P1]
 ```
