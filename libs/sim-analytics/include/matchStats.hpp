@@ -3,6 +3,8 @@
 #include <array>
 #include <cstdint>
 #include <optional>
+#include <string_view>
+#include <vector>
 
 namespace ElyverseFootball::SimAnalytics {
 
@@ -52,6 +54,18 @@ struct TeamStats {
 
   friend bool operator==(const TeamStats&, const TeamStats&) = default;
 };
+
+// A metric of TeamStats by name, empty where the stats leave it empty.
+struct Metric {
+  std::string_view name;
+  std::optional<double> value;
+
+  friend bool operator==(const Metric&, const Metric&) = default;
+};
+
+// Every metric of a side as a number, in a fixed order, regains by third as
+// three metrics: what a benchmark aggregates over matches.
+[[nodiscard]] std::vector<Metric> metricsOf(const TeamStats& stats);
 
 struct MatchStats {
   std::int64_t ticks = 0;

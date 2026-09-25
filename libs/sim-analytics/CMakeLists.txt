@@ -1,5 +1,7 @@
 add_library(sim-analytics STATIC
         src/matchAnalyzer.cpp
+        src/matchStats.cpp
+        src/seriesSummary.cpp
         src/statsJson.cpp
 )
 add_library(ElyverseFootball::sim-analytics ALIAS sim-analytics)

@@ -89,6 +89,7 @@ catch_discover_tests(sim-tactics-tests)
 add_executable(sim-analytics-tests
         sim-analytics/matchAnalyzerTests.cpp
         sim-analytics/statsJsonTests.cpp
+        sim-analytics/seriesSummaryTests.cpp
 )
 target_link_libraries(sim-analytics-tests PRIVATE
         ElyverseFootball::sim-analytics
