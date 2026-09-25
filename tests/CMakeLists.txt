@@ -18,5 +18,12 @@ add_test(NAME sim-cli-smoke
         -DSIM_CLI=$<TARGET_FILE:sim-cli>
         -DTEST_OUTPUT_DIR=${CMAKE_CURRENT_BINARY_DIR}/sim-cli-smoke
         -DDATA_DIR=${PROJECT_SOURCE_DIR}/data
-        -P ${CMAKE_CURRENT_SOURCE_DIR}/cli/smoke.cmake
+                -P ${CMAKE_CURRENT_SOURCE_DIR}/cli/smoke.cmake
+)
+add_test(NAME sim-benchmark-smoke
+        COMMAND ${CMAKE_COMMAND}
+        -DSIM_BENCHMARK=$<TARGET_FILE:sim-benchmark>
+        -DDATA_DIR=${PROJECT_SOURCE_DIR}/data
+        -DTEST_OUTPUT_DIR=${CMAKE_CURRENT_BINARY_DIR}/sim-benchmark-smoke
+        -P ${CMAKE_CURRENT_SOURCE_DIR}/benchmark/smoke.cmake
 )

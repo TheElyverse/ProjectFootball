@@ -98,3 +98,14 @@ target_link_libraries(sim-analytics-tests PRIVATE
         pf_compiler_warnings
 )
 catch_discover_tests(sim-analytics-tests)
+
+add_executable(sim-benchmark-tests
+        sim-benchmark/benchmarkTests.cpp
+)
+target_link_libraries(sim-benchmark-tests PRIVATE
+        sim-benchmark-core
+        nlohmann_json::nlohmann_json
+        Catch2::Catch2WithMain
+        pf_compiler_warnings
+)
+catch_discover_tests(sim-benchmark-tests)
