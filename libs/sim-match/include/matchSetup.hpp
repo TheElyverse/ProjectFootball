@@ -10,6 +10,7 @@
 #include "passDecision.hpp"
 #include "passing.hpp"
 #include "perception.hpp"
+#include "pitchControl.hpp"
 #include "pursuit.hpp"
 #include "reception.hpp"
 #include "tacticalPhases.hpp"
@@ -28,6 +29,7 @@ struct MatchConfig {
   PursuitConfig pursuit;
   DecisionConfig decisions;
   PhaseConfig phases;
+  PitchControlConfig pitchControl;
 
   friend bool operator==(const MatchConfig&, const MatchConfig&) = default;
 };
@@ -50,10 +52,11 @@ struct MatchSetup {
 //
 //   1. perception       every perception.intervalTicks ticks
 //   2. tactical phase   every phases.intervalTicks ticks
-//   3. ball pursuit     every pursuit.intervalTicks ticks
-//   4. pass decision    every decisions.intervalTicks ticks
-//   5. player movement  every tick
-//   6. ball movement    every tick
+//   3. pitch control    every pitchControl.intervalTicks ticks
+//   4. ball pursuit     every pursuit.intervalTicks ticks
+//   5. pass decision    every decisions.intervalTicks ticks
+//   6. player movement  every tick
+//   7. ball movement    every tick
 //
 // Throws std::invalid_argument for invalid parameters.
 [[nodiscard]] std::vector<MatchSystem> makeMatchSystems(const MatchConfig& config);

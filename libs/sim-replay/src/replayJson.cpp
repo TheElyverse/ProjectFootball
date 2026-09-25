@@ -145,7 +145,11 @@ using SimMatch::TeamSide;
           {"phases",
            {{"intervalTicks", config.phases.intervalTicks},
             {"transitionSeconds", config.phases.transitionSeconds},
-            {"hysteresisMeters", config.phases.hysteresisMeters}}}};
+            {"hysteresisMeters", config.phases.hysteresisMeters}}},
+          {"pitchControl",
+           {{"intervalTicks", config.pitchControl.intervalTicks},
+            {"cellSize", config.pitchControl.cellSize},
+            {"controlSeconds", config.pitchControl.controlSeconds}}}};
 }
 
 void addCommandFields(Json& json, const MovePlayerCommand& command) {
@@ -448,7 +452,12 @@ constexpr std::int64_t kMaxTick = std::int64_t{1} << 53;
                         field.member("reception").member("reclaimDelaySeconds").number()},
       .pursuit = readPursuit(field.member("pursuit")),
       .decisions = readDecisions(field.member("decisions")),
-      .phases = readPhases(field.member("phases"))};
+      .phases = readPhases(field.member("phases")),
+      .pitchControl = {
+          .intervalTicks = static_cast<int>(
+              field.member("pitchControl").member("intervalTicks").integerIn(1, 100000)),
+          .cellSize = field.member("pitchControl").member("cellSize").number(),
+          .controlSeconds = field.member("pitchControl").member("controlSeconds").number()}};
 }
 
 [[nodiscard]] MatchCommand readCommand(const Field& field) {

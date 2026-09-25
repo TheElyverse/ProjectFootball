@@ -46,6 +46,24 @@ void addObservation(StableHasher& hasher, const Observation& observation) noexce
   hasher.addI64(observation.lastSeen.value());
 }
 
+void addPitchControl(StableHasher& hasher, const std::optional<PitchControlGrid>& grid) {
+  hasher.addBool(grid.has_value());
+  if (!grid) {
+    return;
+  }
+  hasher.addU64(grid->columns());
+  hasher.addU64(grid->rows());
+  hasher.addDouble(grid->cellSize());
+  hasher.addDouble(grid->controlSeconds());
+  for (std::size_t column = 0; column < grid->columns(); ++column) {
+    for (std::size_t row = 0; row < grid->rows(); ++row) {
+      const GridCell cell{.column = column, .row = row};
+      hasher.addDouble(grid->arrivalSeconds(TeamSide::kHome, cell));
+      hasher.addDouble(grid->arrivalSeconds(TeamSide::kAway, cell));
+    }
+  }
+}
+
 }  // namespace
 
 std::uint64_t hashMatchState(const MatchState& state) noexcept {
@@ -103,6 +121,7 @@ std::uint64_t hashMatchState(const MatchState& state) noexcept {
       hasher.addI64(phase->since.value());
     }
   }
+  addPitchControl(hasher, state.pitchControl());
   return hasher.value();
 }
 

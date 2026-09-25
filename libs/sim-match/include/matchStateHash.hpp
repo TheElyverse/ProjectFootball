@@ -10,7 +10,7 @@ namespace ElyverseFootball::SimMatch {
 // pitch, squad size, then every player in state order, then the ball, then
 // every player's perception memory in state order, then the pending pass, then
 // each side's tactic by its content hash, home first, then team possession
-// and each side's phase. Two
+// and each side's phase, then the pitch-control grid. Two
 // states hash equally if and only if they are equal field by field and bit by
 // bit (short of an FNV collision). Replays record these hashes at checkpoints
 // and compare them on playback.

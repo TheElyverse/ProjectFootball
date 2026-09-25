@@ -13,6 +13,7 @@
 #include "ids.hpp"
 #include "observation.hpp"
 #include "pitch.hpp"
+#include "pitchControlGrid.hpp"
 #include "simTime.hpp"
 #include "tactic.hpp"
 #include "tacticalPhase.hpp"
@@ -254,6 +255,13 @@ class MatchState {
   // Which team has the ball; no team in every state created from a spec.
   [[nodiscard]] const TeamPossession& possession() const noexcept { return possession_; }
 
+  // The pitch-control grid as last refreshed (docs/pitch-control.md); empty
+  // in every state created from a spec, until the pitch-control system has
+  // run.
+  [[nodiscard]] const std::optional<PitchControlGrid>& pitchControl() const noexcept {
+    return pitchControl_;
+  }
+
   // The phase of a side with a tactic; empty for a scripted side and in every
   // state created from a spec, until the phase system has run.
   [[nodiscard]] const std::optional<TeamPhase>& phase(const TeamSide side) const noexcept {
@@ -291,12 +299,13 @@ class MatchState {
   TeamPossession possession_;
   // Home, away.
   std::array<std::optional<TeamPhase>, 2> phases_;
+  std::optional<PitchControlGrid> pitchControl_;
 };
 
 // What a simulation system or command may change in a state: positions,
 // velocities, movement targets, facings, perception memories, who owns and
-// last touched the ball, the pending pass, team possession and phases,
-// nothing else. Squad, ids, sides,
+// last touched the ball, the pending pass, team possession and phases, the
+// pitch-control grid, nothing else. Squad, ids, sides,
 // attributes, player order and the pitch have no setter, so a system cannot break those invariants
 // and nothing has to re-check them every tick. Players are addressed by their index in
 // MatchState::players(); an index past the end throws std::out_of_range.
@@ -329,6 +338,9 @@ class MatchStateWriter {
   // Throws std::invalid_argument for a phase given to a side without a
   // tactic: only a tactic says what a phase means.
   void setPhase(TeamSide side, std::optional<TeamPhase> phase);
+  void setPitchControl(std::optional<PitchControlGrid> grid) {
+    state_->pitchControl_ = std::move(grid);
+  }
 
  private:
   friend class MatchSimulation;

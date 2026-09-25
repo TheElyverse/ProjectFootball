@@ -6,6 +6,19 @@
 
 namespace ElyverseFootball::SimMatch {
 
+// An axis-aligned rectangle in pitch coordinates, in meters, edges included:
+// a region such as a zone or part of a grid. It may reach past the pitch.
+struct PitchRect {
+  SimCore::Vec2 min;
+  SimCore::Vec2 max;
+
+  [[nodiscard]] bool contains(const SimCore::Vec2 point) const noexcept {
+    return point.x >= min.x && point.x <= max.x && point.y >= min.y && point.y <= max.y;
+  }
+
+  friend bool operator==(const PitchRect&, const PitchRect&) = default;
+};
+
 // Metric rectangle: (0, 0) is a corner, +x runs along the length toward the
 // opposite goal line, +y along the width toward the opposite touchline.
 // Coordinates are fixed to the pitch, independent of either team's direction.

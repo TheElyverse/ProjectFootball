@@ -8,6 +8,7 @@ std::vector<MatchSystem> makeMatchSystems(const MatchConfig& config) {
   std::vector<MatchSystem> systems;
   systems.push_back(makePerceptionSystem(config.perception));
   systems.push_back(makePhaseSystem(config.phases));
+  systems.push_back(makePitchControlSystem(config.pitchControl));
   systems.push_back(makePursuitSystem(config.ball, config.pursuit));
   systems.push_back(makePassDecisionSystem(config.decisions, {.scoring = config.decisions.scoring,
                                                               .ball = config.ball,
