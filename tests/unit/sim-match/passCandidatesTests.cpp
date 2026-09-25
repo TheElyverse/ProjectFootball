@@ -211,3 +211,39 @@ TEST_CASE("Progression points toward the opponent's goal", "[passCandidates]") {
   REQUIRE(attackingDirection(TeamSide::kHome) == 1.0);
   REQUIRE(attackingDirection(TeamSide::kAway) == -1.0);
 }
+
+TEST_CASE("A utility splits into weighted contributions", "[passCandidates]") {
+  using ElyverseFootball::SimMatch::dominantContribution;
+  using ElyverseFootball::SimMatch::passContributions;
+  using ElyverseFootball::SimMatch::PassScoringConfig;
+  PassCandidate candidate;
+  candidate.completion = 0.8;
+  candidate.progression = 0.25;
+  candidate.receiverPressure = 0.5;
+  candidate.interceptionRisk = 0.2;
+  const PassScoringConfig scoring;
+  const auto parts = passContributions(candidate, scoring);
+  REQUIRE(parts.completion == scoring.completionWeight * 0.8);
+  REQUIRE(parts.progression == scoring.progressionWeight * 0.25);
+  REQUIRE(parts.pressure == -(scoring.pressureWeight * 0.5));
+  REQUIRE(parts.risk == -(scoring.riskWeight * 0.2));
+  REQUIRE(dominantContribution(parts) == "completion");
+
+  candidate.completion = 0.1;
+  candidate.interceptionRisk = 0.9;
+  REQUIRE(dominantContribution(passContributions(candidate, scoring)) == "risk");
+}
+
+TEST_CASE("Candidate utilities are the sum of their contributions", "[passCandidates]") {
+  using ElyverseFootball::SimMatch::passContributions;
+  const MatchState state =
+      perceived(threeASide({playerAt(4, TeamSide::kAway, {.x = 28.0, .y = 15.0}),
+                            playerAt(5, TeamSide::kAway, {.x = 36.0, .y = 26.0}),
+                            playerAt(6, TeamSide::kAway, {.x = 58.0, .y = 20.0})}));
+  const PassCandidateRules rules;
+  const auto candidates = candidatesOf(state, rules);
+  REQUIRE(candidates.size() == 2);
+  for (const PassCandidate& candidate : candidates) {
+    REQUIRE(candidate.utility == passContributions(candidate, rules.scoring).total());
+  }
+}

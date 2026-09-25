@@ -2,6 +2,7 @@
 
 #include <cstddef>
 #include <optional>
+#include <string_view>
 #include <vector>
 
 #include "ballMovement.hpp"
@@ -16,31 +17,6 @@
 
 namespace ElyverseFootball::SimMatch {
 
-// How a player on the ball weighs his passing options; see
-// docs/pass-candidates.md.
-struct PassScoringConfig {
-  // Teammates and opponents remembered with less confidence are ignored.
-  double minConfidence = 0.3;
-  double minPassDistance = 2.0;   // m
-  double maxPassDistance = 35.0;  // m
-  // An opponent's margin is the time he has to spare reaching the pass,
-  // negative if he gets there first. The risk from him falls smoothly from
-  // 1 at minus this many seconds through 1/2 at zero to 0 at plus this.
-  double interceptionMarginSeconds = 0.6;
-  // An opponent this close to the receiver puts no pressure on him at the
-  // edge and full pressure at zero distance.
-  double pressureRadius = 6.0;  // m
-  // Candidates less likely to arrive are not offered to the decision.
-  double minCompletion = 0.35;
-  // Utility = completion·w_c + progression·w_p − pressure·w_r − risk·w_i.
-  double completionWeight = 1.0;
-  double progressionWeight = 0.8;
-  double pressureWeight = 0.3;
-  double riskWeight = 0.3;
-
-  friend bool operator==(const PassScoringConfig&, const PassScoringConfig&) = default;
-};
-
 // Throws std::invalid_argument unless the confidence and completion limits
 // lie in [0, 1], the pass distances are finite and not negative with the
 // maximum above the minimum, the margin and pressure radius are positive and
@@ -49,6 +25,29 @@ struct PassScoringConfig {
 // softmax works.
 inline constexpr double kMaxScoringWeight = 1e6;
 void validate(const PassScoringConfig& config);
+
+// The weighted parts of a candidate's utility (docs/pass-candidates.md):
+// completion and progression add, receiver pressure and interception risk
+// subtract, so those two are 0 or negative. Their sum is the utility, bit for
+// bit. Kept apart so a decision can be explained.
+struct PassContributions {
+  double completion = 0.0;
+  double progression = 0.0;
+  double pressure = 0.0;
+  double risk = 0.0;
+
+  [[nodiscard]] double total() const noexcept { return completion + progression + pressure + risk; }
+
+  friend bool operator==(const PassContributions&, const PassContributions&) = default;
+};
+
+[[nodiscard]] PassContributions passContributions(const PassCandidate& candidate,
+                                                  const PassScoringConfig& scoring) noexcept;
+
+// The part that contributed most to a utility, by absolute value:
+// "completion", "progression", "pressure" or "risk". Ties go to the one
+// listed first.
+[[nodiscard]] std::string_view dominantContribution(const PassContributions& parts) noexcept;
 
 // What candidate generation needs to know besides the state.
 struct PassCandidateRules {

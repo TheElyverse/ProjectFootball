@@ -1,11 +1,14 @@
 #include "passCandidates.hpp"
 
 #include <algorithm>
+#include <array>
 #include <cmath>
+#include <cstddef>
 #include <limits>
 #include <optional>
 #include <stdexcept>
 #include <tuple>
+#include <utility>
 
 #include "spatialQueries.hpp"
 
@@ -146,6 +149,30 @@ std::string_view passRejectionName(const PassRejection rejection) noexcept {
   return "unknown";
 }
 
+PassContributions passContributions(const PassCandidate& candidate,
+                                    const PassScoringConfig& scoring) noexcept {
+  return {.completion = scoring.completionWeight * candidate.completion,
+          .progression = scoring.progressionWeight * candidate.progression,
+          .pressure = -(scoring.pressureWeight * candidate.receiverPressure),
+          .risk = -(scoring.riskWeight * candidate.interceptionRisk)};
+}
+
+std::string_view dominantContribution(const PassContributions& parts) noexcept {
+  const std::array<std::pair<std::string_view, double>, 4> named{{
+      {"completion", parts.completion},
+      {"progression", parts.progression},
+      {"pressure", parts.pressure},
+      {"risk", parts.risk},
+  }};
+  std::size_t dominant = 0;
+  for (std::size_t index = 1; index < named.size(); ++index) {
+    if (std::abs(named.at(index).second) > std::abs(named.at(dominant).second)) {
+      dominant = index;
+    }
+  }
+  return named.at(dominant).first;
+}
+
 void validate(const PassScoringConfig& config) {
   const auto finiteIn = [](const double value, const double min, const double max) {
     return value >= min && value <= max;  // false for NaN
@@ -232,11 +259,7 @@ std::vector<PassCandidate> generatePassCandidates(const MatchState& state,
     candidate.receiverPressure =
         std::max(0.0, 1.0 - (nearestOpponent / rules.scoring.pressureRadius));
 
-    const PassScoringConfig& weights = rules.scoring;
-    candidate.utility = (weights.completionWeight * candidate.completion) +
-                        (weights.progressionWeight * candidate.progression) -
-                        (weights.pressureWeight * candidate.receiverPressure) -
-                        (weights.riskWeight * candidate.interceptionRisk);
+    candidate.utility = passContributions(candidate, rules.scoring).total();
     candidate.rejection = rejectionOf(candidate, rules);
     candidates.push_back(candidate);
   }

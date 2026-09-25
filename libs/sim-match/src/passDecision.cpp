@@ -101,7 +101,8 @@ MatchSystem makePassDecisionSystem(const DecisionConfig& config, const PassCandi
                   .observations = current.perception(*carrier).observations,
                   .candidates = candidates,
                   .outcome = chosen ? DecisionOutcome::kPassed : DecisionOutcome::kNoValidOption,
-                  .chosen = chosen});
+                  .chosen = chosen,
+                  .scoring = carrierRules.scoring});
             }
             if (!chosen) {
               return;

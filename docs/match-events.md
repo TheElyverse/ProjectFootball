@@ -61,6 +61,7 @@ A `DecisionDiagnostic` explains one decision of a player on the ball (see
 | `candidates`   | every option with all score components and rejection reason |
 | `outcome`      | `kPassed` or `kNoValidOption`                               |
 | `chosen`       | index of the chosen candidate, if he passed                 |
+| `scoring`      | the weights the candidates were scored with, after the tactic's passing risk; `passContributions()` with them explains every utility |
 
 An `ActionDiagnostic` explains one decision of a player without the ball (see
 [off-ball movement](off-ball-movement.md)): the `tick`, the `player`, every

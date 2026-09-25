@@ -52,6 +52,13 @@ of that point (`estimateArrivalSeconds()` minus the radius covered at full speed
    sure the carrier is of him.
 4. The pass survives every opponent: `interceptionRisk = 1 − Π (1 − risk)`.
 
+**Contributions.** `passContributions(candidate, scoring)` splits the utility
+into its weighted parts — `completion` and `progression` add, `pressure` and
+`risk` subtract — whose sum is the utility bit for bit; the candidate
+generator computes the utility this way. `dominantContribution()` names the
+part with the largest absolute value, the reason a decision trace gives for a
+choice.
+
 The scores use arithmetic and square roots only — no exponential or logistic
 function — so they are identical on every platform.
 

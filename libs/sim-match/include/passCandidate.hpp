@@ -8,6 +8,31 @@
 
 namespace ElyverseFootball::SimMatch {
 
+// How a player on the ball weighs his passing options; see
+// docs/pass-candidates.md.
+struct PassScoringConfig {
+  // Teammates and opponents remembered with less confidence are ignored.
+  double minConfidence = 0.3;
+  double minPassDistance = 2.0;   // m
+  double maxPassDistance = 35.0;  // m
+  // An opponent's margin is the time he has to spare reaching the pass,
+  // negative if he gets there first. The risk from him falls smoothly from
+  // 1 at minus this many seconds through 1/2 at zero to 0 at plus this.
+  double interceptionMarginSeconds = 0.6;
+  // An opponent this close to the receiver puts no pressure on him at the
+  // edge and full pressure at zero distance.
+  double pressureRadius = 6.0;  // m
+  // Candidates less likely to arrive are not offered to the decision.
+  double minCompletion = 0.35;
+  // Utility = completion·w_c + progression·w_p − pressure·w_r − risk·w_i.
+  double completionWeight = 1.0;
+  double progressionWeight = 0.8;
+  double pressureWeight = 0.3;
+  double riskWeight = 0.3;
+
+  friend bool operator==(const PassScoringConfig&, const PassScoringConfig&) = default;
+};
+
 // Why a candidate cannot be played; kValid if it can.
 enum class PassRejection : std::uint8_t {
   kValid,

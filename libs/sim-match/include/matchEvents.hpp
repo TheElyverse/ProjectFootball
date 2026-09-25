@@ -178,6 +178,10 @@ struct DecisionDiagnostic {
   DecisionOutcome outcome = DecisionOutcome::kNoValidOption;
   // Index into candidates of the chosen pass; empty without one.
   std::optional<std::size_t> chosen;
+  // The weights the candidates were scored with: the configured scoring,
+  // adjusted to the passing risk of his tactic. passContributions() with
+  // them explains each utility.
+  PassScoringConfig scoring;
 
   friend bool operator==(const DecisionDiagnostic&, const DecisionDiagnostic&) = default;
 };
