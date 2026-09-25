@@ -7,25 +7,25 @@
 
 #include "choicePolicy.hpp"
 #include "matchEvents.hpp"
+#include "zones.hpp"
 
 namespace ElyverseFootball::SimMatch {
 namespace {
 
-// Decides an off-ball action for the player at this index and reports it.
-[[nodiscard]] PlayerAction decideOffBall(const MatchStepContext& context, const MatchState& current,
-                                         const std::size_t index, const DesiredRegion& region,
-                                         const TacticalMovementRules& rules) {
-  const std::vector<ActionCandidate> candidates =
-      generateOffBallCandidates(current, index, region, context.tick(), context.secondsPerTick(),
-                                rules.offBall, rules.positioning, rules.perception);
+// Chooses one of the candidates with the seeded softmax, reports the
+// decision, and returns it as the player's action. Holding position is
+// always the first candidate, so there is always a choice.
+[[nodiscard]] PlayerAction decide(const MatchStepContext& context, const MatchState& current,
+                                  const std::size_t index,
+                                  const std::vector<ActionCandidate>& candidates,
+                                  const double temperature, const bool withBall) {
   std::vector<double> utilities;
   utilities.reserve(candidates.size());
   for (const ActionCandidate& candidate : candidates) {
     utilities.push_back(candidate.utility);
   }
-  // Holding position is always a candidate, so there is always a choice.
   const std::size_t chosen =
-      chooseByUtility(utilities, rules.offBall.temperature,
+      chooseByUtility(utilities, temperature,
                       context.random(SimCore::RandomNumberGeneratorDomain::kAi))
           .value_or(0);
   if (context.collectsDiagnostics()) {
@@ -38,7 +38,25 @@ namespace {
   return {.type = action.type,
           .target = action.target,
           .subject = action.subject,
-          .decidedAt = context.tick()};
+          .decidedAt = context.tick(),
+          .withBall = withBall};
+}
+
+// The candidates of a player with or without the ball.
+[[nodiscard]] std::vector<ActionCandidate> candidatesFor(
+    const MatchStepContext& context, const MatchState& current, const std::size_t index,
+    const DesiredRegion& region, const TacticalMovementRules& rules, const bool withBall) {
+  if (withBall) {
+    return generateOffBallCandidates(current, index, region, context.tick(),
+                                     context.secondsPerTick(), rules.offBall, rules.positioning,
+                                     rules.perception);
+  }
+  return generateDefensiveCandidates(current, index, region,
+                                     {.now = context.tick(),
+                                      .secondsPerTick = context.secondsPerTick(),
+                                      .config = &rules.defensive,
+                                      .positioning = &rules.positioning,
+                                      .perception = &rules.perception});
 }
 
 }  // namespace
@@ -46,6 +64,7 @@ namespace {
 MatchSystem makeTacticalMovementSystem(const TacticalMovementRules& rules) {
   validate(rules.positioning);
   validate(rules.offBall);
+  validate(rules.defensive);
   return {.name = std::string(kTacticalMovementSystemName),
           .update =
               [rules](const MatchStepContext& context, const MatchState& current,
@@ -64,15 +83,19 @@ MatchSystem makeTacticalMovementSystem(const TacticalMovementRules& rules) {
                   PlayerTacticalState& tactical = next.tactical(index);
                   tactical.region = region;
                   SimCore::Vec2 target = region.center;
-                  if (current.possession().team == player.side) {
-                    if (isOffBallDecisionDue(current, index, context.tick(), rules.offBall)) {
-                      tactical.action = decideOffBall(context, current, index, region, rules);
+                  if (!isGoalkeeper(current, index)) {
+                    const bool withBall = current.possession().team == player.side;
+                    if (isActionDecisionDue(current, index, context.tick(), rules.offBall)) {
+                      const auto candidates =
+                          candidatesFor(context, current, index, region, rules, withBall);
+                      const double temperature =
+                          withBall ? rules.offBall.temperature : rules.defensive.temperature;
+                      tactical.action =
+                          decide(context, current, index, candidates, temperature, withBall);
                     }
                     if (tactical.action && tactical.action->type != ActionType::kHoldPosition) {
                       target = tactical.action->target;
                     }
-                  } else {
-                    tactical.action = std::nullopt;
                   }
                   next.setPlayerTarget(index, target);
                 }

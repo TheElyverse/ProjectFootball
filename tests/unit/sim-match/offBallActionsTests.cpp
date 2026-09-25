@@ -27,7 +27,7 @@ using ElyverseFootball::SimMatch::ActionCandidate;
 using ElyverseFootball::SimMatch::ActionDiagnostic;
 using ElyverseFootball::SimMatch::ActionType;
 using ElyverseFootball::SimMatch::GiveBallCommand;
-using ElyverseFootball::SimMatch::isOffBallDecisionDue;
+using ElyverseFootball::SimMatch::isActionDecisionDue;
 using ElyverseFootball::SimMatch::Lane;
 using ElyverseFootball::SimMatch::laneOf;
 using ElyverseFootball::SimMatch::laneOpenness;
@@ -37,6 +37,7 @@ using ElyverseFootball::SimMatch::MatchSimulation;
 using ElyverseFootball::SimMatch::MatchState;
 using ElyverseFootball::SimMatch::OffBallConfig;
 using ElyverseFootball::SimMatch::Pitch;
+using ElyverseFootball::SimMatch::PlayerAction;
 using ElyverseFootball::SimMatch::PlayerMatchState;
 using ElyverseFootball::SimMatch::RememberedPlayer;
 using ElyverseFootball::SimMatch::ScheduledCommand;
@@ -186,28 +187,36 @@ TEST_CASE("Players near the ball decide more often", "[offBall]") {
   const Tactic reference = tacticOf(referenceTacticSpec());
   MatchSimulation simulation = holding(pressedCarrier({.home = reference, .away = {}}), 1);
   std::vector<SimTick> midfielder;  // 10 m from the ball
-  std::vector<SimTick> keeper;      // 32 m from it
+  std::vector<SimTick> back;        // 21 m from it
   while (simulation.tick() < SimTick(120)) {
     REQUIRE(simulation.step().has_value());
     for (const ActionDiagnostic& diagnostic : simulation.actionDiagnostics()) {
       if (diagnostic.player == PlayerId(4)) {
         midfielder.push_back(diagnostic.tick);
-      } else if (diagnostic.player == PlayerId(1)) {
-        keeper.push_back(diagnostic.tick);
+      } else if (diagnostic.player == PlayerId(2)) {
+        back.push_back(diagnostic.tick);
       }
     }
   }
   // Every 6 ticks near the ball, every 18 far from it.
   REQUIRE(midfielder.size() >= 10);
-  REQUIRE(keeper.size() >= 3);
+  REQUIRE(back.size() >= 3);
   for (std::size_t index = 1; index < midfielder.size(); ++index) {
     REQUIRE(midfielder.at(index).value() - midfielder.at(index - 1).value() == 6);
   }
-  for (std::size_t index = 1; index < keeper.size(); ++index) {
-    REQUIRE(keeper.at(index).value() - keeper.at(index - 1).value() == 18);
+  // The centre back decides every 18 ticks while far from the ball, every 6
+  // once he comes within 20 m of it.
+  bool far = false;
+  for (std::size_t index = 1; index < back.size(); ++index) {
+    const auto gap = back.at(index).value() - back.at(index - 1).value();
+    REQUIRE((gap == 6 || gap == 18));
+    far = far || gap == 18;
   }
+  REQUIRE(far);
   const MatchState& state = simulation.state();
-  REQUIRE_FALSE(isOffBallDecisionDue(state, 0, simulation.tick(), OffBallConfig{}));
+  const SimTick decided = state.tactical(3).action.value_or(PlayerAction{}).decidedAt;
+  REQUIRE_FALSE(isActionDecisionDue(state, 3, SimTick(decided.value() + 5), OffBallConfig{}));
+  REQUIRE(isActionDecisionDue(state, 3, SimTick(decided.value() + 6), OffBallConfig{}));
 }
 
 TEST_CASE("A supporter opens a passing lane when the carrier is pressed", "[offBall]") {
@@ -263,6 +272,8 @@ TEST_CASE("Width is kept when the tactic requires it", "[offBall]") {
 }
 
 TEST_CASE("Off-ball actions end when the team loses the ball", "[offBall]") {
+  // Losing the ball makes every decision due at once; the next ones are
+  // made without the ball.
   const Tactic reference = tacticOf(referenceTacticSpec());
   MatchConfig config;
   config.decisions.minHoldSeconds = 1.0e6;
@@ -275,11 +286,14 @@ TEST_CASE("Off-ball actions end when the team loses the ball", "[offBall]") {
   while (simulation.tick() < SimTick(59)) {
     REQUIRE(simulation.step().has_value());
   }
-  REQUIRE(simulation.state().tactical(3).action.has_value());
+  REQUIRE(simulation.state().tactical(3).action.value_or(PlayerAction{}).withBall);
   while (simulation.tick() < SimTick(90)) {
     REQUIRE(simulation.step().has_value());
   }
-  for (std::size_t index = 0; index < 7; ++index) {
-    REQUIRE_FALSE(simulation.state().tactical(index).action.has_value());
+  for (std::size_t index = 1; index < 7; ++index) {
+    CAPTURE(index);
+    const auto& action = simulation.state().tactical(index).action;
+    REQUIRE(action.has_value());
+    REQUIRE_FALSE(action.value_or(PlayerAction{}).withBall);
   }
 }

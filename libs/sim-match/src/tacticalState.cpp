@@ -16,6 +16,12 @@ std::string_view actionName(const ActionType type) noexcept {
       return "createWidth";
     case ActionType::kOccupyHalfspace:
       return "occupyHalfspace";
+    case ActionType::kMarkOpponent:
+      return "markOpponent";
+    case ActionType::kTrackRunner:
+      return "trackRunner";
+    case ActionType::kCover:
+      return "cover";
   }
   return "unknown";
 }

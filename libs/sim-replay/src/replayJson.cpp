@@ -147,6 +147,23 @@ using SimMatch::TeamSide;
           {"effortWeight", offBall.effortWeight}};
 }
 
+[[nodiscard]] Json defensiveJson(const SimMatch::DefensiveConfig& defensive) {
+  return {{"markRadius", defensive.markRadius},
+          {"markDistance", defensive.markDistance},
+          {"trackRadius", defensive.trackRadius},
+          {"runnerSpeed", defensive.runnerSpeed},
+          {"trackLeadSeconds", defensive.trackLeadSeconds},
+          {"coverDistance", defensive.coverDistance},
+          {"effortScale", defensive.effortScale},
+          {"holdResponsibility", defensive.holdResponsibility},
+          {"temperature", defensive.temperature},
+          {"responsibilityWeight", defensive.responsibilityWeight},
+          {"regionWeight", defensive.regionWeight},
+          {"spaceWeight", defensive.spaceWeight},
+          {"urgencyWeight", defensive.urgencyWeight},
+          {"effortWeight", defensive.effortWeight}};
+}
+
 [[nodiscard]] Json configJson(const MatchConfig& config) {
   const SimMatch::PerceptionConfig& perception = config.perception;
   return {{"ticksPerSecond", config.ticksPerSecond},
@@ -182,7 +199,8 @@ using SimMatch::TeamSide;
             {"cellSize", config.pitchControl.cellSize},
             {"controlSeconds", config.pitchControl.controlSeconds}}},
           {"positioning", positioningJson(config.positioning)},
-          {"offBall", offBallJson(config.offBall)}};
+          {"offBall", offBallJson(config.offBall)},
+          {"defensive", defensiveJson(config.defensive)}};
 }
 
 void addCommandFields(Json& json, const MovePlayerCommand& command) {
@@ -508,6 +526,24 @@ constexpr std::int64_t kMaxTick = std::int64_t{1} << 53;
           .effortWeight = number("effortWeight")};
 }
 
+[[nodiscard]] SimMatch::DefensiveConfig readDefensive(const Field& field) {
+  const auto number = [&field](const std::string_view key) { return field.member(key).number(); };
+  return {.markRadius = number("markRadius"),
+          .markDistance = number("markDistance"),
+          .trackRadius = number("trackRadius"),
+          .runnerSpeed = number("runnerSpeed"),
+          .trackLeadSeconds = number("trackLeadSeconds"),
+          .coverDistance = number("coverDistance"),
+          .effortScale = number("effortScale"),
+          .holdResponsibility = number("holdResponsibility"),
+          .temperature = number("temperature"),
+          .responsibilityWeight = number("responsibilityWeight"),
+          .regionWeight = number("regionWeight"),
+          .spaceWeight = number("spaceWeight"),
+          .urgencyWeight = number("urgencyWeight"),
+          .effortWeight = number("effortWeight")};
+}
+
 [[nodiscard]] MatchConfig readConfig(const Field& field) {
   return {
       .ticksPerSecond = static_cast<int>(field.member("ticksPerSecond").integerIn(1, 100000)),
@@ -527,7 +563,8 @@ constexpr std::int64_t kMaxTick = std::int64_t{1} << 53;
            .cellSize = field.member("pitchControl").member("cellSize").number(),
            .controlSeconds = field.member("pitchControl").member("controlSeconds").number()},
       .positioning = readPositioning(field.member("positioning")),
-      .offBall = readOffBall(field.member("offBall"))};
+      .offBall = readOffBall(field.member("offBall")),
+      .defensive = readDefensive(field.member("defensive"))};
 }
 
 [[nodiscard]] MatchCommand readCommand(const Field& field) {

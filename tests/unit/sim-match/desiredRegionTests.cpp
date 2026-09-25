@@ -240,11 +240,19 @@ TEST_CASE("Players of a side with a tactic take up their regions", "[desiredRegi
     CAPTURE(index);
     const auto& region = state.tactical(index).region;
     REQUIRE(region.has_value());
-    REQUIRE_FALSE(state.tactical(index).action.has_value());
-    const DesiredRegion& settled = region.value_or(DesiredRegion{});
-    REQUIRE(state.players()[index].target == settled.center);
-    REQUIRE(distanceBetween(state.players()[index].position, settled.center) < 1.5);
+    // A player goes to his region's centre while he holds position, and to
+    // his action's target otherwise (docs/defensive-shape.md).
+    const auto& action = state.tactical(index).action;
+    const bool holds =
+        !action || action->type == ElyverseFootball::SimMatch::ActionType::kHoldPosition;
+    const Vec2 target = holds ? region.value_or(DesiredRegion{}).center : action->target;
+    REQUIRE(state.players()[index].target == target);
+    if (holds) {
+      REQUIRE(distanceBetween(state.players()[index].position, target) < 1.5);
+    }
   }
+  // The goalkeeper decides nothing: he holds his region.
+  REQUIRE_FALSE(state.tactical(0).action.has_value());
   // The scripted away side has no regions and nowhere to go.
   for (std::size_t index = 7; index < 13; ++index) {
     REQUIRE_FALSE(state.tactical(index).region.has_value());
@@ -289,7 +297,7 @@ TEST_CASE("Tactical movement is deterministic", "[desiredRegion]") {
 TEST_CASE("Tactical movement rejects an invalid configuration", "[desiredRegion]") {
   const auto withPositioning = [](const PositioningConfig& positioning) {
     return makeTacticalMovementSystem(
-        {.positioning = positioning, .offBall = {}, .perception = {}});
+        {.positioning = positioning, .offBall = {}, .defensive = {}, .perception = {}});
   };
   PositioningConfig config;
   config.intervalTicks = 0;

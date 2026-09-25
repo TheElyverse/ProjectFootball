@@ -87,6 +87,7 @@ void addTactical(StableHasher& hasher, const PlayerTacticalState& tactical) noex
     hasher.addBool(tactical.action->subject.has_value());
     hasher.addU64(tactical.action->subject.value_or(SimCore::PlayerId::invalid()).value());
     hasher.addI64(tactical.action->decidedAt.value());
+    hasher.addBool(tactical.action->withBall);
   }
 }
 

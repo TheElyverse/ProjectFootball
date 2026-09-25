@@ -8,6 +8,7 @@
 #include <optional>
 #include <stdexcept>
 
+#include "actionGeometry.hpp"
 #include "passCandidates.hpp"
 #include "responsibility.hpp"
 #include "tactic.hpp"
@@ -19,16 +20,9 @@ namespace {
 using SimCore::Vec2;
 using SimTactics::Responsibility;
 
-// Directions around a point, used to look for support positions and space.
-constexpr double kDiagonal = 0.70710678118654752440;
-constexpr std::array<Vec2, 8> kDirections{{{.x = 1.0, .y = 0.0},
-                                           {.x = kDiagonal, .y = kDiagonal},
-                                           {.x = 0.0, .y = 1.0},
-                                           {.x = -kDiagonal, .y = kDiagonal},
-                                           {.x = -1.0, .y = 0.0},
-                                           {.x = -kDiagonal, .y = -kDiagonal},
-                                           {.x = 0.0, .y = -1.0},
-                                           {.x = kDiagonal, .y = -kDiagonal}}};
+using ActionGeometry::distanceBetween;
+using ActionGeometry::distanceToSegment;
+using ActionGeometry::kDirections;
 
 // Wing and halfspace centre lines as fractions of the width from the
 // touchline on the slot's side (the same as the tactical target's).
@@ -37,26 +31,6 @@ constexpr double kHalfspaceCentre = 0.3;
 
 // A run in behind needs the line at least this far ahead of the runner.
 constexpr double kMinimumRun = 3.0;  // m
-
-// The largest positioning penalty the region score counts: beyond it a
-// target is simply far off shape.
-constexpr double kMaxRegionPenalty = 2.0;
-
-[[nodiscard]] double distanceBetween(const Vec2 first, const Vec2 second) noexcept {
-  return std::sqrt((first - second).lengthSquared());
-}
-
-// The distance from a point to the segment from `from` to `to`.
-[[nodiscard]] double distanceToSegment(const Vec2 point, const Vec2 start,
-                                       const Vec2 end) noexcept {
-  const Vec2 segment = end - start;
-  const double lengthSquared = segment.lengthSquared();
-  if (lengthSquared == 0.0) {
-    return distanceBetween(point, start);
-  }
-  const double along = std::clamp((point - start).dot(segment) / lengthSquared, 0.0, 1.0);
-  return distanceBetween(point, start + (segment * along));
-}
 
 // What an off-ball decision is scored against: the settings of the decision.
 struct OffBallRules {
@@ -101,11 +75,7 @@ class Scorer {
   [[nodiscard]] std::optional<SimCore::PlayerId> carrierId() const noexcept { return carrierId_; }
 
   [[nodiscard]] const SimTactics::Tactic& tactic() const {
-    const auto& tactic = state().tactics().of(player().side);
-    if (!tactic) {
-      throw std::invalid_argument("off-ball decisions: the player's side plays no tactic");
-    }
-    return *tactic;
+    return ActionGeometry::tacticOf(state(), player().side);
   }
 
   [[nodiscard]] const PlayerMatchState& player() const { return state().players()[playerIndex_]; }
@@ -134,11 +104,11 @@ class Scorer {
   [[nodiscard]] ActionCandidate score(const ActionType type, const Vec2 target,
                                       const double responsibility, const double urgency,
                                       const std::optional<SimCore::PlayerId> subject) const {
-    const double positionCost =
-        evaluatePosition(state(), playerIndex_, target, region().tacticalTarget, now_,
-                         secondsPerTick_, positioning(), perception())
-            .total;
-    const double penalty = std::clamp(positionCost - region().cost.total, 0.0, kMaxRegionPenalty);
+    const double penalty = ActionGeometry::regionPenalty(state(), playerIndex_, target, region(),
+                                                         {.now = now_,
+                                                          .secondsPerTick = secondsPerTick_,
+                                                          .positioning = positioning_,
+                                                          .perception = perception_});
     ActionScores scores{
         .responsibility = config().responsibilityWeight * responsibility,
         .region = -config().regionWeight * penalty,
@@ -254,19 +224,6 @@ class Scorer {
   std::optional<SimCore::PlayerId> carrierId_;
 };
 
-[[nodiscard]] bool isOffBallAction(const ActionType type) noexcept {
-  switch (type) {
-    case ActionType::kHoldPosition:
-    case ActionType::kSupportCarrier:
-    case ActionType::kMoveIntoSpace:
-    case ActionType::kRunInBehind:
-    case ActionType::kCreateWidth:
-    case ActionType::kOccupyHalfspace:
-      return true;
-  }
-  return false;
-}
-
 }  // namespace
 
 void validate(const OffBallConfig& config) {
@@ -342,13 +299,14 @@ std::vector<ActionCandidate> generateOffBallCandidates(
   return candidates;
 }
 
-bool isOffBallDecisionDue(const MatchState& state, const std::size_t playerIndex,
-                          const SimCore::SimTick now, const OffBallConfig& config) {
+bool isActionDecisionDue(const MatchState& state, const std::size_t playerIndex,
+                         const SimCore::SimTick now, const OffBallConfig& config) {
   const auto& action = state.tactical(playerIndex).action;
-  if (!action || !isOffBallAction(action->type)) {
+  const PlayerMatchState& player = state.players()[playerIndex];
+  const bool withBall = state.possession().team == player.side;
+  if (!action || action->withBall != withBall) {
     return true;
   }
-  const PlayerMatchState& player = state.players()[playerIndex];
   const bool nearBall =
       distanceBetween(player.position, state.ball().position) <= config.nearBallRadius;
   const int interval = nearBall ? config.nearIntervalTicks : config.farIntervalTicks;

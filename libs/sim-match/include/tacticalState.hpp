@@ -56,18 +56,26 @@ enum class ActionType : std::uint8_t {
   kCreateWidth,
   // Take up the halfspace on his side of the pitch.
   kOccupyHalfspace,
+  // Without the ball: stay goal-side of an opponent in his zone.
+  kMarkOpponent,
+  // Without the ball: follow an opponent running at the goal.
+  kTrackRunner,
+  // Without the ball: protect the space behind a teammate who may step out.
+  kCover,
 };
 
 // "holdPosition", "supportCarrier", ...; "unknown" outside the enumerators.
 [[nodiscard]] std::string_view actionName(ActionType type) noexcept;
 
 // A decided action: where it takes the player, whom it is about if anyone,
-// and when he decided it. He keeps it until he decides again.
+// when he decided it and whether his team had the ball then. He keeps it
+// until he decides again.
 struct PlayerAction {
   ActionType type = ActionType::kHoldPosition;
   SimCore::Vec2 target;
   std::optional<SimCore::PlayerId> subject;
   SimCore::SimTick decidedAt;
+  bool withBall = true;
 
   friend bool operator==(const PlayerAction&, const PlayerAction&) = default;
 };

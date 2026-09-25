@@ -75,10 +75,12 @@ void validate(const OffBallConfig& config);
     SimCore::SimTick now, double secondsPerTick, const OffBallConfig& config,
     const PositioningConfig& positioning, const PerceptionConfig& perception);
 
-// Whether the player at this index decides again at tick now: he has no
-// off-ball action yet, or he decided nearIntervalTicks ago near the ball,
-// farIntervalTicks ago away from it.
-[[nodiscard]] bool isOffBallDecisionDue(const MatchState& state, std::size_t playerIndex,
-                                        SimCore::SimTick now, const OffBallConfig& config);
+// Whether the player at this index decides again at tick now, with or
+// without the ball: he has no action yet, his team won or lost the ball
+// since he decided, or he decided nearIntervalTicks ago near the ball,
+// farIntervalTicks ago away from it. The cadence applies to defensive
+// decisions as well.
+[[nodiscard]] bool isActionDecisionDue(const MatchState& state, std::size_t playerIndex,
+                                       SimCore::SimTick now, const OffBallConfig& config);
 
 }  // namespace ElyverseFootball::SimMatch

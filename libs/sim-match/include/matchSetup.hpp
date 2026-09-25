@@ -35,6 +35,7 @@ struct MatchConfig {
   PitchControlConfig pitchControl;
   PositioningConfig positioning;
   OffBallConfig offBall;
+  DefensiveConfig defensive;
 
   friend bool operator==(const MatchConfig&, const MatchConfig&) = default;
 };
