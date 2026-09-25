@@ -52,6 +52,12 @@ side (`kTacticDoesNotFitSquad` otherwise); the player in slot `i` is the `i`-th
 player of his side in `players()`, and `slotIndex(state, playerIndex)` finds it.
 The state hash includes each tactic by its content hash.
 
+The state also holds which team has the ball, `possession()` -- the team, the
+tick it won the ball and whether it won it from the opponent -- and the
+tactical phase of each side with a tactic, `phase(side)`. Both are empty in a
+state created from a spec and kept up to date by the tactical phase system; see
+[match phases](match-phases.md).
+
 Every player also has a perception memory, `perception(playerIndex)`: what he
 believes about the ball and the other players (see [perception](perception.md)).
 A state created from a spec starts with every memory empty — perception is built

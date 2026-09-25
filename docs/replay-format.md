@@ -56,9 +56,10 @@ validation leaves no file behind.
         "completionWeight": 1.0,
         "progressionWeight": 0.8,
         "pressureWeight": 0.3,
-        "riskWeight": 0.3
+                "riskWeight": 0.3
       }
-    }
+    },
+    "phases": { "intervalTicks": 10, "transitionSeconds": 4.0, "hysteresisMeters": 3.0 }
   },
   "initialState": {
     "pitch": { "length": 60.0, "width": 40.0 },

@@ -154,8 +154,10 @@ abridged example with illustrative values:
   of a decision are the memory the decision was made from, which is the
   previous frame's.
 - Event `type`s are `passAttempted`, `passReceived`, `passIntercepted`,
-  `looseBallRecovered` and `possessionChanged`, with the fields of
-  [match events](match-events.md). A decision's `outcome` is `passed` or
+  `looseBallRecovered`, `possessionChanged` and `phaseChanged`, with the fields
+  of [match events](match-events.md); sides and phases are spelled `home`,
+  `buildUp`, ... as in [tactics](tactics.md). The viewer shows an event type it
+  does not know by its name. A decision's `outcome` is `passed` or
   `noValidOption`, `chosen` indexes `candidates`, and `rejection` is `valid` or
   the reason a candidate cannot be played.
 
