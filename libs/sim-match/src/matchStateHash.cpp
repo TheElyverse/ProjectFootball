@@ -93,6 +93,24 @@ void addTactical(StableHasher& hasher, const PlayerTacticalState& tactical) noex
   hasher.addI64(tactical.lastChallenge.value_or(SimCore::SimTick(0)).value());
 }
 
+void addPress(StableHasher& hasher, const std::optional<TeamPress>& press) noexcept {
+  hasher.addBool(press.has_value());
+  if (!press) {
+    return;
+  }
+  hasher.addU64(press->carrier.value());
+  hasher.addI64(press->since.value());
+  hasher.addBool(press->trigger.has_value());
+  hasher.addU64(static_cast<std::uint64_t>(
+      press->trigger.value_or(SimTactics::PressingTrigger::kPoorFirstTouch)));
+  hasher.addU64(press->assignments.size());
+  for (const PressAssignment& assignment : press->assignments) {
+    hasher.addU64(assignment.player.value());
+    hasher.addU64(static_cast<std::uint64_t>(assignment.role));
+    hasher.addU64(assignment.subject.value());
+  }
+}
+
 }  // namespace
 
 std::uint64_t hashMatchState(const MatchState& state) noexcept {
@@ -130,6 +148,22 @@ std::uint64_t hashMatchState(const MatchState& state) noexcept {
     hasher.addBool(pass->receiver.has_value());
     hasher.addU64(pass->receiver.value_or(SimCore::PlayerId::invalid()).value());
   }
+  const auto& lastPass = state.lastPass();
+  hasher.addBool(lastPass.has_value());
+  if (lastPass) {
+    hasher.addU64(lastPass->passer.value());
+    addVec2(hasher, lastPass->from);
+    hasher.addI64(lastPass->tick.value());
+    hasher.addBool(lastPass->receiver.has_value());
+    hasher.addU64(lastPass->receiver.value_or(SimCore::PlayerId::invalid()).value());
+  }
+  const auto& reception = state.lastReception();
+  hasher.addBool(reception.has_value());
+  if (reception) {
+    hasher.addU64(reception->player.value());
+    hasher.addI64(reception->tick.value());
+    hasher.addDouble(reception->ballSpeed);
+  }
   for (const TeamSide side : {TeamSide::kHome, TeamSide::kAway}) {
     const auto& tactic = state.tactics().of(side);
     hasher.addBool(tactic.has_value());
@@ -158,6 +192,9 @@ std::uint64_t hashMatchState(const MatchState& state) noexcept {
   }
   for (std::size_t index = 0; index < state.players().size(); ++index) {
     addTactical(hasher, state.tactical(index));
+  }
+  for (const TeamSide side : {TeamSide::kHome, TeamSide::kAway}) {
+    addPress(hasher, state.press(side));
   }
   return hasher.value();
 }

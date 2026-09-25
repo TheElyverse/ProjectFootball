@@ -96,8 +96,31 @@ struct BallWon {
   friend bool operator==(const BallWon&, const BallWon&) = default;
 };
 
-using MatchEvent = std::variant<PassAttempted, PassReceived, PassIntercepted, LooseBallRecovered,
-                                PossessionChanged, PhaseChanged, BallWon>;
+// A side started a coordinated press (docs/pressing.md): on whom, what
+// triggered it -- empty for a press of the pressing phase -- and who plays
+// which role.
+struct PressingStarted {
+  SimCore::SimTick tick;
+  TeamSide side = TeamSide::kHome;
+  SimCore::PlayerId carrier;
+  std::optional<SimTactics::PressingTrigger> trigger;
+  std::vector<PressAssignment> assignments;
+
+  friend bool operator==(const PressingStarted&, const PressingStarted&) = default;
+};
+
+// A side's press ended, and how.
+struct PressingEnded {
+  SimCore::SimTick tick;
+  TeamSide side = TeamSide::kHome;
+  PressOutcome outcome = PressOutcome::kCarrierEscaped;
+
+  friend bool operator==(const PressingEnded&, const PressingEnded&) = default;
+};
+
+using MatchEvent =
+    std::variant<PassAttempted, PassReceived, PassIntercepted, LooseBallRecovered,
+                 PossessionChanged, PhaseChanged, BallWon, PressingStarted, PressingEnded>;
 
 // "pass attempted", "pass received", ... for logs and diagnostics.
 [[nodiscard]] std::string_view eventName(const MatchEvent& event);
@@ -140,6 +163,10 @@ struct ActionDiagnostic {
   std::vector<ActionCandidate> candidates;
   // Index into candidates of the chosen action.
   std::optional<std::size_t> chosen;
+  // Whether his team assigned the action -- a role in a press -- instead of
+  // him choosing among the candidates; then the candidates hold that one
+  // action.
+  bool assigned = false;
 
   friend bool operator==(const ActionDiagnostic&, const ActionDiagnostic&) = default;
 };

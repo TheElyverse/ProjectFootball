@@ -327,12 +327,44 @@ void MatchStateWriter::setPendingPass(const std::optional<PassIntent> pass) {
   state_->pendingPass_ = pass;
 }
 
+void MatchStateWriter::setLastPass(const std::optional<PassRecord> pass) {
+  if (pass) {
+    requirePlayer(pass->passer, "a passer");
+    if (pass->receiver) {
+      requirePlayer(*pass->receiver, "a receiver");
+    }
+  }
+  state_->lastPass_ = pass;
+}
+
+void MatchStateWriter::setLastReception(const std::optional<ReceptionRecord> reception) {
+  if (reception) {
+    requirePlayer(reception->player, "a receiver");
+  }
+  state_->lastReception_ = reception;
+}
+
 void MatchStateWriter::setPhase(const TeamSide side, const std::optional<TeamPhase> phase) {
   if (phase && !state_->tactics_.of(side)) {
     throw std::invalid_argument(std::format(
         "MatchStateWriter: {} plays no tactic and so has no phase", teamSideName(side)));
   }
   (side == TeamSide::kHome ? state_->phases_[0] : state_->phases_[1]) = phase;
+}
+
+void MatchStateWriter::setPress(const TeamSide side, std::optional<TeamPress> press) {
+  if (press) {
+    if (!state_->tactics_.of(side)) {
+      throw std::invalid_argument(std::format(
+          "MatchStateWriter: {} plays no tactic and so cannot press", teamSideName(side)));
+    }
+    requirePlayer(press->carrier, "pressed");
+    for (const PressAssignment& assignment : press->assignments) {
+      requirePlayer(assignment.player, "a pressing player");
+      requirePlayer(assignment.subject, "the subject of a pressing role");
+    }
+  }
+  (side == TeamSide::kHome ? state_->presses_[0] : state_->presses_[1]) = std::move(press);
 }
 
 void MatchStateWriter::setChaser(const TeamSide side,

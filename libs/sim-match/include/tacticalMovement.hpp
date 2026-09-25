@@ -26,7 +26,9 @@ inline constexpr std::string_view kTacticalMovementSystemName = "tactical moveme
 // one on the ball and the side's chaser:
 //
 //   1. gets a new desired region (chooseDesiredRegion());
-//   2. unless he is the goalkeeper, decides an action when one is due
+//   2. with a role in his side's press (MatchState::press()), takes that
+//      role's action -- the team assigned it, he does not choose;
+//      otherwise, unless he is the goalkeeper, decides an action when one is due
 //      (isActionDecisionDue()): with his team on the ball from
 //      generateOffBallCandidates(), without it from
 //      generateDefensiveCandidates(), then the seeded softmax

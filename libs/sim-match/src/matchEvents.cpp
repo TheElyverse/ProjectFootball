@@ -46,6 +46,25 @@ void addFields(StableHasher& hasher, const BallWon& event) noexcept {
   hasher.addDouble(event.position.y);
 }
 
+void addFields(StableHasher& hasher, const PressingStarted& event) noexcept {
+  hasher.addU64(static_cast<std::uint64_t>(event.side));
+  hasher.addU64(event.carrier.value());
+  hasher.addBool(event.trigger.has_value());
+  hasher.addU64(static_cast<std::uint64_t>(
+      event.trigger.value_or(SimTactics::PressingTrigger::kPoorFirstTouch)));
+  hasher.addU64(event.assignments.size());
+  for (const PressAssignment& assignment : event.assignments) {
+    hasher.addU64(assignment.player.value());
+    hasher.addU64(static_cast<std::uint64_t>(assignment.role));
+    hasher.addU64(assignment.subject.value());
+  }
+}
+
+void addFields(StableHasher& hasher, const PressingEnded& event) noexcept {
+  hasher.addU64(static_cast<std::uint64_t>(event.side));
+  hasher.addU64(static_cast<std::uint64_t>(event.outcome));
+}
+
 void addFields(StableHasher& hasher, const PhaseChanged& event) noexcept {
   hasher.addU64(static_cast<std::uint64_t>(event.side));
   hasher.addBool(event.previous.has_value());
@@ -77,6 +96,12 @@ std::string_view eventName(const MatchEvent& event) {
       return "phase changed";
     }
     std::string_view operator()(const BallWon& /*event*/) const noexcept { return "ball won"; }
+    std::string_view operator()(const PressingStarted& /*event*/) const noexcept {
+      return "pressing started";
+    }
+    std::string_view operator()(const PressingEnded& /*event*/) const noexcept {
+      return "pressing ended";
+    }
   };
   return std::visit(Names{}, event);
 }

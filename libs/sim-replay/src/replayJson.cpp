@@ -167,6 +167,16 @@ using SimMatch::TeamSide;
           {"effortWeight", defensive.effortWeight}};
 }
 
+[[nodiscard]] Json pressingJson(const SimMatch::PressingConfig& pressing) {
+  return {
+      {"intervalTicks", pressing.intervalTicks},    {"triggerRadius", pressing.triggerRadius},
+      {"recentSeconds", pressing.recentSeconds},    {"heavyTouchSpeed", pressing.heavyTouchSpeed},
+      {"slowPassSpeed", pressing.slowPassSpeed},    {"isolationRadius", pressing.isolationRadius},
+      {"facingOwnGoal", pressing.facingOwnGoal},    {"backPassMeters", pressing.backPassMeters},
+      {"maxJoiners", pressing.maxJoiners},          {"phaseIntensity", pressing.phaseIntensity},
+      {"maxPressSeconds", pressing.maxPressSeconds}};
+}
+
 [[nodiscard]] Json configJson(const MatchConfig& config) {
   const SimMatch::PerceptionConfig& perception = config.perception;
   return {{"ticksPerSecond", config.ticksPerSecond},
@@ -211,7 +221,8 @@ using SimMatch::TeamSide;
             {"radius", config.challenge.radius},
             {"winChance", config.challenge.winChance},
             {"attemptSeconds", config.challenge.attemptSeconds},
-            {"protectSeconds", config.challenge.protectSeconds}}}};
+            {"protectSeconds", config.challenge.protectSeconds}}},
+          {"pressing", pressingJson(config.pressing)}};
 }
 
 void addCommandFields(Json& json, const MovePlayerCommand& command) {
@@ -568,6 +579,21 @@ constexpr std::int64_t kMaxTick = std::int64_t{1} << 53;
           .protectSeconds = field.member("protectSeconds").number()};
 }
 
+[[nodiscard]] SimMatch::PressingConfig readPressing(const Field& field) {
+  const auto number = [&field](const std::string_view key) { return field.member(key).number(); };
+  return {.intervalTicks = static_cast<int>(field.member("intervalTicks").integerIn(1, 100000)),
+          .triggerRadius = number("triggerRadius"),
+          .recentSeconds = number("recentSeconds"),
+          .heavyTouchSpeed = number("heavyTouchSpeed"),
+          .slowPassSpeed = number("slowPassSpeed"),
+          .isolationRadius = number("isolationRadius"),
+          .facingOwnGoal = number("facingOwnGoal"),
+          .backPassMeters = number("backPassMeters"),
+          .maxJoiners = static_cast<int>(field.member("maxJoiners").integerIn(1, 100)),
+          .phaseIntensity = number("phaseIntensity"),
+          .maxPressSeconds = number("maxPressSeconds")};
+}
+
 [[nodiscard]] MatchConfig readConfig(const Field& field) {
   return {
       .ticksPerSecond = static_cast<int>(field.member("ticksPerSecond").integerIn(1, 100000)),
@@ -589,7 +615,8 @@ constexpr std::int64_t kMaxTick = std::int64_t{1} << 53;
       .positioning = readPositioning(field.member("positioning")),
       .offBall = readOffBall(field.member("offBall")),
       .defensive = readDefensive(field.member("defensive")),
-      .challenge = readChallenge(field.member("challenge"))};
+      .challenge = readChallenge(field.member("challenge")),
+      .pressing = readPressing(field.member("pressing"))};
 }
 
 [[nodiscard]] MatchCommand readCommand(const Field& field) {

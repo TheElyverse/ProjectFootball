@@ -168,6 +168,10 @@ MatchSystem makeBallMovementSystem(const BallPhysics& physics, const PassConfig&
             ball = kicked(current, *intent, physics, passing, context);
             next.setBallOwner(ball.owner);
             next.setBallLastTouch(ball.lastTouch);
+            next.setLastPass(PassRecord{.passer = intent->passer,
+                                        .from = ball.position,
+                                        .tick = context.tick(),
+                                        .receiver = intent->receiver});
             context.record(PassAttempted{.tick = context.tick(),
                                          .passer = intent->passer,
                                          .intendedReceiver = intent->receiver,
@@ -195,6 +199,10 @@ MatchSystem makeBallMovementSystem(const BallPhysics& physics, const PassConfig&
                                              secondsPerTick, reception)) {
           next.setBallOwner(claim->playerId);
           next.setBallLastTouch(BallTouch{.playerId = claim->playerId, .tick = context.tick()});
+          next.setLastReception(
+              ReceptionRecord{.player = claim->playerId,
+                              .tick = context.tick(),
+                              .ballSpeed = std::sqrt(ball.velocity.lengthSquared())});
           carryBy(current.players()[claim->playerIndex]);
           context.record(controlEvent(current, ball, *claim, context.tick()));
           context.record(PossessionChanged{

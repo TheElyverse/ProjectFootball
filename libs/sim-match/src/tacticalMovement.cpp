@@ -1,12 +1,17 @@
 #include "tacticalMovement.hpp"
 
+#include <algorithm>
+#include <cmath>
 #include <cstddef>
+#include <limits>
 #include <optional>
 #include <string>
 #include <vector>
 
 #include "choicePolicy.hpp"
 #include "matchEvents.hpp"
+#include "pressingActions.hpp"
+#include "teamFrame.hpp"
 #include "zones.hpp"
 
 namespace ElyverseFootball::SimMatch {
@@ -59,6 +64,82 @@ namespace {
                                       .perception = &rules.perception});
 }
 
+// The action a player's role in his side's press gives him, aimed at where
+// the players stand now; empty if he has no role. The team assigned it, so
+// he does not choose: the diagnostic says so and holds that one action.
+[[nodiscard]] std::optional<PlayerAction> pressRoleAction(const MatchStepContext& context,
+                                                          const MatchState& current,
+                                                          const std::size_t index,
+                                                          const TacticalMovementRules& rules) {
+  const PlayerMatchState& player = current.players()[index];
+  const auto& press = current.press(player.side);
+  if (!press) {
+    return std::nullopt;
+  }
+  const auto assignment =
+      std::ranges::find(press->assignments, player.playerId, &PressAssignment::player);
+  const auto subject = assignment != press->assignments.end()
+                           ? findPlayerIndex(current, assignment->subject)
+                           : std::nullopt;
+  const auto carrier = findPlayerIndex(current, press->carrier);
+  if (!subject || !carrier) {
+    return std::nullopt;
+  }
+  const Pitch& pitch = current.pitch();
+  const SimCore::Vec2 ownGoal{.x = xAtDepth(player.side, 0.0, pitch),
+                              .y = pitch.widthMeters() / 2.0};
+  const SimCore::Vec2 carrierAt = current.players()[*carrier].position;
+  const SimCore::Vec2 subjectAt = current.players()[*subject].position;
+  ActionCandidate action{.type = ActionType::kPressCarrier,
+                         .target = {},
+                         .subject = assignment->subject,
+                         .scores = {},
+                         .utility = 0.0};
+  switch (assignment->role) {
+    case PressRole::kPress: {
+      // Cut off the option the lane blockers do not cover: the nearest one
+      // not blocked, else goal-side.
+      std::optional<SimCore::Vec2> option;
+      double nearest = std::numeric_limits<double>::infinity();
+      for (const PlayerMatchState& other : current.players()) {
+        const bool blocked = std::ranges::any_of(press->assignments, [&](const auto& role) {
+          return role.role == PressRole::kBlockLane && role.subject == other.playerId;
+        });
+        const double distance = std::sqrt((other.position - carrierAt).lengthSquared());
+        if (other.side != player.side && other.playerId != press->carrier && !blocked &&
+            distance < nearest) {
+          option = other.position;
+          nearest = distance;
+        }
+      }
+      action.target = pressTarget(carrierAt, option, ownGoal, rules.defensive.pressDistance);
+      break;
+    }
+    case PressRole::kBlockLane:
+      action.type = ActionType::kBlockLane;
+      action.target = laneBlockTarget({.carrier = carrierAt, .receiver = subjectAt},
+                                      player.position, rules.defensive.laneMinDistance);
+      break;
+    case PressRole::kCover:
+      action.type = ActionType::kCover;
+      action.target = coverTarget(subjectAt, ownGoal, rules.defensive.coverDistance);
+      break;
+  }
+  action.target = pitch.clamp(action.target);
+  if (context.collectsDiagnostics()) {
+    context.diagnose(ActionDiagnostic{.tick = context.tick(),
+                                      .player = player.playerId,
+                                      .candidates = {action},
+                                      .chosen = 0,
+                                      .assigned = true});
+  }
+  return PlayerAction{.type = action.type,
+                      .target = action.target,
+                      .subject = action.subject,
+                      .decidedAt = context.tick(),
+                      .withBall = false};
+}
+
 }  // namespace
 
 MatchSystem makeTacticalMovementSystem(const TacticalMovementRules& rules) {
@@ -83,7 +164,10 @@ MatchSystem makeTacticalMovementSystem(const TacticalMovementRules& rules) {
                   PlayerTacticalState& tactical = next.tactical(index);
                   tactical.region = region;
                   SimCore::Vec2 target = region.center;
-                  if (!isGoalkeeper(current, index)) {
+                  if (const auto assigned = pressRoleAction(context, current, index, rules)) {
+                    tactical.action = assigned;
+                    target = assigned->target;
+                  } else if (!isGoalkeeper(current, index)) {
                     const bool withBall = current.possession().team == player.side;
                     if (isActionDecisionDue(current, index, context.tick(), rules.offBall)) {
                       const auto candidates =

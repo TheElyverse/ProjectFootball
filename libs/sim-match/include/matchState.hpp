@@ -18,6 +18,7 @@
 #include "tactic.hpp"
 #include "tacticalPhase.hpp"
 #include "tacticalState.hpp"
+#include "teamPress.hpp"
 #include "vec2.hpp"
 
 namespace ElyverseFootball::SimMatch {
@@ -179,6 +180,27 @@ struct TeamTactics {
   friend bool operator==(const TeamTactics&, const TeamTactics&) = default;
 };
 
+// The last pass played in the match: who kicked it, from where, when, and
+// for whom. Pressing triggers read it (docs/pressing.md).
+struct PassRecord {
+  SimCore::PlayerId passer;
+  SimCore::Vec2 from;
+  SimCore::SimTick tick;
+  std::optional<SimCore::PlayerId> receiver;
+
+  friend bool operator==(const PassRecord&, const PassRecord&) = default;
+};
+
+// The last time a player gained control of a free ball: who, when, and how
+// fast the ball was coming -- a hard ball is hard to control.
+struct ReceptionRecord {
+  SimCore::PlayerId player;
+  SimCore::SimTick tick;
+  double ballSpeed = 0.0;
+
+  friend bool operator==(const ReceptionRecord&, const ReceptionRecord&) = default;
+};
+
 // Which team has the ball, as the tactical phase system last saw it
 // (docs/match-phases.md): the owner's side, or while the ball is free the side
 // of its last touch -- a pass in flight still belongs to the passer's team.
@@ -250,6 +272,13 @@ class MatchState {
   [[nodiscard]] const BallState& ball() const noexcept { return ball_; }
   [[nodiscard]] int playersPerSide() const noexcept { return playersPerSide_; }
 
+  // The last pass kicked and the last reception of a free ball; empty in
+  // every state created from a spec, until the ball system records one.
+  [[nodiscard]] const std::optional<PassRecord>& lastPass() const noexcept { return lastPass_; }
+  [[nodiscard]] const std::optional<ReceptionRecord>& lastReception() const noexcept {
+    return lastReception_;
+  }
+
   // The tactics both sides play; a side without one is scripted.
   [[nodiscard]] const TeamTactics& tactics() const noexcept { return tactics_; }
 
@@ -262,6 +291,11 @@ class MatchState {
   // past the end.
   [[nodiscard]] const PlayerTacticalState& tactical(std::size_t playerIndex) const {
     return tactical_.at(playerIndex);
+  }
+
+  // The side's press in progress, if any (docs/pressing.md).
+  [[nodiscard]] const std::optional<TeamPress>& press(const TeamSide side) const noexcept {
+    return side == TeamSide::kHome ? presses_[0] : presses_[1];
   }
 
   // The player each side has sent after the free ball, if any
@@ -312,6 +346,8 @@ class MatchState {
   // Parallel to players_.
   std::vector<PlayerPerception> perceptions_;
   std::optional<PassIntent> pendingPass_;
+  std::optional<PassRecord> lastPass_;
+  std::optional<ReceptionRecord> lastReception_;
   TeamPossession possession_;
   // Home, away.
   std::array<std::optional<TeamPhase>, 2> phases_;
@@ -320,12 +356,16 @@ class MatchState {
   std::array<std::optional<SimCore::PlayerId>, 2> chasers_;
   // Parallel to players_.
   std::vector<PlayerTacticalState> tactical_;
+  // Home, away.
+  std::array<std::optional<TeamPress>, 2> presses_;
 };
 
 // What a simulation system or command may change in a state: positions,
 // velocities, movement targets, facings, perception memories, who owns and
-// last touched the ball, the pending pass, team possession and phases, the
-// pitch-control grid, the chasers and players' tactical states, nothing else. Squad, ids, sides,
+// last touched the ball, the pending pass, the last pass and reception, team
+// possession and phases, the
+// pitch-control grid, the chasers, presses and players' tactical states,
+// nothing else. Squad, ids, sides,
 // attributes, player order and the pitch have no setter, so a system cannot break those invariants
 // and nothing has to re-check them every tick. Players are addressed by their index in
 // MatchState::players(); an index past the end throws std::out_of_range.
@@ -352,6 +392,9 @@ class MatchStateWriter {
   // Sets or clears the pass waiting to be played; throws
   // std::invalid_argument for a passer or receiver not in the state.
   void setPendingPass(std::optional<PassIntent> pass);
+  // Throw std::invalid_argument for a player not in the state.
+  void setLastPass(std::optional<PassRecord> pass);
+  void setLastReception(std::optional<ReceptionRecord> reception);
   void setPossession(const TeamPossession& possession) noexcept {
     state_->possession_ = possession;
   }
@@ -362,6 +405,9 @@ class MatchStateWriter {
   [[nodiscard]] PlayerTacticalState& tactical(std::size_t playerIndex) {
     return state_->tactical_.at(playerIndex);
   }
+  // Throws std::invalid_argument for a press by a side without a tactic or
+  // naming a player not in the state.
+  void setPress(TeamSide side, std::optional<TeamPress> press);
   // Throws std::invalid_argument for a player not on that side.
   void setChaser(TeamSide side, std::optional<SimCore::PlayerId> chaser);
   void setPitchControl(std::optional<PitchControlGrid> grid) {

@@ -8,10 +8,11 @@ namespace ElyverseFootball::SimMatch {
 
 // A stable 64-bit hash of every field of a match state, in a fixed order:
 // pitch, squad size, then every player in state order, then the ball, then
-// every player's perception memory in state order, then the pending pass, then
+// every player's perception memory in state order, then the pending pass, the
+// last pass and the last reception, then
 // each side's tactic by its content hash, home first, then team possession
 // and each side's phase, then the pitch-control grid, then the chasers, then
-// every player's tactical state in state order. Two
+// every player's tactical state in state order, then each side's press. Two
 // states hash equally if and only if they are equal field by field and bit by
 // bit (short of an FNV collision). Replays record these hashes at checkpoints
 // and compare them on playback.

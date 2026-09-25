@@ -55,19 +55,20 @@ struct ReceptionConfig;
 //
 //   1. A pending pass is played if its passer owns the ball: the ball is
 //      released with executePass()'s velocity and the passer recorded as its
-//      last touch. A pass whose passer does not own the ball is discarded.
-//      Either way the pending pass is cleared.
+//      last touch and in the state's last pass. A pass whose passer does not
+//      own the ball is discarded. Either way the pending pass is cleared.
 //   2. A controlled ball follows its owner: it ends the tick at
 //      carriedBallPosition() of the owner as the movement system moves and
 //      turns him in the same tick, with his velocity.
 //   3. A free ball rolls with stepFreeBall(), and findBallClaim() decides
 //      whether a player reaches it on its way this tick. The claimant owns it
 //      from the end of the tick, with the ball at his feet, and becomes its
-//      last touch.
+//      last touch; the state's last reception records him and how fast the
+//      ball came.
 //
-// Writes the ball's position, velocity, owner and last touch, and clears the
-// pending pass. Throws std::invalid_argument for an invalid configuration.
-// The shorter overloads use the default configuration for what they omit.
+// Writes the ball's position, velocity, owner and last touch, the last pass
+// and reception, and clears the pending pass. Throws std::invalid_argument for an invalid
+// configuration. The shorter overloads use the default configuration for what they omit.
 //
 // Pair it with makePlayerMovementSystem(), both every tick, as
 // makeMatchSystems() does: a controlled ball follows the carrier's move as the

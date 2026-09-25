@@ -177,6 +177,26 @@ void addEventFields(Json& json, const SimMatch::BallWon& event) {
   json["position"] = vec2Json(event.position);
 }
 
+void addEventFields(Json& json, const SimMatch::PressingStarted& event) {
+  json["type"] = "pressingStarted";
+  json["side"] = SimMatch::teamSideName(event.side);
+  json["carrier"] = event.carrier.value();
+  json["trigger"] =
+      event.trigger ? Json(SimTactics::pressingTriggerName(*event.trigger)) : Json(nullptr);
+  json["assignments"] = Json::array();
+  for (const SimMatch::PressAssignment& assignment : event.assignments) {
+    json["assignments"].push_back({{"player", assignment.player.value()},
+                                   {"role", SimMatch::pressRoleName(assignment.role)},
+                                   {"subject", assignment.subject.value()}});
+  }
+}
+
+void addEventFields(Json& json, const SimMatch::PressingEnded& event) {
+  json["type"] = "pressingEnded";
+  json["side"] = SimMatch::teamSideName(event.side);
+  json["outcome"] = SimMatch::pressOutcomeName(event.outcome);
+}
+
 [[nodiscard]] Json eventJson(const SimMatch::MatchEvent& event) {
   Json json;
   // The step's tick, one before the frame's: the event happened during the
@@ -248,6 +268,7 @@ void addEventFields(Json& json, const SimMatch::BallWon& event) {
   json["tick"] = decision.tick.value();
   json["player"] = decision.player.value();
   json["chosen"] = decision.chosen ? Json(*decision.chosen) : Json(nullptr);
+  json["assigned"] = decision.assigned;
   json["candidates"] = Json::array();
   for (const SimMatch::ActionCandidate& candidate : decision.candidates) {
     json["candidates"].push_back(actionCandidateJson(candidate));

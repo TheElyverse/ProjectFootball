@@ -18,6 +18,7 @@
 #include "reception.hpp"
 #include "tacticalMovement.hpp"
 #include "tacticalPhases.hpp"
+#include "teamPressing.hpp"
 
 namespace ElyverseFootball::SimMatch {
 
@@ -38,6 +39,7 @@ struct MatchConfig {
   OffBallConfig offBall;
   DefensiveConfig defensive;
   ChallengeConfig challenge;
+  PressingConfig pressing;
 
   friend bool operator==(const MatchConfig&, const MatchConfig&) = default;
 };
@@ -61,12 +63,13 @@ struct MatchSetup {
 //   1. perception       every perception.intervalTicks ticks
 //   2. tactical phase   every phases.intervalTicks ticks
 //   3. pitch control    every pitchControl.intervalTicks ticks
-//   4. tactical movement every positioning.intervalTicks ticks
-//   5. ball pursuit     every pursuit.intervalTicks ticks
-//   6. pass decision    every decisions.intervalTicks ticks
-//   7. ball challenge   every challenge.intervalTicks ticks
-//   8. player movement  every tick
-//   9. ball movement    every tick
+//   4. team pressing    every pressing.intervalTicks ticks
+//   5. tactical movement every positioning.intervalTicks ticks
+//   6. ball pursuit     every pursuit.intervalTicks ticks
+//   7. pass decision    every decisions.intervalTicks ticks
+//   8. ball challenge   every challenge.intervalTicks ticks
+//   9. player movement  every tick
+//  10. ball movement    every tick
 //
 // Tactical movement runs before pursuit, so in a step where both write the
 // same player's target -- a new chaser -- pursuit's wins.
