@@ -15,6 +15,9 @@
 #include "matchSetup.hpp"
 #include "matchState.hpp"
 #include "pitch.hpp"
+#include "referenceTactic.hpp"
+#include "simTime.hpp"
+#include "tactic.hpp"
 #include "vec2.hpp"
 
 namespace ElyverseFootball::SimMatch {
@@ -35,6 +38,14 @@ constexpr double kPitchWidth = 40.0;
 
 [[nodiscard]] std::expected<MatchSetup, std::string> kickoff(const std::uint64_t seed) {
   return kickoffWith(seed, {});
+}
+
+[[nodiscard]] std::expected<MatchSetup, std::string> tacticMatch(const std::uint64_t seed) {
+  auto reference = SimTactics::Tactic::create(SimTactics::referenceTacticSpec());
+  if (!reference) {
+    return std::unexpected("invalid reference tactic: " + reference.error().front().message);
+  }
+  return makeTacticMatch({.home = *reference, .away = *reference}, seed);
 }
 
 [[nodiscard]] std::expected<MatchSetup, std::string> rollingBall(const std::uint64_t seed) {
@@ -230,12 +241,30 @@ constexpr std::array kScenarios{
                        .description = "home player 1 on the ball, every teammate behind him "
                                       "out of sight",
                        .make = &noPassingOption},
+    ScenarioDefinition{.name = "tactic-match",
+                       .description = "reference tactic against reference tactic, home kicks off",
+                       .make = &tacticMatch},
 };
 
 }  // namespace
 
 std::span<const ScenarioDefinition> scenarios() noexcept {
   return kScenarios;
+}
+
+std::expected<MatchSetup, std::string> makeTacticMatch(TeamTactics tactics,
+                                                       const std::uint64_t seed) {
+  // Home's forward, the last home player of the fixture, takes the kickoff.
+  constexpr SimCore::PlayerId kKickoffTaker{7};
+  auto state = makeSevenASideKickoff(Pitch(kPitchLength, kPitchWidth), {}, std::move(tactics));
+  if (!state) {
+    return std::unexpected("invalid tactic match: " + state.error().front().message);
+  }
+  return MatchSetup{.initialState = *std::move(state),
+                    .config = {},
+                    .seed = seed,
+                    .commands = {{.tick = SimCore::SimTick(0),
+                                  .command = GiveBallCommand{.playerId = kKickoffTaker}}}};
 }
 
 const ScenarioDefinition* findScenario(const std::string_view name) noexcept {

@@ -81,4 +81,5 @@ target_link_libraries(sim-tactics-tests PRIVATE
 )
 # The data files under test live in the source tree.
 target_compile_definitions(sim-tactics-tests PRIVATE PF_DATA_DIR="${PROJECT_SOURCE_DIR}/data")
+target_compile_definitions(sim-match-tests PRIVATE PF_DATA_DIR="${PROJECT_SOURCE_DIR}/data")
 catch_discover_tests(sim-tactics-tests)

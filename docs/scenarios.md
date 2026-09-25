@@ -13,6 +13,7 @@ in `sim-match` (`scenarios.hpp`), and `sim-cli --scenario <name>` runs one.
 | `pass-chain`   | home player 1 on the ball, teammates in a zigzag ahead, no opponent in reach |
 | `intercepted-pass` | home player 1's only option is a risky pass past away player 8 |
 | `no-passing-option` | home player 1 on the ball, every teammate behind him out of sight |
+| `tactic-match` | the reference tactic against itself, home's forward kicks off      |
 
 All scenarios use the 60 × 40 m example pitch and the default `MatchConfig`
 (30 Hz). `sim-cli --list-scenarios` prints the catalog.
@@ -113,6 +114,24 @@ What to look at:
 - **`no-passing-option`**: select player 1. His vision cone points at the away
   side, his teammates are behind him with no observation circle, and every
   decision reads "no valid option".
+
+## The tactic match
+
+`tactic-match` is the fixture two tactics play on: the seven-a-side kickoff
+fixture with a tactic on each side, the standard configuration, and
+`GiveBall` to home's forward (player 7) at tick 0. `makeTacticMatch()` builds it
+for any two tactics that fit seven a side; the catalog entry uses the reference
+tactic on both sides. The CLI swaps in tactic files:
+
+```sh
+./build/debug/apps/sim-cli/sim-cli --home-tactic data/tactics/pressing.json \
+  --away-tactic data/tactics/counter.json --seed 3 --ticks 1800 --frames-out frames.json
+```
+
+`--home-tactic` and `--away-tactic` imply `--scenario tactic-match`; a side
+without one plays the reference tactic. The replay records the tactics
+themselves, so it plays back without the files. See
+[tactical identities](tactical-identities.md) for the presets.
 
 ## Scenarios are versioned
 

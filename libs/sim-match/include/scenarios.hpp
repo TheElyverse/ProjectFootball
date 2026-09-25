@@ -29,4 +29,13 @@ struct ScenarioDefinition {
 // The scenario with this name, or nullptr.
 [[nodiscard]] const ScenarioDefinition* findScenario(std::string_view name) noexcept;
 
+// A seven-a-side match between two tactics: the kickoff fixture on the
+// sandbox pitch with the sides' tactics, the standard configuration, and
+// home's forward (player 7) given the ball at kickoff. Any two tactics that
+// fit seven a side can face each other; a side without a tactic is scripted.
+// The "tactic-match" scenario is this fixture with the reference tactic on
+// both sides.
+[[nodiscard]] std::expected<MatchSetup, std::string> makeTacticMatch(TeamTactics tactics,
+                                                                     std::uint64_t seed);
+
 }  // namespace ElyverseFootball::SimMatch
