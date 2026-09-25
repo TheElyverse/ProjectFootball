@@ -57,7 +57,10 @@ tick it won the ball and whether it won it from the opponent -- and the
 tactical phase of each side with a tactic, `phase(side)`. Both are empty in a
 state created from a spec and kept up to date by the tactical phase system; see
 [match phases](match-phases.md). Likewise `pitchControl()` caches the
-[pitch-control](pitch-control.md) grid between refreshes.
+[pitch-control](pitch-control.md) grid between refreshes, `chaser(side)` names the
+player each side has sent after a free ball ([reception](reception.md)), and
+`tactical(playerIndex)` holds each player's tactical runtime state, such as his
+[desired region](desired-region.md). All are empty in a state created from a spec.
 
 Every player also has a perception memory, `perception(playerIndex)`: what he
 believes about the ball and the other players (see [perception](perception.md)).

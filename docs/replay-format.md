@@ -60,7 +60,17 @@ validation leaves no file behind.
       }
     },
         "phases": { "intervalTicks": 10, "transitionSeconds": 4.0, "hysteresisMeters": 3.0 },
-    "pitchControl": { "intervalTicks": 10, "cellSize": 2.0, "controlSeconds": 0.5 }
+        "pitchControl": { "intervalTicks": 10, "cellSize": 2.0, "controlSeconds": 0.5 },
+    "positioning": {
+      "intervalTicks": 6,
+      "candidateSpacing": 3.0,
+      "targetDistanceScale": 10.0,
+      "spacingRadius": 6.0,
+      "pressureRadius": 8.0,
+      "minConfidence": 0.3,
+      "hysteresisCost": 0.15,
+      "maxShiftMeters": 3.0
+    }
   },
   "initialState": {
     "pitch": { "length": 60.0, "width": 40.0 },
