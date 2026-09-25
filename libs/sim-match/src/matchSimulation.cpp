@@ -167,8 +167,14 @@ void MatchStepContext::record(const MatchEvent& event) const {
 }
 
 void MatchStepContext::diagnose(DecisionDiagnostic diagnostic) const {
-  if (diagnostics_ != nullptr) {
-    diagnostics_->push_back(std::move(diagnostic));
+  if (diagnostics_.decisions != nullptr) {
+    diagnostics_.decisions->push_back(std::move(diagnostic));
+  }
+}
+
+void MatchStepContext::diagnose(ActionDiagnostic diagnostic) const {
+  if (diagnostics_.actions != nullptr) {
+    diagnostics_.actions->push_back(std::move(diagnostic));
   }
 }
 
@@ -240,13 +246,17 @@ std::expected<SimCore::SimTick, MatchStepError> MatchSimulation::step() {
   // clear() keeps the buffers' capacity: steady-state steps allocate nothing.
   stepEvents_.clear();
   stepDiagnostics_.clear();
+  stepActionDiagnostics_.clear();
   const MatchState& current = applyDueCommands();
   // Copy-assigning a state of the same squad reuses next_'s storage.
   next_ = current;
 
   MatchStateWriter writer(next_);
-  const MatchStepContext context(clock_.tick(), clock_.secondsPerTick(), random_, stepEvents_,
-                                 collectDiagnostics_ ? &stepDiagnostics_ : nullptr);
+  const MatchStepContext context(
+      clock_.tick(), clock_.secondsPerTick(), random_, stepEvents_,
+      collectDiagnostics_ ? MatchStepContext::Diagnostics{.decisions = &stepDiagnostics_,
+                                                          .actions = &stepActionDiagnostics_}
+                          : MatchStepContext::Diagnostics{});
   for (const MatchSystem& system : systems_) {
     if (!isDue(system, context.tick())) {
       continue;
@@ -276,6 +286,7 @@ std::expected<SimCore::SimTick, MatchStepError> MatchSimulation::step() {
   std::swap(current_, next_);
   std::swap(events_, stepEvents_);
   std::swap(diagnostics_, stepDiagnostics_);
+  std::swap(actionDiagnostics_, stepActionDiagnostics_);
   return tick;
 }
 

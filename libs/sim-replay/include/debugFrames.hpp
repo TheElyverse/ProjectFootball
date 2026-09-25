@@ -26,6 +26,7 @@ struct DebugFrame {
   SimCore::SimTick tick;
   std::vector<SimMatch::MatchEvent> events;
   std::vector<SimMatch::DecisionDiagnostic> decisions;
+  std::vector<SimMatch::ActionDiagnostic> actions;
 };
 
 // A match as a sequence of frames, one per tick, for the debug viewer.

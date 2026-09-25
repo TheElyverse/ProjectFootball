@@ -262,3 +262,28 @@ TEST_CASE("The perception system rejects an invalid configuration", "[perception
 
   REQUIRE_THROWS_AS(makePerceptionSystem(config), std::invalid_argument);
 }
+
+TEST_CASE("Remembered players are where the observer believes them", "[perception]") {
+  using ElyverseFootball::SimMatch::RememberedPlayer;
+  using ElyverseFootball::SimMatch::rememberedPlayers;
+  MatchSimulation simulation({.initialState = scene(),
+                              .seed = 1,
+                              .ticksPerSecond = 30,
+                              .systems = {makePerceptionSystem(kConfig)},
+                              .commands = {}});
+  REQUIRE(simulation.step().has_value());
+  // Observer 1 sees player 2 ahead and senses player 4 behind him; player 3,
+  // 10 m behind, is out of sight.
+  const auto remembered =
+      rememberedPlayers(simulation.state(), 0, SimTick(1), kSecondsPerTick, kConfig, 0.3);
+  REQUIRE(remembered.size() == 2);
+  REQUIRE(remembered.at(0) == RememberedPlayer{.index = 2,
+                                               .playerId = PlayerId(2),
+                                               .position = {.x = 35.0, .y = 25.0},
+                                               .velocity = {},
+                                               .confidence = 1.0,
+                                               .teammate = false});
+  REQUIRE(remembered.at(1).playerId == PlayerId(4));
+  REQUIRE(
+      rememberedPlayers(simulation.state(), 0, SimTick(1), kSecondsPerTick, kConfig, 1.1).empty());
+}

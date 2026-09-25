@@ -1,7 +1,11 @@
 #pragma once
 
+#include <cstdint>
 #include <optional>
+#include <string_view>
 
+#include "ids.hpp"
+#include "simTime.hpp"
 #include "vec2.hpp"
 
 namespace ElyverseFootball::SimMatch {
@@ -37,6 +41,25 @@ struct DesiredRegion {
 
   friend bool operator==(const DesiredRegion&, const DesiredRegion&) = default;
 };
+
+// What a player without the ball has decided to do (docs/off-ball-movement.md).
+enum class ActionType : std::uint8_t {
+  // Stay in the desired region.
+  kHoldPosition,
+  // Offer the ball carrier a short pass with an open lane.
+  kSupportCarrier,
+  // Move to nearby space his team controls.
+  kMoveIntoSpace,
+  // Run into the space behind the opponent's defensive line.
+  kRunInBehind,
+  // Stretch the play on the wing of his side of the pitch.
+  kCreateWidth,
+  // Take up the halfspace on his side of the pitch.
+  kOccupyHalfspace,
+};
+
+// "holdPosition", "supportCarrier", ...; "unknown" outside the enumerators.
+[[nodiscard]] std::string_view actionName(ActionType type) noexcept;
 
 // A player's tactical runtime state, kept in the match state because
 // systems keep nothing between ticks. Empty for a player of a scripted side.

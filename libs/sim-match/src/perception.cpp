@@ -140,6 +140,31 @@ void perceive(const MatchState& state, const std::size_t observerIndex, const Si
   std::ranges::sort(observations, {}, &Observation::entity);
 }
 
+std::vector<RememberedPlayer> rememberedPlayers(const MatchState& state,
+                                                const std::size_t observerIndex, const SimTick now,
+                                                const double secondsPerTick,
+                                                const PerceptionConfig& config,
+                                                const double minConfidence) {
+  const TeamSide side = state.players()[observerIndex].side;
+  std::vector<RememberedPlayer> remembered;
+  for (const Observation& observation : state.perception(observerIndex).observations) {
+    if (observation.entity.isBall() || observation.confidence < minConfidence) {
+      continue;
+    }
+    const auto index = findPlayerIndex(state, observation.entity.playerId());
+    if (!index) {
+      continue;
+    }
+    remembered.push_back({.index = *index,
+                          .playerId = observation.entity.playerId(),
+                          .position = estimatePosition(observation, now, secondsPerTick, config),
+                          .velocity = observation.velocity,
+                          .confidence = observation.confidence,
+                          .teammate = state.players()[*index].side == side});
+  }
+  return remembered;
+}
+
 MatchSystem makePerceptionSystem(const PerceptionConfig& config) {
   validate(config);
   return {.name = std::string(kPerceptionSystemName),

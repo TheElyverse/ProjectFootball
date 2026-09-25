@@ -181,6 +181,35 @@ void addEventFields(Json& json, const SimMatch::PhaseChanged& event) {
   return json;
 }
 
+[[nodiscard]] Json actionCandidateJson(const SimMatch::ActionCandidate& candidate) {
+  const SimMatch::ActionScores& scores = candidate.scores;
+  Json json;
+  json["type"] = SimMatch::actionName(candidate.type);
+  json["target"] = vec2Json(candidate.target);
+  json["subject"] = idJson(candidate.subject);
+  json["scores"] = {{"responsibility", rounded(scores.responsibility)},
+                    {"region", rounded(scores.region)},
+                    {"space", rounded(scores.space)},
+                    {"lane", rounded(scores.lane)},
+                    {"urgency", rounded(scores.urgency)},
+                    {"effort", rounded(scores.effort)}};
+  json["utility"] = rounded(candidate.utility);
+  json["dominant"] = SimMatch::dominantScore(scores);
+  return json;
+}
+
+[[nodiscard]] Json actionDecisionJson(const SimMatch::ActionDiagnostic& decision) {
+  Json json;
+  json["tick"] = decision.tick.value();
+  json["player"] = decision.player.value();
+  json["chosen"] = decision.chosen ? Json(*decision.chosen) : Json(nullptr);
+  json["candidates"] = Json::array();
+  for (const SimMatch::ActionCandidate& candidate : decision.candidates) {
+    json["candidates"].push_back(actionCandidateJson(candidate));
+  }
+  return json;
+}
+
 [[nodiscard]] Json frameJson(const DebugFrame& frame) {
   Json json;
   json["tick"] = frame.tick.value();
@@ -199,6 +228,10 @@ void addEventFields(Json& json, const SimMatch::PhaseChanged& event) {
   for (const SimMatch::DecisionDiagnostic& decision : frame.decisions) {
     json["decisions"].push_back(decisionJson(decision));
   }
+  json["actions"] = Json::array();
+  for (const SimMatch::ActionDiagnostic& action : frame.actions) {
+    json["actions"].push_back(actionDecisionJson(action));
+  }
   return json;
 }
 
@@ -210,16 +243,20 @@ DebugFrameRecorder::DebugFrameRecorder(const SimMatch::MatchSetup& setup, std::s
                  .seed = setup.seed,
                  .config = setup.config,
                  .frames = {}} {
-  recording_.frames.push_back(DebugFrame{
-      .state = setup.initialState, .tick = SimCore::SimTick(0), .events = {}, .decisions = {}});
+  recording_.frames.push_back(DebugFrame{.state = setup.initialState,
+                                         .tick = SimCore::SimTick(0),
+                                         .events = {},
+                                         .decisions = {},
+                                         .actions = {}});
 }
 
 void DebugFrameRecorder::recordStep(const SimMatch::MatchSimulation& simulation) {
-  recording_.frames.push_back(
-      DebugFrame{.state = simulation.state(),
-                 .tick = simulation.tick(),
-                 .events = {simulation.events().begin(), simulation.events().end()},
-                 .decisions = {simulation.diagnostics().begin(), simulation.diagnostics().end()}});
+  recording_.frames.push_back(DebugFrame{
+      .state = simulation.state(),
+      .tick = simulation.tick(),
+      .events = {simulation.events().begin(), simulation.events().end()},
+      .decisions = {simulation.diagnostics().begin(), simulation.diagnostics().end()},
+      .actions = {simulation.actionDiagnostics().begin(), simulation.actionDiagnostics().end()}});
 }
 
 std::string toDebugFramesJson(const DebugRecording& recording) {

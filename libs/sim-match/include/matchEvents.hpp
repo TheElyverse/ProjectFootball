@@ -7,6 +7,7 @@
 #include <variant>
 #include <vector>
 
+#include "actionCandidate.hpp"
 #include "ids.hpp"
 #include "matchState.hpp"
 #include "observation.hpp"
@@ -117,6 +118,19 @@ struct DecisionDiagnostic {
   std::optional<std::size_t> chosen;
 
   friend bool operator==(const DecisionDiagnostic&, const DecisionDiagnostic&) = default;
+};
+
+// Why a player without the ball chose his action: every option with its
+// weighted scores, and his choice. Like DecisionDiagnostic, debug output
+// only: collected on request, never hashed, never read by a system.
+struct ActionDiagnostic {
+  SimCore::SimTick tick;
+  SimCore::PlayerId player;
+  std::vector<ActionCandidate> candidates;
+  // Index into candidates of the chosen action.
+  std::optional<std::size_t> chosen;
+
+  friend bool operator==(const ActionDiagnostic&, const ActionDiagnostic&) = default;
 };
 
 }  // namespace ElyverseFootball::SimMatch

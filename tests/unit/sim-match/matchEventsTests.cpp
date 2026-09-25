@@ -287,3 +287,48 @@ TEST_CASE("A failed step publishes no events", "[matchEvents]") {
   REQUIRE(simulation.events().size() == 1);
   REQUIRE(eventTick(simulation.events().front()) == SimTick(0));
 }
+
+TEST_CASE("Action diagnostics are kept only when collected", "[matchEvents]") {
+  using ElyverseFootball::SimMatch::ActionCandidate;
+  using ElyverseFootball::SimMatch::ActionDiagnostic;
+  using ElyverseFootball::SimMatch::ActionType;
+  using ElyverseFootball::SimMatch::MatchStateWriter;
+  using ElyverseFootball::SimMatch::MatchStepContext;
+  using ElyverseFootball::SimMatch::MatchSystem;
+  const ActionDiagnostic diagnostic{
+      .tick = SimTick(0),
+      .player = PlayerId(3),
+      .candidates = {ActionCandidate{.type = ActionType::kRunInBehind,
+                                     .target = {.x = 50.0, .y = 20.0},
+                                     .subject = std::nullopt,
+                                     .scores = {.responsibility = 1.0},
+                                     .utility = 1.0}},
+      .chosen = 0};
+  const MatchSystem explain{
+      .name = "explain",
+      .update = [&diagnostic](const MatchStepContext& context, const MatchState&,
+                              MatchStateWriter&) { context.diagnose(diagnostic); }};
+  const auto kickoff = makeSevenASideKickoff(Pitch(60.0, 40.0));
+  REQUIRE(kickoff.has_value());
+  MatchSimulation simulation({.initialState = *kickoff,
+                              .seed = 1,
+                              .ticksPerSecond = 30,
+                              .systems = {explain},
+                              .commands = {}});
+  REQUIRE(simulation.step().has_value());
+  REQUIRE(simulation.actionDiagnostics().empty());
+  simulation.setCollectDiagnostics(true);
+  REQUIRE(simulation.step().has_value());
+  REQUIRE(simulation.actionDiagnostics().size() == 1);
+  REQUIRE(simulation.actionDiagnostics().front() == diagnostic);
+  REQUIRE(simulation.diagnostics().empty());
+}
+
+TEST_CASE("An action's dominant score is its largest contribution", "[matchEvents]") {
+  using ElyverseFootball::SimMatch::ActionScores;
+  using ElyverseFootball::SimMatch::dominantScore;
+  REQUIRE(dominantScore({.responsibility = 0.4, .region = -0.9, .lane = 0.8}) == "region");
+  REQUIRE(dominantScore({.space = 0.5, .lane = 0.5}) == "space");
+  REQUIRE(dominantScore(ActionScores{}) == "responsibility");
+  REQUIRE(ActionScores{.responsibility = 1.0, .effort = -0.25}.total() == 0.75);
+}

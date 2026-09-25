@@ -46,18 +46,27 @@ class MatchStepContext {
 
   // Whether anyone asked for decision diagnostics. A system may skip building
   // them when not; it must decide the same either way.
-  [[nodiscard]] bool collectsDiagnostics() const noexcept { return diagnostics_ != nullptr; }
+  [[nodiscard]] bool collectsDiagnostics() const noexcept {
+    return diagnostics_.decisions != nullptr;
+  }
 
   // Keeps a decision diagnostic of this step if diagnostics are collected,
   // and drops it otherwise.
   void diagnose(DecisionDiagnostic diagnostic) const;
+  void diagnose(ActionDiagnostic diagnostic) const;
 
  private:
   friend class MatchSimulation;
 
+  // The diagnostics a step collects, if any are collected.
+  struct Diagnostics {
+    std::vector<DecisionDiagnostic>* decisions = nullptr;
+    std::vector<ActionDiagnostic>* actions = nullptr;
+  };
+
   MatchStepContext(const SimCore::SimTick tick, const double secondsPerTick,
                    MatchRandomStreams& random, std::vector<MatchEvent>& events,
-                   std::vector<DecisionDiagnostic>* diagnostics) noexcept
+                   const Diagnostics diagnostics) noexcept
       : tick_(tick),
         secondsPerTick_(secondsPerTick),
         random_(&random),
@@ -68,7 +77,7 @@ class MatchStepContext {
   double secondsPerTick_;
   MatchRandomStreams* random_;
   std::vector<MatchEvent>* events_;
-  std::vector<DecisionDiagnostic>* diagnostics_;
+  Diagnostics diagnostics_;
 };
 
 // A system reads the current tick's state and writes the next one. It never
@@ -184,6 +193,12 @@ class MatchSimulation {
     return diagnostics_;
   }
 
+  // The action diagnostics of players without the ball in the last
+  // successful step, if collected.
+  [[nodiscard]] std::span<const ActionDiagnostic> actionDiagnostics() const noexcept {
+    return actionDiagnostics_;
+  }
+
   [[nodiscard]] SimCore::SimTick tick() const noexcept { return clock_.tick(); }
   [[nodiscard]] double elapsedSeconds() const noexcept { return clock_.elapsedSeconds(); }
   [[nodiscard]] int ticksPerSecond() const noexcept { return clock_.ticksPerSecond(); }
@@ -221,8 +236,10 @@ class MatchSimulation {
   // failed step leaves the last step's output untouched.
   std::vector<MatchEvent> stepEvents_;
   std::vector<DecisionDiagnostic> stepDiagnostics_;
+  std::vector<ActionDiagnostic> stepActionDiagnostics_;
   std::vector<MatchEvent> events_;
   std::vector<DecisionDiagnostic> diagnostics_;
+  std::vector<ActionDiagnostic> actionDiagnostics_;
   bool collectDiagnostics_ = false;
 };
 

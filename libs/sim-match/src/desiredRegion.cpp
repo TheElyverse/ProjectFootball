@@ -115,13 +115,6 @@ struct ShapeSpan {
                       .y = std::clamp(followed, centre - range, centre + range)});
 }
 
-// A remembered player where the observer believes he is now.
-struct Believed {
-  Vec2 position;
-  double confidence = 0.0;
-  bool teammate = false;
-};
-
 }  // namespace
 
 Vec2 tacticalTarget(const MatchState& state, const std::size_t playerIndex,
@@ -186,22 +179,14 @@ PositionCost evaluatePosition(const MatchState& state, const std::size_t playerI
   cost.targetDistance =
       std::sqrt((candidate - target).lengthSquared()) / config.targetDistanceScale;
 
-  for (const Observation& observation : state.perception(playerIndex).observations) {
-    if (observation.entity.isBall() || observation.confidence < config.minConfidence) {
-      continue;
-    }
-    const auto index = findPlayerIndex(state, observation.entity.playerId());
-    if (!index) {
-      continue;
-    }
-    const Vec2 believed = estimatePosition(observation, now, secondsPerTick, perception);
-    const double distance = std::sqrt((believed - candidate).lengthSquared());
-    if (state.players()[*index].side == side) {
+  for (const RememberedPlayer& other : rememberedPlayers(state, playerIndex, now, secondsPerTick,
+                                                         perception, config.minConfidence)) {
+    const double distance = std::sqrt((other.position - candidate).lengthSquared());
+    if (other.teammate) {
       const double crowding = std::max(0.0, 1.0 - (distance / config.spacingRadius));
       cost.spacing += crowding * crowding;
     } else {
-      cost.pressure +=
-          observation.confidence * std::max(0.0, 1.0 - (distance / config.pressureRadius));
+      cost.pressure += other.confidence * std::max(0.0, 1.0 - (distance / config.pressureRadius));
     }
   }
 

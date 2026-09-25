@@ -2,6 +2,7 @@
 
 #include <cstddef>
 #include <string_view>
+#include <vector>
 
 #include "matchSimulation.hpp"
 #include "matchState.hpp"
@@ -46,6 +47,27 @@ struct PerceptionConfig {
 [[nodiscard]] SimCore::Vec2 estimatePosition(const Observation& observation, SimCore::SimTick now,
                                              double secondsPerTick,
                                              const PerceptionConfig& config) noexcept;
+
+// A player someone remembers, where he believes that player is now.
+struct RememberedPlayer {
+  // Index in MatchState::players().
+  std::size_t index = 0;
+  SimCore::PlayerId playerId;
+  // estimatePosition() of the observation.
+  SimCore::Vec2 position;
+  SimCore::Vec2 velocity;
+  double confidence = 0.0;
+  bool teammate = false;
+
+  friend bool operator==(const RememberedPlayer&, const RememberedPlayer&) = default;
+};
+
+// Every player the player at observerIndex remembers with at least
+// minConfidence, in his memory's order (by id). Squad membership -- who is a
+// teammate -- is known; positions are believed.
+[[nodiscard]] std::vector<RememberedPlayer> rememberedPlayers(
+    const MatchState& state, std::size_t observerIndex, SimCore::SimTick now, double secondsPerTick,
+    const PerceptionConfig& config, double minConfidence);
 
 // One perception update for the player at observerIndex at tick now: every
 // entity he can see gets a fresh observation with confidence 1; every entity
