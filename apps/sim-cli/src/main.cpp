@@ -18,10 +18,13 @@
 #include "cliOptions.hpp"
 #include "debugFrames.hpp"
 #include "matchSetup.hpp"
+#include "referenceTactic.hpp"
 #include "replay.hpp"
 #include "replayJson.hpp"
 #include "scenarios.hpp"
 #include "simTime.hpp"
+#include "tactic.hpp"
+#include "tacticJson.hpp"
 #include "terminalUi.hpp"
 
 namespace {
@@ -98,6 +101,47 @@ void listScenarios() {
   }
 }
 
+// The tactic file at path, or the reference tactic for an empty path.
+std::expected<ElyverseFootball::SimTactics::Tactic, std::string> tacticOrReference(
+    const std::string& path) {
+  if (path.empty()) {
+    auto reference = ElyverseFootball::SimTactics::Tactic::create(
+        ElyverseFootball::SimTactics::referenceTacticSpec());
+    if (!reference) {
+      return std::unexpected("invalid reference tactic: " + reference.error().front().message);
+    }
+    return *std::move(reference);
+  }
+  auto tactic = ElyverseFootball::SimTactics::loadTactic(path);
+  if (!tactic) {
+    return std::unexpected(tactic.error().message);
+  }
+  return *std::move(tactic);
+}
+
+std::string tacticName(const std::optional<ElyverseFootball::SimTactics::Tactic>& tactic) {
+  return tactic ? tactic->name() : "scripted";
+}
+
+// The setup of the run: the scenario's, or with tactic files a tactic match.
+std::expected<MatchSetup, std::string> makeSetup(
+    const CliOptions& options, const ElyverseFootball::SimMatch::ScenarioDefinition& scenario,
+    const std::uint64_t seed) {
+  if (options.homeTactic.empty() && options.awayTactic.empty()) {
+    return scenario.make(seed);
+  }
+  auto home = tacticOrReference(options.homeTactic);
+  if (!home) {
+    return std::unexpected(home.error());
+  }
+  auto away = tacticOrReference(options.awayTactic);
+  if (!away) {
+    return std::unexpected(away.error());
+  }
+  return ElyverseFootball::SimMatch::makeTacticMatch(
+      {.home = *std::move(home), .away = *std::move(away)}, seed);
+}
+
 // Runs a scenario, records it, writes the replay and, with --frames-out, the
 // debug frames, then reports. Files are written before the terminal
 // interface opens.
@@ -110,7 +154,7 @@ int runScenario(const CliOptions& options) {
     return fail("--frames-out and --replay-out name the same file '" + options.framesOut + "'");
   }
   const std::uint64_t seed = resolveSeed(options);
-  const auto setup = scenario->make(seed);
+  const auto setup = makeSetup(options, *scenario, seed);
   if (!setup) {
     return fail(setup.error());
   }
@@ -151,13 +195,18 @@ int runScenario(const CliOptions& options) {
   // Elapsed time as the simulation clock computes it: one division.
   const double elapsedSeconds = static_cast<double>(replay.finalTick.value()) /
                                 static_cast<double>(setup->config.ticksPerSecond);
-  std::vector<SummaryLine> lines{{"scenario", options.scenario},
-                                 {"seed", std::to_string(seed)},
-                                 {"ticks", std::to_string(replay.finalTick.value())},
-                                 {"time", std::format("{} s", elapsedSeconds)},
-                                 {"state hash", hashText(replay.checkpoints.back().stateHash)},
-                                 {"event hash", hashText(replay.checkpoints.back().eventHash)},
-                                 {"replay", options.replayOut}};
+  std::vector<SummaryLine> lines{{"scenario", options.scenario}};
+  if (!options.homeTactic.empty() || !options.awayTactic.empty()) {
+    const auto& tactics = setup->initialState.tactics();
+    lines.emplace_back("home tactic", tacticName(tactics.home));
+    lines.emplace_back("away tactic", tacticName(tactics.away));
+  }
+  lines.insert(lines.end(), {{"seed", std::to_string(seed)},
+                             {"ticks", std::to_string(replay.finalTick.value())},
+                             {"time", std::format("{} s", elapsedSeconds)},
+                             {"state hash", hashText(replay.checkpoints.back().stateHash)},
+                             {"event hash", hashText(replay.checkpoints.back().eventHash)},
+                             {"replay", options.replayOut}});
   if (frames) {
     lines.emplace_back("frames", options.framesOut);
   }

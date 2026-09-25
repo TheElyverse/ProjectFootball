@@ -136,3 +136,21 @@ file(READ "${replay}" contents)
 string(JSON longReplay SET "${contents}" gameTime 9007199254740992)
 file(WRITE "${TEST_OUTPUT_DIR}/long.json" "${longReplay}")
 expect_failure("plays at most 10000000" --play "${TEST_OUTPUT_DIR}/long.json")
+
+# Two tactic files face each other in the tactic match, and the replay plays
+# back without them.
+run_cli(--home-tactic "${DATA_DIR}/tactics/pressing.json" --away-tactic
+        "${DATA_DIR}/tactics/counter.json" --seed 3 --ticks 90 --replay-out "${replay}")
+if(NOT result STREQUAL "0" OR NOT output MATCHES "scenario: +tactic-match\n"
+        OR NOT output MATCHES "home tactic: +pressing\n" OR NOT output MATCHES "away tactic: +counter\n")
+    message(FATAL_ERROR "Tactic match failed: ${result}: ${output}${error}")
+endif()
+run_cli(--play "${replay}")
+if(NOT result STREQUAL "0")
+    message(FATAL_ERROR "Tactic match playback failed: ${result}: ${output}${error}")
+endif()
+expect_failure("only apply to --scenario tactic-match" --scenario kickoff --home-tactic
+        "${DATA_DIR}/tactics/pressing.json")
+expect_failure("cannot read" --away-tactic "${TEST_OUTPUT_DIR}/missing-tactic.json")
+expect_failure("cannot be combined" --play "${replay}" --home-tactic
+        "${DATA_DIR}/tactics/pressing.json")

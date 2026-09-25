@@ -17,5 +17,6 @@ add_test(NAME sim-cli-smoke
         COMMAND ${CMAKE_COMMAND}
         -DSIM_CLI=$<TARGET_FILE:sim-cli>
         -DTEST_OUTPUT_DIR=${CMAKE_CURRENT_BINARY_DIR}/sim-cli-smoke
+        -DDATA_DIR=${PROJECT_SOURCE_DIR}/data
         -P ${CMAKE_CURRENT_SOURCE_DIR}/cli/smoke.cmake
 )

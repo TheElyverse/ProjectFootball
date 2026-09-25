@@ -67,6 +67,7 @@ std::expected<CliOptions, std::string> parseCliOptions(const std::span<char* con
   bool listScenarios = false;
   bool play = false;
   bool newRunOption = false;
+  bool scenarioGiven = false;
   ArgumentReader reader(args);
   while (!reader.done()) {
     const std::string_view arg = reader.next();
@@ -87,7 +88,8 @@ std::expected<CliOptions, std::string> parseCliOptions(const std::span<char* con
       play = true;
       options.playPath = *path;
     } else if (arg == "--scenario" || arg == "--seed" || arg == "--ticks" ||
-               arg == "--replay-out" || arg == "--frames-out") {
+               arg == "--replay-out" || arg == "--frames-out" || arg == "--home-tactic" ||
+               arg == "--away-tactic") {
       const auto value = reader.value(arg);
       if (!value) {
         return std::unexpected(value.error());
@@ -95,6 +97,11 @@ std::expected<CliOptions, std::string> parseCliOptions(const std::span<char* con
       newRunOption = true;
       if (arg == "--scenario") {
         options.scenario = *value;
+        scenarioGiven = true;
+      } else if (arg == "--home-tactic") {
+        options.homeTactic = *value;
+      } else if (arg == "--away-tactic") {
+        options.awayTactic = *value;
       } else if (arg == "--replay-out") {
         options.replayOut = *value;
       } else if (arg == "--frames-out") {
@@ -128,12 +135,20 @@ std::expected<CliOptions, std::string> parseCliOptions(const std::span<char* con
   if (play && newRunOption) {
     return std::unexpected(
         "--play takes everything from the replay file and cannot be combined with --scenario, "
-        "--seed, --ticks, --replay-out or --frames-out");
+        "--seed, --ticks, --replay-out, --frames-out or a tactic");
   }
   if (listScenarios && newRunOption) {
     return std::unexpected(
         "--list-scenarios runs nothing and cannot be combined with --scenario, --seed, --ticks, "
-        "--replay-out or --frames-out");
+        "--replay-out, --frames-out or a tactic");
+  }
+  if (!options.homeTactic.empty() || !options.awayTactic.empty()) {
+    if (scenarioGiven && options.scenario != kTacticMatchScenario) {
+      return std::unexpected("--home-tactic and --away-tactic only apply to --scenario " +
+                             std::string(kTacticMatchScenario) + ", got --scenario " +
+                             options.scenario);
+    }
+    options.scenario = kTacticMatchScenario;
   }
   if (!options.framesOut.empty() && options.ticks > kMaxFrameTicks) {
     return std::unexpected("--frames-out records at most " + std::to_string(kMaxFrameTicks) +
