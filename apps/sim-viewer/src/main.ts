@@ -29,6 +29,14 @@ const speedSelect = required("speed", HTMLSelectElement);
 const slider = required("scrub", HTMLInputElement);
 const tickLabel = required("tick", HTMLElement);
 const allTargets = required("all-targets", HTMLInputElement);
+// One checkbox per overlay, in the order of the Overlays fields.
+const overlayBoxes = {
+  pitchControl: required("overlay-pitch-control", HTMLInputElement),
+  zones: required("overlay-zones", HTMLInputElement),
+  regions: required("overlay-regions", HTMLInputElement),
+  shape: required("overlay-shape", HTMLInputElement),
+  press: required("overlay-press", HTMLInputElement),
+};
 
 const context2d = canvas.getContext("2d");
 if (context2d === null) {
@@ -50,7 +58,15 @@ for (const speed of SPEEDS) {
 }
 
 function setControlsEnabled(enabled: boolean): void {
-  for (const control of [playButton, backButton, forwardButton, speedSelect, slider, allTargets]) {
+    for (const control of [
+    playButton,
+    backButton,
+    forwardButton,
+    speedSelect,
+    slider,
+    allTargets,
+    ...Object.values(overlayBoxes),
+  ]) {
     control.disabled = !enabled;
   }
 }
@@ -77,7 +93,14 @@ function draw(): void {
   renderFrame(context, viewport, recording, {
     frameIndex: playback.index,
     selectedPlayer,
-    showAllTargets: allTargets.checked,
+        showAllTargets: allTargets.checked,
+    overlays: {
+      pitchControl: overlayBoxes.pitchControl.checked,
+      zones: overlayBoxes.zones.checked,
+      regions: overlayBoxes.regions.checked,
+      shape: overlayBoxes.shape.checked,
+      press: overlayBoxes.press.checked,
+    },
   });
   renderPanel(panel, recording, playback.index, selectedPlayer);
   const frame = recording.frames[playback.index];
@@ -138,6 +161,9 @@ slider.addEventListener("input", () => {
   draw();
 });
 allTargets.addEventListener("change", draw);
+for (const box of Object.values(overlayBoxes)) {
+  box.addEventListener("change", draw);
+}
 
 canvas.addEventListener("click", (event) => {
   const frame = recording?.frames[playback?.index ?? 0];

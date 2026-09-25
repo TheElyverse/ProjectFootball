@@ -22,7 +22,14 @@
           <select id="speed" title="Playback speed"></select>
           <input id="scrub" type="range" min="0" max="0" value="0" aria-label="Frame" />
           <span id="tick" class="tick">tick 0 / 0</span>
-          <label><input id="all-targets" type="checkbox" /> all targets</label>
+                    <label><input id="all-targets" type="checkbox" /> all targets</label>
+        </div>
+        <div class="controls overlays" title="Tactical overlays">
+          <label><input id="overlay-pitch-control" type="checkbox" /> pitch control</label>
+          <label><input id="overlay-zones" type="checkbox" /> zones</label>
+          <label><input id="overlay-regions" type="checkbox" /> regions</label>
+          <label><input id="overlay-shape" type="checkbox" checked /> lines</label>
+          <label><input id="overlay-press" type="checkbox" checked /> press</label>
         </div>
       </section>
       <aside id="panel"></aside>

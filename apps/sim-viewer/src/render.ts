@@ -7,12 +7,14 @@ import {
   type Vec2,
 } from "./frames.js";
 import { visionCone, type Viewport } from "./geometry.js";
+import { drawActionCandidates, drawOverlays, type Overlays } from "./overlays.js";
 
 // What to draw beyond the plain frame.
 export interface RenderOptions {
   readonly frameIndex: number;
   readonly selectedPlayer: number | null;
-  readonly showAllTargets: boolean;
+    readonly showAllTargets: boolean;
+  readonly overlays: Overlays;
 }
 
 const COLORS = {
@@ -256,12 +258,15 @@ export function renderFrame(
   if (frame === undefined) {
     return;
   }
-  drawPitch(context, viewport, recording);
+    drawPitch(context, viewport, recording);
+  drawOverlays(context, viewport, recording, options.frameIndex, options.overlays);
+
 
   const selected = frame.players.find((player) => player.id === options.selectedPlayer);
   if (selected !== undefined) {
     drawPerception(context, viewport, recording, selected);
-    drawDecision(context, viewport, recording, options, selected.id);
+        drawDecision(context, viewport, recording, options, selected.id);
+    drawActionCandidates(context, viewport, recording, options.frameIndex, selected.id);
   }
   for (const player of frame.players) {
     if (options.showAllTargets || player.id === options.selectedPlayer) {

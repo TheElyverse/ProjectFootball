@@ -1,10 +1,12 @@
 import {
-    describeEvent,
-  isLoggedEvent,
+  describeEvent,
   frameSeconds,
+  isLoggedEvent,
+  latestActionDecision,
   latestDecision,
   sideOf,
   type Frame,
+  type TeamFrame,
   type Observation,
   type PlayerFrame,
   type Recording,
@@ -78,12 +80,50 @@ function matchSection(recording: Recording, frame: Frame): HTMLElement[] {
   ];
 }
 
+function teamLines(recording: Recording, team: TeamFrame): (readonly [string, string])[] {
+  const lines: (readonly [string, string])[] = [
+    ["tactic", team.tactic ?? "scripted"],
+    ["phase", team.phase ?? "-"],
+  ];
+  if (team.shape !== null) {
+    const target =
+      team.instruction === null
+        ? ""
+        : ` (asked ${number(team.instruction.lineHeight * recording.pitch.length, 1)})`;
+    lines.push(
+      ["defensive line", `${number(team.shape.defensiveLine, 1)} m${target}`],
+      ["length x width", `${number(team.shape.length, 1)} x ${number(team.shape.width, 1)} m`],
+    );
+  }
+  if (team.press !== null) {
+    const roles = team.press.assignments
+      .map((assignment) => `#${assignment.player} ${assignment.role} #${assignment.subject}`)
+      .join(", ");
+    lines.push(
+      ["press", `on #${team.press.carrier} (${team.press.trigger ?? "pressing phase"})`],
+      ["roles", roles],
+    );
+  }
+  return lines;
+}
+
+// Each side's tactic, phase, shape against its instruction, and press.
+function teamsSection(recording: Recording, frame: Frame): HTMLElement[] {
+  if (frame.teams.every((team) => team.tactic === null)) {
+    return [];
+  }
+  return frame.teams.flatMap((team) => [
+    element("h3", team.side),
+    definitionList(teamLines(recording, team)),
+  ]);
+}
+
 // The latest events up to the current frame, newest first.
 function eventSection(recording: Recording, frameIndex: number): HTMLElement[] {
   const lines: HTMLElement[] = [];
   for (let index = frameIndex; index >= 0 && lines.length < EVENT_LOG_LENGTH; index -= 1) {
     const frame = recording.frames[index];
-        for (const event of [...(frame?.events ?? [])].reverse().filter(isLoggedEvent)) {
+    for (const event of [...(frame?.events ?? [])].reverse().filter(isLoggedEvent)) {
       if (lines.length < EVENT_LOG_LENGTH) {
         lines.push(
           element(
@@ -124,6 +164,26 @@ function selectionSection(
     element("h3", `Observations (${selected.observations.length})`),
     table(["entity", "position", "confidence", "seen"], observationRows(selected.observations)),
   ];
+
+    const action = latestActionDecision(recording, frameIndex, selected.id);
+  if (action !== undefined) {
+    const { decision } = action;
+    nodes.push(
+      element(
+        "h3",
+        `Action at tick ${decision.tick}${decision.assigned ? " (assigned by the press)" : ""}`,
+      ),
+      table(
+        ["action", "on", "utility", "because"],
+        decision.candidates.map((candidate, index) => [
+          `${candidate.type}${decision.chosen === index ? " *" : ""}`,
+          player(candidate.subject),
+          number(candidate.utility),
+          candidate.dominant,
+        ]),
+      ),
+    );
+  }
 
   const latest = latestDecision(recording, frameIndex, selected.id);
   if (latest === undefined) {
@@ -170,7 +230,8 @@ export function renderPanel(
   }
   const selected = frame.players.find((entry) => entry.id === selectedPlayer);
   panel.replaceChildren(
-    ...matchSection(recording, frame),
+        ...matchSection(recording, frame),
+    ...teamsSection(recording, frame),
     ...(selected === undefined
       ? [
           element(

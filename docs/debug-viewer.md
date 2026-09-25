@@ -59,12 +59,31 @@ the selected player the pitch adds:
   ball, fainter as its confidence falls;
 - his **latest pass decision**: a line from where he decided to every candidate
   target, green if valid, grey and dashed if rejected, the chosen pass yellow
-  and thick ([pass candidates](pass-candidates.md), [pass decisions](pass-decisions.md)).
+  and thick ([pass candidates](pass-candidates.md), [pass decisions](pass-decisions.md));
+- his **latest action decision** without the ball: a dashed white line and ring
+  at every candidate target, the chosen one yellow
+  ([off-ball movement](off-ball-movement.md), [defensive shape](defensive-shape.md)).
+
+In a match with tactics, the checkboxes below the controls switch the tactical
+overlays, drawn under the players:
+
+| Overlay           | On the pitch                                                  |
+|-------------------|---------------------------------------------------------------|
+| **pitch control** | each cell of the latest [pitch control](pitch-control.md) grid in the colour of the side that controls it, the stronger the clearer its control |
+| **zones**         | dotted lines between the five lanes, dashed lines between the thirds ([zones](zones.md)) |
+| **regions**       | each player's desired region: a ring at its centre joined to him, a dot at its tactical target ([desired region](desired-region.md)) |
+| **lines**         | each side's defensive line (solid) and front line (faint), and the defensive line its phase's instruction asks for (dashed) |
+| **press**         | a running press: a ring around the pressed carrier, pressers joined to him, each blocked lane dashed from the carrier to the receiver it cuts off with its blocker joined to it, covers dotted to whom they cover ([pressing](pressing.md)) |
+
+Each side's tactic and phase stand above its half of the pitch.
 
 The side panel lists the match (tick, time, state hash, ball owner and last
-touch), the selected player's position, speed, target, observations and the
-candidate table of his latest decision (`*` marks the chosen pass), and the
-latest [events](match-events.md), newest first.
+touch); each side's tactic, phase, defensive line against the one asked for,
+length and width, and running press with its trigger and roles; the selected
+player's position, speed, target, observations, his latest action decision
+(action, subject, utility and the dominant reason) and the candidate table of
+his latest pass decision (`*` marks the choice); and the latest
+[events](match-events.md), newest first.
 
 | Control            | Keys                         | Effect                                 |
 |--------------------|------------------------------|----------------------------------------|
@@ -193,6 +212,7 @@ TypeScript has no dependencies of its own, no lockfile is kept.
 | `src/geometry.ts` | pitch-to-canvas mapping, vision cones, picking a player         |
 | `src/playback.ts` | which frame is shown: play, pause, step, seek, speed            |
 | `src/render.ts`   | drawing a frame on the canvas                                   |
+| `src/overlays.ts` | the tactical overlays                                           |
 | `src/panel.ts`    | the side panel                                                  |
 | `src/main.ts`     | wiring the page together                                        |
 | `test/`           | `node:test` tests of the pure modules, run on the compiled output |
