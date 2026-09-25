@@ -63,8 +63,46 @@ recognisable, over fixed seeds:
 differ, such as pressing's lower pressing line and counter's deeper block,
 so an edit cannot quietly flatten an identity.
 
-Whole-match statistics over all pairings, with confidence bands, are the
-three-style benchmark's job.
+## Over whole matches
+
+The [style benchmark](sim-benchmark.md#a-round-robin-of-styles) plays every
+pairing of the three identities. The full run — twenty 90-minute matches per
+pairing, seed 1, restarts on, core 0.18.0, 180 matches — gives, per style over
+its 120 matches home and away, mean and 95 % interval:
+
+| Metric                  | possession            | counter              | pressing               |
+|-------------------------|-----------------------|----------------------|------------------------|
+| possession share        | 0.50 [0.47, 0.53]     | 0.44 [0.39, 0.48]    | **0.57** [0.55, 0.58]  |
+| passes                  | 1052 [986, 1118]      | **626** [551, 701]   | 1396 [1341, 1450]      |
+| pass completion         | 0.67 [0.66, 0.68]     | 0.68 [0.67, 0.70]    | **0.63** [0.62, 0.63]  |
+| mean pass length (m)    | **12.4** [12.3, 12.5] | 12.0 [11.8, 12.1]    | 11.5 [11.4, 11.5]      |
+| progressive passes      | 157 [144, 169]        | **77** [67, 87]      | 192 [180, 204]         |
+| regains                 | 387 [357, 417]        | **228** [196, 261]   | **557** [531, 584]     |
+| regains, attacking third| 89 [83, 95]           | 42 [37, 47]          | **179** [171, 188]     |
+| presses                 | 379 [358, 400]        | **0**                | **1083** [1040, 1126]  |
+| PPDA                    | 2.88 [2.80, 2.96]     | **3.95** [3.76, 4.13]| **2.36** [2.32, 2.40]  |
+| pitch control share     | 0.52 [0.52, 0.53]     | **0.45** [0.44, 0.47]| 0.52 [0.51, 0.53]      |
+| ball in attacking third | 0.29 [0.26, 0.33]     | 0.33 [0.28, 0.38]    | **0.40** [0.37, 0.43]  |
+
+Every pair of styles separates — non-overlapping intervals — on at least
+twelve metrics. What each identity shows:
+
+- **Pressing** presses about three times as often as possession, wins the ball
+  back most often and twice as often as possession in the attacking third,
+  allows the fewest passes per defensive action, and — winning it high — has
+  the most of the ball and the ball most in the attacking third. It pays with
+  the lowest pass completion.
+- **Counter** never presses, allows the most passes per defensive action,
+  controls the least of the pitch and plays the fewest passes; the ball still
+  spends as much time in its attacking third as in possession's.
+- **Possession** plays the longest and a safe passing game, and presses
+  moderately through its counterpress.
+
+Two things are not there yet: possession does not own the most of the ball —
+the pressing side wins it back so often that it has more — and counter's
+directness shows in few, completed passes rather than in fast progression,
+since players cannot dribble or play a through pass into a run. Both depend on
+match mechanics beyond P2, not on the tactic files.
 
 ## What this is not
 

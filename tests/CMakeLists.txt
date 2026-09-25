@@ -25,5 +25,17 @@ add_test(NAME sim-benchmark-smoke
         -DSIM_BENCHMARK=$<TARGET_FILE:sim-benchmark>
         -DDATA_DIR=${PROJECT_SOURCE_DIR}/data
         -DTEST_OUTPUT_DIR=${CMAKE_CURRENT_BINARY_DIR}/sim-benchmark-smoke
-        -P ${CMAKE_CURRENT_SOURCE_DIR}/benchmark/smoke.cmake
+                -P ${CMAKE_CURRENT_SOURCE_DIR}/benchmark/smoke.cmake
 )
+# The reduced P2 style benchmark takes minutes in a Debug build: Release
+# only, run by its own CI job (ctest -L benchmark).
+if(CMAKE_BUILD_TYPE STREQUAL "Release")
+    add_test(NAME p2-style-benchmark
+            COMMAND ${CMAKE_COMMAND}
+            -DSIM_BENCHMARK=$<TARGET_FILE:sim-benchmark>
+            -DDATA_DIR=${PROJECT_SOURCE_DIR}/data
+            -DTEST_OUTPUT_DIR=${CMAKE_CURRENT_BINARY_DIR}/p2-style-benchmark
+            -P ${CMAKE_CURRENT_SOURCE_DIR}/benchmark/p2StyleBenchmark.cmake
+    )
+    set_tests_properties(p2-style-benchmark PROPERTIES LABELS benchmark)
+endif()

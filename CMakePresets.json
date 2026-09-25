@@ -29,12 +29,21 @@
         "PF_ENABLE_SANITIZERS": "ON"
       }
     },
-    {
+        {
       "name": "ci",
       "displayName": "CI (warnings as errors)",
       "binaryDir": "${sourceDir}/build/ci",
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Debug",
+        "PF_WARNINGS_AS_ERRORS": "ON"
+      }
+    },
+    {
+      "name": "ci-release",
+      "displayName": "CI Release (warnings as errors), for the benchmarks",
+      "binaryDir": "${sourceDir}/build/ci-release",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release",
         "PF_WARNINGS_AS_ERRORS": "ON"
       }
     }
@@ -48,7 +57,8 @@
     },
     { "name": "release", "configurePreset": "release", "configuration": "Release" },
     { "name": "sanitize", "configurePreset": "sanitize", "configuration": "Debug" },
-    { "name": "ci", "configurePreset": "ci", "configuration": "Debug" }
+        { "name": "ci", "configurePreset": "ci", "configuration": "Debug" },
+    { "name": "ci-release", "configurePreset": "ci-release", "configuration": "Release" }
   ],
   "testPresets": [
     {
@@ -63,10 +73,16 @@
       "configuration": "Debug",
       "output": { "outputOnFailure": true }
     },
-    {
+        {
       "name": "ci",
       "configurePreset": "ci",
       "configuration": "Debug",
+      "output": { "outputOnFailure": true }
+    },
+    {
+      "name": "ci-release",
+      "configurePreset": "ci-release",
+      "configuration": "Release",
       "output": { "outputOnFailure": true }
     }
   ]

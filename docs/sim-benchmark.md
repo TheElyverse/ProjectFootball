@@ -22,6 +22,31 @@ performance check of the match simulation.
 | `--no-restarts`               |         | leave the ball on the line when it goes out          |
 | `--max-seconds-per-match`     |         | fail if a match takes longer, in wall-clock seconds  |
 
+## A round robin of styles
+
+With `--style` instead of `--home` and `--away`, repeated once per tactic file,
+the benchmark plays every ordered pairing of the styles — each against itself
+too — as a series of `--matches` matches. Pairing `k` (home style by home
+style: (0, 0), (0, 1), …) plays with base seed `matchSeed(seed, k)`, so pairings
+play unrelated matches.
+
+```sh
+./build/release/apps/sim-benchmark/sim-benchmark \
+  --style data/tactics/possession.json --style data/tactics/counter.json \
+  --style data/tactics/pressing.json \
+  --matches 20 --minutes 90 --seed 1 --jobs 2 --verify-replays 1 --out styles.json
+```
+
+The results file, format `elyverse-style-benchmark`, version 1, holds the
+styles, each style's `styleSummary` over all its matches — home and away —
+the `separations`, and every pairing's summaries and matches. A **separation**
+is a metric on which one style's 95 % interval lies wholly above another's: a
+difference beyond chance. The console lists them.
+
+`--verify-replays n` records the first `n` matches of every series again as a
+replay, plays it back and fails the run if a checkpoint differs: the sampled
+determinism check.
+
 ## The matches
 
 Every match is the [tactic match](scenarios.md#the-tactic-match): the kickoff
@@ -56,6 +81,29 @@ tactics, series and core version always give **the same bytes**, whatever
 
 The console shows each match's seed and wall-clock time, the headline metrics
 of both sides with their intervals, and the mean and slowest match time.
+
+## P2 acceptance
+
+**In CI**, the `style-benchmark` job builds the `ci-release` preset and runs
+`ctest -L benchmark`: `tests/benchmark/p2StyleBenchmark.cmake` plays the round
+robin of the three [tactical identities](tactical-identities.md), six
+six-minute matches per pairing with seed 1 and one sampled replay per pairing.
+It must finish without an invalid value within 5 s per match and 120 s for
+all 54 (about 20 s at the time of writing), every sampled replay must
+reproduce, and the styles must separate where their identities promise:
+
+| Metric                  | Separation                              |
+|-------------------------|-----------------------------------------|
+| `regains`               | pressing above possession and counter   |
+| `regainsAttackingThird` | pressing above possession and counter   |
+| `ppda`                  | possession and counter above pressing — pressing allows the fewest passes per defensive action |
+
+These hold for base seeds 1, 2 and 3 of the reduced run. The test is
+registered for Release builds only; in Debug it would take minutes.
+
+**The full run** is twenty 90-minute matches per pairing, the command above.
+Its results at the time of writing (core 0.18.0) are in
+[tactical identities](tactical-identities.md#over-whole-matches).
 
 ## P2 performance budget
 

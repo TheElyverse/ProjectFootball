@@ -30,6 +30,22 @@ jobs:
       - name: Acceptance scenarios
         run: ctest --preset ci --label-regex acceptance --output-on-failure
 
+    # P2 acceptance, reduced: the three tactical identities in a round robin,
+  # in a Release build within its time budget (docs/sim-benchmark.md).
+  style-benchmark:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Configure
+        run: cmake --preset ci-release
+
+      - name: Build
+        run: cmake --build --preset ci-release --target sim-benchmark
+
+      - name: Style benchmark
+        run: ctest --preset ci-release --label-regex benchmark --output-on-failure
+
   # The web debug viewer (apps/sim-viewer): type-check, build and unit tests.
   viewer:
     runs-on: ubuntu-latest
