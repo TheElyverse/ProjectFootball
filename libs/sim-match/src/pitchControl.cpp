@@ -63,9 +63,13 @@ MatchSystem makePitchControlSystem(const PitchControlConfig& config) {
   validate(config);
   return {.name = std::string(kPitchControlSystemName),
           .update =
-              [config](const MatchStepContext& /*context*/, const MatchState& current,
+              [config](const MatchStepContext& context, const MatchState& current,
                        MatchStateWriter& next) {
-                next.setPitchControl(computePitchControl(current, config));
+                PitchControlGrid grid = computePitchControl(current, config);
+                context.record(PitchControlSampled{.tick = context.tick(),
+                                                   .homeShare = grid.share(TeamSide::kHome),
+                                                   .ball = current.ball().position});
+                next.setPitchControl(std::move(grid));
               },
           .intervalTicks = config.intervalTicks,
           .phaseTicks = 0};

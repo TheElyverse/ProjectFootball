@@ -42,6 +42,7 @@ using ElyverseFootball::SimMatch::PassCommand;
 using ElyverseFootball::SimMatch::PassIntercepted;
 using ElyverseFootball::SimMatch::PassReceived;
 using ElyverseFootball::SimMatch::Pitch;
+using ElyverseFootball::SimMatch::PitchControlSampled;
 using ElyverseFootball::SimMatch::planPassSpeed;
 using ElyverseFootball::SimMatch::PlayerMatchState;
 using ElyverseFootball::SimMatch::PossessionChanged;
@@ -93,12 +94,17 @@ namespace {
                                             .receiver = PlayerId(2)}}}});
 }
 
-// Every event of the next `steps` steps, in order.
+// Every event of the next `steps` steps, in order, without the pitch control
+// system's regular samples.
 [[nodiscard]] std::vector<MatchEvent> eventsOf(MatchSimulation& simulation, const int steps) {
   std::vector<MatchEvent> events;
   for (int step = 0; step < steps; ++step) {
     REQUIRE(simulation.step().has_value());
-    events.insert(events.end(), simulation.events().begin(), simulation.events().end());
+    for (const MatchEvent& event : simulation.events()) {
+      if (!std::holds_alternative<PitchControlSampled>(event)) {
+        events.push_back(event);
+      }
+    }
   }
   return events;
 }
@@ -145,6 +151,27 @@ TEST_CASE("A completed pass records attempt, reception and possession", "[matchE
                                                         .newOwner = PlayerId(2)}});
 }
 
+TEST_CASE("Pitch control is sampled at every update of its grid", "[matchEvents]") {
+  MatchSimulation simulation = passScene({.x = 45.0, .y = 35.0});
+  const int interval = MatchConfig{}.pitchControl.intervalTicks;
+  std::vector<PitchControlSampled> samples;
+  for (int step = 0; step < 3 * interval; ++step) {
+    const Vec2 ball = simulation.state().ball().position;
+    REQUIRE(simulation.step().has_value());
+    for (const MatchEvent& event : simulation.events()) {
+      if (const auto* sample = std::get_if<PitchControlSampled>(&event)) {
+        REQUIRE(sample->ball == ball);
+        REQUIRE(sample->homeShare > 0.0);
+        REQUIRE(sample->homeShare < 1.0);
+        REQUIRE(simulation.state().pitchControl().has_value());
+        samples.push_back(*sample);
+      }
+    }
+  }
+  REQUIRE(samples.size() == 3);
+  REQUIRE(samples.at(1).tick == SimTick(interval));
+}
+
 TEST_CASE("An intercepted pass records the interceptor", "[matchEvents]") {
   MatchSimulation simulation = passScene({.x = 20.0, .y = 20.5});
   const std::vector<MatchEvent> events = eventsOf(simulation, 120);
@@ -153,6 +180,9 @@ TEST_CASE("An intercepted pass records the interceptor", "[matchEvents]") {
   REQUIRE(intercepted.size() == 1);
   REQUIRE(intercepted.front().interceptor == PlayerId(3));
   REQUIRE(intercepted.front().passer == PlayerId(1));
+  // Where the ball was taken: on the lane from player 1 toward player 2.
+  REQUIRE(intercepted.front().position.x > 10.0);
+  REQUIRE(intercepted.front().position.x < 30.0);
   REQUIRE(only<PassReceived>(events).empty());
 }
 
@@ -189,8 +219,10 @@ TEST_CASE("Event hashes tell events apart", "[matchEvents]") {
   };
   const MatchEvent received{
       PassReceived{.tick = SimTick(5), .receiver = PlayerId(2), .passer = PlayerId(1)}};
-  const MatchEvent intercepted{
-      PassIntercepted{.tick = SimTick(5), .interceptor = PlayerId(2), .passer = PlayerId(1)}};
+  const MatchEvent intercepted{PassIntercepted{.tick = SimTick(5),
+                                               .interceptor = PlayerId(2),
+                                               .passer = PlayerId(1),
+                                               .position = {.x = 3.0, .y = 4.0}}};
   const MatchEvent later{
       PassReceived{.tick = SimTick(6), .receiver = PlayerId(2), .passer = PlayerId(1)}};
 
@@ -271,8 +303,8 @@ TEST_CASE("A failed step publishes no events", "[matchEvents]") {
                     .update =
                         [](const ElyverseFootball::SimMatch::MatchStepContext& context,
                            const MatchState&, ElyverseFootball::SimMatch::MatchStateWriter& next) {
-                          context.record(
-                              LooseBallRecovered{.tick = context.tick(), .player = PlayerId(1)});
+                          context.record(LooseBallRecovered{
+                              .tick = context.tick(), .player = PlayerId(1), .position = {}});
                           if (context.tick() == SimTick(1)) {
                             next.setBallVelocity({.x = std::nan(""), .y = 0.0});
                           }

@@ -47,20 +47,23 @@ struct PassReceived {
   friend bool operator==(const PassReceived&, const PassReceived&) = default;
 };
 
-// An opponent of the passer gained control of the pass.
+// An opponent of the passer gained control of the pass, at the ball's
+// position.
 struct PassIntercepted {
   SimCore::SimTick tick;
   SimCore::PlayerId interceptor;
   SimCore::PlayerId passer;
+  SimCore::Vec2 position;
 
   friend bool operator==(const PassIntercepted&, const PassIntercepted&) = default;
 };
 
-// A player gained control of a free ball nobody had played: at kickoff, for
-// example.
+// A player gained control of a free ball nobody had played -- at kickoff, for
+// example -- at the ball's position.
 struct LooseBallRecovered {
   SimCore::SimTick tick;
   SimCore::PlayerId player;
+  SimCore::Vec2 position;
 
   friend bool operator==(const LooseBallRecovered&, const LooseBallRecovered&) = default;
 };
@@ -98,6 +101,18 @@ struct TacticChanged {
   friend bool operator==(const TacticChanged&, const TacticChanged&) = default;
 };
 
+// The pitch control system updated its grid (docs/pitch-control.md): home's
+// share of the pitch -- away's is the rest -- and where the ball was. A
+// regular sample of the match, so analyses of territory and control need
+// nothing but events.
+struct PitchControlSampled {
+  SimCore::SimTick tick;
+  double homeShare = 0.5;
+  SimCore::Vec2 ball;
+
+  friend bool operator==(const PitchControlSampled&, const PitchControlSampled&) = default;
+};
+
 // A presser won the ball from the carrier in a challenge (docs/pressing.md),
 // at the ball's position.
 struct BallWon {
@@ -133,7 +148,7 @@ struct PressingEnded {
 
 using MatchEvent = std::variant<PassAttempted, PassReceived, PassIntercepted, LooseBallRecovered,
                                 PossessionChanged, PhaseChanged, BallWon, PressingStarted,
-                                PressingEnded, TacticChanged>;
+                                PressingEnded, TacticChanged, PitchControlSampled>;
 
 // "pass attempted", "pass received", ... for logs and diagnostics.
 [[nodiscard]] std::string_view eventName(const MatchEvent& event);

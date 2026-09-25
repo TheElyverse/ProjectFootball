@@ -28,10 +28,20 @@ void addFields(StableHasher& hasher, const PassReceived& event) noexcept {
 void addFields(StableHasher& hasher, const PassIntercepted& event) noexcept {
   hasher.addU64(event.interceptor.value());
   hasher.addU64(event.passer.value());
+  hasher.addDouble(event.position.x);
+  hasher.addDouble(event.position.y);
 }
 
 void addFields(StableHasher& hasher, const LooseBallRecovered& event) noexcept {
   hasher.addU64(event.player.value());
+  hasher.addDouble(event.position.x);
+  hasher.addDouble(event.position.y);
+}
+
+void addFields(StableHasher& hasher, const PitchControlSampled& event) noexcept {
+  hasher.addDouble(event.homeShare);
+  hasher.addDouble(event.ball.x);
+  hasher.addDouble(event.ball.y);
 }
 
 void addFields(StableHasher& hasher, const PossessionChanged& event) noexcept {
@@ -110,6 +120,9 @@ std::string_view eventName(const MatchEvent& event) {
     }
     std::string_view operator()(const TacticChanged& /*event*/) const noexcept {
       return "tactic changed";
+    }
+    std::string_view operator()(const PitchControlSampled& /*event*/) const noexcept {
+      return "pitch control sampled";
     }
   };
   return std::visit(Names{}, event);

@@ -1,5 +1,6 @@
 import {
-  describeEvent,
+    describeEvent,
+  isLoggedEvent,
   frameSeconds,
   latestDecision,
   sideOf,
@@ -82,7 +83,7 @@ function eventSection(recording: Recording, frameIndex: number): HTMLElement[] {
   const lines: HTMLElement[] = [];
   for (let index = frameIndex; index >= 0 && lines.length < EVENT_LOG_LENGTH; index -= 1) {
     const frame = recording.frames[index];
-    for (const event of [...(frame?.events ?? [])].reverse()) {
+        for (const event of [...(frame?.events ?? [])].reverse().filter(isLoggedEvent)) {
       if (lines.length < EVENT_LOG_LENGTH) {
         lines.push(
           element(

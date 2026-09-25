@@ -59,8 +59,11 @@ created from a spec has none. The state hash includes the grid.
 | `controlSeconds` | 0.5 s   | how sharply control changes with the arrival advantage    |
 
 `PitchControlConfig` is part of `MatchConfig` and of every replay. The system
-runs third in the [standard order](match-loop.md), after the tactical phase, and
-writes the grid only.
+runs third in the [standard order](match-loop.md), after the tactical phase,
+writes the grid and records a `PitchControlSampled` [event](match-events.md)
+with home's share of the pitch and the ball's position, so
+[analytics](match-analytics.md) can measure control and territory from events
+alone.
 
 ## Cost
 

@@ -73,7 +73,7 @@ using SimCore::Vec2;
                                       const BallClaim& claim, const SimCore::SimTick tick) {
   const PlayerMatchState& claimant = state.players()[claim.playerIndex];
   if (!ball.lastTouch || ball.lastTouch->playerId == claimant.playerId) {
-    return LooseBallRecovered{.tick = tick, .player = claimant.playerId};
+    return LooseBallRecovered{.tick = tick, .player = claimant.playerId, .position = ball.position};
   }
   const PlayerId passer = ball.lastTouch->playerId;
   const auto passerIndex = findPlayerIndex(state, passer);
@@ -81,7 +81,8 @@ using SimCore::Vec2;
   if (teammate) {
     return PassReceived{.tick = tick, .receiver = claimant.playerId, .passer = passer};
   }
-  return PassIntercepted{.tick = tick, .interceptor = claimant.playerId, .passer = passer};
+  return PassIntercepted{
+      .tick = tick, .interceptor = claimant.playerId, .passer = passer, .position = ball.position};
 }
 
 [[nodiscard]] bool isValid(const BallPhysics& physics) noexcept {

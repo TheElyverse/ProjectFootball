@@ -19,13 +19,14 @@ Every event carries the `tick` of its step and the players involved:
 |----------------------|--------------------------------------------------------------|---------------------------------------------|
 | `PassAttempted`      | `passer`, `intendedReceiver`, `from`, `target`, `speed`      | a pass leaves the passer's foot             |
 | `PassReceived`       | `receiver`, `passer`                                         | a teammate of the passer takes the pass     |
-| `PassIntercepted`    | `interceptor`, `passer`                                      | an opponent of the passer takes the pass    |
-| `LooseBallRecovered` | `player`                                                     | someone takes a ball nobody played, or the passer takes his own pass back |
+| `PassIntercepted`    | `interceptor`, `passer`, `position`                          | an opponent of the passer takes the pass, where the ball was |
+| `LooseBallRecovered` | `player`, `position`                                         | someone takes a ball nobody played, or the passer takes his own pass back |
 | `PossessionChanged`  | `previousOwner`, `newOwner`                                  | the ball's owner changes; either may be empty |
 | `PhaseChanged`       | `side`, `previous`, `phase`                                  | a side with a tactic enters another [tactical phase](match-phases.md); `previous` is empty for its first |
 | `BallWon`            | `winner`, `loser`, `position`                                | a presser wins the ball from the carrier in a [challenge](pressing.md); `PossessionChanged` follows |
 | `PressingStarted`    | `side`, `carrier`, `trigger`, `assignments`                  | a side starts a [coordinated press](pressing.md); `trigger` is empty for a press of the pressing phase |
 | `PressingEnded`      | `side`, `outcome`                                            | the press ends: `ballRegained`, `passedOut` or `carrierEscaped` |
+| `PitchControlSampled` | `homeShare`, `ball`                                         | the [pitch control](pitch-control.md) grid is updated: home's share of the pitch and the ball's position, a regular sample for [analytics](match-analytics.md) |
 | `TacticChanged`      | `side`, `tactic`, `contentHash`                              | a [tactic change command](match-loop.md#tactic-changes) applies; `tactic` is the new tactic's name |
 
 `speed` is the speed the ball left the foot with, execution error included. A

@@ -3,10 +3,11 @@ import { test } from "node:test";
 
 import {
   describeEvent,
-  frameSeconds,
+    frameSeconds,
+  isLoggedEvent,
   latestDecision,
   parseRecording,
-  sideOf,
+    sideOf,
 } from "../dist/frames.js";
 import { fixture } from "./fixture.mjs";
 
@@ -101,5 +102,14 @@ test("describeEvent names the players involved", () => {
     }),
     "away switches to pressing",
   );
-  assert.equal(describeEvent({ tick: 0, type: "somethingNew" }), "somethingNew");
+    assert.equal(describeEvent({ tick: 0, type: "somethingNew" }), "somethingNew");
+  assert.equal(
+    describeEvent({ tick: 0, type: "pitchControlSampled", homeShare: 0.614, ball: [30, 20] }),
+    "home controls 61% of the pitch",
+  );
+});
+
+test("the event log leaves out pitch control samples", () => {
+  assert.equal(isLoggedEvent({ tick: 0, type: "pitchControlSampled", homeShare: 0.5, ball: [0, 0] }), false);
+  assert.equal(isLoggedEvent({ tick: 0, type: "ballWon", winner: 1, loser: 2, position: [0, 0] }), true);
 });

@@ -59,8 +59,14 @@ export type MatchEvent = { readonly tick: number } & (
       readonly speed: number;
     }
   | { readonly type: "passReceived"; readonly receiver: number; readonly passer: number }
-  | { readonly type: "passIntercepted"; readonly interceptor: number; readonly passer: number }
-  | { readonly type: "looseBallRecovered"; readonly player: number }
+    | {
+      readonly type: "passIntercepted";
+      readonly interceptor: number;
+      readonly passer: number;
+      readonly position: Vec2;
+    }
+  | { readonly type: "looseBallRecovered"; readonly player: number; readonly position: Vec2 }
+  | { readonly type: "pitchControlSampled"; readonly homeShare: number; readonly ball: Vec2 }
   | {
       readonly type: "possessionChanged";
       readonly previousOwner: number | null;
@@ -223,6 +229,12 @@ export function latestDecision(
   return undefined;
 }
 
+// Whether the event log lists an event: the pitch control system's regular
+// samples would drown out everything else.
+export function isLoggedEvent(event: MatchEvent): boolean {
+  return event.type !== "pitchControlSampled";
+}
+
 // A one-line description of an event for the event log.
 export function describeEvent(event: MatchEvent): string {
   switch (event.type) {
@@ -248,8 +260,10 @@ export function describeEvent(event: MatchEvent): string {
       return `${event.side} presses #${event.carrier} (${event.trigger ?? "pressing phase"}, ${event.assignments.length} players)`;
     case "pressingEnded":
             return `${event.side} press ends: ${event.outcome}`;
-    case "tacticChanged":
+        case "tacticChanged":
       return `${event.side} switches to ${event.tactic}`;
+    case "pitchControlSampled":
+      return `home controls ${Math.round(event.homeShare * 100)}% of the pitch`;
     default:
       // A newer core may record events this viewer does not know yet.
       return (event as { readonly type: string }).type;

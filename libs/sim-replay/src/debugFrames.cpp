@@ -150,11 +150,13 @@ void addEventFields(Json& json, const SimMatch::PassIntercepted& event) {
   json["type"] = "passIntercepted";
   json["interceptor"] = event.interceptor.value();
   json["passer"] = event.passer.value();
+  json["position"] = vec2Json(event.position);
 }
 
 void addEventFields(Json& json, const SimMatch::LooseBallRecovered& event) {
   json["type"] = "looseBallRecovered";
   json["player"] = event.player.value();
+  json["position"] = vec2Json(event.position);
 }
 
 void addEventFields(Json& json, const SimMatch::PossessionChanged& event) {
@@ -202,6 +204,12 @@ void addEventFields(Json& json, const SimMatch::TacticChanged& event) {
   json["side"] = SimMatch::teamSideName(event.side);
   json["tactic"] = event.tactic;
   json["contentHash"] = std::format("{:016x}", event.contentHash);
+}
+
+void addEventFields(Json& json, const SimMatch::PitchControlSampled& event) {
+  json["type"] = "pitchControlSampled";
+  json["homeShare"] = rounded(event.homeShare);
+  json["ball"] = vec2Json(event.ball);
 }
 
 [[nodiscard]] Json eventJson(const SimMatch::MatchEvent& event) {
