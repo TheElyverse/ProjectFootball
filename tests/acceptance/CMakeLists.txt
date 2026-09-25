@@ -3,6 +3,7 @@ add_executable(sim-acceptance-tests
         p1AcceptanceTests.cpp
         p2AcceptanceTests.cpp
         tacticalIdentityTests.cpp
+        goldenScenarioTests.cpp
 )
 target_link_libraries(sim-acceptance-tests PRIVATE
         ElyverseFootball::sim-replay
