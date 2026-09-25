@@ -5,6 +5,7 @@ add_executable(sim-core-tests
         sim-core/eventBusTests.cpp
         sim-core/vec2Tests.cpp
         sim-core/stableHashTests.cpp
+        sim-core/stableMathTests.cpp
 )
 
 target_link_libraries(sim-core-tests PRIVATE
@@ -26,6 +27,14 @@ add_executable(sim-match-tests
         sim-match/matchStateHashTests.cpp
         sim-match/matchSetupTests.cpp
         sim-match/scenariosTests.cpp
+        sim-match/spatialQueriesTests.cpp
+        sim-match/perceptionTests.cpp
+        sim-match/possessionTests.cpp
+        sim-match/passingTests.cpp
+        sim-match/receptionTests.cpp
+        sim-match/passCandidatesTests.cpp
+        sim-match/passDecisionTests.cpp
+        sim-match/matchEventsTests.cpp
 )
 target_link_libraries(sim-match-tests PRIVATE
         ElyverseFootball::sim-match
@@ -35,11 +44,13 @@ target_link_libraries(sim-match-tests PRIVATE
 catch_discover_tests(sim-match-tests)
 
 add_executable(sim-replay-tests
+        sim-replay/debugFramesTests.cpp
         sim-replay/replayTests.cpp
         sim-replay/replayJsonTests.cpp
 )
 target_link_libraries(sim-replay-tests PRIVATE
         ElyverseFootball::sim-replay
+        nlohmann_json::nlohmann_json
         Catch2::Catch2WithMain
         pf_compiler_warnings
 )

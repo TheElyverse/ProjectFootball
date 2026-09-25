@@ -230,6 +230,12 @@ Neben kontinuierlichen Koordinaten existieren semantische Räume (Flügel, Halbr
 
 Die Engine kennt die Realität, ein Spieler nur sein persönliches World Model. Sichtfeld, Kopf-/Körperorientierung, Entfernung, Druck, Aufmerksamkeit und Scanning bestimmen, welche Optionen überhaupt erkannt werden. Gesehene Spieler werden mit Zeitstempel und Konfidenz gespeichert und extrapoliert.
 
+Das Sichtfeld ist eine individuelle Eigenschaft, keine Konstante. Optisch umfasst das menschliche Gesichtsfeld horizontal etwa 200–220°, für Entscheidungen nutzbar ist deutlich weniger: Am Rand wird Bewegung bemerkt, aber Identität, Richtung und Tempo nur unsicher. Das nutzbare Sichtfeld unterscheidet sich von Spieler zu Spieler; am Rand Gesehenes geht mit geringerer Konfidenz ins World Model ein.
+
+Unter Belastung verengt es sich. Am Ball muss ein Spieler einen Teil seiner Aufmerksamkeit auf die Ballkontrolle richten, unter Gegnerdruck verengt sich die Aufmerksamkeit zusätzlich. Wie stark, hängt von Ballkontrolle und Gelassenheit ab: Ein sehr guter Techniker behält am Ball viel Umfeld im Blick, ein schwacher sieht fast nur noch den Ball und den Raum direkt vor sich.
+
+Scanning gleicht das aus. Der Kopf kann sich unabhängig vom Körper drehen (grob bis ±80°); kurze Schulterblicke, idealerweise vor der Ballannahme, halten das World Model aktuell. Wie oft und wie gut ein Spieler scannt, ist eine eigene, trainierbare Fähigkeit (Kognition). Ein Ballführer, der keine Anspielstation sieht, schaut sich um, statt blind den Ball zu halten; ein guter Spielmacher findet die Option hinter sich schnell, ein schwacher bleibt länger blind.
+
 ### 8.4 Decision Pipeline
 
 > Perceive → Generate candidate actions → Estimate utility → Select probabilistically → Execute technically → Observe consequences

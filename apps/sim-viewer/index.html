@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Match Debug Viewer</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <header>
+      <h1>Match Debug Viewer</h1>
+      <label class="file">Frames <input id="file" type="file" accept=".json,application/json" /></label>
+      <span id="status" class="muted">Load a file written by <code>sim-cli --frames-out</code>.</span>
+    </header>
+    <main>
+      <section class="stage">
+        <canvas id="pitch" aria-label="Pitch"></canvas>
+        <div class="controls">
+          <button id="back" type="button" title="Previous tick (Left, Shift+Left for ten)">&#9664;</button>
+          <button id="play" type="button" title="Play or pause (Space)">Play</button>
+          <button id="forward" type="button" title="Next tick (Right, Shift+Right for ten)">&#9654;</button>
+          <select id="speed" title="Playback speed"></select>
+          <input id="scrub" type="range" min="0" max="0" value="0" aria-label="Frame" />
+          <span id="tick" class="tick">tick 0 / 0</span>
+          <label><input id="all-targets" type="checkbox" /> all targets</label>
+        </div>
+      </section>
+      <aside id="panel"></aside>
+    </main>
+    <script type="module" src="dist/main.js"></script>
+  </body>
+</html>

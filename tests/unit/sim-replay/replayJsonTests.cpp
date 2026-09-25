@@ -58,16 +58,16 @@ TEST_CASE("A valid document parses", "[replayJson]") {
 }
 
 TEST_CASE("Documents that are not JSON objects are rejected", "[replayJson]") {
-  requireRejected("{\"schemaVersion\": 2,", kMalformed, "not a valid JSON document");
+  requireRejected("{\"schemaVersion\": 3,", kMalformed, "not a valid JSON document");
   requireRejected("[1, 2]", kMalformed, "expected a JSON object");
 }
 
 TEST_CASE("Other schema versions are rejected with the version found", "[replayJson]") {
-  requireRejected(validJsonWith("\"schemaVersion\": 2", "\"schemaVersion\": 1"),
+  requireRejected(validJsonWith("\"schemaVersion\": 3", "\"schemaVersion\": 1"),
                   ReplayErrorCode::kUnsupportedSchemaVersion,
                   "schema version 1 holds replay metadata only");
-  requireRejected(validJsonWith("\"schemaVersion\": 2", "\"schemaVersion\": 3"),
-                  ReplayErrorCode::kUnsupportedSchemaVersion, "unsupported schema version 3");
+  requireRejected(validJsonWith("\"schemaVersion\": 3", "\"schemaVersion\": 2"),
+                  ReplayErrorCode::kUnsupportedSchemaVersion, "unsupported schema version 2");
 }
 
 TEST_CASE("A replay from another core version is rejected", "[replayJson]") {
@@ -91,6 +91,10 @@ TEST_CASE("Missing and mistyped fields are named by their path", "[replayJson]")
                   "config.ticksPerSecond: expected an integer from 1");
   requireRejected(validJsonWith(R"("stateHash": ")", R"("stateHash": "0)"), kMalformed,
                   "checkpoints[0].stateHash: expected 16 hexadecimal digits");
+  requireRejected(validJsonWith(R"("eventHash": ")", R"("eventHash": "x)"), kMalformed,
+                  "checkpoints[0].eventHash: expected 16 hexadecimal digits");
+  requireRejected(validJsonWith(R"("eventHash")", R"("eventHashes")"), kMalformed,
+                  "checkpoints[0].eventHash: missing");
 }
 
 TEST_CASE("An invalid initial state is rejected with its errors", "[replayJson]") {
@@ -98,6 +102,15 @@ TEST_CASE("An invalid initial state is rejected with its errors", "[replayJson]"
                   "duplicate player id 1");
   requireRejected(validJsonWith("\"maxSpeed\": 7.5", "\"maxSpeed\": -7.5"),
                   ReplayErrorCode::kInvalidSetup, "expected both positive and finite");
+}
+
+TEST_CASE("The ball's owner is read from the initial state", "[replayJson]") {
+  const auto owned = parseReplayJson(validJsonWith(R"("owner": null)", R"("owner": 7)"));
+  REQUIRE(owned.has_value());
+  REQUIRE(owned->setup.initialState.ball().owner == ElyverseFootball::SimCore::PlayerId(7));
+
+  requireRejected(validJsonWith(R"("owner": null)", R"("owner": 99)"),
+                  ReplayErrorCode::kInvalidSetup, "the ball belongs to player 99");
 }
 
 TEST_CASE("Commands must state their execution order explicitly", "[replayJson]") {

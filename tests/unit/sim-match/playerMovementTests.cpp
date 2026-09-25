@@ -1,5 +1,6 @@
 #include <algorithm>
 #include <catch2/catch_test_macros.hpp>
+#include <catch2/matchers/catch_matchers_floating_point.hpp>
 #include <cmath>
 #include <cstddef>
 #include <cstdint>
@@ -17,6 +18,7 @@
 using ElyverseFootball::SimCore::PlayerId;
 using ElyverseFootball::SimCore::SimTick;
 using ElyverseFootball::SimCore::Vec2;
+using ElyverseFootball::SimMatch::facingAfterMove;
 using ElyverseFootball::SimMatch::kDefaultAcceleration;
 using ElyverseFootball::SimMatch::kDefaultMaxSpeed;
 using ElyverseFootball::SimMatch::kDefaultTicksPerSecond;
@@ -45,7 +47,8 @@ constexpr double kTolerance = 1e-9;
           .position = position,
           .velocity = velocity,
           .attributes = {},
-          .target = target};
+          .target = target,
+          .facing = {.x = 1.0, .y = 0.0}};
 }
 
 // Moves the player tick by tick and records every state, including the first.
@@ -244,4 +247,52 @@ TEST_CASE("Players follow commands through the movement system", "[playerMovemen
       REQUIRE(players[index].position == start.players()[index].position);
     }
   }
+}
+
+TEST_CASE("A running player looks where he runs", "[playerMovement]") {
+  const PlayerKinematics moved{.position = {.x = 10.0, .y = 10.0},
+                               .velocity = {.x = 3.0, .y = 4.0}};
+
+  const Vec2 facing = facingAfterMove(playerAt(moved.position), moved, {.x = 50.0, .y = 5.0});
+
+  REQUIRE_THAT(facing.x, Catch::Matchers::WithinAbs(0.6, 1e-15));
+  REQUIRE_THAT(facing.y, Catch::Matchers::WithinAbs(0.8, 1e-15));
+}
+
+TEST_CASE("A slow or standing player looks at the ball", "[playerMovement]") {
+  const PlayerKinematics moved{.position = {.x = 10.0, .y = 10.0},
+                               .velocity = {.x = 0.5, .y = 0.0}};
+
+  const Vec2 facing = facingAfterMove(playerAt(moved.position), moved, {.x = 10.0, .y = 30.0});
+
+  REQUIRE(facing == Vec2{.x = 0.0, .y = 1.0});
+}
+
+TEST_CASE("A player on the ball keeps his facing", "[playerMovement]") {
+  PlayerMatchState player = playerAt({.x = 10.0, .y = 10.0});
+  player.facing = {.x = 0.0, .y = -1.0};
+
+  const Vec2 facing =
+      facingAfterMove(player, {.position = player.position, .velocity = {}}, player.position);
+
+  REQUIRE(facing == Vec2{.x = 0.0, .y = -1.0});
+}
+
+TEST_CASE("The movement system keeps every facing a unit vector", "[playerMovement]") {
+  MatchSimulation simulation(
+      {.initialState = kickoff(),
+       .seed = 1,
+       .ticksPerSecond = kDefaultTicksPerSecond,
+       .systems = {makePlayerMovementSystem()},
+       .commands = {{.tick = SimTick(0),
+                     .command = MovePlayerCommand{.playerId = PlayerId(3),
+                                                  .target = {.x = 41.3, .y = 7.7}}}}});
+
+  for (int tick = 0; tick < 150; ++tick) {
+    // The loop rejects a facing that is not a unit vector.
+    REQUIRE(simulation.step().has_value());
+  }
+  // Standing players turned toward the ball on the center spot.
+  REQUIRE(simulation.state().players()[0].facing == Vec2{.x = 1.0, .y = 0.0});
+  REQUIRE(simulation.state().players()[1].facing.dot(Vec2{.x = 1.0, .y = 0.0}) > 0.5);
 }

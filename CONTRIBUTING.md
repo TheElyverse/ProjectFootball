@@ -33,10 +33,28 @@ before starting a change.
   acceleration limits, and the pitch boundary rule.
 - [Ball movement](docs/ball-movement.md): the rolling ball, ground friction, and
   what happens when it leaves the pitch.
+- [Spatial queries](docs/spatial-queries.md): nearby players and arrival-time
+  estimates.
+- [Perception](docs/perception.md): vision cones, observation memory and
+  confidence decay.
+- [Possession](docs/possession.md): who controls the ball and how a controlled
+  ball follows its carrier.
+- [Passing](docs/passing.md): pass intents, pass speed and reach, and execution
+  error.
+- [Reception](docs/reception.md): who gains control of a free ball, and who goes
+  after it.
+- [Pass candidates](docs/pass-candidates.md): passing options and their scores,
+  from the carrier's perception.
+- [Pass decisions](docs/pass-decisions.md): when a player on the ball passes, and
+  the seeded softmax that picks the pass.
+- [Match events](docs/match-events.md): pass and possession events, and decision
+  diagnostics.
 - [Replay format](docs/replay-format.md): the replay file `sim-cli` writes, its
   versioning and seed encoding contract, and replay playback.
 - [Scenarios](docs/scenarios.md): the named, reproducible match setups `sim-cli`
   runs.
+- [Debug viewer](docs/debug-viewer.md): watching a match in the browser, and the
+  debug frame format `sim-cli` writes for it.
 
 The simulation uses standard C++23 and runs independently of Unreal Engine.
 Unreal will consume simulation state for presentation. Keep simulation behavior
@@ -91,7 +109,8 @@ scenario:     kickoff
 seed:         42
 ticks:        300
 time:         10 s
-state hash:   c22d772ab92fca0c
+state hash:   70185caa3597946b
+event hash:   fe365eb8d0a7e689
 replay:       replay.json
 ```
 
@@ -104,16 +123,18 @@ arguments. With Make available, `make run ARGS="..."` builds and runs it.
 | `--seed <u64>`        | random        | the master seed; a random one is reported            |
 | `--ticks <n>`         | `300`         | how many ticks to simulate, 0 to 10,000,000          |
 | `--replay-out <path>` | `replay.json` | where to write the replay                            |
+| `--frames-out <path>` |               | also write debug frames for the viewer               |
 | `--play <path>`       |               | play a replay of at most 10,000,000 ticks back and verify its checkpoints |
 | `--tui`               |               | show the result in a terminal screen                 |
 
-A run prints the tick count, the simulated time and the final state hash, and
-writes a [replay](docs/replay-format.md). `--play` rebuilds the match from the
-file, verifies every recorded state hash, and prints the same summary; it takes
-everything from the file, so it cannot be combined with the run options or with
-`--list-scenarios`, which cannot be combined with the run options either.
-`--help` wins over every other option. [Scenarios](docs/scenarios.md) describes
-the scenario catalog.
+A run prints the tick count, the simulated time and the final state and event
+hashes, and writes a [replay](docs/replay-format.md). `--play` rebuilds the match
+from the file, verifies every recorded state and event hash, and prints the same
+summary; it takes everything from the file, so it cannot be combined with the run
+options or with `--list-scenarios`, which cannot be combined with the run options
+either. `--help` wins over every other option. [Scenarios](docs/scenarios.md)
+describes the scenario catalog. `--frames-out` writes one frame per tick for the
+[debug viewer](docs/debug-viewer.md), which plays the match back in the browser.
 
 Invalid arguments, an unknown scenario, a replay that cannot be read, and a
 replay that does not reproduce all end with a message on stderr and a nonzero

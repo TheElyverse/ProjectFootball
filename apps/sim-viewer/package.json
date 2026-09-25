@@ -1,0 +1,18 @@
+{
+  "name": "sim-viewer",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Read-only 2D debug viewer for Elyverse: Football match frames (docs/debug-viewer.md)",
+  "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "build": "tsc -p .",
+    "test": "tsc -p . && node --test \"test/*.test.mjs\"",
+    "serve": "node scripts/serve.mjs"
+  },
+  "devDependencies": {
+    "typescript": "6.0.3"
+  }
+}

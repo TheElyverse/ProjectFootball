@@ -25,9 +25,11 @@ endmacro()
 # A documented headless run of the 7v7 scenario.
 run_cli(--scenario rolling-ball --seed 42 --ticks 300 --replay-out "${replay}")
 if(NOT result STREQUAL "0" OR NOT output MATCHES "ticks: +300\n" OR NOT output MATCHES "time: +10 s\n"
-        OR NOT output MATCHES "state hash: +([0-9a-f]+)\n")
+        OR NOT output MATCHES "event hash: +([0-9a-f]+)\n")
     message(FATAL_ERROR "Scenario run failed: ${result}: ${output}${error}")
 endif()
+set(runEventHash "${CMAKE_MATCH_1}")
+string(REGEX MATCH "state hash: +([0-9a-f]+)\n" stateHashLine "${output}")
 set(runHash "${CMAKE_MATCH_1}")
 file(READ "${replay}" contents)
 string(JSON seed GET "${contents}" seed)
@@ -35,15 +37,35 @@ string(JSON seedType TYPE "${contents}" seed)
 string(JSON gameTime GET "${contents}" gameTime)
 string(JSON schemaVersion GET "${contents}" schemaVersion)
 if(NOT seedType STREQUAL "STRING" OR NOT seed STREQUAL "42" OR NOT gameTime STREQUAL "300"
-        OR NOT schemaVersion STREQUAL "2")
+        OR NOT schemaVersion STREQUAL "3")
     message(FATAL_ERROR "Unexpected replay: ${contents}")
 endif()
 
 # The saved replay reproduces through the CLI.
 run_cli(--play "${replay}")
 if(NOT result STREQUAL "0" OR NOT output MATCHES "state hash: +${runHash}\n"
+        OR NOT output MATCHES "event hash: +${runEventHash}\n"
         OR NOT output MATCHES "checkpoints: +11 verified")
     message(FATAL_ERROR "Replay playback failed: ${result}: ${output}${error}")
+endif()
+
+# Debug frames for the viewer come from the same run: collecting them leaves
+# the match, and so the state hash, unchanged.
+set(frames "${TEST_OUTPUT_DIR}/frames.json")
+run_cli(--scenario rolling-ball --seed 42 --ticks 300 --replay-out "${replay}"
+        --frames-out "${frames}")
+if(NOT result STREQUAL "0" OR NOT output MATCHES "state hash: +${runHash}\n"
+        OR NOT output MATCHES "frames: +[^\n]*frames.json\n")
+    message(FATAL_ERROR "Run with frames failed: ${result}: ${output}${error}")
+endif()
+file(READ "${frames}" framesContents)
+string(JSON framesFormat GET "${framesContents}" format)
+string(JSON frameCount LENGTH "${framesContents}" frames)
+string(JSON lastTick GET "${framesContents}" frames 300 tick)
+string(JSON lastHash GET "${framesContents}" frames 300 stateHash)
+if(NOT framesFormat STREQUAL "elyverse-debug-frames" OR NOT frameCount STREQUAL "301"
+        OR NOT lastTick STREQUAL "300" OR NOT lastHash STREQUAL runHash)
+    message(FATAL_ERROR "Unexpected debug frames: ${framesFormat} ${frameCount} ${lastTick}")
 endif()
 
 # A replay that does not reproduce is reported, with a nonzero exit.
@@ -97,6 +119,13 @@ run_cli(--help --play "${replay}" --seed 1)
 if(NOT result STREQUAL "0" OR NOT output MATCHES "usage:")
     message(FATAL_ERROR "--help did not win: ${result}: ${output}${error}")
 endif()
+expect_failure("cannot be combined" --play "${replay}" --frames-out "${frames}")
+expect_failure("--frames-out records at most 3600 ticks, got --ticks 3601" --ticks 3601
+        --replay-out "${replay}" --frames-out "${frames}")
+expect_failure("name the same file" --ticks 1 --replay-out "${replay}" --frames-out "${replay}")
+expect_failure("name the same file" --ticks 1 --frames-out replay.json)
+expect_failure("cannot open for writing" --ticks 1 --replay-out "${replay}"
+        --frames-out "${TEST_OUTPUT_DIR}/missing/frames.json")
 expect_failure("cannot read" --play "${TEST_OUTPUT_DIR}/missing.json")
 file(WRITE "${TEST_OUTPUT_DIR}/broken.json" "{ not json")
 expect_failure("not a valid JSON document" --play "${TEST_OUTPUT_DIR}/broken.json")

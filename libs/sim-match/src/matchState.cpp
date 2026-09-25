@@ -1,9 +1,12 @@
 #include "matchState.hpp"
 
+#include <algorithm>
+#include <cmath>
 #include <cstddef>
 #include <format>
 #include <limits>
 #include <optional>
+#include <stdexcept>
 #include <string>
 #include <string_view>
 #include <unordered_map>
@@ -110,6 +113,17 @@ void appendNonFinitePlayerErrors(const std::size_t index, const PlayerMatchState
   return value > 0.0 && value <= std::numeric_limits<double>::max();
 }
 
+void appendFacingErrors(const std::size_t index, const PlayerMatchState& player,
+                        std::vector<MatchStateError>& errors) {
+  const double lengthSquared = player.facing.lengthSquared();
+  if (!player.facing.isFinite() || !(std::abs(lengthSquared - 1.0) <= kFacingTolerance)) {
+    errors.push_back({.code = MatchStateErrorCode::kInvalidPlayerFacing,
+                      .message = describePlayer(index, player) + " has facing " +
+                                 formatVector(player.facing, "") +
+                                 "which is not a finite unit vector"});
+  }
+}
+
 void appendAttributeErrors(const std::size_t index, const PlayerMatchState& player,
                            std::vector<MatchStateError>& errors) {
   const PlayerAttributes& attributes = player.attributes;
@@ -182,8 +196,15 @@ void validatePlayers(const MatchStateSpec& spec, std::vector<MatchStateError>& e
 
     appendAttributeErrors(index, player, errors);
     appendNonFinitePlayerErrors(index, player, errors);
+    appendFacingErrors(index, player, errors);
     ++index;
   }
+}
+
+[[nodiscard]] bool hasPlayer(const std::vector<PlayerMatchState>& players,
+                             const SimCore::PlayerId playerId) noexcept {
+  return std::ranges::any_of(
+      players, [playerId](const PlayerMatchState& player) { return player.playerId == playerId; });
 }
 
 void validateBall(const MatchStateSpec& spec, std::vector<MatchStateError>& errors) {
@@ -193,6 +214,18 @@ void validateBall(const MatchStateSpec& spec, std::vector<MatchStateError>& erro
     errors.push_back({.code = MatchStateErrorCode::kBallTooFast,
                       .message = "the ball moves at " + formatVelocity(velocity) +
                                  ", faster than " + formatNumber(kMaxBallSpeed) + " m/s"});
+  }
+  if (spec.ball.lastTouch && !hasPlayer(spec.players, spec.ball.lastTouch->playerId)) {
+    errors.push_back({.code = MatchStateErrorCode::kUnknownLastTouch,
+                      .message = "the ball was last touched by player " +
+                                 std::to_string(spec.ball.lastTouch->playerId.value()) +
+                                 ", who is not in the state"});
+  }
+  if (spec.ball.owner && !hasPlayer(spec.players, *spec.ball.owner)) {
+    errors.push_back({.code = MatchStateErrorCode::kUnknownBallOwner,
+                      .message = "the ball belongs to player " +
+                                 std::to_string(spec.ball.owner->value()) +
+                                 ", who is not in the state"});
   }
 }
 
@@ -216,7 +249,8 @@ MatchState::MatchState(MatchStateSpec spec)
     : pitch_(spec.pitch),
       players_(std::move(spec.players)),
       ball_(spec.ball),
-      playersPerSide_(spec.playersPerSide) {}
+      playersPerSide_(spec.playersPerSide),
+      perceptions_(players_.size()) {}
 
 std::expected<MatchState, std::vector<MatchStateError>> MatchState::create(MatchStateSpec spec) {
   std::vector<MatchStateError> errors;
@@ -238,6 +272,46 @@ void MatchStateWriter::setPlayerPosition(const std::size_t playerIndex,
 void MatchStateWriter::setPlayerVelocity(const std::size_t playerIndex,
                                          const SimCore::Vec2 velocity) {
   state_->players_.at(playerIndex).velocity = velocity;
+}
+
+void MatchStateWriter::setPlayerFacing(const std::size_t playerIndex, const SimCore::Vec2 facing) {
+  state_->players_.at(playerIndex).facing = facing;
+}
+
+void MatchStateWriter::setBallOwner(const std::optional<SimCore::PlayerId> owner) {
+  if (owner) {
+    requirePlayer(*owner, "the ball's owner");
+  }
+  state_->ball_.owner = owner;
+}
+
+void MatchStateWriter::requirePlayer(const SimCore::PlayerId playerId,
+                                     const std::string_view role) const {
+  if (!hasPlayer(state_->players_, playerId)) {
+    throw std::invalid_argument("MatchStateWriter: no player with id " +
+                                std::to_string(playerId.value()) + " can be " + std::string(role));
+  }
+}
+
+void MatchStateWriter::setBallLastTouch(const std::optional<BallTouch> touch) {
+  if (touch) {
+    requirePlayer(touch->playerId, "the last to touch the ball");
+  }
+  state_->ball_.lastTouch = touch;
+}
+
+void MatchStateWriter::setPendingPass(const std::optional<PassIntent> pass) {
+  if (pass) {
+    requirePlayer(pass->passer, "a passer");
+    if (pass->receiver) {
+      requirePlayer(*pass->receiver, "a receiver");
+    }
+  }
+  state_->pendingPass_ = pass;
+}
+
+PlayerPerception& MatchStateWriter::perception(const std::size_t playerIndex) {
+  return state_->perceptions_.at(playerIndex);
 }
 
 void MatchStateWriter::setPlayerTarget(const std::size_t playerIndex,
@@ -262,6 +336,7 @@ std::vector<MatchStateError> findNonFiniteValues(const MatchState& state) {
   std::vector<MatchStateError> errors;
   for (std::size_t index = 0; const PlayerMatchState& player : state.players()) {
     appendNonFinitePlayerErrors(index, player, errors);
+    appendFacingErrors(index, player, errors);
     ++index;
   }
   appendNonFiniteBallErrors(state.ball(), errors);

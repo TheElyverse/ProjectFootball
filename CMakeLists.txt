@@ -23,6 +23,17 @@ list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 include("${CMAKE_CURRENT_SOURCE_DIR}/cmake/get_cpm.cmake")
 include("${CMAKE_CURRENT_SOURCE_DIR}/cmake/CompilerWarnings.cmake")
 
+# Deterministic floating point: every multiply and add rounds on its own.
+# Compilers may otherwise fuse a * b + c into one multiply-add where the
+# target has the instruction -- Clang does by default, GCC outside ISO C --
+# which changes the last bit and with it replays between platforms. MSVC
+# fuses only with /fp:contract; /fp:precise is its default and stated here.
+if (MSVC)
+    add_compile_options(/fp:precise)
+else ()
+    add_compile_options(-ffp-contract=off)
+endif ()
+
 if (PF_ENABLE_SANITIZERS AND NOT MSVC)
     add_compile_options(-fsanitize=address,undefined -fno-omit-frame-pointer)
     add_link_options(-fsanitize=address,undefined)

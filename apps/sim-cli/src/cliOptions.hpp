@@ -21,6 +21,11 @@ inline constexpr std::int64_t kDefaultTicks = 300;
 // Longer than any match, short enough to reject a typo'd extra digit or two.
 // Also the longest replay --play runs.
 inline constexpr std::int64_t kMaxTicks = 10'000'000;
+// The longest run --frames-out records: two minutes at 30 Hz. Every tick
+// adds a full frame -- around 16 KB of JSON, and more while the recording is
+// held in memory -- so a whole match would not fit, and the viewer is for
+// looking at situations, not matches.
+inline constexpr std::int64_t kMaxFrameTicks = 3'600;
 
 struct CliOptions {
   CliMode mode = CliMode::kRun;
@@ -30,21 +35,24 @@ struct CliOptions {
   std::optional<std::uint64_t> seed;
   std::int64_t ticks = kDefaultTicks;
   std::string replayOut = "replay.json";
+  // Where to write debug frames for the web viewer; empty writes none.
+  std::string framesOut;
   std::string playPath;
 };
 
 inline constexpr std::string_view kUsage =
     "usage: sim-cli [--scenario <name>] [--seed <u64>] [--ticks <n>] [--replay-out <path>] "
-    "[--tui]\n"
+    "[--frames-out <path>] [--tui]\n"
     "       sim-cli --play <replay.json> [--tui]\n"
     "       sim-cli --list-scenarios\n"
     "       sim-cli --help";
 
 // Parses argv (program name first). --help wins over everything else.
 // Rejects unknown options, missing or invalid values, --play combined with
-// --list-scenarios, and --play or --list-scenarios combined with options that
-// only apply to a new run, whatever the order, with a message naming the
-// offending argument.
+// --list-scenarios, --play or --list-scenarios combined with options that
+// only apply to a new run, whatever the order, and --frames-out for a run of
+// more than kMaxFrameTicks ticks, with a message naming the offending
+// argument.
 [[nodiscard]] std::expected<CliOptions, std::string> parseCliOptions(std::span<char* const> args);
 
 }  // namespace ElyverseFootball::Cli
