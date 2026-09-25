@@ -13,6 +13,7 @@
 #include "observation.hpp"
 #include "pitch.hpp"
 #include "simTime.hpp"
+#include "tactic.hpp"
 #include "vec2.hpp"
 
 namespace ElyverseFootball::SimMatch {
@@ -136,6 +137,7 @@ enum class MatchStateErrorCode : std::uint8_t {
   kBallTooFast,
   kUnknownBallOwner,
   kUnknownLastTouch,
+  kTacticDoesNotFitSquad,
 };
 
 // The code is what tests and callers branch on; the message names the offending
@@ -156,6 +158,21 @@ struct MatchStateSpec {
   std::vector<PlayerMatchState> players;
   BallState ball;
   int playersPerSide = kDefaultPlayersPerSide;
+};
+
+// The tactic each side plays, if any (docs/tactics.md). A side without a
+// tactic is scripted: its players move only on commands and after free
+// balls, as in the P1 sandbox. The player in slot i of a tactic is the i-th
+// player of that side in MatchState::players(), see slotIndex().
+struct TeamTactics {
+  std::optional<SimTactics::Tactic> home;
+  std::optional<SimTactics::Tactic> away;
+
+  [[nodiscard]] const std::optional<SimTactics::Tactic>& of(const TeamSide side) const noexcept {
+    return side == TeamSide::kHome ? home : away;
+  }
+
+  friend bool operator==(const TeamTactics&, const TeamTactics&) = default;
 };
 
 // A pass a player has decided on and not yet played: the what, decided apart
@@ -197,14 +214,18 @@ class MatchState {
   // The only way to obtain a MatchState from outside the simulation, so every
   // instance that exists is valid. Reports every rule the spec breaks, not just
   // the first one, in a fixed order: squad size, then players by index, then
-  // the ball.
+  // the ball, then the tactics. A tactic must have one slot per player of its
+  // side.
   [[nodiscard]] static std::expected<MatchState, std::vector<MatchStateError>> create(
-      MatchStateSpec spec);
+      MatchStateSpec spec, TeamTactics tactics = {});
 
   [[nodiscard]] const Pitch& pitch() const noexcept { return pitch_; }
   [[nodiscard]] std::span<const PlayerMatchState> players() const noexcept { return players_; }
   [[nodiscard]] const BallState& ball() const noexcept { return ball_; }
   [[nodiscard]] int playersPerSide() const noexcept { return playersPerSide_; }
+
+  // The tactics both sides play; a side without one is scripted.
+  [[nodiscard]] const TeamTactics& tactics() const noexcept { return tactics_; }
 
   // The pass decided and waiting to be played; empty almost always. Every
   // state created from a spec starts without one.
@@ -224,12 +245,13 @@ class MatchState {
  private:
   friend class MatchStateWriter;
 
-  explicit MatchState(MatchStateSpec spec);
+  MatchState(MatchStateSpec spec, TeamTactics tactics);
 
   Pitch pitch_;
   std::vector<PlayerMatchState> players_;
   BallState ball_;
   int playersPerSide_;
+  TeamTactics tactics_;
   // Parallel to players_.
   std::vector<PlayerPerception> perceptions_;
   std::optional<PassIntent> pendingPass_;
@@ -280,6 +302,11 @@ class MatchStateWriter {
 // if no player has it.
 [[nodiscard]] std::optional<std::size_t> findPlayerIndex(const MatchState& state,
                                                          SimCore::PlayerId playerId) noexcept;
+
+// The player's slot in his side's tactic: how many players of his side come
+// before him in MatchState::players(). Throws std::out_of_range for an index
+// past the end.
+[[nodiscard]] std::size_t slotIndex(const MatchState& state, std::size_t playerIndex);
 
 // The finiteness rules of MatchState::create(), for a state the simulation
 // has just written: every non-finite position, velocity and target and every

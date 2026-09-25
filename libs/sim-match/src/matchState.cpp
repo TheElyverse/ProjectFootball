@@ -229,6 +229,19 @@ void validateBall(const MatchStateSpec& spec, std::vector<MatchStateError>& erro
   }
 }
 
+void validateTactics(const MatchStateSpec& spec, const TeamTactics& tactics,
+                     std::vector<MatchStateError>& errors) {
+  for (const TeamSide side : {TeamSide::kHome, TeamSide::kAway}) {
+    const auto& tactic = tactics.of(side);
+    if (tactic && std::cmp_not_equal(tactic->slots().size(), spec.playersPerSide)) {
+      errors.push_back({.code = MatchStateErrorCode::kTacticDoesNotFitSquad,
+                        .message = std::format("{}'s tactic '{}' has {} slots for {} players",
+                                               teamSideName(side), tactic->name(),
+                                               tactic->slots().size(), spec.playersPerSide)});
+    }
+  }
+}
+
 }  // namespace
 
 std::string_view teamSideName(const TeamSide side) noexcept {
@@ -245,23 +258,26 @@ bool isValidTeamSide(const TeamSide side) noexcept {
   return side == TeamSide::kHome || side == TeamSide::kAway;
 }
 
-MatchState::MatchState(MatchStateSpec spec)
+MatchState::MatchState(MatchStateSpec spec, TeamTactics tactics)
     : pitch_(spec.pitch),
       players_(std::move(spec.players)),
       ball_(spec.ball),
       playersPerSide_(spec.playersPerSide),
+      tactics_(std::move(tactics)),
       perceptions_(players_.size()) {}
 
-std::expected<MatchState, std::vector<MatchStateError>> MatchState::create(MatchStateSpec spec) {
+std::expected<MatchState, std::vector<MatchStateError>> MatchState::create(MatchStateSpec spec,
+                                                                           TeamTactics tactics) {
   std::vector<MatchStateError> errors;
   validateRoster(spec, errors);
   validatePlayers(spec, errors);
   validateBall(spec, errors);
+  validateTactics(spec, tactics, errors);
 
   if (!errors.empty()) {
     return std::unexpected(std::move(errors));
   }
-  return MatchState(std::move(spec));
+  return MatchState(std::move(spec), std::move(tactics));
 }
 
 void MatchStateWriter::setPlayerPosition(const std::size_t playerIndex,
@@ -328,6 +344,17 @@ std::optional<std::size_t> findPlayerIndex(const MatchState& state,
     ++index;
   }
   return std::nullopt;
+}
+
+std::size_t slotIndex(const MatchState& state, const std::size_t playerIndex) {
+  const auto players = state.players();
+  if (playerIndex >= players.size()) {
+    throw std::out_of_range("slotIndex: no player at index " + std::to_string(playerIndex));
+  }
+  const TeamSide side = players[playerIndex].side;
+  return static_cast<std::size_t>(std::ranges::count_if(
+      players.first(playerIndex),
+      [side](const PlayerMatchState& player) { return player.side == side; }));
 }
 
 // Allocates nothing for a state without defects: the vector stays empty until

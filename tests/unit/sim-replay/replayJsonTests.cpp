@@ -5,8 +5,10 @@
 
 #include "kickoffScenario.hpp"
 #include "matchSetup.hpp"
+#include "referenceTactic.hpp"
 #include "replay.hpp"
 #include "replayJson.hpp"
+#include "tactic.hpp"
 
 using ElyverseFootball::SimCore::SimTick;
 using ElyverseFootball::SimMatch::makeSevenASideKickoff;
@@ -142,4 +144,41 @@ TEST_CASE("Loading a missing file is an I/O error", "[replayJson]") {
 
   REQUIRE_FALSE(replay.has_value());
   REQUIRE(replay.error().code == ReplayErrorCode::kIoError);
+}
+
+TEST_CASE("Tactics survive a round trip through the replay format", "[replayJson]") {
+  using ElyverseFootball::SimTactics::referenceTacticSpec;
+  using ElyverseFootball::SimTactics::Tactic;
+  auto awaySpec = referenceTacticSpec();
+  awaySpec.name = "away";
+  const auto home = Tactic::create(referenceTacticSpec());
+  const auto away = Tactic::create(awaySpec);
+  REQUIRE(home.has_value());
+  REQUIRE(away.has_value());
+  const auto kickoff = makeSevenASideKickoff(Pitch(60.0, 40.0));
+  REQUIRE(kickoff.has_value());
+  auto state = ElyverseFootball::SimMatch::MatchState::create(
+      {.pitch = kickoff->pitch(),
+       .players = {kickoff->players().begin(), kickoff->players().end()},
+       .ball = kickoff->ball(),
+       .playersPerSide = kickoff->playersPerSide()},
+      {.home = *home, .away = *away});
+  REQUIRE(state.has_value());
+  const MatchSetup setup{.initialState = *state, .config = {}, .seed = 5, .commands = {}};
+  const auto replay = recordMatch(setup, SimTick(3), 1, "2026-09-25T10:00:00Z");
+  REQUIRE(replay.has_value());
+
+  const auto parsed = parseReplayJson(toReplayJson(*replay));
+  REQUIRE(parsed.has_value());
+  REQUIRE(parsed->setup.initialState.tactics() == state->tactics());
+  REQUIRE(*parsed == *replay);
+}
+
+TEST_CASE("A malformed tactic in a replay is rejected with its field", "[replayJson]") {
+  // A scripted side's tactic is null; anything but a tactic object there is
+  // malformed.
+  requireRejected(validJsonWith(R"("home": null)", R"("home": "reference")"), kMalformed,
+                  "initialState.tactics.home: expected an object");
+  requireRejected(validJsonWith(R"("tactics": {)", R"("tacticz": {)"), kMalformed,
+                  "initialState.tactics: missing");
 }

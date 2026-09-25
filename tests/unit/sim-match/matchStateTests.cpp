@@ -9,6 +9,8 @@
 #include <vector>
 
 #include "matchState.hpp"
+#include "referenceTactic.hpp"
+#include "tactic.hpp"
 
 using ElyverseFootball::SimCore::PlayerId;
 using ElyverseFootball::SimCore::Vec2;
@@ -495,4 +497,53 @@ TEST_CASE("checkStartingPositions reports players by index, then the ball", "[ma
                                          MatchStateErrorCode::kBallOutsidePitch});
   REQUIRE(mentions(errors.at(0).message, "index 3"));
   REQUIRE(mentions(errors.at(1).message, "index 11"));
+}
+
+namespace {
+
+[[nodiscard]] ElyverseFootball::SimTactics::Tactic referenceTactic() {
+  auto tactic = ElyverseFootball::SimTactics::Tactic::create(
+      ElyverseFootball::SimTactics::referenceTacticSpec());
+  REQUIRE(tactic.has_value());
+  return *std::move(tactic);
+}
+
+}  // namespace
+
+TEST_CASE("A side plays a tactic or is scripted", "[matchState]") {
+  const auto untactical = MatchState::create(validSpec());
+  REQUIRE(untactical.has_value());
+  REQUIRE_FALSE(untactical->tactics().home.has_value());
+  REQUIRE_FALSE(untactical->tactics().away.has_value());
+
+  const auto state = MatchState::create(validSpec(), {.home = referenceTactic(), .away = {}});
+  REQUIRE(state.has_value());
+  REQUIRE(state->tactics().of(TeamSide::kHome) == referenceTactic());
+  REQUIRE_FALSE(state->tactics().of(TeamSide::kAway).has_value());
+  REQUIRE(*state != *untactical);
+}
+
+TEST_CASE("MatchState::create rejects a tactic that does not fit the squad", "[matchState]") {
+  const auto state = MatchState::create(validSpec(6), {.home = {}, .away = referenceTactic()});
+  REQUIRE_FALSE(state.has_value());
+  REQUIRE(codesOf(state.error()) == std::vector{MatchStateErrorCode::kTacticDoesNotFitSquad});
+  REQUIRE(state.error().front().message == "away's tactic 'reference' has 7 slots for 6 players");
+}
+
+TEST_CASE("A player's slot is his place within his side", "[matchState]") {
+  auto spec = validSpec();
+  // Interleave the sides: home, away, home, away, ...
+  std::vector<PlayerMatchState> interleaved;
+  for (std::size_t index = 0; index < 7; ++index) {
+    interleaved.push_back(spec.players.at(index));
+    interleaved.push_back(spec.players.at(index + 7));
+  }
+  spec.players = interleaved;
+  const auto state = MatchState::create(spec);
+  REQUIRE(state.has_value());
+  REQUIRE(ElyverseFootball::SimMatch::slotIndex(*state, 0) == 0);
+  REQUIRE(ElyverseFootball::SimMatch::slotIndex(*state, 1) == 0);
+  REQUIRE(ElyverseFootball::SimMatch::slotIndex(*state, 4) == 2);
+  REQUIRE(ElyverseFootball::SimMatch::slotIndex(*state, 13) == 6);
+  REQUIRE_THROWS_AS(ElyverseFootball::SimMatch::slotIndex(*state, 14), std::out_of_range);
 }

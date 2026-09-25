@@ -9,6 +9,8 @@
 #include "matchSimulation.hpp"
 #include "matchState.hpp"
 #include "matchStateHash.hpp"
+#include "referenceTactic.hpp"
+#include "tactic.hpp"
 #include "vec2.hpp"
 
 using ElyverseFootball::SimCore::PlayerId;
@@ -58,7 +60,7 @@ TEST_CASE("Equal states hash equally", "[matchStateHash]") {
 TEST_CASE("The kickoff hash is pinned", "[matchStateHash]") {
   // Changes when the fixture, a state field or the hash encoding changes;
   // each of those invalidates recorded replays, so update it deliberately.
-  REQUIRE(hashOf(kickoffSpec()) == 0x6c4fd8e47c35f20aULL);
+  REQUIRE(hashOf(kickoffSpec()) == 0x2c734b279e56a19aULL);
 }
 
 // Guards against a field that is added to the state but forgotten here.
@@ -132,4 +134,29 @@ TEST_CASE("Perception memories are part of the hash", "[matchStateHash]") {
   REQUIRE(hashAfter(seenBall) != hashAfter(older));
   REQUIRE(hashAfter(seenBall) != hashAfter(seenPlayer));
   REQUIRE(hashAfter(seenBall) == hashAfter(seenBall));
+}
+
+TEST_CASE("Tactics are part of the hash", "[matchStateHash]") {
+  using ElyverseFootball::SimMatch::TeamTactics;
+  using ElyverseFootball::SimTactics::referenceTacticSpec;
+  using ElyverseFootball::SimTactics::Tactic;
+  const auto reference = Tactic::create(referenceTacticSpec());
+  auto otherSpec = referenceTacticSpec();
+  otherSpec.name = "other";
+  const auto other = Tactic::create(otherSpec);
+  REQUIRE(reference.has_value());
+  REQUIRE(other.has_value());
+
+  const auto hashWith = [](const TeamTactics& tactics) {
+    auto state = MatchState::create(kickoffSpec(), tactics);
+    REQUIRE(state.has_value());
+    return hashMatchState(*state);
+  };
+  const std::uint64_t none = hashWith({});
+  REQUIRE(none == hashOf(kickoffSpec()));
+  REQUIRE(hashWith({.home = *reference, .away = {}}) != none);
+  REQUIRE(hashWith({.home = *reference, .away = {}}) != hashWith({.home = {}, .away = *reference}));
+  REQUIRE(hashWith({.home = *reference, .away = {}}) != hashWith({.home = *other, .away = {}}));
+  REQUIRE(hashWith({.home = *reference, .away = *other}) ==
+          hashWith({.home = *reference, .away = *other}));
 }

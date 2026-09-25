@@ -19,7 +19,7 @@ validation leaves no file behind.
 ```json
 {
   "schemaVersion": 3,
-  "coreVersion": "0.7.0",
+  "coreVersion": "0.8.0",
   "createdAt": "2026-09-24T10:00:00Z",
   "seed": "18446744073709551615",
   "gameTime": 300,
@@ -79,7 +79,8 @@ validation leaves no file behind.
       "velocity": { "x": 6.5, "y": -1.25 },
             "owner": null,
       "lastTouch": null
-    }
+    },
+    "tactics": { "home": { "format": "elyverse-tactic", "version": 1, "name": "reference" }, "away": null }
   },
   "commands": [
     { "tick": 0, "order": 0, "type": "movePlayer", "playerId": 7, "target": { "x": 40.0, "y": 10.0 } },
@@ -87,13 +88,14 @@ validation leaves no file behind.
     { "tick": 45, "order": 1, "type": "movePlayer", "playerId": 2, "target": { "x": 30.0, "y": 20.0 } }
   ],
   "checkpoints": [
-    { "tick": 0, "stateHash": "6c4fd8e47c35f20a", "eventHash": "cbf29ce484222325" },
+    { "tick": 0, "stateHash": "2c734b279e56a19a", "eventHash": "cbf29ce484222325" },
     { "tick": 30, "stateHash": "...", "eventHash": "..." }
   ]
 }
 ```
 
-The example shortens the player list; a real file lists every player.
+The example shortens the player list and the tactic; a real file lists every
+player and the whole tactic.
 
 | Field           | JSON type | Meaning                                                       |
 |-----------------|-----------|---------------------------------------------------------------|
@@ -111,7 +113,10 @@ Positions are meters and velocities meters per second, as in the
 [match state](match-state.md). A player's `target` is `null` when he has none,
 the ball's `owner` is `null` while it is free, and its `lastTouch` is `null` or
 `{ "playerId": 7, "tick": 120 }`. The pending pass is not recorded: every
-initial state has none.
+initial state has none. `tactics` holds each side's tactic as a complete
+[tactic file](tactic-format.md) document, or `null` for a scripted side; a
+replay's tactic can be cut out and loaded as a tactic file. An invalid tactic is
+rejected with `kInvalidSetup`, a malformed one with `kMalformed`.
 
 ### Commands and their order
 

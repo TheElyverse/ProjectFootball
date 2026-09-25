@@ -21,6 +21,7 @@
 #include "matchCommand.hpp"
 #include "matchSetup.hpp"
 #include "matchState.hpp"
+#include "tacticJson.hpp"
 #include "version.hpp"
 
 namespace ElyverseFootball::SimReplay {
@@ -69,6 +70,16 @@ using SimMatch::TeamSide;
   return {{"playerId", touch->playerId.value()}, {"tick", touch->tick.value()}};
 }
 
+// A tactic is embedded in its own file format (docs/tactic-format.md), so a
+// replay's tactic can be cut out and loaded as a tactic file.
+[[nodiscard]] Json tacticJson(const std::optional<SimTactics::Tactic>& tactic) {
+  return tactic ? Json::parse(SimTactics::toTacticJson(*tactic)) : Json(nullptr);
+}
+
+[[nodiscard]] Json tacticsJson(const SimMatch::TeamTactics& tactics) {
+  return {{"home", tacticJson(tactics.home)}, {"away", tacticJson(tactics.away)}};
+}
+
 [[nodiscard]] Json stateJson(const MatchState& state) {
   Json json;
   json["pitch"] = {{"length", state.pitch().lengthMeters()},
@@ -83,6 +94,7 @@ using SimMatch::TeamSide;
                   {"velocity", vec2Json(state.ball().velocity)},
                   {"owner", owner ? Json(owner->value()) : Json(nullptr)},
                   {"lastTouch", touchJson(state.ball().lastTouch)}};
+  json["tactics"] = tacticsJson(state.tactics());
   return json;
 }
 
@@ -264,6 +276,7 @@ class Field {
   }
 
   [[nodiscard]] const std::string& path() const noexcept { return path_; }
+  [[nodiscard]] const Json& json() const noexcept { return *value_; }
 
  private:
   const Json* value_;
@@ -320,6 +333,20 @@ constexpr std::int64_t kMaxTick = std::int64_t{1} << 53;
           .facing = readVec2(field.member("facing"))};
 }
 
+[[nodiscard]] std::optional<SimTactics::Tactic> readTactic(const Field& field) {
+  if (field.isNull()) {
+    return std::nullopt;
+  }
+  auto tactic = SimTactics::parseTacticJson(field.json().dump(), field.path());
+  if (!tactic) {
+    throw FormatError(tactic.error().code == SimTactics::TacticFileErrorCode::kInvalidTactic
+                          ? ReplayErrorCode::kInvalidSetup
+                          : ReplayErrorCode::kMalformed,
+                      tactic.error().message);
+  }
+  return *std::move(tactic);
+}
+
 [[nodiscard]] MatchState readState(const Field& field) {
   const Field pitchField = field.member("pitch");
   const std::optional<SimMatch::Pitch> pitch = [&pitchField]() -> std::optional<SimMatch::Pitch> {
@@ -346,7 +373,9 @@ constexpr std::int64_t kMaxTick = std::int64_t{1} << 53;
                 .velocity = readVec2(ball.member("velocity")),
                 .owner = readOwner(ball.member("owner")),
                 .lastTouch = readTouch(ball.member("lastTouch"))},
-       .playersPerSide = static_cast<int>(field.member("playersPerSide").integerIn(1, 1000))});
+       .playersPerSide = static_cast<int>(field.member("playersPerSide").integerIn(1, 1000))},
+      {.home = readTactic(field.member("tactics").member("home")),
+       .away = readTactic(field.member("tactics").member("away"))});
   if (!state) {
     std::string problems = "invalid match state";
     for (const SimMatch::MatchStateError& error : state.error()) {

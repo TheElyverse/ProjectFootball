@@ -4,6 +4,7 @@
 #include <optional>
 
 #include "stableHash.hpp"
+#include "tacticHash.hpp"
 #include "vec2.hpp"
 
 namespace ElyverseFootball::SimMatch {
@@ -81,6 +82,13 @@ std::uint64_t hashMatchState(const MatchState& state) noexcept {
     hasher.addDouble(pass->speed);
     hasher.addBool(pass->receiver.has_value());
     hasher.addU64(pass->receiver.value_or(SimCore::PlayerId::invalid()).value());
+  }
+  for (const TeamSide side : {TeamSide::kHome, TeamSide::kAway}) {
+    const auto& tactic = state.tactics().of(side);
+    hasher.addBool(tactic.has_value());
+    if (tactic) {
+      hasher.addU64(SimTactics::contentHash(*tactic));
+    }
   }
   return hasher.value();
 }

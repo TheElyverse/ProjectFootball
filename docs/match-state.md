@@ -2,7 +2,8 @@
 
 `MatchState` is the smallest complete picture of a match the simulation works
 on: a pitch, two teams of players, and one ball. It lives in `sim-match`
-(`matchState.hpp`, `kickoffScenario.hpp`) and depends only on `sim-core`.
+(`matchState.hpp`, `kickoffScenario.hpp`) and depends on `sim-core` and, for
+the tactics sides play, `sim-tactics`.
 
 Nothing in this document advances time. The state is what the
 [match loop](match-loop.md) reads and writes; the loop itself, player movement,
@@ -12,7 +13,7 @@ and ball physics are separate concerns.
 
 | Type               | Contents                                                                        |
 |--------------------|---------------------------------------------------------------------------------|
-| `MatchState`       | the `Pitch`, the players in order, the `BallState`, the squad size per side, and every player's perception memory |
+| `MatchState`       | the `Pitch`, the players in order, the `BallState`, the squad size per side, every player's perception memory, and each side's tactic |
 | `PlayerMatchState` | `playerId`, `side`, `position`, `velocity`, `attributes`, `target`, `facing`    |
 | `PlayerAttributes` | `maxSpeed` (m/s) and `acceleration` (m/s²), fixed for the match                 |
 | `BallState`        | `position`, `velocity`, `owner`, `lastTouch`                                    |
@@ -42,6 +43,14 @@ A state also holds the pass a player has decided on and not yet played,
 is a vector rather than an angle so that no trigonometry, and none of its
 platform differences, enters the state. The kickoff fixture turns each side
 toward the goal it attacks.
+
+Each side plays a [tactic](tactics.md) or none: `MatchState::create(spec,
+tactics)` takes them as `TeamTactics { home, away }`, both empty by default. A
+side without a tactic is scripted -- its players move only on commands and after
+free balls, as in the P1 sandbox. A tactic must have one slot per player of its
+side (`kTacticDoesNotFitSquad` otherwise); the player in slot `i` is the `i`-th
+player of his side in `players()`, and `slotIndex(state, playerIndex)` finds it.
+The state hash includes each tactic by its content hash.
 
 Every player also has a perception memory, `perception(playerIndex)`: what he
 believes about the ball and the other players (see [perception](perception.md)).
