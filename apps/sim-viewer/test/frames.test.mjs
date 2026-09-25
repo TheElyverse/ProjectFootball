@@ -76,5 +76,20 @@ test("describeEvent names the players involved", () => {
     describeEvent({ tick: 0, type: "ballWon", winner: 9, loser: 4, position: [1, 2] }),
     "#9 wins the ball from #4",
   );
+    assert.equal(
+    describeEvent({
+      tick: 0,
+      type: "pressingStarted",
+      side: "home",
+      carrier: 9,
+      trigger: "backPass",
+      assignments: [{ player: 3, role: "press", subject: 9 }],
+    }),
+    "home presses #9 (backPass, 1 players)",
+  );
+  assert.equal(
+    describeEvent({ tick: 0, type: "pressingEnded", side: "home", outcome: "ballRegained" }),
+    "home press ends: ballRegained",
+  );
   assert.equal(describeEvent({ tick: 0, type: "somethingNew" }), "somethingNew");
 });
