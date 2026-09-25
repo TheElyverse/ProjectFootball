@@ -181,7 +181,9 @@ using SimMatch::TeamSide;
            {{"arrivalSpeed", config.passing.arrivalSpeed},
             {"maxSpeed", config.passing.maxSpeed},
             {"directionError", config.passing.directionError},
-            {"speedError", config.passing.speedError}}},
+            {"speedError", config.passing.speedError},
+            {"pressureRadius", config.passing.pressureRadius},
+            {"pressureErrorFactor", config.passing.pressureErrorFactor}}},
           {"reception",
            {{"controlRadius", config.reception.controlRadius},
             {"reclaimDelaySeconds", config.reception.reclaimDelaySeconds}}},
@@ -458,7 +460,9 @@ constexpr std::int64_t kMaxTick = std::int64_t{1} << 53;
   return {.arrivalSpeed = field.member("arrivalSpeed").number(),
           .maxSpeed = field.member("maxSpeed").number(),
           .directionError = field.member("directionError").number(),
-          .speedError = field.member("speedError").number()};
+          .speedError = field.member("speedError").number(),
+          .pressureRadius = field.member("pressureRadius").number(),
+          .pressureErrorFactor = field.member("pressureErrorFactor").number()};
 }
 
 [[nodiscard]] SimMatch::PursuitConfig readPursuit(const Field& field) {

@@ -59,7 +59,8 @@ using SimCore::Vec2;
   const auto passer = findPlayerIndex(state, intent.passer).value_or(0);
   ball.position = carriedBallPosition(state.players()[passer], physics, state.pitch());
   ball.velocity = executePass(intent, ball, state.players()[passer], passing,
-                              context.random(SimCore::RandomNumberGeneratorDomain::kExecution));
+                              context.random(SimCore::RandomNumberGeneratorDomain::kExecution),
+                              passPressure(state, passer, passing));
   ball.owner = std::nullopt;
   ball.lastTouch = BallTouch{.playerId = intent.passer, .tick = context.tick()};
   return ball;

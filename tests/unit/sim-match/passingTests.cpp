@@ -289,3 +289,59 @@ TEST_CASE("Pass commands are validated when scheduled", "[passing]") {
               .error()
               .code == MatchCommandErrorCode::kUnknownPlayer);
 }
+
+TEST_CASE("Pressure widens the execution error", "[passing]") {
+  const PassConfig config;
+  const PassIntent intent{.passer = PlayerId(1),
+                          .target = {.x = 40.0, .y = 10.0},
+                          .speed = 12.0,
+                          .receiver = std::nullopt};
+  double calm = 0.0;
+  double pressed = 0.0;
+  for (std::uint64_t seed = 0; seed < 500; ++seed) {
+    RandomNumberGenerator first(seed);
+    RandomNumberGenerator second(seed);
+    const Vec2 unpressed =
+        executePass(intent, ballAt({.x = 10.0, .y = 10.0}), passerFacing({}), config, first);
+    // No pressure is exactly the pass without it.
+    RandomNumberGenerator third(seed);
+    REQUIRE(executePass(intent, ballAt({.x = 10.0, .y = 10.0}), passerFacing({}), config, third,
+                        0.0) == unpressed);
+    const Vec2 underPressure =
+        executePass(intent, ballAt({.x = 10.0, .y = 10.0}), passerFacing({}), config, second, 1.0);
+    // The same draws, twice the error (pressureErrorFactor 1).
+    REQUIRE(std::abs(std::atan2(underPressure.y, underPressure.x)) <=
+            std::atan(2.0 * config.directionError) + 1e-12);
+    REQUIRE(lengthOf(underPressure) <= 12.0 * 1.1 + 1e-9);
+    calm = std::max(calm, std::abs(std::atan2(unpressed.y, unpressed.x)));
+    pressed = std::max(pressed, std::abs(std::atan2(underPressure.y, underPressure.x)));
+  }
+  REQUIRE(pressed > 1.5 * calm);
+}
+
+TEST_CASE("The nearest opponent sets the pressure on a passer", "[passing]") {
+  using ElyverseFootball::SimMatch::MatchState;
+  using ElyverseFootball::SimMatch::passPressure;
+  auto state = makeSevenASideKickoff(Pitch(60.0, 40.0));
+  REQUIRE(state.has_value());
+  // In the kickoff fixture nobody stands within 3 m of an opponent.
+  REQUIRE(passPressure(*state, 6, PassConfig{}) == 0.0);
+  std::vector<PlayerMatchState> players(state->players().begin(), state->players().end());
+  // Away's forward 1.5 m from home's.
+  players.at(13).position = players.at(6).position + Vec2{.x = 1.5, .y = 0.0};
+  const auto pressed = MatchState::create(
+      {.pitch = state->pitch(), .players = players, .ball = state->ball(), .playersPerSide = 7});
+  REQUIRE(pressed.has_value());
+  REQUIRE(passPressure(*pressed, 6, PassConfig{}) == 0.5);
+}
+
+TEST_CASE("A kick under full pressure must keep some speed", "[passing]") {
+  PassConfig config;
+  config.speedError = 0.5;
+  config.pressureErrorFactor = 1.0;
+  REQUIRE_THROWS_AS(ElyverseFootball::SimMatch::validate(config), std::invalid_argument);
+  config.pressureErrorFactor = 0.9;
+  REQUIRE_NOTHROW(ElyverseFootball::SimMatch::validate(config));
+  config.pressureRadius = 0.0;
+  REQUIRE_THROWS_AS(ElyverseFootball::SimMatch::validate(config), std::invalid_argument);
+}

@@ -1,5 +1,7 @@
 #pragma once
 
+#include <cstddef>
+
 #include "ballMovement.hpp"
 #include "matchState.hpp"
 #include "random.hpp"
@@ -20,6 +22,12 @@ struct PassConfig {
   // Execution error: the kick is up to this fraction harder or softer than
   // intended, uniformly distributed.
   double speedError = 0.05;
+  // An opponent this close to the passer puts him under pressure: none at
+  // the edge, full pressure at his feet.
+  double pressureRadius = 3.0;  // m
+  // Under full pressure both execution errors grow by this factor: 1 doubles
+  // them. Without pressure they stay as they are.
+  double pressureErrorFactor = 1.0;
 
   friend bool operator==(const PassConfig&, const PassConfig&) = default;
 };
@@ -38,14 +46,25 @@ struct PassConfig {
 // The velocity the ball leaves the passer's foot with: toward the intent's
 // target from where the ball is, at the intended speed, both off by a random
 // execution error drawn from random -- always two draws -- and never faster
-// than maxSpeed. A target on the ball itself is played along the passer's
-// facing. This is the how-well half of a pass; the what is the PassIntent.
+// than maxSpeed. The errors grow by pressureErrorFactor * pressure, for a
+// pressure in [0, 1] (passPressure()). A target on the ball itself is played
+// along the passer's facing. This is the how-well half of a pass; the what is
+// the PassIntent.
 [[nodiscard]] SimCore::Vec2 executePass(const PassIntent& intent, const BallState& ball,
                                         const PlayerMatchState& passer, const PassConfig& config,
-                                        SimCore::RandomNumberGenerator& random) noexcept;
+                                        SimCore::RandomNumberGenerator& random,
+                                        double pressure = 0.0) noexcept;
 
-// Throws std::invalid_argument unless every value is finite, the speeds are
-// positive and the errors are not negative.
+// How much pressure the passer at this index is under, in [0, 1]: 1 - d /
+// pressureRadius for the nearest opponent at distance d, 0 without one
+// within the radius. Pressure is physical, so it uses true positions.
+[[nodiscard]] double passPressure(const MatchState& state, std::size_t passerIndex,
+                                  const PassConfig& config) noexcept;
+
+// Throws std::invalid_argument unless every value is finite, the speeds and
+// the pressure radius are positive, the errors and the pressure factor are
+// not negative, and a kick under full pressure keeps some speed: speedError *
+// (1 + pressureErrorFactor) below 1.
 void validate(const PassConfig& config);
 
 }  // namespace ElyverseFootball::SimMatch
