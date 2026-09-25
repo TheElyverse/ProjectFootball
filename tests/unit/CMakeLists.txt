@@ -83,3 +83,15 @@ target_link_libraries(sim-tactics-tests PRIVATE
 target_compile_definitions(sim-tactics-tests PRIVATE PF_DATA_DIR="${PROJECT_SOURCE_DIR}/data")
 target_compile_definitions(sim-match-tests PRIVATE PF_DATA_DIR="${PROJECT_SOURCE_DIR}/data")
 catch_discover_tests(sim-tactics-tests)
+
+add_executable(sim-analytics-tests
+        sim-analytics/matchAnalyzerTests.cpp
+        sim-analytics/statsJsonTests.cpp
+)
+target_link_libraries(sim-analytics-tests PRIVATE
+        ElyverseFootball::sim-analytics
+        nlohmann_json::nlohmann_json
+        Catch2::Catch2WithMain
+        pf_compiler_warnings
+)
+catch_discover_tests(sim-analytics-tests)

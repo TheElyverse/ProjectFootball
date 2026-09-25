@@ -54,6 +54,7 @@ add_subdirectory(libs/sim-core)
 add_subdirectory(libs/sim-tactics)
 add_subdirectory(libs/sim-match)
 add_subdirectory(libs/sim-replay)
+add_subdirectory(libs/sim-analytics)
 add_subdirectory(apps/sim-cli)
 
 if (PF_BUILD_TESTS)
