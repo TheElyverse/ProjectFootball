@@ -19,7 +19,8 @@ add_library(sim-match STATIC
         src/teamFrame.cpp
                 src/tacticalPhases.cpp
         src/pitchControlGrid.cpp
-        src/pitchControl.cpp
+                src/pitchControl.cpp
+        src/zones.cpp
 )
 add_library(ElyverseFootball::sim-match ALIAS sim-match)
 
