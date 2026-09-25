@@ -2,6 +2,8 @@ add_library(sim-tactics STATIC
         src/tacticalPhase.cpp
         src/responsibility.cpp
         src/rolePreset.cpp
+        src/tactic.cpp
+        src/referenceTactic.cpp
 )
 add_library(ElyverseFootball::sim-tactics ALIAS sim-tactics)
 

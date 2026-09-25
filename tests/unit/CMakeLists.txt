@@ -59,6 +59,7 @@ catch_discover_tests(sim-replay-tests)
 add_executable(sim-tactics-tests
         sim-tactics/tacticalPhaseTests.cpp
         sim-tactics/rolePresetTests.cpp
+        sim-tactics/tacticTests.cpp
 )
 target_link_libraries(sim-tactics-tests PRIVATE
         ElyverseFootball::sim-tactics
