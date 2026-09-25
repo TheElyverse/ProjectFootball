@@ -326,6 +326,14 @@ void MatchStateWriter::setPendingPass(const std::optional<PassIntent> pass) {
   state_->pendingPass_ = pass;
 }
 
+void MatchStateWriter::setPhase(const TeamSide side, const std::optional<TeamPhase> phase) {
+  if (phase && !state_->tactics_.of(side)) {
+    throw std::invalid_argument(std::format(
+        "MatchStateWriter: {} plays no tactic and so has no phase", teamSideName(side)));
+  }
+  (side == TeamSide::kHome ? state_->phases_[0] : state_->phases_[1]) = phase;
+}
+
 PlayerPerception& MatchStateWriter::perception(const std::size_t playerIndex) {
   return state_->perceptions_.at(playerIndex);
 }

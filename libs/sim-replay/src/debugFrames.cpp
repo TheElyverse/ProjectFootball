@@ -125,6 +125,13 @@ void addEventFields(Json& json, const SimMatch::PossessionChanged& event) {
   json["newOwner"] = idJson(event.newOwner);
 }
 
+void addEventFields(Json& json, const SimMatch::PhaseChanged& event) {
+  json["type"] = "phaseChanged";
+  json["side"] = SimMatch::teamSideName(event.side);
+  json["previous"] = event.previous ? Json(SimTactics::phaseName(*event.previous)) : Json(nullptr);
+  json["phase"] = SimTactics::phaseName(event.phase);
+}
+
 [[nodiscard]] Json eventJson(const SimMatch::MatchEvent& event) {
   Json json;
   // The step's tick, one before the frame's: the event happened during the

@@ -90,6 +90,19 @@ std::uint64_t hashMatchState(const MatchState& state) noexcept {
       hasher.addU64(SimTactics::contentHash(*tactic));
     }
   }
+  const TeamPossession& possession = state.possession();
+  hasher.addBool(possession.team.has_value());
+  hasher.addU64(static_cast<std::uint64_t>(possession.team.value_or(TeamSide::kHome)));
+  hasher.addI64(possession.since.value());
+  hasher.addBool(possession.fromOpponent);
+  for (const TeamSide side : {TeamSide::kHome, TeamSide::kAway}) {
+    const auto& phase = state.phase(side);
+    hasher.addBool(phase.has_value());
+    if (phase) {
+      hasher.addU64(static_cast<std::uint64_t>(phase->phase));
+      hasher.addI64(phase->since.value());
+    }
+  }
   return hasher.value();
 }
 

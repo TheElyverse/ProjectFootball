@@ -25,7 +25,9 @@ namespace ElyverseFootball::SimMatch {
 // dimensions, so it lies inside any valid pitch. It still goes through MatchState::create() and
 // checkStartingPositions(), so there is exactly one validated way to build a
 // state and a fixture is held to the same rules as any other starting state.
+//
+// tactics are the sides' tactics; both sides are scripted by default.
 [[nodiscard]] std::expected<MatchState, std::vector<MatchStateError>> makeSevenASideKickoff(
-    const Pitch& pitch, SimCore::Vec2 ballVelocity = {});
+    const Pitch& pitch, SimCore::Vec2 ballVelocity = {}, TeamTactics tactics = {});
 
 }  // namespace ElyverseFootball::SimMatch

@@ -39,6 +39,14 @@ void addFields(StableHasher& hasher, const PossessionChanged& event) noexcept {
   addPlayer(hasher, event.newOwner);
 }
 
+void addFields(StableHasher& hasher, const PhaseChanged& event) noexcept {
+  hasher.addU64(static_cast<std::uint64_t>(event.side));
+  hasher.addBool(event.previous.has_value());
+  hasher.addU64(
+      static_cast<std::uint64_t>(event.previous.value_or(SimTactics::TacticalPhase::kBuildUp)));
+  hasher.addU64(static_cast<std::uint64_t>(event.phase));
+}
+
 }  // namespace
 
 std::string_view eventName(const MatchEvent& event) {
@@ -57,6 +65,9 @@ std::string_view eventName(const MatchEvent& event) {
     }
     std::string_view operator()(const PossessionChanged& /*event*/) const noexcept {
       return "possession changed";
+    }
+    std::string_view operator()(const PhaseChanged& /*event*/) const noexcept {
+      return "phase changed";
     }
   };
   return std::visit(Names{}, event);

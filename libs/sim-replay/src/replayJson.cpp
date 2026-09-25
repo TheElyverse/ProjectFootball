@@ -141,7 +141,11 @@ using SimMatch::TeamSide;
            {{"intervalTicks", config.pursuit.intervalTicks},
             {"sampleSeconds", config.pursuit.sampleSeconds},
             {"horizonSeconds", config.pursuit.horizonSeconds}}},
-          {"decisions", decisionsJson(config.decisions)}};
+          {"decisions", decisionsJson(config.decisions)},
+          {"phases",
+           {{"intervalTicks", config.phases.intervalTicks},
+            {"transitionSeconds", config.phases.transitionSeconds},
+            {"hysteresisMeters", config.phases.hysteresisMeters}}}};
 }
 
 void addCommandFields(Json& json, const MovePlayerCommand& command) {
@@ -426,6 +430,12 @@ constexpr std::int64_t kMaxTick = std::int64_t{1} << 53;
                   .riskWeight = scoring.member("riskWeight").number()}};
 }
 
+[[nodiscard]] SimMatch::PhaseConfig readPhases(const Field& field) {
+  return {.intervalTicks = static_cast<int>(field.member("intervalTicks").integerIn(1, 100000)),
+          .transitionSeconds = field.member("transitionSeconds").number(),
+          .hysteresisMeters = field.member("hysteresisMeters").number()};
+}
+
 [[nodiscard]] MatchConfig readConfig(const Field& field) {
   return {
       .ticksPerSecond = static_cast<int>(field.member("ticksPerSecond").integerIn(1, 100000)),
@@ -437,7 +447,8 @@ constexpr std::int64_t kMaxTick = std::int64_t{1} << 53;
                     .reclaimDelaySeconds =
                         field.member("reception").member("reclaimDelaySeconds").number()},
       .pursuit = readPursuit(field.member("pursuit")),
-      .decisions = readDecisions(field.member("decisions"))};
+      .decisions = readDecisions(field.member("decisions")),
+      .phases = readPhases(field.member("phases"))};
 }
 
 [[nodiscard]] MatchCommand readCommand(const Field& field) {

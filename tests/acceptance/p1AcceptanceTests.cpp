@@ -322,13 +322,13 @@ TEST_CASE("P1: the final hashes are pinned", "[acceptance][p1]") {
   };
   const std::array<Pinned, 3> pinned{{
       {.name = "pass-chain",
-       .stateHash = 0x82eaa7511de740ebULL,
+       .stateHash = 0x8de46aa5527faf0aULL,
        .eventHash = 0x7ff2a1035691d2b1ULL},
       {.name = "intercepted-pass",
-       .stateHash = 0x65f5c57dfc65e52dULL,
+       .stateHash = 0x27a1d8cae49f58c3ULL,
        .eventHash = 0x22fa8148924862c7ULL},
       {.name = "no-passing-option",
-       .stateHash = 0x6b71fbf5acbb74eeULL,
+       .stateHash = 0x2deb13135b337f1fULL,
        .eventHash = 0xf89a1b4f0fd812ebULL},
   }};
   for (const Pinned& expected : pinned) {

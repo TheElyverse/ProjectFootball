@@ -1,5 +1,6 @@
 #pragma once
 
+#include <array>
 #include <cstddef>
 #include <cstdint>
 #include <expected>
@@ -14,6 +15,7 @@
 #include "pitch.hpp"
 #include "simTime.hpp"
 #include "tactic.hpp"
+#include "tacticalPhase.hpp"
 #include "vec2.hpp"
 
 namespace ElyverseFootball::SimMatch {
@@ -175,6 +177,28 @@ struct TeamTactics {
   friend bool operator==(const TeamTactics&, const TeamTactics&) = default;
 };
 
+// Which team has the ball, as the tactical phase system last saw it
+// (docs/match-phases.md): the owner's side, or while the ball is free the side
+// of its last touch -- a pass in flight still belongs to the passer's team.
+// since is the tick the team won it; fromOpponent whether it took the ball
+// from the other team rather than from nobody, as at kickoff. Empty team
+// until anyone has touched the ball.
+struct TeamPossession {
+  std::optional<TeamSide> team;
+  SimCore::SimTick since;
+  bool fromOpponent = false;
+
+  friend bool operator==(const TeamPossession&, const TeamPossession&) = default;
+};
+
+// The tactical phase a team is in and the tick it entered it.
+struct TeamPhase {
+  SimTactics::TacticalPhase phase = SimTactics::TacticalPhase::kDefensiveBlock;
+  SimCore::SimTick since;
+
+  friend bool operator==(const TeamPhase&, const TeamPhase&) = default;
+};
+
 // A pass a player has decided on and not yet played: the what, decided apart
 // from the how well (docs/passing.md). The ball system executes it in the
 // next step it runs, if the passer still owns the ball, and discards it
@@ -227,6 +251,15 @@ class MatchState {
   // The tactics both sides play; a side without one is scripted.
   [[nodiscard]] const TeamTactics& tactics() const noexcept { return tactics_; }
 
+  // Which team has the ball; no team in every state created from a spec.
+  [[nodiscard]] const TeamPossession& possession() const noexcept { return possession_; }
+
+  // The phase of a side with a tactic; empty for a scripted side and in every
+  // state created from a spec, until the phase system has run.
+  [[nodiscard]] const std::optional<TeamPhase>& phase(const TeamSide side) const noexcept {
+    return side == TeamSide::kHome ? phases_[0] : phases_[1];
+  }
+
   // The pass decided and waiting to be played; empty almost always. Every
   // state created from a spec starts without one.
   [[nodiscard]] const std::optional<PassIntent>& pendingPass() const noexcept {
@@ -255,11 +288,15 @@ class MatchState {
   // Parallel to players_.
   std::vector<PlayerPerception> perceptions_;
   std::optional<PassIntent> pendingPass_;
+  TeamPossession possession_;
+  // Home, away.
+  std::array<std::optional<TeamPhase>, 2> phases_;
 };
 
 // What a simulation system or command may change in a state: positions,
 // velocities, movement targets, facings, perception memories, who owns and
-// last touched the ball, and the pending pass, nothing else. Squad, ids, sides,
+// last touched the ball, the pending pass, team possession and phases,
+// nothing else. Squad, ids, sides,
 // attributes, player order and the pitch have no setter, so a system cannot break those invariants
 // and nothing has to re-check them every tick. Players are addressed by their index in
 // MatchState::players(); an index past the end throws std::out_of_range.
@@ -286,6 +323,12 @@ class MatchStateWriter {
   // Sets or clears the pass waiting to be played; throws
   // std::invalid_argument for a passer or receiver not in the state.
   void setPendingPass(std::optional<PassIntent> pass);
+  void setPossession(const TeamPossession& possession) noexcept {
+    state_->possession_ = possession;
+  }
+  // Throws std::invalid_argument for a phase given to a side without a
+  // tactic: only a tactic says what a phase means.
+  void setPhase(TeamSide side, std::optional<TeamPhase> phase);
 
  private:
   friend class MatchSimulation;

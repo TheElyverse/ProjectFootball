@@ -59,7 +59,7 @@ constexpr SimCore::Vec2 kTowardHomeGoal{.x = -1.0, .y = 0.0};
 }  // namespace
 
 std::expected<MatchState, std::vector<MatchStateError>> makeSevenASideKickoff(
-    const Pitch& pitch, const SimCore::Vec2 ballVelocity) {
+    const Pitch& pitch, const SimCore::Vec2 ballVelocity, TeamTactics tactics) {
   std::vector<PlayerMatchState> players;
   players.reserve(2U * kHomeFormation.size());
 
@@ -98,12 +98,14 @@ std::expected<MatchState, std::vector<MatchStateError>> makeSevenASideKickoff(
       .lastTouch = std::nullopt,
   };
 
-  auto state = MatchState::create({
-      .pitch = pitch,
-      .players = std::move(players),
-      .ball = ball,
-      .playersPerSide = kDefaultPlayersPerSide,
-  });
+  auto state = MatchState::create(
+      {
+          .pitch = pitch,
+          .players = std::move(players),
+          .ball = ball,
+          .playersPerSide = kDefaultPlayersPerSide,
+      },
+      std::move(tactics));
   if (!state) {
     return state;
   }

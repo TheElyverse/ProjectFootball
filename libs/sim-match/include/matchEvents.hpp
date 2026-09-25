@@ -8,10 +8,12 @@
 #include <vector>
 
 #include "ids.hpp"
+#include "matchState.hpp"
 #include "observation.hpp"
 #include "passCandidate.hpp"
 #include "simTime.hpp"
 #include "stableHash.hpp"
+#include "tacticalPhase.hpp"
 #include "vec2.hpp"
 
 namespace ElyverseFootball::SimMatch {
@@ -71,8 +73,19 @@ struct PossessionChanged {
   friend bool operator==(const PossessionChanged&, const PossessionChanged&) = default;
 };
 
+// A team with a tactic entered a new tactical phase (docs/match-phases.md).
+// previous is empty for the team's first phase.
+struct PhaseChanged {
+  SimCore::SimTick tick;
+  TeamSide side = TeamSide::kHome;
+  std::optional<SimTactics::TacticalPhase> previous;
+  SimTactics::TacticalPhase phase = SimTactics::TacticalPhase::kDefensiveBlock;
+
+  friend bool operator==(const PhaseChanged&, const PhaseChanged&) = default;
+};
+
 using MatchEvent = std::variant<PassAttempted, PassReceived, PassIntercepted, LooseBallRecovered,
-                                PossessionChanged>;
+                                PossessionChanged, PhaseChanged>;
 
 // "pass attempted", "pass received", ... for logs and diagnostics.
 [[nodiscard]] std::string_view eventName(const MatchEvent& event);
