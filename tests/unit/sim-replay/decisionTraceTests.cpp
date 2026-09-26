@@ -5,10 +5,13 @@
 #include <variant>
 #include <vector>
 
+#include "ballMovement.hpp"
+#include "challenge.hpp"
 #include "decisionTrace.hpp"
 #include "matchEvents.hpp"
 #include "matchSetup.hpp"
 #include "matchSimulation.hpp"
+#include "matchState.hpp"
 #include "observation.hpp"
 #include "passCandidate.hpp"
 #include "replay.hpp"
@@ -16,15 +19,32 @@
 
 using ElyverseFootball::SimCore::PlayerId;
 using ElyverseFootball::SimCore::SimTick;
+using ElyverseFootball::SimCore::Vec2;
+using ElyverseFootball::SimMatch::ActionType;
+using ElyverseFootball::SimMatch::BallPhysics;
+using ElyverseFootball::SimMatch::BallTouch;
+using ElyverseFootball::SimMatch::ChallengeConfig;
 using ElyverseFootball::SimMatch::DecisionDiagnostic;
 using ElyverseFootball::SimMatch::DecisionOutcome;
 using ElyverseFootball::SimMatch::DiagnosticsFilter;
+using ElyverseFootball::SimMatch::makeBallMovementSystem;
+using ElyverseFootball::SimMatch::makeChallengeSystem;
 using ElyverseFootball::SimMatch::MatchConfig;
 using ElyverseFootball::SimMatch::MatchSetup;
+using ElyverseFootball::SimMatch::MatchSimulation;
+using ElyverseFootball::SimMatch::MatchState;
+using ElyverseFootball::SimMatch::MatchStateWriter;
+using ElyverseFootball::SimMatch::MatchStepContext;
+using ElyverseFootball::SimMatch::MatchSystem;
 using ElyverseFootball::SimMatch::Observation;
 using ElyverseFootball::SimMatch::ObservedEntity;
 using ElyverseFootball::SimMatch::PassCandidate;
+using ElyverseFootball::SimMatch::PassIntent;
 using ElyverseFootball::SimMatch::PassIntercepted;
+using ElyverseFootball::SimMatch::Pitch;
+using ElyverseFootball::SimMatch::PlayerAction;
+using ElyverseFootball::SimMatch::PlayerMatchState;
+using ElyverseFootball::SimMatch::TeamSide;
 using ElyverseFootball::SimReplay::attributeInterception;
 using ElyverseFootball::SimReplay::DecisionTracer;
 using ElyverseFootball::SimReplay::FailureCause;
@@ -169,6 +189,88 @@ TEST_CASE("The tracer attributes the risky pass of intercepted-pass to the decis
   REQUIRE(text.find("because ") != std::string::npos);
   REQUIRE(text.find("-> intercepted by #8 at t=") != std::string::npos);
   REQUIRE(text.ends_with(": decision\n"));
+}
+
+TEST_CASE("A pass challenged away the step it is decided is traced as not played",
+          "[decisionTrace]") {
+  // Home's carrier (1) decides a pass at tick 0; away's presser (2), right
+  // at the ball, wins a guaranteed challenge the very same step. The
+  // pass-decision system runs before the challenge system in the standard
+  // pipeline, so both a kPassed diagnostic and the challenge's
+  // PossessionChanged fall in the same step's events and diagnostics.
+  const auto player = [](const PlayerId::ValueType number, const TeamSide side,
+                         const Vec2 position) {
+    return PlayerMatchState{.playerId = PlayerId(number),
+                            .side = side,
+                            .position = position,
+                            .velocity = {},
+                            .attributes = {},
+                            .target = std::nullopt,
+                            .facing = {.x = 1.0, .y = 0.0}};
+  };
+  auto initial = MatchState::create(
+      {.pitch = Pitch(60.0, 40.0),
+       .players = {player(1, TeamSide::kHome, {.x = 30.0, .y = 20.0}),
+                   player(2, TeamSide::kAway, {.x = 30.5, .y = 20.0})},
+       .ball = {.position = {.x = 30.5, .y = 20.0},
+                .velocity = {},
+                .owner = PlayerId(1),
+                .lastTouch = BallTouch{.playerId = PlayerId(1), .tick = SimTick(0)}},
+       .playersPerSide = 1});
+  REQUIRE(initial.has_value());
+
+  const MatchSystem fakeDecide{
+      .name = "fake-decide",
+      .update = [](const MatchStepContext& context, const MatchState&, MatchStateWriter& next) {
+        // The presser's action must already be in current by the step it
+        // is meant to challenge on, since challenge reads current, not
+        // this same step's writes; set it up one step ahead.
+        if (context.tick() == SimTick(0)) {
+          next.tactical(1).action = PlayerAction{.type = ActionType::kPressCarrier,
+                                                 .target = {.x = 30.5, .y = 20.0},
+                                                 .subject = PlayerId(1),
+                                                 .decidedAt = SimTick(0),
+                                                 .withBall = false};
+          return;
+        }
+        if (context.tick() != SimTick(1)) {
+          return;
+        }
+        next.setPendingPass(PassIntent{.passer = PlayerId(1),
+                                       .target = {.x = 40.0, .y = 20.0},
+                                       .speed = 10.0,
+                                       .receiver = std::nullopt});
+        if (context.collectsDiagnostics(PlayerId(1))) {
+          context.diagnose(DecisionDiagnostic{.tick = SimTick(1),
+                                              .player = PlayerId(1),
+                                              .observations = {},
+                                              .candidates = {},
+                                              .outcome = DecisionOutcome::kPassed,
+                                              .chosen = std::nullopt,
+                                              .scoring = {}});
+        }
+      }};
+  ChallengeConfig always;
+  always.intervalTicks = 1;
+  always.protectSeconds = 0.0;
+  always.winChance = 1.0;
+  MatchSimulation simulation(
+      {.initialState = *std::move(initial),
+       .seed = 1,
+       .ticksPerSecond = 30,
+       .systems = {fakeDecide, makeChallengeSystem(always), makeBallMovementSystem(BallPhysics{})},
+       .commands = {}});
+  simulation.setCollectDiagnostics(true);
+  DecisionTracer tracer(MatchConfig{});
+  REQUIRE(simulation.step().has_value());
+  tracer.recordStep(simulation);
+  REQUIRE(simulation.step().has_value());
+  tracer.recordStep(simulation);
+
+  const auto passes = passesOf({tracer.entries().begin(), tracer.entries().end()});
+  REQUIRE(passes.size() == 1);
+  REQUIRE(passes.front().decision.outcome == DecisionOutcome::kPassed);
+  REQUIRE(passes.front().outcome.result == PassResult::kNotPlayed);
 }
 
 TEST_CASE("The tracer keeps to the filtered players and ticks", "[decisionTrace]") {

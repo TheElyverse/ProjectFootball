@@ -135,12 +135,15 @@ DecisionTracer::DecisionTracer(const SimMatch::MatchConfig& config, const TraceC
     : matchConfig_(config), config_(traceConfig) {}
 
 void DecisionTracer::recordStep(const SimMatch::MatchSimulation& simulation) {
-  for (const MatchEvent& event : simulation.events()) {
-    resolve(event);
-  }
   for (const SimMatch::ActionDiagnostic& action : simulation.actionDiagnostics()) {
     entries_.emplace_back(ActionDecisionTrace{.decision = action});
   }
+  // Diagnostics before events: the pass-decision system runs before the
+  // challenge system in the standard pipeline, so a carrier can decide a
+  // pass and lose the ball to a challenge in the very same step. Opening
+  // the new pass here first lets resolve() close it below against that
+  // same step's events, instead of missing a loss the next step's
+  // diagnostics would otherwise report as an unrelated new decision.
   for (const DecisionDiagnostic& decision : simulation.diagnostics()) {
     if (openPass_) {
       // Only one ball: a new decision means the open pass was never played.
@@ -157,6 +160,9 @@ void DecisionTracer::recordStep(const SimMatch::MatchSimulation& simulation) {
         openPassPositions_.emplace(player.playerId, player.position);
       }
     }
+  }
+  for (const MatchEvent& event : simulation.events()) {
+    resolve(event);
   }
 }
 
