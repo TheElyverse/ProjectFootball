@@ -148,10 +148,9 @@ TEST_CASE("A file loads only what Tactic::create accepts", "[tacticJson]") {
   document["slots"][0]["position"]["width"] = -0.2;
   const auto error = errorOf(document);
   REQUIRE(error.code == TacticFileErrorCode::kInvalidTactic);
-  REQUIRE(
-      error.message ==
-      "test.json: slots[0].position.width: -0.2 lies off the pitch; expected a fraction in "
-      "[0, 1]; phases.pressing.lineHeight: 1.3 must lie in [0, 1]");
+  REQUIRE(error.message ==
+          "test.json: slots[0].position.width: -0.2 lies off the pitch; expected a fraction in "
+          "[0, 1]; phases.pressing.lineHeight: 1.3 must lie in [0, 1]");
 }
 
 TEST_CASE("The description is optional", "[tacticJson]") {

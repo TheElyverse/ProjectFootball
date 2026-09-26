@@ -143,8 +143,7 @@ void validatePhase(const TacticalPhase phase, const PhaseInstruction& instructio
   errors.checkRange(instruction.runFrequency, 0.0, 1.0, prefix + "runFrequency");
   // Each value may be fine on its own and the two still describe no block on
   // the pitch; only meaningful once both are individually valid.
-  if (isWithin(instruction.lineHeight, 0.0, 1.0) &&
-      isPositiveUpTo(instruction.blockLength, 1.0) &&
+  if (isWithin(instruction.lineHeight, 0.0, 1.0) && isPositiveUpTo(instruction.blockLength, 1.0) &&
       instruction.lineHeight + instruction.blockLength > 1.0) {
     errors.add(TacticErrorCode::kContradictoryParameters, prefix + "blockLength",
                std::format("a block of length {} from a line at {} reaches past the opponent's "

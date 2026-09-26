@@ -86,7 +86,8 @@ MatchSystem makePitchControlSystem(const PitchControlConfig& config) {
           .update =
               [config](const MatchStepContext& context, const MatchState& current,
                        MatchStateWriter& next) {
-                PitchControlGrid grid = computePitchControl(current, config, next.takePitchControl());
+                PitchControlGrid grid =
+                    computePitchControl(current, config, next.takePitchControl());
                 context.record(PitchControlSampled{.tick = context.tick(),
                                                    .homeShare = grid.share(TeamSide::kHome),
                                                    .ball = current.ball().position});

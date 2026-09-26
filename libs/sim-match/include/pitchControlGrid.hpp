@@ -91,7 +91,8 @@ class PitchControlGrid {
   // Moves out this grid's two arrival-time vectors, leaving it otherwise
   // unused; computePitchControl() calls this to recycle a previous refresh's
   // storage for one of the same size instead of allocating a fresh one.
-  [[nodiscard]] std::pair<std::vector<double>, std::vector<double>> extractArrivalStorage() && noexcept {
+  [[nodiscard]] std::pair<std::vector<double>, std::vector<double>>
+  extractArrivalStorage() && noexcept {
     return {std::move(homeArrival_), std::move(awayArrival_)};
   }
 

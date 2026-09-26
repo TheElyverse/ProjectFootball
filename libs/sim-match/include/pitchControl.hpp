@@ -42,9 +42,9 @@ inline constexpr double kMinPitchControlCellSize = 0.5;  // m
 //
 // Throws std::invalid_argument if the pitch and cell size would need more
 // cells than the grid can affordably hold.
-[[nodiscard]] PitchControlGrid computePitchControl(const MatchState& state,
-                                                   const PitchControlConfig& config,
-                                                   std::optional<PitchControlGrid> reuse = std::nullopt);
+[[nodiscard]] PitchControlGrid computePitchControl(
+    const MatchState& state, const PitchControlConfig& config,
+    std::optional<PitchControlGrid> reuse = std::nullopt);
 
 inline constexpr std::string_view kPitchControlSystemName = "pitch control";
 

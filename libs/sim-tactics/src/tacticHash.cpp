@@ -8,7 +8,9 @@ using SimCore::StableHasher;
 // Tactic::operator== compares doubles with ==, under which -0.0 equals 0.0,
 // but StableHasher::addDouble hashes their distinct bit patterns; normalize
 // signed zero so equal tactics keep hashing alike.
-[[nodiscard]] double normalizeZero(const double value) noexcept { return value == 0.0 ? 0.0 : value; }
+[[nodiscard]] double normalizeZero(const double value) noexcept {
+  return value == 0.0 ? 0.0 : value;
+}
 
 void addHashedDouble(StableHasher& hasher, const double value) noexcept {
   hasher.addDouble(normalizeZero(value));
