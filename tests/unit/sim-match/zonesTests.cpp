@@ -102,6 +102,8 @@ TEST_CASE("Lanes are seen from the side's attacking direction", "[zones]") {
   REQUIRE(laneOf(TeamSide::kAway, {.x = 0.0, .y = 8.0}, kPitch) == Lane::kLeftHalfspace);
   REQUIRE(laneOf(TeamSide::kAway, {.x = 0.0, .y = 40.0}, kPitch) == Lane::kRightWing);
   REQUIRE(laneOf(TeamSide::kHome, {.x = 30.0, .y = 45.0}, kPitch) == Lane::kLeftWing);
+  // y = 24 is exactly the centre/right-halfspace boundary on this 40 m pitch.
+  REQUIRE(laneOf(TeamSide::kAway, {.x = 30.0, .y = 24.0}, kPitch) == Lane::kRightHalfspace);
   REQUIRE(laneName(Lane::kRightHalfspace) == "rightHalfspace");
 }
 
@@ -129,6 +131,14 @@ TEST_CASE("Thirds are measured from the side's own goal line", "[zones]") {
           PitchRect{.min = {.x = 40.0, .y = 0.0}, .max = {.x = 60.0, .y = 40.0}});
   REQUIRE(thirdRect(TeamSide::kHome, Third::kAttacking, kPitch) ==
           PitchRect{.min = {.x = 40.0, .y = 0.0}, .max = {.x = 60.0, .y = 40.0}});
+}
+
+TEST_CASE("Third classification agrees with thirdRect at a non-exact boundary", "[zones]") {
+  // A pitch length not divisible by 3 exercises the floating-point rounding
+  // that thirdOf() must classify the same way as thirdRect() does.
+  const Pitch oddPitch(61.0, 40.0);
+  const double boundary = thirdRect(TeamSide::kAway, Third::kMiddle, oddPitch).max.x;
+  REQUIRE(thirdOf(TeamSide::kAway, {.x = boundary, .y = 20.0}, oddPitch) == Third::kMiddle);
 }
 
 TEST_CASE("A team's shape leaves out its goalkeeper", "[zones]") {

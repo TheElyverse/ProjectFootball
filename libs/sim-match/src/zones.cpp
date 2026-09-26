@@ -65,7 +65,11 @@ std::string_view laneName(const Lane lane) noexcept {
 Lane laneOf(const TeamSide side, const SimCore::Vec2 position, const Pitch& pitch) noexcept {
   const double fraction =
       std::clamp(fromLeft(side, position.y, pitch) / pitch.widthMeters(), 0.0, 1.0);
-  const auto index = std::min(4.0, std::floor(fraction / kLaneFraction));
+  // Multiplying by the reciprocal of kLaneFraction lands exactly on an exact
+  // fifth (e.g. 0.6 * 5.0 == 3.0), whereas dividing by kLaneFraction itself
+  // (0.6 / 0.2) rounds to just under it, misclassifying that boundary.
+  constexpr double kLanesPerWidth = 1.0 / kLaneFraction;
+  const auto index = std::min(4.0, std::floor(fraction * kLanesPerWidth));
   return static_cast<Lane>(static_cast<std::uint8_t>(index));
 }
 
@@ -93,12 +97,22 @@ std::string_view thirdName(const Third third) noexcept {
 }
 
 Third thirdOf(const TeamSide side, const SimCore::Vec2 position, const Pitch& pitch) noexcept {
-  const double depth = depthOf(side, position, pitch);
-  const double third = pitch.lengthMeters() / 3.0;
-  if (depth < third) {
+  // Compare against pitch-x boundaries built the same way thirdRect() builds
+  // them (via xAtDepth), rather than against a depth recomputed from
+  // position.x, so the two agree exactly at a third's boundary.
+  const double length = pitch.lengthMeters() / 3.0;
+  const double firstBoundary = xAtDepth(side, length, pitch);
+  const double secondBoundary = xAtDepth(side, 2.0 * length, pitch);
+  if (side == TeamSide::kHome) {
+    if (position.x < firstBoundary) {
+      return Third::kDefensive;
+    }
+    return position.x < secondBoundary ? Third::kMiddle : Third::kAttacking;
+  }
+  if (position.x > firstBoundary) {
     return Third::kDefensive;
   }
-  return depth < 2.0 * third ? Third::kMiddle : Third::kAttacking;
+  return position.x > secondBoundary ? Third::kMiddle : Third::kAttacking;
 }
 
 PitchRect thirdRect(const TeamSide side, const Third third, const Pitch& pitch) noexcept {
