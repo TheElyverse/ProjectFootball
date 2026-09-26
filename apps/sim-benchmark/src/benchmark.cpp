@@ -154,7 +154,8 @@ std::optional<std::string> firstInvalidStatistic(const SimAnalytics::MatchStats&
 std::uint64_t matchSeed(const std::uint64_t baseSeed, const int index) noexcept {
   // SplitMix64 (Steele, Lea, Flood 2014): one step of the golden-ratio
   // sequence, then its finalizer.
-  std::uint64_t value = baseSeed + (static_cast<std::uint64_t>(index) + 1U) * 0x9e3779b97f4a7c15ULL;
+  std::uint64_t value =
+      baseSeed + ((static_cast<std::uint64_t>(index) + 1U) * 0x9e3779b97f4a7c15ULL);
   value = (value ^ (value >> 30U)) * 0xbf58476d1ce4e5b9ULL;
   value = (value ^ (value >> 27U)) * 0x94d049bb133111ebULL;
   return value ^ (value >> 31U);

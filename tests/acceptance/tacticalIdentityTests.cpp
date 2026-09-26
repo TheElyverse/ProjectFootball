@@ -215,10 +215,11 @@ TEST_CASE("P2: matches of every tactical identity replay identically",
     // A mid-match switch of the away side, if any.
     const char* switchTo;
   };
-  constexpr std::array<Pairing, 4> kPairings{{{"possession", "counter", nullptr},
-                                              {"counter", "pressing", nullptr},
-                                              {"pressing", "possession", nullptr},
-                                              {"possession", "counter", "pressing"}}};
+  constexpr std::array<Pairing, 4> kPairings{
+      {{.home = "possession", .away = "counter", .switchTo = nullptr},
+       {.home = "counter", .away = "pressing", .switchTo = nullptr},
+       {.home = "pressing", .away = "possession", .switchTo = nullptr},
+       {.home = "possession", .away = "counter", .switchTo = "pressing"}}};
   for (const Pairing& pairing : kPairings) {
     CAPTURE(pairing.home, pairing.away, pairing.switchTo != nullptr);
     auto setup = makeTacticMatch({.home = preset(pairing.home), .away = preset(pairing.away)}, 21);

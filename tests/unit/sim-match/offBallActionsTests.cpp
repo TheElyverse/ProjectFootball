@@ -128,7 +128,6 @@ namespace {
     }
   }
   FAIL("player " << player.value() << " made no off-ball decision");
-  return {};
 }
 
 [[nodiscard]] double distanceToSegment(const Vec2 point, const Vec2 start, const Vec2 end) {

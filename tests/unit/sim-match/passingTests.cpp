@@ -312,7 +312,7 @@ TEST_CASE("Pressure widens the execution error", "[passing]") {
     // The same draws, twice the error (pressureErrorFactor 1).
     REQUIRE(std::abs(std::atan2(underPressure.y, underPressure.x)) <=
             std::atan(2.0 * config.directionError) + 1e-12);
-    REQUIRE(lengthOf(underPressure) <= 12.0 * 1.1 + 1e-9);
+    REQUIRE(lengthOf(underPressure) <= (12.0 * 1.1) + 1e-9);
     calm = std::max(calm, std::abs(std::atan2(unpressed.y, unpressed.x)));
     pressed = std::max(pressed, std::abs(std::atan2(underPressure.y, underPressure.x)));
   }
