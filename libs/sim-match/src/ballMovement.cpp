@@ -70,10 +70,12 @@ using SimCore::Vec2;
 // so a teammate of his received the pass and an opponent intercepted it. A
 // ball nobody played, or one the kicker takes back himself, was loose.
 [[nodiscard]] MatchEvent controlEvent(const MatchState& state, const BallState& ball,
-                                      const BallClaim& claim, const SimCore::SimTick tick) {
+                                      const BallClaim& claim, const Vec2 contactPosition,
+                                      const SimCore::SimTick tick) {
   const PlayerMatchState& claimant = state.players()[claim.playerIndex];
   if (!ball.lastTouch || ball.lastTouch->playerId == claimant.playerId) {
-    return LooseBallRecovered{.tick = tick, .player = claimant.playerId, .position = ball.position};
+    return LooseBallRecovered{
+        .tick = tick, .player = claimant.playerId, .position = contactPosition};
   }
   const PlayerId passer = ball.lastTouch->playerId;
   const auto passerIndex = findPlayerIndex(state, passer);
@@ -81,8 +83,10 @@ using SimCore::Vec2;
   if (teammate) {
     return PassReceived{.tick = tick, .receiver = claimant.playerId, .passer = passer};
   }
-  return PassIntercepted{
-      .tick = tick, .interceptor = claimant.playerId, .passer = passer, .position = ball.position};
+  return PassIntercepted{.tick = tick,
+                         .interceptor = claimant.playerId,
+                         .passer = passer,
+                         .position = contactPosition};
 }
 
 [[nodiscard]] bool isValid(const BallPhysics& physics) noexcept {
@@ -212,7 +216,9 @@ MatchSystem makeBallMovementSystem(const BallPhysics& physics, const PassConfig&
                               .tick = context.tick(),
                               .ballSpeed = std::sqrt(ball.velocity.lengthSquared())});
           carryBy(current.players()[claim->playerIndex]);
-          context.record(controlEvent(current, ball, *claim, context.tick()));
+          const Vec2 contactPosition =
+              ball.position + ((rolled.position - ball.position) * claim->contact.contactFraction);
+          context.record(controlEvent(current, ball, *claim, contactPosition, context.tick()));
           context.record(PossessionChanged{
               .tick = context.tick(), .previousOwner = std::nullopt, .newOwner = claim->playerId});
           return;

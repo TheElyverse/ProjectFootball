@@ -48,7 +48,8 @@ namespace {
           .sides = {{PlayerId(1), TeamSide::kHome},
                     {PlayerId(2), TeamSide::kHome},
                     {PlayerId(3), TeamSide::kAway},
-                    {PlayerId(4), TeamSide::kAway}}};
+                    {PlayerId(4), TeamSide::kAway}},
+          .initialPossession = std::nullopt};
 }
 
 // A step's events, fed to a fresh analyzer one step per entry, finished at
@@ -175,6 +176,41 @@ TEST_CASE("A change of side is a turnover and a regain, by third", "[analytics]"
   REQUIRE(regainsIn(stats.away.regainsByThird, PitchThird::kAttacking) == 0);
   REQUIRE(stats.home.regains == 1);
   REQUIRE(regainsIn(stats.home.regainsByThird, PitchThird::kAttacking) == 1);
+}
+
+TEST_CASE("Initial possession is credited from tick zero and its loss is a turnover",
+          "[analytics]") {
+  // Home already owns the ball in the initial state -- no PossessionChanged
+  // announces that -- and loses it to an interception in away's defensive
+  // third at tick 20.
+  MatchContext initial = context();
+  initial.initialPossession = TeamSide::kHome;
+  MatchAnalyzer analyzer(initial);
+  const std::vector<MatchEvent> step{intercepted(20, 3, 1, {.x = 50.0, .y = 20.0}),
+                                     owner(20, std::nullopt, 3)};
+  analyzer.observeStep(step);
+  const MatchStats stats = analyzer.finish(SimTick(100));
+  REQUIRE(stats.home.possessionShare == Approx(20.0 / 100.0));
+  REQUIRE(stats.away.possessionShare == Approx(80.0 / 100.0));
+  REQUIRE(stats.home.turnovers == 1);
+  REQUIRE(stats.away.regains == 1);
+  REQUIRE(regainsIn(stats.away.regainsByThird, PitchThird::kDefensive) == 1);
+}
+
+TEST_CASE("Each regain in a step matches its own control event", "[analytics]") {
+  // Two ownership changes in the same step: away wins a challenge in its
+  // defensive third, then home immediately regains it from a command, whose
+  // location analytics cannot know. The command's regain must not be
+  // assigned the challenge's position.
+  const MatchStats stats =
+      analyze({{owner(0, std::nullopt, 1)},
+               {won(10, 3, 1, {.x = 50.0, .y = 20.0}), owner(10, 1, 3), owner(10, 3, 2)}});
+  REQUIRE(stats.away.regains == 1);
+  REQUIRE(regainsIn(stats.away.regainsByThird, PitchThird::kDefensive) == 1);
+  REQUIRE(stats.home.regains == 1);
+  REQUIRE(regainsIn(stats.home.regainsByThird, PitchThird::kDefensive) == 0);
+  REQUIRE(regainsIn(stats.home.regainsByThird, PitchThird::kMiddle) == 0);
+  REQUIRE(regainsIn(stats.home.regainsByThird, PitchThird::kAttacking) == 0);
 }
 
 TEST_CASE("The first owner of the match is no regain", "[analytics]") {

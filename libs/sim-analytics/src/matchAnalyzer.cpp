@@ -27,19 +27,16 @@ using SimMatch::TeamSide;
   return numerator / denominator;
 }
 
-// Where the ball changed hands in a step, if an event of the step says so.
-[[nodiscard]] std::optional<SimCore::Vec2> wonAtIn(
-    const std::span<const SimMatch::MatchEvent> events) {
-  for (const SimMatch::MatchEvent& event : events) {
-    if (const auto* intercepted = std::get_if<SimMatch::PassIntercepted>(&event)) {
-      return intercepted->position;
-    }
-    if (const auto* won = std::get_if<SimMatch::BallWon>(&event)) {
-      return won->position;
-    }
-    if (const auto* recovered = std::get_if<SimMatch::LooseBallRecovered>(&event)) {
-      return recovered->position;
-    }
+// Where the event says a free ball was contested, if it does.
+[[nodiscard]] std::optional<SimCore::Vec2> wonAtOf(const SimMatch::MatchEvent& event) {
+  if (const auto* intercepted = std::get_if<SimMatch::PassIntercepted>(&event)) {
+    return intercepted->position;
+  }
+  if (const auto* won = std::get_if<SimMatch::BallWon>(&event)) {
+    return won->position;
+  }
+  if (const auto* recovered = std::get_if<SimMatch::LooseBallRecovered>(&event)) {
+    return recovered->position;
   }
   return std::nullopt;
 }
@@ -49,15 +46,19 @@ using SimMatch::TeamSide;
 MatchContext contextOf(const SimMatch::MatchState& initialState, const int ticksPerSecond) {
   MatchContext context{.pitchLengthMeters = initialState.pitch().lengthMeters(),
                        .ticksPerSecond = ticksPerSecond,
-                       .sides = {}};
+                       .sides = {},
+                       .initialPossession = std::nullopt};
   for (const SimMatch::PlayerMatchState& player : initialState.players()) {
     context.sides.emplace(player.playerId, player.side);
+    if (initialState.ball().owner == player.playerId) {
+      context.initialPossession = player.side;
+    }
   }
   return context;
 }
 
 MatchAnalyzer::MatchAnalyzer(MatchContext context, const AnalyticsConfig config)
-    : context_(std::move(context)), config_(config) {
+    : context_(std::move(context)), config_(config), possession_(context_.initialPossession) {
   const bool validContext = context_.pitchLengthMeters > 0.0 &&
                             std::isfinite(context_.pitchLengthMeters) &&
                             context_.ticksPerSecond > 0;
@@ -74,7 +75,12 @@ MatchAnalyzer::MatchAnalyzer(MatchContext context, const AnalyticsConfig config)
 }
 
 void MatchAnalyzer::observeStep(const std::span<const SimMatch::MatchEvent> events) {
-  const std::optional<SimCore::Vec2> wonAt = wonAtIn(events);
+  // Each control event (an interception, a won challenge, a loose-ball
+  // recovery) is recorded immediately before the PossessionChanged it
+  // caused; carrying its position only until that next PossessionChanged
+  // keeps a step with more than one ownership change from assigning one
+  // event's position to another's regain.
+  std::optional<SimCore::Vec2> wonAt;
   for (const SimMatch::MatchEvent& event : events) {
     if (const auto* pass = std::get_if<SimMatch::PassAttempted>(&event)) {
       onPass(*pass);
@@ -83,10 +89,15 @@ void MatchAnalyzer::observeStep(const std::span<const SimMatch::MatchEvent> even
     } else if (const auto* intercepted = std::get_if<SimMatch::PassIntercepted>(&event)) {
       pendingPass_.reset();
       onDefensiveAction(intercepted->interceptor, intercepted->position);
+      wonAt = wonAtOf(event);
     } else if (const auto* won = std::get_if<SimMatch::BallWon>(&event)) {
       onDefensiveAction(won->winner, won->position);
+      wonAt = wonAtOf(event);
+    } else if (std::holds_alternative<SimMatch::LooseBallRecovered>(event)) {
+      wonAt = wonAtOf(event);
     } else if (const auto* change = std::get_if<SimMatch::PossessionChanged>(&event)) {
       onOwner(*change, wonAt);
+      wonAt = std::nullopt;
     } else if (const auto* sample = std::get_if<SimMatch::PitchControlSampled>(&event)) {
       onSample(*sample);
     } else {

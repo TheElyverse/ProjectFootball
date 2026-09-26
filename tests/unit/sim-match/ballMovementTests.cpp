@@ -1,3 +1,4 @@
+#include <algorithm>
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/generators/catch_generators.hpp>
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
@@ -7,15 +8,18 @@
 #include <optional>
 #include <stdexcept>
 #include <utility>
+#include <variant>
 #include <vector>
 
 #include "ballMovement.hpp"
 #include "ids.hpp"
 #include "kickoffScenario.hpp"
 #include "matchCommand.hpp"
+#include "matchEvents.hpp"
 #include "matchSimulation.hpp"
 #include "matchState.hpp"
 #include "playerMovement.hpp"
+#include "reception.hpp"
 #include "vec2.hpp"
 
 using Catch::Matchers::WithinAbs;
@@ -24,6 +28,8 @@ using ElyverseFootball::SimCore::SimTick;
 using ElyverseFootball::SimCore::Vec2;
 using ElyverseFootball::SimMatch::BallPhysics;
 using ElyverseFootball::SimMatch::BallState;
+using ElyverseFootball::SimMatch::BallTouch;
+using ElyverseFootball::SimMatch::findContact;
 using ElyverseFootball::SimMatch::kDefaultRollingDeceleration;
 using ElyverseFootball::SimMatch::kDefaultTicksPerSecond;
 using ElyverseFootball::SimMatch::makeBallMovementSystem;
@@ -33,10 +39,14 @@ using ElyverseFootball::SimMatch::MatchSimulation;
 using ElyverseFootball::SimMatch::MatchState;
 using ElyverseFootball::SimMatch::MatchSystem;
 using ElyverseFootball::SimMatch::MovePlayerCommand;
+using ElyverseFootball::SimMatch::PassIntercepted;
 using ElyverseFootball::SimMatch::Pitch;
+using ElyverseFootball::SimMatch::PlayerMatchState;
+using ElyverseFootball::SimMatch::ReceptionConfig;
 using ElyverseFootball::SimMatch::rollingDistance;
 using ElyverseFootball::SimMatch::ScheduledCommand;
 using ElyverseFootball::SimMatch::stepFreeBall;
+using ElyverseFootball::SimMatch::TeamSide;
 
 namespace {
 
@@ -156,6 +166,58 @@ TEST_CASE("A ball rolling along the line stays in play", "[ballMovement]") {
 
   REQUIRE_THAT(states.back().position.x, WithinAbs(10.0 + rollingDistance(5.0, {}), 1e-9));
   REQUIRE(states.back().position.y == 0.0);
+}
+
+TEST_CASE("An interception's position interpolates the contact, not the tick's start",
+          "[ballMovement]") {
+  // Away's player 8 stands where a fast free ball, moving in a straight
+  // line this tick, comes within reception's control radius partway
+  // through it, not at the tick's start or end.
+  const Vec2 ballStart{.x = 0.0, .y = 20.0};
+  const BallState startBall{.position = ballStart,
+                            .velocity = {.x = 90.0, .y = 0.0},
+                            .owner = std::nullopt,
+                            .lastTouch = BallTouch{.playerId = PlayerId(1), .tick = SimTick(0)}};
+  const BallState rolled = stepFreeBall(startBall, {}, kPitch, kSecondsPerTick);
+  const Vec2 interceptorAt{.x = 2.0, .y = 20.0};
+  const auto contact = findContact(interceptorAt, interceptorAt, ballStart, rolled.position,
+                                   ReceptionConfig{}.controlRadius);
+  REQUIRE(contact.has_value());
+  REQUIRE(contact->contactFraction > 0.05);
+  REQUIRE(contact->contactFraction < 0.95);
+  const Vec2 expected = ballStart + ((rolled.position - ballStart) * contact->contactFraction);
+
+  const auto player = [](const PlayerId::ValueType number, const TeamSide side,
+                         const Vec2 position) {
+    return PlayerMatchState{.playerId = PlayerId(number),
+                            .side = side,
+                            .position = position,
+                            .velocity = {},
+                            .attributes = {},
+                            .target = std::nullopt,
+                            .facing = {.x = 1.0, .y = 0.0}};
+  };
+  auto state = MatchState::create({.pitch = kPitch,
+                                   .players = {player(1, TeamSide::kHome, {.x = -5.0, .y = 20.0}),
+                                               player(8, TeamSide::kAway, interceptorAt)},
+                                   .ball = startBall,
+                                   .playersPerSide = 1});
+  REQUIRE(state.has_value());
+  MatchSimulation simulation({.initialState = *std::move(state),
+                              .seed = 1,
+                              .ticksPerSecond = kDefaultTicksPerSecond,
+                              .systems = {makeBallMovementSystem({})},
+                              .commands = {}});
+  REQUIRE(simulation.step().has_value());
+  const auto events = simulation.events();
+  const auto found = std::ranges::find_if(
+      events, [](const auto& event) { return std::holds_alternative<PassIntercepted>(event); });
+  REQUIRE(found != events.end());
+  const auto& intercepted = std::get<PassIntercepted>(*found);
+  REQUIRE_THAT(intercepted.position.x, WithinAbs(expected.x, 1e-9));
+  REQUIRE_THAT(intercepted.position.y, WithinAbs(expected.y, 1e-9));
+  // Not the tick-start position: that would be the pre-fix, buggy value.
+  REQUIRE_FALSE(intercepted.position == ballStart);
 }
 
 TEST_CASE("The ball moves independently of the players", "[ballMovement]") {

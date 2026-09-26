@@ -326,7 +326,7 @@ TEST_CASE("P1: the final hashes are pinned", "[acceptance][p1]") {
        .eventHash = 0x998519c3360aaabbULL},
       {.name = "intercepted-pass",
        .stateHash = 0x7532246440e19d93ULL,
-       .eventHash = 0x43ba72c81cb16beeULL},
+       .eventHash = 0x22f2a2f2ddabf1e5ULL},
       {.name = "no-passing-option",
        .stateHash = 0xf7c856bbbf1acbfdULL,
        .eventHash = 0x4c3da4b4c5ecf1a7ULL},

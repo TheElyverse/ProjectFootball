@@ -21,6 +21,10 @@ struct MatchContext {
   double pitchLengthMeters = 0.0;
   int ticksPerSecond = 0;
   std::map<SimCore::PlayerId, SimMatch::TeamSide> sides;
+  // The side owning the ball in the initial state, if any: no
+  // PossessionChanged event announces an ownership the match already
+  // started with.
+  std::optional<SimMatch::TeamSide> initialPossession;
 };
 
 // The context of a match starting from this state.
