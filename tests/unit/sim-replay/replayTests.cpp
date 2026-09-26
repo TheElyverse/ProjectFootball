@@ -112,8 +112,7 @@ TEST_CASE("A state that already remembers something cannot be recorded", "[repla
   REQUIRE_NOTHROW(ReplayRecorder(setup()));
 }
 
-TEST_CASE("A state with runtime tactical fields already populated cannot be recorded",
-          "[replay]") {
+TEST_CASE("A state with runtime tactical fields already populated cannot be recorded", "[replay]") {
   // Possession, phases, the pitch-control cache, players' tactical state,
   // chasers and presses are not part of the replay format either: none of
   // them is serialized, so a state copied from a running tactical match
@@ -318,6 +317,20 @@ TEST_CASE("Playback detects a replay that does not reproduce", "[replay]") {
                                                             .firstDiverging = SimTick(120),
                                                             .stateDiffers = false,
                                                             .eventsDiffer = true});
+  }
+  SECTION("a changed initial checkpoint") {
+    // There is no earlier checkpoint that matched, unlike every other case.
+    Replay replay = recorded();
+    replay.checkpoints.front().stateHash ^= 1U;
+    const auto playback = playReplay(replay);
+    REQUIRE_FALSE(playback.has_value());
+    REQUIRE(playback.error().code == ReplayErrorCode::kCheckpointMismatch);
+    CAPTURE(playback.error().message);
+    REQUIRE(mentions(playback.error().message, "diverged at tick 0: state hash at tick 0"));
+    REQUIRE(playback.error().divergence == ReplayDivergence{.lastMatching = std::nullopt,
+                                                            .firstDiverging = SimTick(0),
+                                                            .stateDiffers = true,
+                                                            .eventsDiffer = false});
   }
   SECTION("a changed command") {
     Replay replay = recorded();

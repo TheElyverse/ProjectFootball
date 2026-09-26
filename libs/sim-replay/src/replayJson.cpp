@@ -766,8 +766,8 @@ void checkVersions(const Field& root) {
                     .seed = readUnsigned(root.member("seed"), 10, "an unsigned 64-bit integer"),
                     .commands = readCommands(root.member("commands"))},
           .finalTick = SimTick(root.member("gameTime").integerIn(0, kMaxTick)),
-          .checkpointIntervalTicks =
-              static_cast<int>(root.member("checkpointIntervalTicks").integerIn(1, kMaxTick)),
+          .checkpointIntervalTicks = static_cast<int>(
+              root.member("checkpointIntervalTicks").integerIn(1, std::numeric_limits<int>::max())),
           .checkpoints = readCheckpoints(root.member("checkpoints"))};
 }
 

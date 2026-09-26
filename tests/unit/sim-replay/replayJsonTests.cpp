@@ -237,3 +237,11 @@ TEST_CASE("The checkpoint interval is recorded and must be positive", "[replayJs
       validJsonWith(R"("checkpointIntervalTicks": 1)", R"("checkpointIntervalTicks": 0)"),
       kMalformed, "checkpointIntervalTicks");
 }
+
+TEST_CASE("A checkpoint interval that does not fit in int is rejected", "[replayJson]") {
+  // A schema-4 file may claim an interval up to 2^53; narrowing that to int
+  // without a bound would overflow instead of being rejected as invalid.
+  requireRejected(
+      validJsonWith(R"("checkpointIntervalTicks": 1)", R"("checkpointIntervalTicks": 2147483648)"),
+      kMalformed, "checkpointIntervalTicks");
+}

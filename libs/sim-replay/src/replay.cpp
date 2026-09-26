@@ -47,10 +47,10 @@ void addEvents(SimCore::StableHasher& hasher, const MatchSimulation& simulation)
                                             const std::uint64_t eventHash,
                                             const ReplayCheckpoint& recorded) {
   const std::int64_t tick = divergence.firstDiverging.value();
-  std::string message = divergence.lastMatching == divergence.firstDiverging
-                            ? std::format("diverged at tick {}", tick)
-                            : std::format("diverged after tick {}, at or before tick {}",
-                                          divergence.lastMatching.value(), tick);
+  std::string message = divergence.lastMatching
+                            ? std::format("diverged after tick {}, at or before tick {}",
+                                          divergence.lastMatching->value(), tick)
+                            : std::format("diverged at tick {}", tick);
   if (divergence.stateDiffers) {
     message += std::format(": state hash at tick {} is {}, the replay recorded {}", tick,
                            hex(stateHash), hex(recorded.stateHash));
@@ -207,12 +207,13 @@ std::expected<ReplayPlayback, ReplayError> playReplay(const Replay& replay,
       return {};
     }
     const std::uint64_t actual = hashMatchState(simulation.state());
-    const ReplayDivergence divergence{.lastMatching = checkpoint == replay.checkpoints.begin()
-                                                          ? checkpoint->tick
-                                                          : std::prev(checkpoint)->tick,
-                                      .firstDiverging = checkpoint->tick,
-                                      .stateDiffers = actual != checkpoint->stateHash,
-                                      .eventsDiffer = events.value() != checkpoint->eventHash};
+    const ReplayDivergence divergence{
+        .lastMatching = checkpoint == replay.checkpoints.begin()
+                            ? std::nullopt
+                            : std::optional<SimCore::SimTick>(std::prev(checkpoint)->tick),
+        .firstDiverging = checkpoint->tick,
+        .stateDiffers = actual != checkpoint->stateHash,
+        .eventsDiffer = events.value() != checkpoint->eventHash};
     if (divergence.stateDiffers || divergence.eventsDiffer) {
       return std::unexpected(
           ReplayError{.code = ReplayErrorCode::kCheckpointMismatch,

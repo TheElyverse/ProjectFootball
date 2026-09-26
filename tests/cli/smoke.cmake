@@ -154,6 +154,9 @@ expect_failure("only apply to --scenario tactic-match" --scenario kickoff --home
 expect_failure("cannot read" --away-tactic "${TEST_OUTPUT_DIR}/missing-tactic.json")
 expect_failure("cannot be combined" --play "${replay}" --home-tactic
         "${DATA_DIR}/tactics/pressing.json")
+expect_failure("name the same file" --seed 3 --ticks 1 --home-tactic "${replay}" --replay-out "${replay}")
+expect_failure("name the same file" --seed 3 --ticks 1 --away-tactic "${DATA_DIR}/tactics/counter.json"
+        --frames-out "${DATA_DIR}/tactics/counter.json")
 
 # Match statistics come from the same run and are the same for the same run.
 set(stats "${TEST_OUTPUT_DIR}/stats.json")
@@ -190,6 +193,7 @@ expect_failure("only apply to --play" --scenario kickoff --trace "${trace}")
 expect_failure("need --trace" --play "${replay}" --trace-players 1)
 expect_failure("invalid --trace-players" --play "${replay}" --trace "${trace}" --trace-players 1,x)
 expect_failure("must not come after" --play "${replay}" --trace "${trace}" --trace-from 9 --trace-to 3)
+expect_failure("name the same file" --play "${replay}" --trace "${replay}")
 
 # A checkpoint per tick.
 run_cli(--scenario kickoff --seed 1 --ticks 20 --checkpoint-interval 1 --replay-out "${replay}")

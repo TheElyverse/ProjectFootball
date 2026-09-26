@@ -55,8 +55,11 @@ fixture with the two tactics, the standard systems and
 blur every statistic. Match `i` plays with seed `matchSeed(base, i)`, SplitMix64
 of the base seed advanced by `i + 1` steps: neighbouring matches get unrelated
 seeds, and a match's seed depends only on the base seed and its index, never on
-how many matches run or in which order. Any match can be replayed on its own
-with `sim-cli --home-tactic ... --away-tactic ... --seed <its seed>`.
+how many matches run or in which order. Any match's tactics and seed can be
+replayed with `sim-cli --home-tactic ... --away-tactic ... --seed <its seed>`,
+but `sim-cli` has no restart option and defaults to `RestartConfig::enabled ==
+false`, so a match where the ball goes out of play diverges from `sim-cli`'s
+replay of it once it does.
 
 Statistics come from [match analytics](match-analytics.md) over each match's
 events. A match fails the whole run — naming its index, seed and tick — if a

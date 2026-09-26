@@ -39,3 +39,9 @@ run_benchmark(${tactics} --matches 0)
 if(result STREQUAL "0" OR NOT error MATCHES "invalid --matches value")
     message(FATAL_ERROR "Expected --matches 0 to fail: ${result}: ${error}")
 endif()
+
+run_benchmark(--style "${DATA_DIR}/tactics/pressing.json" --style "${DATA_DIR}/tactics/pressing.json"
+        --matches 2 --minutes 1 --seed 5 --out "${TEST_OUTPUT_DIR}/duplicate.json")
+if(result STREQUAL "0" OR NOT error MATCHES "has the same name")
+    message(FATAL_ERROR "Expected a duplicate --style name to fail: ${result}: ${error}")
+endif()

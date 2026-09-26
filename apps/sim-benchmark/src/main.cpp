@@ -295,6 +295,15 @@ int runStyles(const Options& options) {
     if (!style) {
       return fail(style.error().message);
     }
+    // The results file keys each style's summary by its name, so two styles
+    // sharing one -- including the same --style path given twice -- would
+    // silently lose one's summary.
+    for (const ElyverseFootball::SimTactics::Tactic& earlier : spec.styles) {
+      if (earlier.name() == style->name()) {
+        return fail("--style '" + path + "' has the same name '" + style->name() +
+                    "' as an earlier style");
+      }
+    }
     spec.styles.push_back(*std::move(style));
   }
   spec.matchesPerPairing = options.matches;

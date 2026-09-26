@@ -66,12 +66,14 @@ enum class ReplayErrorCode : std::uint8_t {
 };
 
 // Where a playback left the recorded match: the last checkpoint it still
-// matched and the first it did not, and which of the two hashes differed
-// there. The first differing tick lies after lastMatching and at or before
-// firstDiverging; a replay recorded with a checkpoint interval of one tick
-// names it exactly.
+// matched, if any, and the first it did not, and which of the two hashes
+// differed there. lastMatching is empty when the very first checkpoint
+// (tick 0) already mismatches -- there is no prior checkpoint that matched.
+// Otherwise the first differing tick lies after lastMatching and at or
+// before firstDiverging; a replay recorded with a checkpoint interval of one
+// tick names it exactly.
 struct ReplayDivergence {
-  SimCore::SimTick lastMatching;
+  std::optional<SimCore::SimTick> lastMatching;
   SimCore::SimTick firstDiverging;
   bool stateDiffers = false;
   bool eventsDiffer = false;

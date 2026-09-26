@@ -161,7 +161,8 @@ std::expected<MatchSetup, std::string> makeSetup(
       {.home = *std::move(home), .away = *std::move(away)}, seed);
 }
 
-// Why the run's output files would overwrite each other, if they would.
+// Why the run's output files would overwrite each other or a tactic input
+// file, if they would.
 std::optional<std::string> outputClash(const CliOptions& options) {
   if (!options.framesOut.empty() && sameFile(options.framesOut, options.replayOut)) {
     return "--frames-out and --replay-out name the same file '" + options.framesOut + "'";
@@ -170,6 +171,23 @@ std::optional<std::string> outputClash(const CliOptions& options) {
       (sameFile(options.statsOut, options.replayOut) ||
        (!options.framesOut.empty() && sameFile(options.statsOut, options.framesOut)))) {
     return "--stats-out names the same file as another output: '" + options.statsOut + "'";
+  }
+  const std::vector<std::pair<std::string_view, std::string>> outputs = {
+      {"--replay-out", options.replayOut},
+      {"--frames-out", options.framesOut},
+      {"--stats-out", options.statsOut}};
+  for (const auto& [tacticOption, tacticPath] :
+       {std::pair{std::string_view("--home-tactic"), options.homeTactic},
+        std::pair{std::string_view("--away-tactic"), options.awayTactic}}) {
+    if (tacticPath.empty()) {
+      continue;
+    }
+    for (const auto& [outputOption, outputPath] : outputs) {
+      if (!outputPath.empty() && sameFile(tacticPath, outputPath)) {
+        return std::string(tacticOption) + " and " + std::string(outputOption) +
+               " name the same file '" + tacticPath + "'";
+      }
+    }
   }
   return std::nullopt;
 }
@@ -284,6 +302,9 @@ ElyverseFootball::SimMatch::DiagnosticsFilter traceFilter(const CliOptions& opti
 // Loads a replay, plays it back and verifies every checkpoint, and with
 // --trace writes the decision trace of the playback.
 int playReplayFile(const CliOptions& options) {
+  if (!options.tracePath.empty() && sameFile(options.tracePath, options.playPath)) {
+    return fail("--trace and --play name the same file '" + options.tracePath + "'");
+  }
   const auto replay = ElyverseFootball::SimReplay::loadReplay(options.playPath);
   if (!replay) {
     return fail(replay.error().message);
