@@ -247,9 +247,10 @@ export function drawActionCandidates(
   if (latest === undefined) {
     return;
   }
-  const origin = recording.frames[latest.frameIndex]?.players.find(
-    (entry) => entry.id === playerId,
-  );
+  // A frame's state is the one after the step that recorded its diagnostics,
+  // so the player stood where the preceding frame has him when he decided.
+  const decidedAt = recording.frames[latest.frameIndex - 1] ?? recording.frames[latest.frameIndex];
+  const origin = decidedAt?.players.find((entry) => entry.id === playerId);
   if (origin === undefined) {
     return;
   }
