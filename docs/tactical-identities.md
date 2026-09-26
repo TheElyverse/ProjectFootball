@@ -10,7 +10,7 @@ their names, and a new style is a new file.
 
 | | possession | counter | pressing |
 |---|---|---|---|
-| Intent | keep the ball, circulate safely, win it back at once after losing it | defend deep and compact, strike quickly and vertically after a regain | hunt the ball high, with several players, on every trigger |
+| Intent | keep the ball, circulate safely, counterpress hard on a sloppy loss | defend deep and compact, strike quickly and vertically after a regain | hunt the ball high, with several players, on every trigger |
 | Shape | wide 1-2-1-3, wingers on the touchlines | narrow 1-2-1-2-1 with inside forwards | high 1-2-1-3 with a central midfielder |
 | `pressingLine` | 0.55 | 0.85 (rarely presses) | 0.4 (presses early) |
 | Pressing triggers | poor first touch, back pass | none | all five |
