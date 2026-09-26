@@ -1,6 +1,6 @@
 // Copies the static files of the site (HTML, JavaScript, images) from src/ to
 // dist/. The stylesheet is not copied: the Tailwind CLI compiles
-// src/styles.css into dist/styles.css in the second half of `npm run build`.
+// src/styles.css into dist/styles.css in the second half of `pnpm run build`.
 
 import { cpSync, rmSync } from "node:fs";
 import { basename } from "node:path";

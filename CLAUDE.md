@@ -67,8 +67,8 @@ libs/
                  debug frames for the viewer, decision traces                  [exists]
 apps/
   sim-cli        runs scenarios, records and plays back replays               [exists]
-  sim-viewer     TypeScript/Canvas debug viewer for sim-cli's frames (npm)    [exists]
-  website        static landing page, HTML + Tailwind CSS v4 (npm)          [exists]
+  sim-viewer     TypeScript/Canvas debug viewer for sim-cli's frames (pnpm)    [exists]
+  website        static landing page, HTML + Tailwind CSS v4 (pnpm)          [exists]
   sim-benchmark  series and style round robins of tactic matches, statistics [exists]
   sim-replay, unreal-game                                                      [planned]
 data/            schemas, tactics, competitions, fixtures (JSON/YAML, schema-validated) [exists: tactics]
@@ -123,13 +123,13 @@ Run a scenario headlessly and play its replay back (see `docs/replay-format.md`,
 Record debug frames and watch them in the web viewer (Node.js 22+, see `docs/debug-viewer.md`):
 ```
 ./build/debug/apps/sim-cli/sim-cli --scenario m0-acceptance --seed 42 --frames-out frames.json
-cd apps/sim-viewer && npm install && npm run build && npm run serve -- ../../frames.json
-cd apps/sim-viewer && npm test
+cd apps/sim-viewer && pnpm install && pnpm run build && pnpm run serve ../../frames.json
+cd apps/sim-viewer && pnpm test
 ```
 
 Build and preview the static website (see `docs/website.md`):
 ```
-cd apps/website && npm install && npm run build && npm run serve
+cd apps/website && pnpm install && pnpm run build && pnpm run serve
 ```
 
 Run only the acceptance scenarios (CI runs them in their own step):

@@ -232,7 +232,7 @@ setControlsEnabled(false);
 resizeCanvas();
 requestAnimationFrame(animate);
 
-// ?frames=<path> loads a file served next to the page, as `npm run serve`
+// ?frames=<path> loads a file served next to the page, as `pnpm run serve`
 // does for the file it is given.
 const framesUrl = new URLSearchParams(window.location.search).get("frames");
 if (framesUrl !== null) {

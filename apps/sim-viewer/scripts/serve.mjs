@@ -1,7 +1,7 @@
 // Serves the viewer on http://localhost:<port>/ with plain node:http: browsers
 // do not load ES modules from file:// URLs. With a frame file,
-//   npm run serve -- frames.json
-// (relative to the directory npm was started in) it is served at
+//   pnpm run serve frames.json
+// (relative to the directory pnpm was started in) it is served at
 // /frames.json and the printed URL opens it directly.
 // Local debugging only: it binds to 127.0.0.1 and serves this directory.
 
@@ -14,7 +14,7 @@ const root = resolve(fileURLToPath(new URL("..", import.meta.url)));
 const args = process.argv.slice(2);
 const portIndex = args.indexOf("--port");
 const port = portIndex >= 0 ? Number(args.splice(portIndex, 2)[1]) : 8080;
-// npm runs scripts in the package directory and passes the caller's in INIT_CWD.
+// pnpm runs scripts in the package directory and passes the caller's in INIT_CWD.
 const callerDirectory = process.env.INIT_CWD ?? process.cwd();
 const framesPath = args[0] === undefined ? undefined : resolve(callerDirectory, args[0]);
 

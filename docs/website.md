@@ -8,21 +8,21 @@ animated pitch in the hero is a small decorative script, not the match engine.
 
 ## Build and preview
 
-Node.js 22 or newer, and npm:
+Node.js 22 or newer, and pnpm:
 
 ```sh
 cd apps/website
-npm install
-npm run build
-npm run serve
+pnpm install
+pnpm run build
+pnpm run serve
 ```
 
-and open `http://localhost:8081/`. `npm run build` writes the finished site to
+and open `http://localhost:8081/`. `pnpm run build` writes the finished site to
 `apps/website/dist/`, which can be uploaded to any static host (GitHub Pages,
-Netlify, an S3 bucket, a plain web server). `npm run serve -- --port <n>` changes
-the port. While working on styles, `npm run watch:css` recompiles
+Netlify, an S3 bucket, a plain web server). `pnpm run serve --port <n>` changes
+the port. While working on styles, `pnpm run watch:css` recompiles
 `dist/styles.css` on every change; after changing the HTML, JavaScript or an
-image, run `npm run build` again.
+image, run `pnpm run build` again.
 
 ## Layout
 
@@ -59,5 +59,8 @@ apps/website/
   and CSS; `main.js` only adds motion and the mobile menu. Motion respects
   `prefers-reduced-motion`.
 - **Dependencies pinned exactly.** `tailwindcss` and `@tailwindcss/cli` are
-  pinned in `package.json`; commit the `package-lock.json` that `npm install`
-  creates so CI installs the same dependency tree.
+  pinned in `package.json`; the `pnpm-lock.yaml` that `pnpm install` writes is
+  committed, so CI installs the same dependency tree with `--frozen-lockfile`.
+  pnpm itself comes from the `packageManager` field via Corepack. Behind a proxy
+  that blocks `registry.npmjs.org`, point pnpm at a mirror with `registry=<url>`
+  in an `.npmrc`; pnpm honours that setting like any other client.
