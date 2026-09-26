@@ -3,6 +3,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <optional>
+#include <utility>
 #include <vector>
 
 #include "pitch.hpp"
@@ -86,6 +87,13 @@ class PitchControlGrid {
   [[nodiscard]] double share(TeamSide side) const;
 
   friend bool operator==(const PitchControlGrid&, const PitchControlGrid&) = default;
+
+  // Moves out this grid's two arrival-time vectors, leaving it otherwise
+  // unused; computePitchControl() calls this to recycle a previous refresh's
+  // storage for one of the same size instead of allocating a fresh one.
+  [[nodiscard]] std::pair<std::vector<double>, std::vector<double>> extractArrivalStorage() && noexcept {
+    return {std::move(homeArrival_), std::move(awayArrival_)};
+  }
 
  private:
   [[nodiscard]] std::size_t indexOf(GridCell cell) const;

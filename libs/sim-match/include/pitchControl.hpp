@@ -1,5 +1,6 @@
 #pragma once
 
+#include <optional>
 #include <string_view>
 
 #include "matchSimulation.hpp"
@@ -34,8 +35,16 @@ inline constexpr double kMinPitchControlCellSize = 0.5;  // m
 // movement model, from where each player is and how he moves. Cells whose
 // centre lies past the pitch edge use the nearest point on the pitch.
 // Deterministic: the same state and configuration give an equal grid.
+//
+// If reuse holds a grid of the same columns and rows, its arrival-time
+// storage is recycled instead of allocating a fresh one -- the common case,
+// since a match's pitch and cell size do not change between refreshes.
+//
+// Throws std::invalid_argument if the pitch and cell size would need more
+// cells than the grid can affordably hold.
 [[nodiscard]] PitchControlGrid computePitchControl(const MatchState& state,
-                                                   const PitchControlConfig& config);
+                                                   const PitchControlConfig& config,
+                                                   std::optional<PitchControlGrid> reuse = std::nullopt);
 
 inline constexpr std::string_view kPitchControlSystemName = "pitch control";
 

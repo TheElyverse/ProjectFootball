@@ -415,6 +415,12 @@ class MatchStateWriter {
   void setPitchControl(std::optional<PitchControlGrid> grid) {
     state_->pitchControl_ = std::move(grid);
   }
+  // Moves out the grid cached from the previous refresh, leaving the state
+  // without one until setPitchControl() is called; lets a refresh recycle
+  // its storage instead of allocating a fresh grid every time.
+  [[nodiscard]] std::optional<PitchControlGrid> takePitchControl() noexcept {
+    return std::move(state_->pitchControl_);
+  }
 
  private:
   friend class MatchSimulation;

@@ -102,15 +102,30 @@ ReplayRecorder::ReplayRecorder(SimMatch::MatchSetup setup, const int checkpointI
   if (checkpointIntervalTicks < 1) {
     throw std::invalid_argument("ReplayRecorder: checkpoint interval must be at least one tick");
   }
-  // The replay format has no place for perception memories, so a state that
-  // already remembers something could not be played back.
+  // The replay format has no place for perception memories, possession,
+  // phases, the pitch-control cache, players' tactical state, chasers or
+  // presses: stateJson() does not serialize them and readState() recreates
+  // them at their defaults, so a state where any of them is already
+  // populated would silently change on a JSON round trip and fail its
+  // tick-0 checkpoint on playback.
   const SimMatch::MatchState& initial = setup_.initialState;
-  for (std::size_t index = 0; index < initial.players().size(); ++index) {
-    if (!initial.perception(index).observations.empty()) {
-      throw std::invalid_argument(
-          "ReplayRecorder: the initial state must not hold perception memories; record from a "
-          "state built with MatchState::create()");
-    }
+  bool pristine = !initial.possession().team.has_value() &&
+                  !initial.phase(SimMatch::TeamSide::kHome).has_value() &&
+                  !initial.phase(SimMatch::TeamSide::kAway).has_value() &&
+                  !initial.pitchControl().has_value() &&
+                  !initial.chaser(SimMatch::TeamSide::kHome).has_value() &&
+                  !initial.chaser(SimMatch::TeamSide::kAway).has_value() &&
+                  !initial.press(SimMatch::TeamSide::kHome).has_value() &&
+                  !initial.press(SimMatch::TeamSide::kAway).has_value();
+  for (std::size_t index = 0; pristine && index < initial.players().size(); ++index) {
+    pristine = initial.perception(index).observations.empty() &&
+               initial.tactical(index) == SimMatch::PlayerTacticalState{};
+  }
+  if (!pristine) {
+    throw std::invalid_argument(
+        "ReplayRecorder: the initial state must not hold perception memories, possession, "
+        "phases, pitch control, tactical state, chasers or presses; record from a state built "
+        "with MatchState::create()");
   }
   checkpoints_.push_back({.tick = SimTick(0),
                           .stateHash = hashMatchState(setup_.initialState),

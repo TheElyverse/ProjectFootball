@@ -24,6 +24,7 @@ using ElyverseFootball::SimMatch::computePitchControl;
 using ElyverseFootball::SimMatch::estimateArrivalSeconds;
 using ElyverseFootball::SimMatch::GridCell;
 using ElyverseFootball::SimMatch::hashMatchState;
+using ElyverseFootball::SimMatch::kMinPitchControlCellSize;
 using ElyverseFootball::SimMatch::makePitchControlSystem;
 using ElyverseFootball::SimMatch::makeSevenASideKickoff;
 using ElyverseFootball::SimMatch::MatchSimulation;
@@ -90,6 +91,29 @@ TEST_CASE("The grid covers the pitch in square cells", "[pitchControl]") {
   const PitchControlGrid oddGrid = computePitchControl(*odd, {});
   REQUIRE(oddGrid.columns() == 31);
   REQUIRE(oddGrid.rows() == 21);
+}
+
+TEST_CASE("A pitch needing too many cells is rejected instead of overflowing", "[pitchControl]") {
+  const auto huge = makeSevenASideKickoff(Pitch(1.0e9, 40.0));
+  REQUIRE(huge.has_value());
+  REQUIRE_THROWS_AS(computePitchControl(*huge, {.cellSize = kMinPitchControlCellSize}),
+                    std::invalid_argument);
+}
+
+TEST_CASE("Reusing a grid of the same size gives the same result as a fresh one",
+          "[pitchControl]") {
+  const MatchState state = kickoff();
+  const PitchControlGrid fresh = computePitchControl(state, {});
+  PitchControlGrid toReuse = computePitchControl(state, {});
+  const PitchControlGrid reused = computePitchControl(state, {}, std::move(toReuse));
+  REQUIRE(reused == fresh);
+
+  // A previous grid of a different size is simply discarded, not reused.
+  const auto larger = makeSevenASideKickoff(Pitch(80.0, 60.0));
+  REQUIRE(larger.has_value());
+  PitchControlGrid differentSize = computePitchControl(*larger, {});
+  const PitchControlGrid stillCorrect = computePitchControl(state, {}, std::move(differentSize));
+  REQUIRE(stillCorrect == fresh);
 }
 
 TEST_CASE("A cell's arrival time is its team's fastest player's", "[pitchControl]") {

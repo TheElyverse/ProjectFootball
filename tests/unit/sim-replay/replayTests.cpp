@@ -112,6 +112,31 @@ TEST_CASE("A state that already remembers something cannot be recorded", "[repla
   REQUIRE_NOTHROW(ReplayRecorder(setup()));
 }
 
+TEST_CASE("A state with runtime tactical fields already populated cannot be recorded",
+          "[replay]") {
+  // Possession, phases, the pitch-control cache, players' tactical state,
+  // chasers and presses are not part of the replay format either: none of
+  // them is serialized, so a state copied from a running tactical match
+  // could not be played back unchanged.
+  using ElyverseFootball::SimTactics::referenceTacticSpec;
+  using ElyverseFootball::SimTactics::Tactic;
+  const auto tactic = Tactic::create(referenceTacticSpec());
+  REQUIRE(tactic.has_value());
+  const auto tacticSetup =
+      ElyverseFootball::SimMatch::makeTacticMatch({.home = *tactic, .away = *tactic}, 11);
+  REQUIRE(tacticSetup.has_value());
+
+  MatchSimulation simulation = startMatch(*tacticSetup);
+  for (int step = 0; step < 30; ++step) {
+    REQUIRE(simulation.step().has_value());
+  }
+  MatchSetup copied = *tacticSetup;
+  copied.initialState = simulation.state();
+
+  REQUIRE_THROWS_AS(ReplayRecorder(copied), std::invalid_argument);
+  REQUIRE_NOTHROW(ReplayRecorder(*tacticSetup));
+}
+
 TEST_CASE("Playing a replay back reproduces every checkpoint", "[replay]") {
   const Replay replay = recorded();
 

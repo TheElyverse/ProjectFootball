@@ -6,6 +6,7 @@
 #include <limits>
 #include <stdexcept>
 #include <string>
+#include <tuple>
 #include <utility>
 #include <vector>
 
@@ -24,19 +25,39 @@ void validate(const PitchControlConfig& config) {
   }
 }
 
+// If a replay's pitch is large enough, or its cell size small enough, that
+// converting meters / cellSize to std::size_t would overflow, or the grid
+// would exhaust memory, reject it instead of constructing it.
+inline constexpr std::size_t kMaxPitchControlCells = 1'000'000;
+
 // Cells along one pitch dimension: enough to cover it, at least one.
-[[nodiscard]] std::size_t cellsAlong(const double meters, const double cellSize) noexcept {
-  return std::max<std::size_t>(1, static_cast<std::size_t>(std::ceil(meters / cellSize)));
+[[nodiscard]] std::size_t cellsAlong(const double meters, const double cellSize) {
+  const double raw = std::ceil(meters / cellSize);
+  if (!(raw >= 1.0) || raw > static_cast<double>(kMaxPitchControlCells)) {
+    throw std::invalid_argument("pitch control: pitch dimension needs too many cells");
+  }
+  return static_cast<std::size_t>(raw);
 }
 
 }  // namespace
 
-PitchControlGrid computePitchControl(const MatchState& state, const PitchControlConfig& config) {
+PitchControlGrid computePitchControl(const MatchState& state, const PitchControlConfig& config,
+                                     std::optional<PitchControlGrid> reuse) {
   const Pitch& pitch = state.pitch();
   const std::size_t columns = cellsAlong(pitch.lengthMeters(), config.cellSize);
   const std::size_t rows = cellsAlong(pitch.widthMeters(), config.cellSize);
-  std::vector<double> home(columns * rows, std::numeric_limits<double>::infinity());
-  std::vector<double> away(columns * rows, std::numeric_limits<double>::infinity());
+  if (rows != 0 && columns > kMaxPitchControlCells / rows) {
+    throw std::invalid_argument("pitch control: grid needs too many cells");
+  }
+  std::vector<double> home;
+  std::vector<double> away;
+  if (reuse.has_value() && reuse->columns() == columns && reuse->rows() == rows) {
+    std::tie(home, away) = std::move(*reuse).extractArrivalStorage();
+  }
+  home.resize(columns * rows);
+  away.resize(columns * rows);
+  std::fill(home.begin(), home.end(), std::numeric_limits<double>::infinity());
+  std::fill(away.begin(), away.end(), std::numeric_limits<double>::infinity());
   for (std::size_t column = 0; column < columns; ++column) {
     for (std::size_t row = 0; row < rows; ++row) {
       const SimCore::Vec2 center{.x = (static_cast<double>(column) + 0.5) * config.cellSize,
@@ -65,7 +86,7 @@ MatchSystem makePitchControlSystem(const PitchControlConfig& config) {
           .update =
               [config](const MatchStepContext& context, const MatchState& current,
                        MatchStateWriter& next) {
-                PitchControlGrid grid = computePitchControl(current, config);
+                PitchControlGrid grid = computePitchControl(current, config, next.takePitchControl());
                 context.record(PitchControlSampled{.tick = context.tick(),
                                                    .homeShare = grid.share(TeamSide::kHome),
                                                    .ball = current.ball().position});
