@@ -12,17 +12,9 @@
 
 namespace ElyverseFootball::SimMatch {
 
-// Simplified restarts (docs/restarts.md): opt-in, so matches without them
-// keep the ball stopping on the line as before. Part of MatchConfig and of
-// every replay.
-struct RestartConfig {
-  bool enabled = false;
-
-  friend bool operator==(const RestartConfig&, const RestartConfig&) = default;
-};
-
 // Whether the ball is out of play: free, at rest, and on a touchline or goal
 // line, where a ball that leaves the pitch stops (docs/ball-movement.md).
+[[nodiscard]] bool isOutOfPlay(const BallState& ball, const Pitch& pitch) noexcept;
 [[nodiscard]] bool isOutOfPlay(const MatchState& state) noexcept;
 
 // Who restarts play and how.

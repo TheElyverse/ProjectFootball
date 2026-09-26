@@ -16,6 +16,12 @@ touchline or goal line — exactly where a ball that left the pitch stops. The
 restart system runs every tick, last in the [standard order](match-loop.md),
 and restarts in the step after the ball stopped there.
 
+While restarts are enabled, [ball movement](ball-movement.md) leaves a ball
+that is already out of play alone: a player standing within his control radius
+of the line would otherwise receive or intercept it first — with the events
+that come with that — only for the restart to hand it to the taker in the same
+step.
+
 ## Who
 
 `planRestart()` decides, without drawing a random number:

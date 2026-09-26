@@ -9,6 +9,7 @@
 #include "passing.hpp"
 #include "playerMovement.hpp"
 #include "reception.hpp"
+#include "restart.hpp"
 
 namespace ElyverseFootball::SimMatch {
 namespace {
@@ -144,7 +145,8 @@ BallState stepFreeBall(const BallState& ball, const BallPhysics& physics, const 
 }
 
 MatchSystem makeBallMovementSystem(const BallPhysics& physics, const PassConfig& passing,
-                                   const ReceptionConfig& reception) {
+                                   const ReceptionConfig& reception,
+                                   const RestartConfig& restarts) {
   if (!isValid(physics)) {
     throw std::invalid_argument(
         "ball movement: rolling deceleration must be positive and finite, carry distance finite "
@@ -154,8 +156,9 @@ MatchSystem makeBallMovementSystem(const BallPhysics& physics, const PassConfig&
   validate(reception);
   return {
       .name = std::string(kBallMovementSystemName),
-      .update = [physics, passing, reception](const MatchStepContext& context,
-                                              const MatchState& current, MatchStateWriter& next) {
+      .update = [physics, passing, reception, restarts](const MatchStepContext& context,
+                                                        const MatchState& current,
+                                                        MatchStateWriter& next) {
         const double secondsPerTick = context.secondsPerTick();
         // Leaves the ball with this player, at his feet as he ends the tick.
         const auto carryBy = [&](const PlayerMatchState& player) {
@@ -205,8 +208,15 @@ MatchSystem makeBallMovementSystem(const BallPhysics& physics, const PassConfig&
         }
 
         // 3. A free ball rolls, and the first player to reach it on its
-        //    way takes it.
+        //    way takes it -- unless it is already out of play and the
+        //    restart system, which runs after this one, is there to settle
+        //    who plays on: a player standing on the line must not receive or
+        //    intercept the ball first and have the restart overwrite him.
         const BallState rolled = stepFreeBall(ball, physics, current.pitch(), secondsPerTick);
+        const bool awaitsRestart = restarts.enabled && isOutOfPlay(ball, current.pitch());
+        if (awaitsRestart) {
+          return;
+        }
         if (const auto claim = findBallClaim(current, ball, rolled.position, context.tick(),
                                              secondsPerTick, reception)) {
           next.setBallOwner(claim->playerId);
@@ -228,12 +238,17 @@ MatchSystem makeBallMovementSystem(const BallPhysics& physics, const PassConfig&
       }};
 }
 
+MatchSystem makeBallMovementSystem(const BallPhysics& physics, const PassConfig& passing,
+                                   const ReceptionConfig& reception) {
+  return makeBallMovementSystem(physics, passing, reception, RestartConfig{});
+}
+
 MatchSystem makeBallMovementSystem(const BallPhysics& physics, const PassConfig& passing) {
-  return makeBallMovementSystem(physics, passing, ReceptionConfig{});
+  return makeBallMovementSystem(physics, passing, ReceptionConfig{}, RestartConfig{});
 }
 
 MatchSystem makeBallMovementSystem(const BallPhysics& physics) {
-  return makeBallMovementSystem(physics, PassConfig{}, ReceptionConfig{});
+  return makeBallMovementSystem(physics, PassConfig{}, ReceptionConfig{}, RestartConfig{});
 }
 
 }  // namespace ElyverseFootball::SimMatch

@@ -67,12 +67,14 @@ std::string_view restartKindName(const RestartKind kind) noexcept {
   return "unknown";
 }
 
-bool isOutOfPlay(const MatchState& state) noexcept {
-  const BallState& ball = state.ball();
-  const Pitch& pitch = state.pitch();
+bool isOutOfPlay(const BallState& ball, const Pitch& pitch) noexcept {
   const bool onLine = ball.position.x == 0.0 || ball.position.x == pitch.lengthMeters() ||
                       ball.position.y == 0.0 || ball.position.y == pitch.widthMeters();
   return !ball.owner && ball.velocity == SimCore::Vec2{} && onLine && pitch.contains(ball.position);
+}
+
+bool isOutOfPlay(const MatchState& state) noexcept {
+  return isOutOfPlay(state.ball(), state.pitch());
 }
 
 std::optional<RestartPlan> planRestart(const MatchState& state) {

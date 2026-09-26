@@ -5,6 +5,7 @@
 #include "matchSimulation.hpp"
 #include "matchState.hpp"
 #include "pitch.hpp"
+#include "restartKind.hpp"
 #include "vec2.hpp"
 
 namespace ElyverseFootball::SimMatch {
@@ -64,7 +65,9 @@ struct ReceptionConfig;
 //      whether a player reaches it on its way this tick. The claimant owns it
 //      from the end of the tick, with the ball at his feet, and becomes its
 //      last touch; the state's last reception records him and how fast the
-//      ball came.
+//      ball came. With restarts enabled, a ball already out of play is left
+//      alone: the restart system settles who plays on, so a player standing
+//      on it does not receive or intercept it first.
 //
 // Writes the ball's position, velocity, owner and last touch, the last pass
 // and reception, and clears the pending pass. Throws std::invalid_argument for an invalid
@@ -74,6 +77,10 @@ struct ReceptionConfig;
 // makeMatchSystems() does: a controlled ball follows the carrier's move as the
 // movement system makes it, and without that system the ball would end the
 // tick where the carrier would have gone.
+[[nodiscard]] MatchSystem makeBallMovementSystem(const BallPhysics& physics,
+                                                 const PassConfig& passing,
+                                                 const ReceptionConfig& reception,
+                                                 const RestartConfig& restarts);
 [[nodiscard]] MatchSystem makeBallMovementSystem(const BallPhysics& physics,
                                                  const PassConfig& passing,
                                                  const ReceptionConfig& reception);

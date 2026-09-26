@@ -165,3 +165,42 @@ TEST_CASE("The restart system gives the ball to the taker once it is out", "[res
   // Disabled, the ball waits on the line.
   REQUIRE(run(false).empty());
 }
+
+TEST_CASE("A player on an out-of-play ball does not receive it before the restart", "[restart]") {
+  using ElyverseFootball::SimMatch::LooseBallRecovered;
+  using ElyverseFootball::SimMatch::PassIntercepted;
+  using ElyverseFootball::SimMatch::PassReceived;
+  using ElyverseFootball::SimMatch::PossessionChanged;
+  // The ball rests on the touchline with away's 3 standing right on it, well
+  // within reception's control radius: ball movement runs before the restart
+  // system and must leave that ball alone.
+  auto state =
+      MatchState::create({.pitch = Pitch(60.0, 40.0),
+                          .players = {playerAt(1, TeamSide::kHome, {.x = 2.0, .y = 20.0}),
+                                      playerAt(2, TeamSide::kHome, {.x = 20.0, .y = 30.0}),
+                                      playerAt(3, TeamSide::kAway, {.x = 30.0, .y = 40.0}),
+                                      playerAt(4, TeamSide::kAway, {.x = 58.0, .y = 20.0})},
+                          .ball = ballAt({.x = 30.0, .y = 40.0}, 2),
+                          .playersPerSide = 2});
+  REQUIRE(state.has_value());
+  MatchConfig config;
+  config.restarts.enabled = true;
+  config.decisions.minHoldSeconds = 1.0e6;
+  auto simulation = ElyverseFootball::SimMatch::startMatch(
+      {.initialState = *std::move(state), .config = config, .seed = 1, .commands = {}});
+
+  REQUIRE(simulation.step().has_value());
+
+  int restarts = 0;
+  int possessionChanges = 0;
+  for (const MatchEvent& event : simulation.events()) {
+    restarts += std::holds_alternative<RestartTaken>(event) ? 1 : 0;
+    possessionChanges += std::holds_alternative<PossessionChanged>(event) ? 1 : 0;
+    REQUIRE_FALSE(std::holds_alternative<PassIntercepted>(event));
+    REQUIRE_FALSE(std::holds_alternative<PassReceived>(event));
+    REQUIRE_FALSE(std::holds_alternative<LooseBallRecovered>(event));
+  }
+  REQUIRE(restarts == 1);
+  REQUIRE(possessionChanges == 1);
+  REQUIRE(simulation.state().ball().owner == PlayerId(3));
+}
