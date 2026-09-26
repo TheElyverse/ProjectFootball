@@ -29,6 +29,14 @@ TEST_CASE("Equal tactics hash alike", "[tacticHash]") {
   REQUIRE(hashOf(referenceTacticSpec()) == hashOf(referenceTacticSpec()));
 }
 
+TEST_CASE("Signed zero hashes the same as positive zero", "[tacticHash]") {
+  auto negativeZero = referenceTacticSpec();
+  negativeZero.principles.pressingLine = -0.0;
+  auto positiveZero = referenceTacticSpec();
+  positiveZero.principles.pressingLine = 0.0;
+  REQUIRE(hashOf(negativeZero) == hashOf(positiveZero));
+}
+
 TEST_CASE("Every part of a tactic changes its hash", "[tacticHash]") {
   const std::uint64_t reference = hashOf(referenceTacticSpec());
   auto spec = referenceTacticSpec();

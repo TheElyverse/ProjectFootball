@@ -113,6 +113,16 @@ TEST_CASE("Responsibilities must be known, weighted and consistent", "[tactic]")
     REQUIRE(error.field == "slots[1].responsibilities[0].weight");
     REQUIRE(error.message == "weight 0 of holdDefensiveLine must lie in (0, 1]");
   }
+  SECTION("unknown and invalid weight both reported") {
+    auto spec = referenceTacticSpec();
+    spec.slots.at(3).responsibilities.push_back(
+        {.responsibility = static_cast<Responsibility>(std::uint8_t{42}), .weight = 0.0});
+    const auto errors = errorsOf(spec);
+    REQUIRE(errors.size() == 2);
+    REQUIRE(errors[0].code == TacticErrorCode::kUnknownResponsibility);
+    REQUIRE(errors[1].code == TacticErrorCode::kInvalidResponsibilityWeight);
+    REQUIRE(errors[1].field == "slots[3].responsibilities[3].weight");
+  }
   SECTION("duplicate") {
     auto spec = referenceTacticSpec();
     spec.slots.at(6).responsibilities.push_back(
@@ -190,6 +200,16 @@ TEST_CASE("A block must fit between the goal lines", "[tactic]") {
 
   instruction.blockLength = 0.3;
   REQUIRE(Tactic::create(spec).has_value());
+}
+
+TEST_CASE("An out-of-range line height does not also report a contradictory block length",
+          "[tactic]") {
+  auto spec = referenceTacticSpec();
+  auto& instruction = spec.phases.at(phaseIndex(TacticalPhase::kPressing));
+  instruction.lineHeight = 1.3;
+  const auto error = onlyErrorOf(spec);
+  REQUIRE(error.code == TacticErrorCode::kValueOutOfRange);
+  REQUIRE(error.field == "phases.pressing.lineHeight");
 }
 
 TEST_CASE("Every broken rule is reported in a fixed order", "[tactic]") {

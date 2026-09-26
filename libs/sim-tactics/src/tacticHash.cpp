@@ -5,28 +5,37 @@ namespace {
 
 using SimCore::StableHasher;
 
+// Tactic::operator== compares doubles with ==, under which -0.0 equals 0.0,
+// but StableHasher::addDouble hashes their distinct bit patterns; normalize
+// signed zero so equal tactics keep hashing alike.
+[[nodiscard]] double normalizeZero(const double value) noexcept { return value == 0.0 ? 0.0 : value; }
+
+void addHashedDouble(StableHasher& hasher, const double value) noexcept {
+  hasher.addDouble(normalizeZero(value));
+}
+
 void addInstruction(StableHasher& hasher, const PhaseInstruction& instruction) noexcept {
-  hasher.addDouble(instruction.lineHeight);
-  hasher.addDouble(instruction.blockLength);
-  hasher.addDouble(instruction.blockWidth);
-  hasher.addDouble(instruction.ballShift);
-  hasher.addDouble(instruction.pressingIntensity);
-  hasher.addDouble(instruction.passingRisk);
-  hasher.addDouble(instruction.runFrequency);
+  addHashedDouble(hasher, instruction.lineHeight);
+  addHashedDouble(hasher, instruction.blockLength);
+  addHashedDouble(hasher, instruction.blockWidth);
+  addHashedDouble(hasher, instruction.ballShift);
+  addHashedDouble(hasher, instruction.pressingIntensity);
+  addHashedDouble(hasher, instruction.passingRisk);
+  addHashedDouble(hasher, instruction.runFrequency);
 }
 
 void addPrinciples(StableHasher& hasher, const TeamPrinciples& principles) noexcept {
-  hasher.addDouble(principles.pressingLine);
+  addHashedDouble(hasher, principles.pressingLine);
   hasher.addU64(principles.pressingTriggers.size());
   for (const PressingTrigger trigger : principles.pressingTriggers) {
     hasher.addByte(static_cast<std::uint8_t>(trigger));
   }
   const PositioningWeights& weights = principles.positioning;
-  hasher.addDouble(weights.targetDistance);
-  hasher.addDouble(weights.spacing);
-  hasher.addDouble(weights.pressure);
-  hasher.addDouble(weights.occupancy);
-  hasher.addDouble(weights.transitionRisk);
+  addHashedDouble(hasher, weights.targetDistance);
+  addHashedDouble(hasher, weights.spacing);
+  addHashedDouble(hasher, weights.pressure);
+  addHashedDouble(hasher, weights.occupancy);
+  addHashedDouble(hasher, weights.transitionRisk);
 }
 
 }  // namespace
@@ -36,12 +45,12 @@ void addTactic(StableHasher& hasher, const Tactic& tactic) noexcept {
   hasher.addString(tactic.description());
   hasher.addU64(tactic.slots().size());
   for (const TacticSlot& slot : tactic.slots()) {
-    hasher.addDouble(slot.position.depth);
-    hasher.addDouble(slot.position.width);
+    addHashedDouble(hasher, slot.position.depth);
+    addHashedDouble(hasher, slot.position.width);
     hasher.addU64(slot.responsibilities.size());
     for (const SlotResponsibility& entry : slot.responsibilities) {
       hasher.addByte(static_cast<std::uint8_t>(entry.responsibility));
-      hasher.addDouble(entry.weight);
+      addHashedDouble(hasher, entry.weight);
     }
   }
   addPrinciples(hasher, tactic.principles());
