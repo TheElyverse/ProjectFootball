@@ -208,6 +208,11 @@ std::vector<ActionCandidate> generateDefensiveCandidates(const MatchState& state
                                                          const std::size_t playerIndex,
                                                          const DesiredRegion& region,
                                                          const DefensiveRules& rules) {
+  if (rules.config == nullptr || rules.positioning == nullptr || rules.perception == nullptr) {
+    throw std::invalid_argument(
+        "defensive decisions: rules.config, rules.positioning and rules.perception must not be "
+        "null");
+  }
   const DefensiveConfig& config = *rules.config;
   const DefensiveScorer scorer(state, playerIndex, region, rules);
   const PlayerMatchState& player = state.players()[playerIndex];

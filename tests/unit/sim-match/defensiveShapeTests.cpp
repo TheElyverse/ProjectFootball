@@ -237,3 +237,13 @@ TEST_CASE("Defensive decisions reject an invalid configuration", "[defensiveShap
   REQUIRE_THROWS_AS(validate(config), std::invalid_argument);
   REQUIRE_NOTHROW(validate(DefensiveConfig{}));
 }
+
+TEST_CASE("Defensive candidates reject incomplete rules", "[defensiveShape]") {
+  using ElyverseFootball::SimMatch::DefensiveRules;
+  using ElyverseFootball::SimMatch::DesiredRegion;
+  using ElyverseFootball::SimMatch::generateDefensiveCandidates;
+  const MatchState state =
+      defending(tacticOf(referenceTacticSpec()), {.x = 40.0, .y = 20.0}, {.x = 20.0, .y = 16.0});
+  REQUIRE_THROWS_AS(generateDefensiveCandidates(state, 1, DesiredRegion{}, DefensiveRules{}),
+                    std::invalid_argument);
+}
