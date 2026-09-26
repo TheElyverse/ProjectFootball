@@ -176,13 +176,15 @@ TEST_CASE("Roles close the carrier's nearest options", "[teamPressing]") {
   REQUIRE(two.size() == 2);
   REQUIRE(two.at(1).role == PressRole::kBlockLane);
   REQUIRE(two.at(1).subject == PlayerId(9));
-  // Four: presser, two blockers for the two nearest options, and a cover.
+  // Four: presser, a cover reserved before lane blockers are allocated, and
+  // two blockers for the two nearest options.
   const auto four = roles(4);
   REQUIRE(four.size() == 4);
-  REQUIRE(four.at(1).subject == PlayerId(9));
+  REQUIRE(four.at(1).role == PressRole::kCover);
+  REQUIRE(four.at(1).subject == PlayerId(7));
   REQUIRE(four.at(2).role == PressRole::kBlockLane);
-  REQUIRE(four.at(3).role == PressRole::kCover);
-  REQUIRE(four.at(3).subject == PlayerId(7));
+  REQUIRE(four.at(2).subject == PlayerId(9));
+  REQUIRE(four.at(3).role == PressRole::kBlockLane);
   // Every player once, never the goalkeeper.
   for (std::size_t first = 0; first < four.size(); ++first) {
     REQUIRE(four.at(first).player != PlayerId(1));

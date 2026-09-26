@@ -132,7 +132,13 @@ class TriggerCheck {
   return pass->receiver;
 }
 
-[[nodiscard]] bool isOpponentKeeper(const MatchState& state, const PlayerMatchState& player) {
+// The role-based isGoalkeeper() for a side with a tactic; a scripted side
+// has no role to read, so it falls back to the positional heuristic.
+[[nodiscard]] bool isOpponentKeeper(const MatchState& state, const std::size_t playerIndex) {
+  const PlayerMatchState& player = state.players()[playerIndex];
+  if (state.tactics().of(player.side)) {
+    return isGoalkeeper(state, playerIndex);
+  }
   return depthOf(player.side, player.position, state.pitch()) < kKeeperDepth;
 }
 
@@ -256,7 +262,7 @@ std::vector<PressAssignment> assignPressRoles(const MatchState& state, const Tea
       if (!isGoalkeeper(state, index)) {
         free.push_back(index);
       }
-    } else if (index != *carrierIndex && !isOpponentKeeper(state, player)) {
+    } else if (index != *carrierIndex && !isOpponentKeeper(state, index)) {
       options.push_back(index);
     }
   }
@@ -299,7 +305,19 @@ std::vector<PressAssignment> assignPressRoles(const MatchState& state, const Tea
     return chosen;
   };
 
+  // The coverer is reserved before lane blockers are allocated: he is the
+  // player nearest the spot behind the presser by contract, and allocating
+  // lanes first could otherwise consume that player as a blocker.
   const bool cover = request.joiners >= 3;
+  if (cover) {
+    const Vec2 behind =
+        coverTarget(state.players()[presser].position, ownGoal, request.coverDistance);
+    if (const auto coverer = take([behind](const Vec2 /*from*/) { return behind; })) {
+      assignments.push_back({.player = state.players()[*coverer].playerId,
+                             .role = PressRole::kCover,
+                             .subject = state.players()[presser].playerId});
+    }
+  }
   const int blockers = request.joiners - 1 - (cover ? 1 : 0);
   for (int block = 0; block < blockers && std::cmp_less(block, options.size()); ++block) {
     const PlayerMatchState& option = state.players()[options.at(static_cast<std::size_t>(block))];
@@ -310,15 +328,6 @@ std::vector<PressAssignment> assignPressRoles(const MatchState& state, const Tea
       assignments.push_back({.player = state.players()[*blocker].playerId,
                              .role = PressRole::kBlockLane,
                              .subject = option.playerId});
-    }
-  }
-  if (cover) {
-    const Vec2 behind =
-        coverTarget(state.players()[presser].position, ownGoal, request.coverDistance);
-    if (const auto coverer = take([behind](const Vec2 /*from*/) { return behind; })) {
-      assignments.push_back({.player = state.players()[*coverer].playerId,
-                             .role = PressRole::kCover,
-                             .subject = state.players()[presser].playerId});
     }
   }
   return assignments;
