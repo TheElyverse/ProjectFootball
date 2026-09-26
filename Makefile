@@ -13,8 +13,8 @@ help:
 	@echo "  format        Auto-format all sources with clang-format"
 	@echo "  format-check  Check formatting without modifying files"
 	@echo "  lint          Run clang-tidy (incl. camelCase/PascalCase naming rule); needs a configured build dir"
-	@echo "  viewer-test   Install, build and test the web debug viewer (needs Node.js 22+ and npm)"
-	@echo "  website-build Install and build the static website into apps/website/dist (needs Node.js 22+ and npm)"
+	@echo "  viewer-test   Install, build and test the web debug viewer (needs Node.js 22+ and pnpm)"
+	@echo "  website-build Install and build the static website into apps/website/dist (needs Node.js 22+ and pnpm)"
 	@echo "  clean         Remove all build directories"
 
 configure:
@@ -37,10 +37,10 @@ ci:
 	$(MAKE) lint BUILD_DIR=build/ci
 
 viewer-test:
-	cd apps/sim-viewer && npm install --no-audit --no-fund && npm test
+	cd apps/sim-viewer && pnpm install --frozen-lockfile && pnpm test
 
 website-build:
-	cd apps/website && npm install --no-audit --no-fund && npm run build
+	cd apps/website && pnpm install --frozen-lockfile && pnpm run build
 
 sanitize:
 	cmake --preset sanitize

@@ -1,7 +1,7 @@
 // Serves the built site (dist/) on http://localhost:<port>/ with plain
-// node:http, to look at it locally after `npm run build`:
-//   npm run serve
-//   npm run serve -- --port 9000
+// node:http, to look at it locally after `pnpm run build`:
+//   pnpm run serve
+//   pnpm run serve --port 9000
 // Local preview only: it binds to 127.0.0.1. The site itself is static and can
 // be hosted by any web server or static hosting service.
 
@@ -55,7 +55,7 @@ const server = createServer(async (request, response) => {
     });
     response.end(body);
   } catch {
-    response.writeHead(404).end("not found - did you run `npm run build`?");
+    response.writeHead(404).end("not found - did you run `pnpm run build`?");
   }
 });
 

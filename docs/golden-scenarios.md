@@ -32,7 +32,7 @@ Record one with debug frames and open it in the [debug viewer](debug-viewer.md):
 ```sh
 ./build/debug/apps/sim-cli/sim-cli --scenario touchline-trap --seed 3 --ticks 180 \
   --replay-out trap.json --frames-out frames.json
-cd apps/sim-viewer && npm run serve -- ../../frames.json
+cd apps/sim-viewer && pnpm run serve ../../frames.json
 ```
 
 - **`transition-3v2`**: step to tick 11; the phases above the pitch read

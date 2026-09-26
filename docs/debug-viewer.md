@@ -20,17 +20,17 @@ Record a scenario with frames next to its replay:
   --replay-out replay.json --frames-out frames.json
 ```
 
-Then build and serve the viewer (Node.js 22 or newer, and npm):
+Then build and serve the viewer (Node.js 22 or newer, and pnpm):
 
 ```sh
 cd apps/sim-viewer
-npm install
-npm run build
-npm run serve -- ../../frames.json
+pnpm install
+pnpm run build
+pnpm run serve ../../frames.json
 ```
 
 and open the printed URL, `http://localhost:8080/?frames=frames.json`. Without a
-file argument, `npm run serve` serves the page alone and **Frames** loads a file
+file argument, `pnpm run serve` serves the page alone and **Frames** loads a file
 from disk. The page needs a server rather than `file://` because browsers do not
 load JavaScript modules from files; `scripts/serve.mjs` is a few lines of
 `node:http` bound to `127.0.0.1`, and `--port <n>` changes the port.
@@ -203,8 +203,12 @@ teams' `tactic`, `instruction` and `press`.
 
 ## Development
 
-`apps/sim-viewer` depends on TypeScript only, pinned to an exact version; as
-TypeScript has no dependencies of its own, no lockfile is kept.
+`apps/sim-viewer` depends on TypeScript only, pinned to an exact version;
+`pnpm-lock.yaml` is committed, so an install with `--frozen-lockfile` — as CI and
+`make viewer-test` run it — resolves to exactly that version. pnpm comes from the
+`packageManager` field via Corepack. Behind a proxy that blocks
+`registry.npmjs.org`, point pnpm at a mirror with `registry=<url>` in an
+`.npmrc`; pnpm honours that setting like any other client.
 
 | Path              | Contents                                                        |
 |-------------------|-----------------------------------------------------------------|
@@ -217,6 +221,6 @@ TypeScript has no dependencies of its own, no lockfile is kept.
 | `src/main.ts`     | wiring the page together                                        |
 | `test/`           | `node:test` tests of the pure modules, run on the compiled output |
 
-`npm test` type-checks, compiles to `dist/` and runs the tests; CI runs it in
+`pnpm test` type-checks, compiles to `dist/` and runs the tests; CI runs it in
 the `viewer` job, and `make viewer-test` runs install and tests from the
 repository root.

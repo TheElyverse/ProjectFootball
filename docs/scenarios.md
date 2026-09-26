@@ -103,7 +103,7 @@ Each scenario can be run with debug frames and watched in the
 ```sh
 ./build/debug/apps/sim-cli/sim-cli --scenario intercepted-pass --seed 7 --ticks 600 \
   --replay-out intercepted.json --frames-out frames.json
-cd apps/sim-viewer && npm install && npm run build && npm run serve -- ../../frames.json
+cd apps/sim-viewer && pnpm install && pnpm run build && pnpm run serve ../../frames.json
 ```
 
 What to look at:
