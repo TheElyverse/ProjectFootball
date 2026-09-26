@@ -9,8 +9,10 @@
 #include <expected>
 #include <functional>
 #include <optional>
+#include <stdexcept>
 #include <string>
 #include <variant>
+#include <vector>
 
 #include "goldenScenarios.hpp"
 #include "matchEvents.hpp"
@@ -125,6 +127,24 @@ namespace {
       });
 }
 
+// Seeds in which the trigger, not home's phase, starts the press: home's
+// pressing line puts it in the pressing phase here, so a phase press would
+// otherwise stand in for broken trigger detection unnoticed.
+[[nodiscard]] int trapTriggered(const ElyverseFootball::SimMatch::TrapSpot spot) {
+  using ElyverseFootball::SimMatch::PressingStarted;
+  return seedsWhere(
+      [spot](const std::uint64_t seed) {
+        return ElyverseFootball::SimMatch::makePressingTrap(seed, spot, 1.0);
+      },
+      180,
+      [](const MatchSimulation& simulation) {
+        const auto* started = eventOf<PressingStarted>(simulation);
+        return started != nullptr && started->side == TeamSide::kHome &&
+               started->trigger ==
+                   ElyverseFootball::SimTactics::PressingTrigger::kReceiverFacingOwnGoal;
+      });
+}
+
 }  // namespace
 
 TEST_CASE("Golden: a coordinated press at the touchline traps the receiver",
@@ -133,7 +153,10 @@ TEST_CASE("Golden: a coordinated press at the touchline traps the receiver",
   const int coordinated = trapRegains(TrapSpot::kTouchline, 1.0);
   const int lone = trapRegains(TrapSpot::kTouchline, 0.25);
   const int centre = trapRegains(TrapSpot::kCentre, 1.0);
-  CAPTURE(coordinated, lone, centre);
+  const int triggered = trapTriggered(TrapSpot::kTouchline);
+  CAPTURE(coordinated, lone, centre, triggered);
+  // The receiver facing his own goal is what starts the press, in every seed.
+  REQUIRE(triggered == static_cast<int>(kSeeds));
   // At the time of writing 13, 2 and 0 of 20.
   REQUIRE(coordinated >= 10);
   // Uncoordinated: one presser leaves the carrier's lanes open.
@@ -191,4 +214,17 @@ TEST_CASE("Golden: every golden scenario replays identically", "[acceptance][p2]
     REQUIRE(playback.has_value());
     REQUIRE(playback->finalStateHash == replay->checkpoints.back().stateHash);
   }
+}
+
+TEST_CASE("Golden: the pressing tactic helper rejects values a tactic cannot hold",
+          "[acceptance][p2][golden]") {
+  using ElyverseFootball::SimMatch::goldenPressingTactic;
+  using ElyverseFootball::SimTactics::PressingTrigger;
+  const std::vector<PressingTrigger> trigger{PressingTrigger::kReceiverFacingOwnGoal};
+  REQUIRE_THROWS_AS(goldenPressingTactic(2.0, trigger, 1.0), std::invalid_argument);
+  REQUIRE_THROWS_AS(goldenPressingTactic(1.0, trigger, -0.5), std::invalid_argument);
+  REQUIRE_THROWS_AS(
+      goldenPressingTactic(1.0, {PressingTrigger::kBackPass, PressingTrigger::kBackPass}, 1.0),
+      std::invalid_argument);
+  REQUIRE_NOTHROW(goldenPressingTactic(1.0, trigger, 1.0));
 }

@@ -3,6 +3,8 @@
 #include <array>
 #include <cstddef>
 #include <optional>
+#include <stdexcept>
+#include <string>
 #include <utility>
 #include <vector>
 
@@ -108,7 +110,10 @@ SimTactics::Tactic goldenPressingTactic(const double pressingIntensity,
     phase.pressingIntensity = pressingIntensity;
   }
   auto tactic = SimTactics::Tactic::create(spec);
-  return *std::move(tactic);  // NOLINT(bugprone-unchecked-optional-access)
+  if (!tactic) {
+    throw std::invalid_argument("goldenPressingTactic: " + tactic.error().front().message);
+  }
+  return *std::move(tactic);
 }
 
 std::expected<MatchSetup, std::string> makeTransitionThreeVersusTwo(const std::uint64_t seed) {

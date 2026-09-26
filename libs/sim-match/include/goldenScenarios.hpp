@@ -50,6 +50,10 @@ enum class TrapSpot : std::uint8_t {
 // pressing on these triggers with this intensity in every phase, and in its
 // pressing phase from this pressing line on -- 1 keeps it out of the
 // pressing phase, so only the triggers start presses.
+//
+// Throws std::invalid_argument for values Tactic::create() rejects: an
+// intensity or pressing line outside [0, 1], or unknown or repeated
+// triggers.
 [[nodiscard]] SimTactics::Tactic goldenPressingTactic(
     double pressingIntensity, const std::vector<SimTactics::PressingTrigger>& triggers,
     double pressingLine);
