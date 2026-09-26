@@ -29,6 +29,7 @@ using ElyverseFootball::SimCore::Vec2;
 using ElyverseFootball::SimMatch::BallPhysics;
 using ElyverseFootball::SimMatch::BallState;
 using ElyverseFootball::SimMatch::BallTouch;
+using ElyverseFootball::SimMatch::Contact;
 using ElyverseFootball::SimMatch::findContact;
 using ElyverseFootball::SimMatch::kDefaultRollingDeceleration;
 using ElyverseFootball::SimMatch::kDefaultTicksPerSecond;
@@ -57,6 +58,9 @@ namespace {
 
 constexpr double kSecondsPerTick = 1.0 / kDefaultTicksPerSecond;
 const Pitch kPitch(60.0, 40.0);
+
+// A contact that cannot happen, to read a checked optional contact through.
+constexpr Contact kNoContact{.contactFraction = -1.0, .closestDistance = -1.0};
 
 // Rolls the ball tick by tick and records every state, including the first.
 [[nodiscard]] std::vector<BallState> roll(BallState ball, const int ticks,
@@ -183,9 +187,10 @@ TEST_CASE("An interception's position interpolates the contact, not the tick's s
   const auto contact = findContact(interceptorAt, interceptorAt, ballStart, rolled.position,
                                    ReceptionConfig{}.controlRadius);
   REQUIRE(contact.has_value());
-  REQUIRE(contact->contactFraction > 0.05);
-  REQUIRE(contact->contactFraction < 0.95);
-  const Vec2 expected = ballStart + ((rolled.position - ballStart) * contact->contactFraction);
+  const double fraction = contact.value_or(kNoContact).contactFraction;
+  REQUIRE(fraction > 0.05);
+  REQUIRE(fraction < 0.95);
+  const Vec2 expected = ballStart + ((rolled.position - ballStart) * fraction);
 
   const auto player = [](const PlayerId::ValueType number, const TeamSide side,
                          const Vec2 position) {

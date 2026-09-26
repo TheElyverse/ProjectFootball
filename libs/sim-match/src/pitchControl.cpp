@@ -56,8 +56,8 @@ PitchControlGrid computePitchControl(const MatchState& state, const PitchControl
   }
   home.resize(columns * rows);
   away.resize(columns * rows);
-  std::fill(home.begin(), home.end(), std::numeric_limits<double>::infinity());
-  std::fill(away.begin(), away.end(), std::numeric_limits<double>::infinity());
+  std::ranges::fill(home, std::numeric_limits<double>::infinity());
+  std::ranges::fill(away, std::numeric_limits<double>::infinity());
   for (std::size_t column = 0; column < columns; ++column) {
     for (std::size_t row = 0; row < rows; ++row) {
       const SimCore::Vec2 center{.x = (static_cast<double>(column) + 0.5) * config.cellSize,
