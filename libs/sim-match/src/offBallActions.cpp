@@ -12,6 +12,7 @@
 #include "passCandidates.hpp"
 #include "responsibility.hpp"
 #include "tactic.hpp"
+#include "tacticalPhases.hpp"
 #include "teamFrame.hpp"
 
 namespace ElyverseFootball::SimMatch {
@@ -303,7 +304,10 @@ bool isActionDecisionDue(const MatchState& state, const std::size_t playerIndex,
                          const SimCore::SimTick now, const OffBallConfig& config) {
   const auto& action = state.tactical(playerIndex).action;
   const PlayerMatchState& player = state.players()[playerIndex];
-  const bool withBall = state.possession().team == player.side;
+  // Not possession().team: it only updates when the phase system next
+  // runs, so it can still name the losing side right after a turnover the
+  // ball itself already shows.
+  const bool withBall = teamOnTheBall(state) == player.side;
   if (!action || action->withBall != withBall) {
     return true;
   }

@@ -11,6 +11,7 @@
 #include "choicePolicy.hpp"
 #include "matchEvents.hpp"
 #include "pressingActions.hpp"
+#include "tacticalPhases.hpp"
 #include "teamFrame.hpp"
 #include "zones.hpp"
 
@@ -168,7 +169,10 @@ MatchSystem makeTacticalMovementSystem(const TacticalMovementRules& rules) {
                     tactical.action = assigned;
                     target = assigned->target;
                   } else if (!isGoalkeeper(current, index)) {
-                    const bool withBall = current.possession().team == player.side;
+                    // Not possession().team: it only updates when the phase
+                    // system next runs, so it can still name the losing side
+                    // right after a turnover the ball itself already shows.
+                    const bool withBall = teamOnTheBall(current) == player.side;
                     if (isActionDecisionDue(current, index, context.tick(), rules.offBall)) {
                       const auto candidates =
                           candidatesFor(context, current, index, region, rules, withBall);
