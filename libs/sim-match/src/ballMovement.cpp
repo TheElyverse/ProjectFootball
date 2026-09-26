@@ -161,9 +161,16 @@ MatchSystem makeBallMovementSystem(const BallPhysics& physics, const PassConfig&
           next.setBallVelocity(owner.velocity);
         };
 
-        // 1. Play the pending pass, if its passer owns the ball.
-        BallState ball = current.ball();
-        if (const auto& intent = current.pendingPass()) {
+        // 1. Play the pending pass, if its passer owns the ball. The pass
+        //    itself comes from current, not next: a pass decided this same
+        //    step is played next step, one step of pending pass being
+        //    deliberate. The ball comes from next, and next.pendingPass() is
+        //    checked too, because a challenge earlier this same step may
+        //    have already taken the ball and dropped the pass, and current
+        //    would still show the stale pre-step values.
+        BallState ball = next.ball();
+        if (const std::optional<PassIntent> intent = current.pendingPass();
+            intent && next.pendingPass()) {
           next.setPendingPass(std::nullopt);
           if (ball.owner == intent->passer) {
             ball = kicked(current, *intent, physics, passing, context);

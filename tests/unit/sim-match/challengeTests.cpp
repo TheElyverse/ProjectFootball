@@ -7,6 +7,7 @@
 #include <variant>
 #include <vector>
 
+#include "ballMovement.hpp"
 #include "challenge.hpp"
 #include "matchEvents.hpp"
 #include "matchSimulation.hpp"
@@ -16,9 +17,11 @@ using ElyverseFootball::SimCore::PlayerId;
 using ElyverseFootball::SimCore::SimTick;
 using ElyverseFootball::SimCore::Vec2;
 using ElyverseFootball::SimMatch::ActionType;
+using ElyverseFootball::SimMatch::BallPhysics;
 using ElyverseFootball::SimMatch::BallTouch;
 using ElyverseFootball::SimMatch::BallWon;
 using ElyverseFootball::SimMatch::ChallengeConfig;
+using ElyverseFootball::SimMatch::makeBallMovementSystem;
 using ElyverseFootball::SimMatch::makeChallengeSystem;
 using ElyverseFootball::SimMatch::MatchEvent;
 using ElyverseFootball::SimMatch::MatchSimulation;
@@ -148,6 +151,63 @@ TEST_CASE("A presser within reach wins the ball about as often as the win chance
   const double share = static_cast<double>(firstAttemptsWon) / static_cast<double>(kSeeds);
   REQUIRE(share > 0.14);
   REQUIRE(share < 0.26);
+}
+
+TEST_CASE("A challenge win survives ball movement in the same step", "[challenge]") {
+  // The carrier has a pending pass, decided a step earlier and still
+  // waiting to be played, when a presser at the ball's own spot wins with
+  // certainty. Ball movement runs after the challenge in the standard
+  // pipeline and must not play that pass, or otherwise put the ball back
+  // with the loser, once the challenge has already resolved the step.
+  const MatchSystem decideOnce{
+      .name = "decide-once",
+      .update = [](const MatchStepContext& context, const MatchState&, MatchStateWriter& next) {
+        if (context.tick() != SimTick(0)) {
+          return;
+        }
+        next.tactical(1).action = PlayerAction{.type = ActionType::kPressCarrier,
+                                               .target = {.x = 30.5, .y = 20.0},
+                                               .subject = PlayerId(1),
+                                               .decidedAt = SimTick(0),
+                                               .withBall = false};
+        next.setPendingPass(PassIntent{.passer = PlayerId(1),
+                                       .target = {.x = 50.0, .y = 20.0},
+                                       .speed = 10.0,
+                                       .receiver = std::nullopt});
+      }};
+  ChallengeConfig always;
+  always.intervalTicks = 1;
+  always.protectSeconds = 0.0;
+  always.winChance = 1.0;
+  MatchSimulation simulation(
+      {.initialState = duel({.x = 30.5, .y = 20.0}),
+       .seed = 1,
+       .ticksPerSecond = 30,
+       .systems = {decideOnce, makeChallengeSystem(always), makeBallMovementSystem(BallPhysics{})},
+       .commands = {}});
+  // The first step: the pending pass and the presser's decision take
+  // effect; the pass has not been played yet, so it is not settled enough
+  // to be challenged until the following step reads it back from current.
+  REQUIRE(simulation.step().has_value());
+  REQUIRE(simulation.state().pendingPass().has_value());
+  REQUIRE(simulation.state().ball().owner == PlayerId(1));
+
+  // The second step: the challenge wins and drops the pending pass; ball
+  // movement must see that, not the pre-step state with the pass still
+  // pending and the carrier still the owner. Exactly the challenge's own
+  // two events: no PassAttempted, and no second PossessionChanged from a
+  // stale kick (whether or not the presser, right where the ball now is,
+  // would immediately reclaim a freed ball and mask the wrong owner).
+  REQUIRE(simulation.step().has_value());
+  const auto events = simulation.events();
+  REQUIRE(events.size() == 2);
+  REQUIRE(std::holds_alternative<BallWon>(events[0]));
+  REQUIRE(std::get<BallWon>(events[0]).winner == PlayerId(2));
+  REQUIRE(std::holds_alternative<PossessionChanged>(events[1]));
+  REQUIRE(std::get<PossessionChanged>(events[1]).previousOwner == PlayerId(1));
+  REQUIRE(std::get<PossessionChanged>(events[1]).newOwner == PlayerId(2));
+  REQUIRE(simulation.state().ball().owner == PlayerId(2));
+  REQUIRE_FALSE(simulation.state().pendingPass().has_value());
 }
 
 TEST_CASE("Only a presser within reach challenges", "[challenge]") {

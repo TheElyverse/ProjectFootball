@@ -380,6 +380,16 @@ class MatchStateWriter {
   void setPlayerFacing(std::size_t playerIndex, SimCore::Vec2 facing);
   // The memory of the player at this index, to update in place.
   [[nodiscard]] PlayerPerception& perception(std::size_t playerIndex);
+  // The ball as every system so far this step has left it, unlike
+  // MatchState::ball(), which stays frozen at the step's start for every
+  // system's current parameter; the ball-state writer reads this to see an
+  // owner a challenge already assigned this same step.
+  [[nodiscard]] const BallState& ball() const noexcept { return state_->ball_; }
+  // The pass waiting to be played, as this step has left it so far; see
+  // ball() for why this differs from MatchState::pendingPass().
+  [[nodiscard]] const std::optional<PassIntent>& pendingPass() const noexcept {
+    return state_->pendingPass_;
+  }
   void setBallPosition(SimCore::Vec2 position) noexcept { state_->ball_.position = position; }
   void setBallVelocity(SimCore::Vec2 velocity) noexcept { state_->ball_.velocity = velocity; }
   // Hands the ball to a player, or frees it with std::nullopt. Throws
