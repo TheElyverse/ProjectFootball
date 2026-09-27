@@ -25,8 +25,8 @@ namespace ElyverseFootball::SimMatch {
 namespace {
 
 // The sandbox pitch: an example 7v7 size, not a mandated one.
-constexpr double kPitchLength = 60.0;
-constexpr double kPitchWidth = 40.0;
+constexpr double kPitchLength = kSandboxLengthMeters;
+constexpr double kPitchWidth = kSandboxWidthMeters;
 
 [[nodiscard]] std::expected<MatchSetup, std::string> kickoffWith(const std::uint64_t seed,
                                                                  const SimCore::Vec2 ballVelocity) {
