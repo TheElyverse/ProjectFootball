@@ -384,8 +384,8 @@ TEST_CASE("Pitch measures the open angle a goal subtends", "[pitch][goal]") {
   REQUIRE_THAT(pitch.goalAngleRadians(GoalEnd::kMinX, goal.center),
                WithinAbs(std::numbers::pi, kTolerance));
   REQUIRE(pitch.goalAngleRadians(GoalEnd::kMinX, goal.postAtMinY()) == 0.0);
-  REQUIRE(pitch.goalAngleRadians(
-              GoalEnd::kMinX, {.x = 20.0, .y = std::numeric_limits<double>::infinity()}) == 0.0);
+  REQUIRE(pitch.goalAngleRadians(GoalEnd::kMinX,
+                                 {.x = 20.0, .y = std::numeric_limits<double>::infinity()}) == 0.0);
 
   // It narrows with distance, mirrors across the goal's center line, and is the
   // same at either end of the pitch.
