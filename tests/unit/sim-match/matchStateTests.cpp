@@ -439,8 +439,11 @@ TEST_CASE("MatchState::create rejects a ball that is nowhere in the third dimens
   REQUIRE(codes([](MatchStateSpec& spec) {
             spec.ball.verticalVelocity = std::numeric_limits<double>::infinity();
           }) == std::vector{MatchStateErrorCode::kNonFiniteBallVerticalVelocity});
+  // Either direction: the bound is on the vertical speed, not on the climb.
   REQUIRE(codes([](MatchStateSpec& spec) { spec.ball.verticalVelocity = -2.0 * kMaxBallSpeed; }) ==
-          std::vector{MatchStateErrorCode::kBallRisingTooFast});
+          std::vector{MatchStateErrorCode::kBallVerticallyTooFast});
+  REQUIRE(codes([](MatchStateSpec& spec) { spec.ball.verticalVelocity = 2.0 * kMaxBallSpeed; }) ==
+          std::vector{MatchStateErrorCode::kBallVerticallyTooFast});
   REQUIRE(codes([](MatchStateSpec& spec) {
             spec.ball.spin = std::numeric_limits<double>::quiet_NaN();
           }) == std::vector{MatchStateErrorCode::kNonFiniteBallSpin});

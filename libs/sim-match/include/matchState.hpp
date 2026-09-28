@@ -169,7 +169,7 @@ enum class MatchStateErrorCode : std::uint8_t {
   kNonFiniteBallHeight,
   kBallBelowGround,
   kNonFiniteBallVerticalVelocity,
-  kBallRisingTooFast,
+  kBallVerticallyTooFast,
   kNonFiniteBallSpin,
   kBallSpinningTooFast,
   kUnknownBallOwner,

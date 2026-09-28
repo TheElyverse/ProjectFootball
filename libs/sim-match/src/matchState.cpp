@@ -238,7 +238,7 @@ void validateBall(const MatchStateSpec& spec, std::vector<MatchStateError>& erro
   }
   const double verticalVelocity = spec.ball.verticalVelocity;
   if (isFinite(verticalVelocity) && std::abs(verticalVelocity) > kMaxBallSpeed) {
-    errors.push_back({.code = MatchStateErrorCode::kBallRisingTooFast,
+    errors.push_back({.code = MatchStateErrorCode::kBallVerticallyTooFast,
                       .message = "the ball moves at " + formatNumber(verticalVelocity) +
                                  " m/s vertically, faster than " + formatNumber(kMaxBallSpeed) +
                                  " m/s"});
