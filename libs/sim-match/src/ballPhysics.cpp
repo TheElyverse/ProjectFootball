@@ -3,8 +3,9 @@
 #include <algorithm>
 #include <array>
 #include <cmath>
-#include <cstddef>
 #include <limits>
+#include <ranges>
+#include <span>
 #include <stdexcept>
 
 #include "stableMath.hpp"
@@ -47,13 +48,11 @@ inline constexpr int kMaxBouncesPerTick = 8;
 inline constexpr double kDragSeriesCutoff = 0.5;
 
 // The table read as coefficient[n] · (-x)^n, summed in Horner form.
-template <std::size_t kCount>
-[[nodiscard]] double alternatingSeries(const std::array<double, kCount>& coefficients,
+[[nodiscard]] double alternatingSeries(const std::span<const double> coefficients,
                                        const double x) noexcept {
   double sum = 0.0;
-  for (auto coefficient = coefficients.rbegin(); coefficient != coefficients.rend();
-       ++coefficient) {
-    sum = *coefficient - (x * sum);
+  for (const double coefficient : std::views::reverse(coefficients)) {
+    sum = coefficient - (x * sum);
   }
   return sum;
 }
