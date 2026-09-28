@@ -189,6 +189,8 @@ messages or in pull request descriptions.
 
 Give a good commit message everytime you change something.
 
+Never commit yourself unless it is requested to do.
+
 ## Language note
 
 Design/planning docs are written primarily in German with English technical terms. Match that convention
