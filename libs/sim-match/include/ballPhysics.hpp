@@ -41,8 +41,9 @@ inline constexpr double kDefaultSpinTransfer = 0.2;
 // How fast spin dies away in flight: this fraction per second.
 inline constexpr double kDefaultSpinDecay = 0.4;  // 1/s
 
-// A ball that leaves a bounce slower than this upwards stays down and rolls
-// on, rather than hopping ever smaller hops forever.
+// A ball that leaves a bounce no faster than this upwards stays down and rolls
+// on, rather than hopping ever smaller hops forever. At 0 that is still every
+// ball a bounce leaves at a standstill.
 inline constexpr double kDefaultRestingVerticalSpeed = 0.25;  // m/s
 
 // A football's radius, which turns spin at the moment of a bounce into speed
@@ -118,7 +119,8 @@ struct BallLanding {
 // spin drives it on or checks it. The tick is split at that moment rather than
 // at its end, which is what makes the same flight come out the same at 30 Hz
 // and at 300 Hz. A ball whose bounce leaves it slower than
-// restingVerticalSpeed stays down and rolls the rest of the tick.
+// restingVerticalSpeed, or no faster than it, stays down and rolls the rest of
+// the tick.
 //
 // A ball that leaves the pitch stops on the line where it crossed it, on the
 // ground and at rest, in the air as on the grass: the documented stand-in

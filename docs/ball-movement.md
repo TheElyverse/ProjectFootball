@@ -50,7 +50,7 @@ Every one of them is part of `MatchConfig` and therefore of every
 | `bounceGrip`           | 0.8      | share of its speed along the ground a bounce keeps          |
 | `spinTransfer`         | 0.2      | share of its spin a bounce spends driving the ball on       |
 | `spinDecay`            | 0.4 1/s  | fraction of its spin a flying ball loses per second         |
-| `restingVerticalSpeed` | 0.25 m/s | a bounce slower than this leaves the ball down              |
+| `restingVerticalSpeed` | 0.25 m/s | a bounce no faster than this leaves the ball down              |
 
 The rolling deceleration and gravity must be positive and finite, the carry
 distance, the drag, the spin decay and the resting speed finite and not
@@ -123,9 +123,11 @@ Where the flight reaches the ground within a tick, the ball bounces:
   backspin against the travel, never far enough to turn the ball around. The
   spin it spends is gone. A ball dropping straight down has no direction to
   drive along and keeps none.
-- a bounce that leaves it rising slower than `restingVerticalSpeed` leaves it
-  down: the ball stays on the grass and rolls the rest of the tick, rather than
-  hopping ever smaller hops forever.
+- a bounce that leaves it rising no faster than `restingVerticalSpeed` leaves
+  it down: the ball stays on the grass and rolls the rest of the tick, rather
+  than hopping ever smaller hops forever. No faster rather than slower, so a
+  ball that a `bounceRestitution` of 0 leaves at a standstill settles on that
+  one impact even where `restingVerticalSpeed` is 0 too.
 
 The tick is split at the moment the ball lands rather than at its end. That is
 what makes a flight independent of the tick rate: a bounce happens at its own

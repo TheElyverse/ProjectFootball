@@ -211,6 +211,26 @@ TEST_CASE("A bounce loses energy until the ball rolls", "[ballPhysics]") {
   REQUIRE(settled.position.x > 30.0);
 }
 
+TEST_CASE("A ball that does not bounce settles on its one impact", "[ballPhysics]") {
+  // A dead surface: nothing comes back up, and nothing is slow enough to be
+  // called resting either. The landing must still cost the ball one helping of
+  // grip and of spin, not the eight a tick has room for.
+  BallPhysics dead;
+  dead.bounceRestitution = 0.0;
+  dead.restingVerticalSpeed = 0.0;
+  const BallState dropped = ballAt({.x = 30.0, .y = 20.0}, {.x = 6.0, .y = 0.0},
+                                   {.height = 0.01, .verticalVelocity = -2.0, .spin = 20.0});
+
+  const BallState landed = stepFreeBall(dropped, dead, pitch(), kSecondsPerTick);
+
+  REQUIRE(landed.height == 0.0);
+  REQUIRE(landed.verticalVelocity == 0.0);
+  // One bounce spends spinTransfer of the spin and keeps bounceGrip of the
+  // speed; eight would leave 0.8^8 of each, a fifth of that.
+  REQUIRE_THAT(landed.spin, WithinAbs(20.0 * (1.0 - dead.spinTransfer), 0.1));
+  REQUIRE(landed.velocity.x > 6.0 * dead.bounceGrip);
+}
+
 TEST_CASE("A flight comes out the same at any tick rate", "[ballPhysics]") {
   const BallState ball =
       ballAt({.x = 8.0, .y = 20.0}, {.x = 14.0, .y = 3.0}, {.verticalVelocity = 9.0, .spin = 30.0});

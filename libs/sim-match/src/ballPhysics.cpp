@@ -235,8 +235,11 @@ template <std::size_t kCount>
     current = bounced(flownFor(current, physics, landing), physics);
     remaining -= landing;
     // Too slow to leave the ground again: the ball stays down and rolls what
-    // is left of the tick.
-    if (current.verticalVelocity < physics.restingVerticalSpeed) {
+    // is left of the tick. Not faster rather than slower, so a bounce that
+    // returns nothing -- restitution and resting speed both zero, a valid
+    // configuration -- settles on its one real impact instead of resolving
+    // seven more of zero duration, each spending grip and spin again.
+    if (current.verticalVelocity <= physics.restingVerticalSpeed) {
       current.verticalVelocity = 0.0;
       return withPitchBoundary(ball, rolled(current, physics, std::max(remaining, 0.0)), pitch);
     }
