@@ -24,11 +24,16 @@ using ElyverseFootball::SimTactics::TacticalPhase;
 
 namespace {
 
-// Set by tests/unit/CMakeLists.txt to the repository's data directory.
-const std::filesystem::path kTacticsDirectory = std::filesystem::path(PF_DATA_DIR) / "tactics";
+// PF_DATA_DIR is set by tests/unit/CMakeLists.txt to the repository's data
+// directory. Built on first use, not while static objects are initialized:
+// appending to a path may throw.
+[[nodiscard]] const std::filesystem::path& tacticsDirectory() {
+  static const std::filesystem::path kDirectory = std::filesystem::path(PF_DATA_DIR) / "tactics";
+  return kDirectory;
+}
 
 [[nodiscard]] Tactic preset(const std::string& name) {
-  auto tactic = loadTactic(kTacticsDirectory / (name + ".json"));
+  auto tactic = loadTactic(tacticsDirectory() / (name + ".json"));
   INFO(name);
   REQUIRE(tactic.has_value());
   return *std::move(tactic);
@@ -38,7 +43,7 @@ const std::filesystem::path kTacticsDirectory = std::filesystem::path(PF_DATA_DI
 
 TEST_CASE("Every tactic file loads", "[tacticFiles]") {
   std::vector<std::filesystem::path> files;
-  for (const auto& entry : std::filesystem::directory_iterator(kTacticsDirectory)) {
+  for (const auto& entry : std::filesystem::directory_iterator(tacticsDirectory())) {
     if (entry.path().extension() == ".json") {
       files.push_back(entry.path());
     }
@@ -55,7 +60,7 @@ TEST_CASE("Every tactic file loads", "[tacticFiles]") {
 }
 
 TEST_CASE("The reference tactic file equals the reference tactic in code", "[tacticFiles]") {
-  const auto loaded = loadTactic(kTacticsDirectory / "reference.json");
+  const auto loaded = loadTactic(tacticsDirectory() / "reference.json");
   REQUIRE(loaded.has_value());
   const auto built = Tactic::create(referenceTacticSpec());
   REQUIRE(built.has_value());

@@ -86,6 +86,10 @@ struct Lane {
 [[nodiscard]] double receptionDistance(const PlayerMatchState& receiver, const Lane& lane,
                                        const double distance, const Pitch& pitch,
                                        const PassCandidateRules& rules) {
+  // The samples are the running sum of kLaneStep, not step * kLaneStep: IEEE
+  // addition is deterministic on every platform, and the exact sample points
+  // are what the pinned scenario results were recorded with.
+  // NOLINTNEXTLINE(bugprone-float-loop-counter)
   for (double along = kLaneStep; along < distance; along += kLaneStep) {
     const auto reach = reachSeconds(receiver, lane.from + (lane.direction * along), pitch, rules);
     if (reach && *reach <= ballSeconds(along, lane.speed, rules.ball)) {
@@ -101,6 +105,10 @@ struct Lane {
 [[nodiscard]] double riskFrom(const Remembered& opponent, const Lane& lane, const Pitch& pitch,
                               const PassCandidateRules& rules) {
   double margin = std::numeric_limits<double>::infinity();
+  // The samples are the running sum of kLaneStep, not step * kLaneStep: IEEE
+  // addition is deterministic on every platform, and the exact sample points
+  // are what the pinned scenario results were recorded with.
+  // NOLINTNEXTLINE(bugprone-float-loop-counter)
   for (double along = kLaneStep; along < lane.length; along += kLaneStep) {
     const auto reach =
         reachSeconds(opponent.player, lane.from + (lane.direction * along), pitch, rules);

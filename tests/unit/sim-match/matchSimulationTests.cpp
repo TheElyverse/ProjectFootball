@@ -410,7 +410,7 @@ TEST_CASE("A non-finite player value names the player", "[matchSimulation]") {
   const auto& error = failed.error().errors.front();
   REQUIRE(error.code == MatchStateErrorCode::kNonFinitePlayerVelocity);
   CAPTURE(error.message);
-  REQUIRE(error.message.find("player at index 5 (id 6, home)") != std::string::npos);
+  REQUIRE(error.message.contains("player at index 5 (id 6, home)"));
 }
 
 TEST_CASE("A system that throws stops the simulation", "[matchSimulation]") {

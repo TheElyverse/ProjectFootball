@@ -1,3 +1,7 @@
+# cppcoreguidelines-pro-bounds-avoid-unchecked-container-access is off: it flags
+# every v[i] and would turn the simulation's hot loops into bounds-checked .at()
+# calls. Indices here come from sizes the code owns, and matchState.hpp validates
+# them once at construction.
 Checks: >
   -*,
   bugprone-*,
@@ -8,7 +12,8 @@ Checks: >
   -modernize-use-trailing-return-type,
   -readability-magic-numbers,
   -cppcoreguidelines-avoid-magic-numbers,
-  -cppcoreguidelines-non-private-member-variables-in-classes
+  -cppcoreguidelines-non-private-member-variables-in-classes,
+  -cppcoreguidelines-pro-bounds-avoid-unchecked-container-access
 WarningsAsErrors: '*'
 HeaderFilterRegex: '(libs|apps)/.*'
 CheckOptions:
@@ -16,6 +21,12 @@ CheckOptions:
   # count those towards a function's cognitive complexity.
   - key: readability-function-cognitive-complexity.IgnoreMacros
     value: true
+  # x and y are the clearest names for a plain coordinate pair; n stays allowed as
+  # clang-tidy's own default does.
+  - key: readability-identifier-length.IgnoredParameterNames
+    value: '^[nxy]$'
+  - key: readability-identifier-length.IgnoredVariableNames
+    value: '^[nxy]$'
   # Types: PascalCase.
   - key: readability-identifier-naming.NamespaceCase
     value: CamelCase

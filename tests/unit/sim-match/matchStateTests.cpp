@@ -73,7 +73,7 @@ constexpr double kWidthMeters = 40.0;
 }
 
 [[nodiscard]] bool mentions(const std::string& message, const std::string& fragment) {
-  return message.find(fragment) != std::string::npos;
+  return message.contains(fragment);
 }
 
 }  // namespace

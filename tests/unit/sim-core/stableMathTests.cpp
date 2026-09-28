@@ -12,7 +12,10 @@ using ElyverseFootball::SimCore::stableHypot;
 
 TEST_CASE("stableExp agrees with std::exp to the last bits", "[stableMath]") {
   REQUIRE(stableExp(0.0) == 1.0);
-  for (double value = -40.0; value <= 40.0; value += 0.0137) {
+  // -40 to 40 in steps of 0.0137, counted in integers so the loop's bound does
+  // not depend on accumulated rounding.
+  for (int step = -2919; step <= 2919; ++step) {
+    const double value = static_cast<double>(step) * 0.0137;
     CAPTURE(value);
     const double expected = std::exp(value);
     REQUIRE(std::abs(stableExp(value) - expected) <=

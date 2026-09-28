@@ -351,12 +351,14 @@ int run(const Options& options) {
 }  // namespace
 
 int main(int argc, char** argv) {
-  const auto options = parseOptions(std::span<char* const>(argv, static_cast<std::size_t>(argc)));
-  if (!options) {
-    std::cerr << "sim-benchmark: " << options.error() << "\n" << kUsage << "\n";
-    return EXIT_FAILURE;
-  }
+  // Parsing inside the try as well: std::format throws on a bad format string,
+  // and an exception escaping main() would std::terminate() instead of reporting.
   try {
+    const auto options = parseOptions(std::span<char* const>(argv, static_cast<std::size_t>(argc)));
+    if (!options) {
+      std::cerr << "sim-benchmark: " << options.error() << "\n" << kUsage << "\n";
+      return EXIT_FAILURE;
+    }
     return run(*options);
   } catch (const std::exception& error) {
     return fail(std::string("unexpected error: ") + error.what());

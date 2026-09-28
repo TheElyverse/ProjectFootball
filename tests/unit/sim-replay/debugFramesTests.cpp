@@ -142,17 +142,17 @@ TEST_CASE("saveDebugFrames reports a path it cannot write", "[debugFrames]") {
   const auto missing = std::filesystem::temp_directory_path() / "no-such-directory" / "f.json";
   const auto saved = saveDebugFrames(recording, missing);
   REQUIRE_FALSE(saved.has_value());
-  CHECK(saved.error().find("cannot open") != std::string::npos);
+  CHECK(saved.error().contains("cannot open"));
 }
 
 // /dev/full accepts the open and fails every write: Linux only.
-#if defined(__linux__)
+#ifdef __linux__
 TEST_CASE("saveDebugFrames reports a write that fails on close", "[debugFrames]") {
   // An empty recording is a few hundred bytes, so it stays in the stream's
   // buffer and only fails when close() flushes it.
   const auto saved = saveDebugFrames(DebugRecording{}, "/dev/full");
   REQUIRE_FALSE(saved.has_value());
-  CHECK(saved.error().find("write failed") != std::string::npos);
+  CHECK(saved.error().contains("write failed"));
 }
 #endif
 

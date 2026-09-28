@@ -57,7 +57,13 @@ namespace {
 }
 
 constexpr double kSecondsPerTick = 1.0 / kDefaultTicksPerSecond;
-const Pitch kPitch(60.0, 40.0);
+
+// Built on first use, not while static objects are initialized: Pitch's
+// constructor validates its dimensions and may throw.
+[[nodiscard]] const Pitch& pitch() {
+  static const Pitch kPitch(60.0, 40.0);
+  return kPitch;
+}
 
 // A contact that cannot happen, to read a checked optional contact through.
 constexpr Contact kNoContact{.contactFraction = -1.0, .closestDistance = -1.0};
@@ -67,7 +73,7 @@ constexpr Contact kNoContact{.contactFraction = -1.0, .closestDistance = -1.0};
                                           const BallPhysics physics = {}) {
   std::vector<BallState> states{ball};
   for (int tick = 0; tick < ticks; ++tick) {
-    ball = stepFreeBall(ball, physics, kPitch, kSecondsPerTick);
+    ball = stepFreeBall(ball, physics, pitch(), kSecondsPerTick);
     states.push_back(ball);
   }
   return states;
@@ -76,7 +82,7 @@ constexpr Contact kNoContact{.contactFraction = -1.0, .closestDistance = -1.0};
 [[nodiscard]] MatchSimulation simulationOf(const Vec2 ballVelocity,
                                            std::vector<MatchSystem> systems,
                                            std::vector<ScheduledCommand> commands = {}) {
-  auto state = makeSevenASideKickoff(kPitch, ballVelocity);
+  auto state = makeSevenASideKickoff(pitch(), ballVelocity);
   REQUIRE(state.has_value());
   return MatchSimulation({.initialState = *std::move(state),
                           .seed = 3,
@@ -120,7 +126,7 @@ TEST_CASE("A rolling ball stops after its rolling distance at any tick rate", "[
   BallState ball = freeBall({.x = 5.0, .y = 20.0}, {.x = speed, .y = 0.0});
 
   for (int tick = 0; tick < 10000 && ball.velocity != Vec2{}; ++tick) {
-    ball = stepFreeBall(ball, {}, kPitch, 1.0 / ticksPerSecond);
+    ball = stepFreeBall(ball, {}, pitch(), 1.0 / ticksPerSecond);
   }
 
   REQUIRE(ball.velocity == Vec2{});
@@ -157,11 +163,11 @@ TEST_CASE("A ball leaving the pitch stops on the line where it crossed it", "[ba
   }
   SECTION("from the line itself") {
     const BallState onLine = freeBall({.x = 60.0, .y = 10.0}, {.x = 5.0, .y = 0.0});
-    REQUIRE(stepFreeBall(onLine, {}, kPitch, kSecondsPerTick) == freeBall(onLine.position, {}));
+    REQUIRE(stepFreeBall(onLine, {}, pitch(), kSecondsPerTick) == freeBall(onLine.position, {}));
   }
   for (const BallState& state :
        roll(freeBall({.x = 30.0, .y = 20.0}, {.x = 25.0, .y = -18.0}), 120)) {
-    REQUIRE(kPitch.contains(state.position));
+    REQUIRE(pitch().contains(state.position));
   }
 }
 
@@ -182,7 +188,7 @@ TEST_CASE("An interception's position interpolates the contact, not the tick's s
                             .velocity = {.x = 90.0, .y = 0.0},
                             .owner = std::nullopt,
                             .lastTouch = BallTouch{.playerId = PlayerId(1), .tick = SimTick(0)}};
-  const BallState rolled = stepFreeBall(startBall, {}, kPitch, kSecondsPerTick);
+  const BallState rolled = stepFreeBall(startBall, {}, pitch(), kSecondsPerTick);
   const Vec2 interceptorAt{.x = 2.0, .y = 20.0};
   const auto contact = findContact(interceptorAt, interceptorAt, ballStart, rolled.position,
                                    ReceptionConfig{}.controlRadius);
@@ -202,7 +208,7 @@ TEST_CASE("An interception's position interpolates the contact, not the tick's s
                             .target = std::nullopt,
                             .facing = {.x = 1.0, .y = 0.0}};
   };
-  auto state = MatchState::create({.pitch = kPitch,
+  auto state = MatchState::create({.pitch = pitch(),
                                    .players = {player(1, TeamSide::kHome, {.x = -5.0, .y = 20.0}),
                                                player(8, TeamSide::kAway, interceptorAt)},
                                    .ball = startBall,

@@ -117,7 +117,7 @@ TEST_CASE("The tactical target scales the slot into the phase's block", "[desire
   // long, 34 m wide (see docs/desired-region.md for the arithmetic).
   const Vec2 centreBack = tacticalTarget(state, 1, TacticalPhase::kProgression);
   REQUIRE_THAT(centreBack.x, WithinAbs(20.1, 1e-9));
-  REQUIRE_THAT(centreBack.y, WithinAbs(20.0 - ((0.18 / 0.76 - 0.5) * -34.0), 1e-9));
+  REQUIRE_THAT(centreBack.y, WithinAbs(20.0 - (((0.18 / 0.76) - 0.5) * -34.0), 1e-9));
   // The goalkeeper stays near his goal.
   REQUIRE(tacticalTarget(state, 0, TacticalPhase::kProgression) == Vec2{.x = 2.4, .y = 20.0});
   // Away is the mirror image.
