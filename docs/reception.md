@@ -19,7 +19,14 @@ player against the ball:
   between two ticks. `findContact()` computes the first such moment.
 - **Reach upwards.** A ball higher than `controlHeight` (1 m) at the moment of
   contact passes over the player: he cannot take it at his feet. The height is
-  read along the same straight line through the tick that the reach test uses.
+  asked of the flight itself at that moment (`ballHeightAfter()`), not read
+  between the two ends of the tick: a ball that bounces within the tick is at
+  neither end's height in between, and one that leaves the pitch ends the tick
+  lying flat on the line however high it crossed it -- a two-meter ball on its
+  way out would otherwise be handed to whoever stands on the line. The moment
+  itself is a fraction of the path the ball really travelled, which for a ball
+  the line stops is only part of the tick, so `findBallClaim()` takes the step
+  `stepFreeBallTimed()` makes rather than only the state it ends in.
   Heading a ball and challenging for it in the air are their own systems; until
   they exist a high ball simply runs through.
 - **No instant reclaim.** The ball's last touch cannot take it back for

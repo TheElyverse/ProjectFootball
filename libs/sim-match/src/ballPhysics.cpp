@@ -201,10 +201,17 @@ template <std::size_t kCount>
 // ground and at rest; one that stayed on is left as the move made it. The
 // clamp removes rounding that would leave it a hair off the line. A ball
 // already off the pitch -- only possible in a hand-built state -- plays on.
-[[nodiscard]] BallState withPitchBoundary(const BallState& before, const BallState& after,
-                                          const Pitch& pitch) noexcept {
+//
+// The step reports how much of the span the ball travelled before that, which
+// is what tells reception when a contact on the shortened path happened. The
+// fraction is of the way rather than of the time, and the two differ by
+// whatever the ball gains or loses in speed within one tick: far less than a
+// reception decision can see, and the same straight-line reading findContact()
+// makes of the very same segment.
+[[nodiscard]] BallStep withPitchBoundary(const BallState& before, const BallState& after,
+                                         const Pitch& pitch, const double seconds) noexcept {
   if (!pitch.contains(before.position) || pitch.contains(after.position)) {
-    return after;
+    return {.ball = after, .seconds = seconds};
   }
   const double fraction = pitchExitFraction(before.position, after.position, pitch);
   BallState stopped = before;
@@ -213,42 +220,44 @@ template <std::size_t kCount>
   stopped.height = 0.0;
   stopped.verticalVelocity = 0.0;
   stopped.spin = 0.0;
-  return stopped;
+  return {.ball = stopped, .seconds = seconds * fraction};
 }
 
-// One tick of a flying ball: fly to the end of the tick, or to the ground and
-// on from there. The tick is split at the landing rather than at its end,
-// which is what makes a flight independent of the tick rate.
-[[nodiscard]] BallState flightStep(const BallState& ball, const BallPhysics& physics,
-                                   const Pitch& pitch, const double secondsPerTick) noexcept {
+// A flying ball this far into its span: fly to the end of it, or to the ground
+// and on from there, resolving every bounce on the way. The span is split at
+// each landing rather than at its end, which is what makes a flight
+// independent of the tick rate. The pitch boundary is not applied -- this is
+// the flight itself, and the caller decides what a line means for it.
+[[nodiscard]] BallState flownWithBounces(const BallState& ball, const BallPhysics& physics,
+                                         const double seconds) noexcept {
   BallState current = ball;
-  double remaining = secondsPerTick;
+  double remaining = seconds;
   for (int bounces = 0; bounces < kMaxBouncesPerTick; ++bounces) {
     if (remaining <= 0.0) {
-      return withPitchBoundary(ball, current, pitch);
+      return current;
     }
     const BallState flown = flownFor(current, physics, remaining);
     if (flown.height > 0.0) {
-      return withPitchBoundary(ball, flown, pitch);
+      return flown;
     }
     const double landing = landingSeconds(current, physics, remaining);
     current = bounced(flownFor(current, physics, landing), physics);
     remaining -= landing;
     // Too slow to leave the ground again: the ball stays down and rolls what
-    // is left of the tick. Not faster rather than slower, so a bounce that
+    // is left of the span. Not faster rather than slower, so a bounce that
     // returns nothing -- restitution and resting speed both zero, a valid
     // configuration -- settles on its one real impact instead of resolving
     // seven more of zero duration, each spending grip and spin again.
     if (current.verticalVelocity <= physics.restingVerticalSpeed) {
       current.verticalVelocity = 0.0;
-      return withPitchBoundary(ball, rolled(current, physics, std::max(remaining, 0.0)), pitch);
+      return rolled(current, physics, std::max(remaining, 0.0));
     }
   }
-  // A ball still hopping after this many bounces in one tick hops no higher
+  // A ball still hopping after this many bounces in one span hops no higher
   // than rounding; it stays down.
   current.height = 0.0;
   current.verticalVelocity = 0.0;
-  return withPitchBoundary(ball, rolled(current, physics, std::max(remaining, 0.0)), pitch);
+  return rolled(current, physics, std::max(remaining, 0.0));
 }
 
 }  // namespace
@@ -328,12 +337,24 @@ std::optional<BallLanding> predictBallLanding(const BallState& ball,
                      .apexHeight = std::max(flownFor(ball, physics, high).height, ball.height)};
 }
 
+double ballHeightAfter(const BallState& ball, const BallPhysics& physics,
+                       const double seconds) noexcept {
+  if (!isInFlight(ball)) {
+    return ball.height;
+  }
+  return flownWithBounces(ball, physics, std::max(seconds, 0.0)).height;
+}
+
+BallStep stepFreeBallTimed(const BallState& ball, const BallPhysics& physics, const Pitch& pitch,
+                           const double secondsPerTick) noexcept {
+  const BallState moved = isInFlight(ball) ? flownWithBounces(ball, physics, secondsPerTick)
+                                           : rolled(ball, physics, secondsPerTick);
+  return withPitchBoundary(ball, moved, pitch, secondsPerTick);
+}
+
 BallState stepFreeBall(const BallState& ball, const BallPhysics& physics, const Pitch& pitch,
                        const double secondsPerTick) noexcept {
-  if (isInFlight(ball)) {
-    return flightStep(ball, physics, pitch, secondsPerTick);
-  }
-  return withPitchBoundary(ball, rolled(ball, physics, secondsPerTick), pitch);
+  return stepFreeBallTimed(ball, physics, pitch, secondsPerTick).ball;
 }
 
 }  // namespace ElyverseFootball::SimMatch

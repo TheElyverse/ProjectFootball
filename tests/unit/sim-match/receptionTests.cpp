@@ -26,6 +26,7 @@ using ElyverseFootball::SimCore::Vec2;
 using ElyverseFootball::SimMatch::BallClaim;
 using ElyverseFootball::SimMatch::BallPhysics;
 using ElyverseFootball::SimMatch::BallState;
+using ElyverseFootball::SimMatch::BallStep;
 using ElyverseFootball::SimMatch::BallTouch;
 using ElyverseFootball::SimMatch::Contact;
 using ElyverseFootball::SimMatch::findBallClaim;
@@ -33,6 +34,7 @@ using ElyverseFootball::SimMatch::findContact;
 using ElyverseFootball::SimMatch::findInterception;
 using ElyverseFootball::SimMatch::GiveBallCommand;
 using ElyverseFootball::SimMatch::Interception;
+using ElyverseFootball::SimMatch::kMaxBallSpeed;
 using ElyverseFootball::SimMatch::makePursuitSystem;
 using ElyverseFootball::SimMatch::MatchSetup;
 using ElyverseFootball::SimMatch::MatchSimulation;
@@ -50,6 +52,7 @@ using ElyverseFootball::SimMatch::ReceptionConfig;
 using ElyverseFootball::SimMatch::ScheduledCommand;
 using ElyverseFootball::SimMatch::startMatch;
 using ElyverseFootball::SimMatch::stepFreeBall;
+using ElyverseFootball::SimMatch::stepFreeBallTimed;
 using ElyverseFootball::SimMatch::TeamSide;
 
 namespace {
@@ -77,15 +80,16 @@ constexpr double kReach = ReceptionConfig{}.controlHeight;
           .facing = {.x = 1.0, .y = 0.0}};
 }
 
-// The ball as a tick leaves it: the same ball, moved to where it ends up.
-// findBallClaim() takes the whole end state, because how high the ball is
-// decides whether a player can take it.
-[[nodiscard]] BallState movedTo(const BallState& ball, const Vec2 position,
-                                const double height = 0.0) {
+// The step a tick makes of the ball: the same ball, moved to where it ends up,
+// over the whole tick. findBallClaim() takes the step rather than the end
+// state, because when in the tick a player reaches the ball decides how high
+// it is when he does.
+[[nodiscard]] BallStep movedTo(const BallState& ball, const Vec2 position,
+                               const double height = 0.0) {
   BallState moved = ball;
   moved.position = position;
   moved.height = height;
-  return moved;
+  return {.ball = moved, .seconds = kSecondsPerTick};
 }
 
 [[nodiscard]] BallState freeBall(const Vec2 position, const Vec2 velocity = {},
@@ -277,7 +281,7 @@ TEST_CASE("Simultaneous claims are decided by time, distance, then id", "[recept
                                       freeBall({.x = 19.0, .y = 20.0}, {.x = 20.0, .y = 0.0}));
     const auto claim =
         findBallClaim(state, state.ball(), movedTo(state.ball(), {.x = 23.0, .y = 20.0}),
-                      SimTick(0), kSecondsPerTick, config);
+                      BallPhysics{}, SimTick(0), kSecondsPerTick, config);
     REQUIRE(claimant(claim) == 3);
   }
   SECTION("at the same moment the closer player wins") {
@@ -288,7 +292,8 @@ TEST_CASE("Simultaneous claims are decided by time, distance, then id", "[recept
                                        {.x = 55.0, .y = 5.0}},
                                       freeBall({.x = 20.0, .y = 20.0}));
     const auto claim =
-        findBallClaim(state, state.ball(), state.ball(), SimTick(0), kSecondsPerTick, config);
+        findBallClaim(state, state.ball(), movedTo(state.ball(), state.ball().position),
+                      BallPhysics{}, SimTick(0), kSecondsPerTick, config);
     REQUIRE(claimant(claim) == 3);
   }
   SECTION("at the same moment and distance the lower id wins") {
@@ -298,7 +303,8 @@ TEST_CASE("Simultaneous claims are decided by time, distance, then id", "[recept
                                        {.x = 55.0, .y = 5.0}},
                                       freeBall({.x = 20.0, .y = 20.0}));
     const auto claim =
-        findBallClaim(state, state.ball(), state.ball(), SimTick(0), kSecondsPerTick, config);
+        findBallClaim(state, state.ball(), movedTo(state.ball(), state.ball().position),
+                      BallPhysics{}, SimTick(0), kSecondsPerTick, config);
     REQUIRE(claimant(claim) == 2);
   }
 }
@@ -319,12 +325,40 @@ TEST_CASE("A ball over a player's head is not taken at his feet", "[reception]")
                                       ball);
     return findBallClaim(state, state.ball(),
                          movedTo(state.ball(), {.x = 20.5, .y = 20.0}, state.ball().height),
-                         SimTick(0), kSecondsPerTick, config);
+                         BallPhysics{}, SimTick(0), kSecondsPerTick, config);
   };
 
   // Chest high, it is his; over his head it flies past him.
   REQUIRE(claimant(claimOf(crossing(0.9))) == 1);
   REQUIRE_FALSE(claimOf(crossing(1.9)).has_value());
+}
+
+TEST_CASE("A ball that leaves the pitch over a head is not claimed on the line", "[reception]") {
+  // Two meters up and going as fast as a ball may, it leaves the pitch within
+  // the tick. The step stops it on the line and puts it down flat, which is
+  // what the end of the tick reports -- but the player standing there was
+  // never reached by anything but a ball two meters over his head.
+  const auto crossing = [](const double height) {
+    BallState ball = freeBall({.x = 57.0, .y = 20.0}, {.x = kMaxBallSpeed, .y = 0.0});
+    ball.height = height;
+    return twoASide({{.x = 59.9, .y = 20.0},
+                     {.x = 5.0, .y = 5.0},
+                     {.x = 50.0, .y = 35.0},
+                     {.x = 55.0, .y = 5.0}},
+                    ball);
+  };
+  const auto claimOf = [](const MatchState& state) {
+    const BallStep step = stepFreeBallTimed(state.ball(), BallPhysics{}, pitch(), kSecondsPerTick);
+    REQUIRE(step.ball.height == 0.0);
+    REQUIRE(step.seconds < kSecondsPerTick);
+    return findBallClaim(state, state.ball(), step, BallPhysics{}, SimTick(0), kSecondsPerTick,
+                         ReceptionConfig{});
+  };
+
+  REQUIRE_FALSE(claimOf(crossing(2.0)).has_value());
+  // Along the ground on the very same path he has it: it is the height that
+  // stopped him, not the line.
+  REQUIRE(claimant(claimOf(crossing(0.0))) == 1);
 }
 
 TEST_CASE("A chaser runs to where a high ball comes down", "[reception]") {
@@ -352,11 +386,11 @@ TEST_CASE("The passer cannot take his own pass back at once", "[reception]") {
   const ReceptionConfig config;
 
   REQUIRE_FALSE(findBallClaim(state, state.ball(), movedTo(state.ball(), {.x = 20.7, .y = 20.0}),
-                              SimTick(12), kSecondsPerTick, config)
+                              BallPhysics{}, SimTick(12), kSecondsPerTick, config)
                     .has_value());
   // 0.3 s = 9 ticks later he may.
   REQUIRE(claimant(findBallClaim(state, state.ball(), movedTo(state.ball(), {.x = 20.7, .y = 20.0}),
-                                 SimTick(19), kSecondsPerTick, config)) == 1);
+                                 BallPhysics{}, SimTick(19), kSecondsPerTick, config)) == 1);
 }
 
 TEST_CASE("An interception is the earliest point reached before the ball", "[reception]") {

@@ -152,13 +152,14 @@ MatchSystem makeBallMovementSystem(const BallPhysics& physics, const PassConfig&
         //    restart system, which runs after this one, is there to settle
         //    who plays on: a player standing on the line must not receive or
         //    intercept the ball first and have the restart overwrite him.
-        const BallState moved = stepFreeBall(ball, physics, current.pitch(), secondsPerTick);
+        const BallStep step = stepFreeBallTimed(ball, physics, current.pitch(), secondsPerTick);
+        const BallState& moved = step.ball;
         const bool awaitsRestart = restarts.enabled && isOutOfPlay(ball, current.pitch());
         if (awaitsRestart) {
           return;
         }
-        if (const auto claim =
-                findBallClaim(current, ball, moved, context.tick(), secondsPerTick, reception)) {
+        if (const auto claim = findBallClaim(current, ball, step, physics, context.tick(),
+                                             secondsPerTick, reception)) {
           next.setBallOwner(claim->playerId);
           next.setBallLastTouch(BallTouch{.playerId = claim->playerId, .tick = context.tick()});
           next.setLastReception(ReceptionRecord{.player = claim->playerId,

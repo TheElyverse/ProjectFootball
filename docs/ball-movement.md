@@ -165,6 +165,14 @@ A free ball always travels along a straight line in the pitch plane -- drag acts
 along its direction of travel and a bounce only scales its speed -- so one
 crossing point describes a whole tick, however often the ball bounces within it.
 
+Such a ball travels only part of the tick, and `stepFreeBallTimed()` reports
+that part alongside the ball. [Reception](reception.md) needs it: a contact
+somewhere along the shortened path happened earlier in the tick than the same
+fraction of a whole one, and a ball put down flat on the line says nothing
+about how high it was when it crossed. The part is taken as the fraction of the
+way to the line, which is the fraction of the time to within whatever the ball
+gains or loses in speed over a thirtieth of a second.
+
 A ball that already lies off the pitch — only possible in a hand-built state —
 plays on without this rule.
 

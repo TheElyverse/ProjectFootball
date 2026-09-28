@@ -60,14 +60,10 @@ std::optional<Contact> findContact(const Vec2 playerFrom, const Vec2 playerTo, c
                  .closestDistance = closestDistance};
 }
 
-double heightAtFraction(const BallState& ball, const BallState& moved,
-                        const double fraction) noexcept {
-  return ball.height + ((moved.height - ball.height) * fraction);
-}
-
 std::optional<BallClaim> findBallClaim(const MatchState& state, const BallState& ball,
-                                       const BallState& moved, const SimCore::SimTick now,
-                                       const double secondsPerTick, const ReceptionConfig& config) {
+                                       const BallStep& moved, const BallPhysics& physics,
+                                       const SimCore::SimTick now, const double secondsPerTick,
+                                       const ReceptionConfig& config) {
   std::optional<BallClaim> best;
   for (std::size_t index = 0; const PlayerMatchState& player : state.players()) {
     const std::size_t playerIndex = index++;
@@ -76,12 +72,18 @@ std::optional<BallClaim> findBallClaim(const MatchState& state, const BallState&
     }
     const PlayerKinematics stepped = stepPlayerMovement(player, secondsPerTick);
     const auto contact = findContact(player.position, stepped.position, ball.position,
-                                     moved.position, config.controlRadius);
+                                     moved.ball.position, config.controlRadius);
     if (!contact) {
       continue;
     }
     // Out of reach: the ball passes over his head rather than to his feet.
-    if (heightAtFraction(ball, moved, contact->contactFraction) > config.controlHeight) {
+    // Asked of the flight at the moment of contact rather than interpolated
+    // between the ends of the tick, which describe neither a ball that bounces
+    // on the way nor one the line stops and puts down flat. The contact is a
+    // fraction of the path the ball really travelled, so it is that span --
+    // not the whole tick -- that turns it into a moment.
+    if (ballHeightAfter(ball, physics, contact->contactFraction * moved.seconds) >
+        config.controlHeight) {
       continue;
     }
     const BallClaim claim{

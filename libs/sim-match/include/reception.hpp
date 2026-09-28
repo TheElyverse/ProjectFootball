@@ -3,6 +3,7 @@
 #include <cstddef>
 #include <optional>
 
+#include "ballPhysics.hpp"
 #include "ids.hpp"
 #include "matchState.hpp"
 #include "simTime.hpp"
@@ -51,25 +52,24 @@ struct BallClaim {
   Contact contact;
 };
 
-// `ball` is the free ball at the start of the tick, `moved` the ball as
-// stepFreeBall() leaves it at the end. Every player of `state` competes, moving
+// `ball` is the free ball at the start of the tick, `moved` the step
+// stepFreeBallTimed() makes of it. Every player of `state` competes, moving
 // as the movement system moves him in this tick, except the ball's last touch
 // within
 // reclaimDelaySeconds of it. The earliest contact wins; equal contact times
 // go to the player who comes closer, and then to the lower id. A contact above
 // controlHeight does not count: the ball flies over the player. Empty if no
 // one reaches the ball.
+//
+// The height at the moment of contact is asked of the flight itself
+// (ballHeightAfter()), which is why `physics` is needed: neither end of the
+// tick describes a ball that bounces on the way, and a ball that leaves the
+// pitch ends the tick lying flat on the line however high it crossed it.
 [[nodiscard]] std::optional<BallClaim> findBallClaim(const MatchState& state, const BallState& ball,
-                                                     const BallState& moved, SimCore::SimTick now,
-                                                     double secondsPerTick,
+                                                     const BallStep& moved,
+                                                     const BallPhysics& physics,
+                                                     SimCore::SimTick now, double secondsPerTick,
                                                      const ReceptionConfig& config);
-
-// How high the ball is at a moment within the tick, as a fraction of it: the
-// straight line from its height at the start to its height at the end. The
-// same straight line findContact() already assumes for its flight through the
-// pitch plane.
-[[nodiscard]] double heightAtFraction(const BallState& ball, const BallState& moved,
-                                      double fraction) noexcept;
 
 // Throws std::invalid_argument unless every value is finite and not
 // negative.

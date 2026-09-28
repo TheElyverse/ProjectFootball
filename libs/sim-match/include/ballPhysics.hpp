@@ -104,6 +104,18 @@ struct BallLanding {
 [[nodiscard]] std::optional<BallLanding> predictBallLanding(const BallState& ball,
                                                             const BallPhysics& physics) noexcept;
 
+// How high a free ball is `seconds` into its step: the flight stepFreeBall()
+// itself follows, gravity, drag and every bounce within the span, but without
+// the pitch boundary.
+//
+// A ball that crosses a line is stopped on it and put down flat, which says
+// nothing about how high it was as it crossed, so reception asks this rather
+// than reading the height the step ended on (docs/reception.md). Seconds
+// beyond the step are the flight's own continuation; a ball on the grass is
+// at zero whatever it is asked.
+[[nodiscard]] double ballHeightAfter(const BallState& ball, const BallPhysics& physics,
+                                     double seconds) noexcept;
+
 // One tick of a free ball as described in docs/ball-movement.md.
 //
 // A ball on the grass rolls: ground friction slows it at a constant rate along
@@ -118,14 +130,27 @@ struct BallLanding {
 // part of its vertical speed and part of its speed along the ground, and its
 // spin drives it on or checks it. The tick is split at that moment rather than
 // at its end, which is what makes the same flight come out the same at 30 Hz
-// and at 300 Hz. A ball whose bounce leaves it slower than
-// restingVerticalSpeed, or no faster than it, stays down and rolls the rest of
-// the tick.
+// and at 300 Hz. A ball whose bounce leaves it rising no faster than
+// restingVerticalSpeed stays down and rolls the rest of the tick.
 //
 // A ball that leaves the pitch stops on the line where it crossed it, on the
 // ground and at rest, in the air as on the grass: the documented stand-in
 // until the rules decide on throw-ins, goal kicks, corners and goals.
 [[nodiscard]] BallState stepFreeBall(const BallState& ball, const BallPhysics& physics,
                                      const Pitch& pitch, double secondsPerTick) noexcept;
+
+// The same tick, with the part of it the ball travelled: the whole tick,
+// or the part up to the moment the ball left the pitch and stopped on the
+// line. stepFreeBall() leaves such a ball lying on the line, which says
+// nothing about when it got there -- and reception has to know, because a
+// contact somewhere along that shortened path happened earlier in the tick
+// than the same fraction of a whole one (docs/reception.md).
+struct BallStep {
+  BallState ball;
+  double seconds = 0.0;
+};
+
+[[nodiscard]] BallStep stepFreeBallTimed(const BallState& ball, const BallPhysics& physics,
+                                         const Pitch& pitch, double secondsPerTick) noexcept;
 
 }  // namespace ElyverseFootball::SimMatch
