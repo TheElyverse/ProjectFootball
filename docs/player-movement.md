@@ -60,9 +60,9 @@ tick moves at the new speed for its whole length: a player following it arrives
 at over 1 m/s and stops abruptly. The discrete rule arrives at about one tick's
 worth of acceleration.
 
-Lengths use `std::sqrt` of the squared length rather than `std::hypot`:
-`sqrt` is correctly rounded by IEEE 754, so the result does not depend on the
-platform's math library.
+Lengths use `Vec2::length()`, which is built on `SimCore::stableHypot()`
+rather than `std::hypot`: it uses only correctly rounded IEEE 754 operations, so
+the result does not depend on the platform's math library.
 
 ## Facing
 

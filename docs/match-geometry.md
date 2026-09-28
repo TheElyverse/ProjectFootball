@@ -12,7 +12,7 @@ The reusable `Vec2` value type lives in `sim-core` (`vec2.hpp`).
 
 The example connects `A = (10, 10)` to `B = (40, 30)`. Subtracting the
 positions gives the displacement `(30, 20)` meters. Its length is
-`std::hypot(30, 20)`, approximately 36.06 meters. A velocity of `(6, 4)`
+`(30, 20).length()`, approximately 36.06 meters. A velocity of `(6, 4)`
 meters per second multiplied by five seconds gives the same displacement;
 this illustrates vector arithmetic, not an implemented movement system.
 
@@ -121,7 +121,7 @@ teams change ends, so an end says nothing about which side defends it.
 
 `PitchCircle::contains()` includes the edge and rejects non-finite points, the
 way `PitchRect::contains()` and `Pitch::contains()` do. It compares the
-`SimCore::stableHypot()` length of the offset against the radius rather than
+`length()` of the offset against the radius rather than
 their squares, so it stays correct on the extreme pitch sizes where squaring
 would overflow or underflow. Heights are meters above the ground and are the one
 quantity a caller supplies rather than reads: the simulation is otherwise flat,
@@ -160,12 +160,12 @@ differently and make a replay diverge. `stableArcTangent()` works from basic
 arithmetic and `std::sqrt`, both correctly rounded, and is accurate to a few
 units in the last place.
 
-The goal-mouth distance, like the circles' containment, uses
-`SimCore::stableHypot()` rather than `SimCore::distance()`, which calls
-`std::hypot`: that too need not be correctly rounded. `stableHypot()` is exactly
-`std::sqrt(x * x + y * y)` wherever the squares are safe -- the length the
-movement code already uses -- and scales both components by an exact power of
-two first where they would overflow or underflow.
+`Vec2::length()`, and with it `SimCore::distance()`, the goal-mouth distance and
+the circles' containment, uses `SimCore::stableHypot()` rather than `std::hypot`:
+that too need not be correctly rounded. `stableHypot()` is exactly
+`std::sqrt(x * x + y * y)` wherever the squares are safe and scales both
+components by an exact power of two first where they would overflow or
+underflow.
 
 ## Vector operations
 
@@ -179,8 +179,9 @@ seconds yields displacement.
 Equality compares components exactly. Geometric tolerance checks should use an
 explicit, context-specific tolerance. Arithmetic follows floating-point rules
 and may produce non-finite results for extreme inputs; `isFinite()` allows those
-results to be detected. Length uses `std::hypot` to avoid unnecessary intermediate
-overflow or underflow when squaring components.
+results to be detected. Length uses `SimCore::stableHypot()`, which is
+bit-identical on every platform and avoids intermediate overflow or underflow
+when squaring components.
 
 `lengthSquared()` returns the squared magnitude without the square root. Its unit
 is the square of the component unit: meters squared for a position in meters.

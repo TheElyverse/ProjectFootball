@@ -79,7 +79,7 @@ TEST_CASE("Vec2 length survives extreme components, squared length does not", "[
   constexpr Vec2 large{.x = 3.0e200, .y = 4.0e200};
   constexpr Vec2 small{.x = 3.0e-200, .y = 4.0e-200};
 
-  // length() uses std::hypot and never forms the intermediate square.
+  // length() uses stableHypot() and never forms the unscaled square.
   REQUIRE(large.length() / 1.0e200 == Catch::Approx(5.0));
   REQUIRE(small.length() / 1.0e-200 == Catch::Approx(5.0));
 

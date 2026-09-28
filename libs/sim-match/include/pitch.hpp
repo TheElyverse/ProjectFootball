@@ -3,7 +3,6 @@
 #include <cstdint>
 #include <stdexcept>
 
-#include "stableMath.hpp"
 #include "vec2.hpp"
 
 namespace ElyverseFootball::SimMatch {
@@ -30,11 +29,10 @@ struct PitchCircle {
   // Includes the edge, without an implicit epsilon. A non-finite point is never
   // inside. Compares lengths rather than squares: on the extreme pitch sizes
   // the constructor accepts, squaring the offset and the radius would overflow
-  // (or underflow) and let points outside the circle count as inside. The
-  // length is SimCore::stableHypot(), not std::hypot, so every platform agrees.
+  // (or underflow) and let points outside the circle count as inside.
   [[nodiscard]] bool contains(const SimCore::Vec2 point) const noexcept {
     const SimCore::Vec2 offset = point - center;
-    return offset.isFinite() && SimCore::stableHypot(offset.x, offset.y) <= radiusMeters;
+    return offset.isFinite() && offset.length() <= radiusMeters;
   }
 
   friend bool operator==(const PitchCircle&, const PitchCircle&) = default;

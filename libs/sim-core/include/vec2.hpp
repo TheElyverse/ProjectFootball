@@ -2,6 +2,8 @@
 
 #include <cmath>
 
+#include "stableMath.hpp"
+
 namespace ElyverseFootball::SimCore {
 
 // A value type shared by spatial systems. Units are defined by the caller
@@ -14,7 +16,9 @@ struct Vec2 {
 
   [[nodiscard]] bool isFinite() const noexcept { return std::isfinite(x) && std::isfinite(y); }
 
-  [[nodiscard]] double length() const noexcept { return std::hypot(x, y); }
+  // stableHypot() rather than std::hypot: bit-identical on every platform, so a
+  // length compared against a threshold cannot flip a replay between machines.
+  [[nodiscard]] double length() const noexcept { return stableHypot(x, y); }
 
   // Squared magnitude, in the square of the component unit (m² for a position
   // in meters). Prefer this over length() when comparing magnitudes: it avoids
