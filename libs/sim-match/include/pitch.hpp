@@ -27,10 +27,12 @@ struct PitchCircle {
   double radiusMeters = 0.0;
 
   // Includes the edge, without an implicit epsilon. A non-finite point is never
-  // inside.
+  // inside. Compares lengths rather than squares: on the extreme pitch sizes
+  // the constructor accepts, squaring the offset and the radius would overflow
+  // (or underflow) and let points outside the circle count as inside.
   [[nodiscard]] bool contains(const SimCore::Vec2 point) const noexcept {
     const SimCore::Vec2 offset = point - center;
-    return offset.isFinite() && offset.lengthSquared() <= radiusMeters * radiusMeters;
+    return offset.isFinite() && offset.length() <= radiusMeters;
   }
 
   friend bool operator==(const PitchCircle&, const PitchCircle&) = default;

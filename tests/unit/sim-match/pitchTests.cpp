@@ -208,7 +208,26 @@ TEST_CASE("Pitch markings stay finite and fit inside any pitch", "[pitch][markin
     REQUIRE(circle.radiusMeters <= pitch.widthMeters() / 2.0);
     REQUIRE(pitch.contains({.x = circle.center.x - circle.radiusMeters, .y = circle.center.y}));
     REQUIRE(pitch.contains({.x = circle.center.x, .y = circle.center.y + circle.radiusMeters}));
+    REQUIRE(circle.contains(circle.center));
+
+    const PitchCircle arc = pitch.cornerArc(PitchCorner::kMinXMinY);
+    REQUIRE(arc.contains(arc.center));
+    REQUIRE_FALSE(arc.contains(pitch.cornerPosition(PitchCorner::kMaxXMaxY)));
   }
+}
+
+TEST_CASE("PitchCircle containment survives offsets whose squares overflow or underflow",
+          "[pitch][markings]") {
+  constexpr double kHuge = std::numeric_limits<double>::max();
+  const PitchCircle hugeCircle{.center = {.x = 0.0, .y = 0.0}, .radiusMeters = kHuge / 4.0};
+  REQUIRE(hugeCircle.contains({.x = kHuge / 4.0, .y = 0.0}));
+  REQUIRE_FALSE(hugeCircle.contains({.x = kHuge / 4.0, .y = kHuge / 4.0}));
+  REQUIRE_FALSE(hugeCircle.contains({.x = kHuge, .y = kHuge}));
+
+  constexpr double kTiny = 1e-200;
+  const PitchCircle tinyCircle{.center = {.x = 0.0, .y = 0.0}, .radiusMeters = kTiny};
+  REQUIRE(tinyCircle.contains({.x = kTiny, .y = 0.0}));
+  REQUIRE_FALSE(tinyCircle.contains({.x = kTiny, .y = kTiny}));
 }
 
 TEST_CASE("Pitch goals stand centered on both goal lines", "[pitch][goal]") {

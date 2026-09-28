@@ -120,9 +120,12 @@ teams change ends, so an end says nothing about which side defends it.
   touchline it lies on, `cornerPosition(corner)` gives the corner itself.
 
 `PitchCircle::contains()` includes the edge and rejects non-finite points, the
-way `PitchRect::contains()` and `Pitch::contains()` do. Heights are meters above
-the ground and are the one quantity a caller supplies rather than reads: the
-simulation is otherwise flat, and no state stores a height yet.
+way `PitchRect::contains()` and `Pitch::contains()` do. It compares the
+`std::hypot` length of the offset against the radius rather than their squares,
+so it stays correct on the extreme pitch sizes where squaring would overflow or
+underflow. Heights are meters above the ground and are the one quantity a caller
+supplies rather than reads: the simulation is otherwise flat, and no state
+stores a height yet.
 
 `Goal::framesPoint(pitchY, height)` answers whether a point is inside the frame:
 `isBetweenPosts()` and `isUnderCrossbar()` both hold, so a point beside a post
