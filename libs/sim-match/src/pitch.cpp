@@ -156,15 +156,13 @@ bool Pitch::isInPenaltyArea(const GoalEnd end, const SimCore::Vec2 position) con
   return position.isFinite() && penaltyArea(end).contains(position);
 }
 
-double Pitch::distanceToGoalMouthMeters(const GoalEnd end,
-                                        const SimCore::Vec2 position) const noexcept {
+double Pitch::distanceToGoalMeters(const GoalEnd end, const SimCore::Vec2 position) const noexcept {
   const Goal frame = goal(end);
   const double nearestY = std::clamp(position.y, frame.postAtMinY().y, frame.postAtMaxY().y);
   return SimCore::distance(position, {.x = frame.center.x, .y = nearestY});
 }
 
-double Pitch::goalMouthAngleRadians(const GoalEnd end,
-                                    const SimCore::Vec2 position) const noexcept {
+double Pitch::goalAngleRadians(const GoalEnd end, const SimCore::Vec2 position) const noexcept {
   const Goal frame = goal(end);
   const SimCore::Vec2 toMinPost = scaledToUnitComponent(frame.postAtMinY() - position);
   const SimCore::Vec2 toMaxPost = scaledToUnitComponent(frame.postAtMaxY() - position);

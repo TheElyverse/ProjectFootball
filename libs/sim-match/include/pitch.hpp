@@ -103,14 +103,14 @@ enum class PitchCorner : std::uint8_t {
   kMaxXMaxY,
 };
 
-// A goal frame: the mouth between the posts on its goal line, and the crossbar
-// above it. The posts are the mouth's ends -- their own thickness is not
-// modelled -- and the height is the underside of the crossbar.
+// A goal frame: the two posts on its goal line, and the crossbar above them.
+// The posts are points -- their own thickness is not modelled -- and the
+// height is the underside of the crossbar.
 //
 // Heights are meters above the ground. The rest of the simulation is flat, so a
 // height is something a caller supplies, never something this geometry stores.
 struct Goal {
-  // The middle of the mouth, on the goal line.
+  // The middle between the posts, on the goal line.
   SimCore::Vec2 center;
   double widthMeters = 0.0;
   double heightMeters = 0.0;
@@ -198,21 +198,20 @@ class Pitch {
   [[nodiscard]] bool isInPenaltyArea(GoalEnd end, SimCore::Vec2 position) const noexcept;
 
   // The distance in meters from a position to the nearest point of this end's
-  // goal mouth -- the line between the posts -- which is zero on the mouth
-  // itself. A non-finite position gives a non-finite distance.
-  [[nodiscard]] double distanceToGoalMouthMeters(GoalEnd end,
-                                                 SimCore::Vec2 position) const noexcept;
+  // goal -- the line between the posts, not its center -- which is zero between
+  // the posts. A non-finite position gives a non-finite distance.
+  [[nodiscard]] double distanceToGoalMeters(GoalEnd end, SimCore::Vec2 position) const noexcept;
 
-  // The angle in radians that this end's goal mouth subtends at a position:
-  // how much goal a shot from there has, in [0, pi], widest in front of the
-  // center and narrowing toward the posts and with distance. It is the open
-  // angle of the empty pitch: nobody blocks it, and a position behind the goal
-  // line or on the wrong side gets the same angle as its mirror image, so
-  // callers check where they stand themselves. Zero on a post, and zero for a
-  // non-finite position.
+  // The angle in radians that this end's goal -- the line between the posts --
+  // subtends at a position: how much goal a shot from there has, in [0, pi],
+  // widest in front of the center and narrowing toward the posts and with
+  // distance. It is the open angle of the empty pitch: nobody blocks it, and a
+  // position behind the goal line or on the wrong side gets the same angle as
+  // its mirror image, so callers check where they stand themselves. Zero on a
+  // post, and zero for a non-finite position.
   //
   // Computed with SimCore::stableArcTangent(), so the same on every platform.
-  [[nodiscard]] double goalMouthAngleRadians(GoalEnd end, SimCore::Vec2 position) const noexcept;
+  [[nodiscard]] double goalAngleRadians(GoalEnd end, SimCore::Vec2 position) const noexcept;
 
   // Compares both dimensions exactly, like Vec2 does. Two pitches built from
   // the same numbers are the same pitch; nothing here applies a tolerance.

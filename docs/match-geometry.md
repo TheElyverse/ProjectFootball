@@ -107,7 +107,7 @@ Both goals are named by the goal line they stand on, `GoalEnd::kMinX` for
 teams change ends, so an end says nothing about which side defends it.
 
 - `goalLineX(end)` is 0 or the length; `center()` is the middle of the pitch.
-- `goal(end)` is the frame: the middle of the mouth on the goal line, the width
+- `goal(end)` is the frame: the middle between the posts on the goal line, the width
   between the posts, and the height to the underside of the crossbar.
   `postAtMinY()` and `postAtMaxY()` are the two posts, at the lower and the
   higher pitch y. Posts and crossbar have no thickness of their own.
@@ -140,14 +140,14 @@ Three helpers exist for shot and goalkeeper code:
 
 - `isInPenaltyArea(end, position)` includes the area's lines, like every other
   containment check here, and is false for a non-finite position.
-- `distanceToGoalMouthMeters(end, position)` is the distance to the nearest
-  point of the mouth -- the line between the posts -- so it is zero on the mouth
-  itself and runs to the nearer post from beside it, not to the center. A
-  non-finite position gives a non-finite distance.
-- `goalMouthAngleRadians(end, position)` is the angle in `[0, pi]` that the
-  mouth subtends at a position: how much goal there is to shoot at. It is
-  widest in front of the center, narrows toward the posts and with distance, is
-  `pi` on the mouth itself and zero on a post or for a non-finite position. It
+- `distanceToGoalMeters(end, position)` is the distance to the nearest point of
+  the goal -- the line between the posts, not its center -- so it is zero
+  between the posts and runs to the nearer post from beside it. A non-finite
+  position gives a non-finite distance.
+- `goalAngleRadians(end, position)` is the angle in `[0, pi]` that the goal
+  subtends at a position: how much goal there is to shoot at. It is widest in
+  front of the center, narrows toward the posts and with distance, is `pi`
+  between the posts and zero on a post or for a non-finite position. It
   is the open angle of an empty pitch -- nobody blocks it -- and a position
   behind the goal line gets the same angle as its mirror image, so callers check
   where they stand themselves.
@@ -160,7 +160,7 @@ differently and make a replay diverge. `stableArcTangent()` works from basic
 arithmetic and `std::sqrt`, both correctly rounded, and is accurate to a few
 units in the last place.
 
-`Vec2::length()`, and with it `SimCore::distance()`, the goal-mouth distance and
+`Vec2::length()`, and with it `SimCore::distance()`, the goal distance and
 the circles' containment, uses `SimCore::stableHypot()` rather than `std::hypot`:
 that too need not be correctly rounded. `stableHypot()` is exactly
 `std::sqrt(x * x + y * y)` wherever the squares are safe and scales both

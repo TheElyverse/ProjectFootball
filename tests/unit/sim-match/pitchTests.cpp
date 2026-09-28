@@ -351,40 +351,40 @@ TEST_CASE("Penalty spots, the center circle and the corner arcs sit where the La
   REQUIRE_FALSE(arc.contains({.x = 1.0, .y = 1.0}));
 }
 
-TEST_CASE("Pitch measures the distance to the nearest point of a goal mouth", "[pitch][goal]") {
+TEST_CASE("Pitch measures the distance to the nearest point of a goal", "[pitch][goal]") {
   const Pitch pitch(kStandardLengthMeters, kStandardWidthMeters);
   const Goal goal = pitch.goal(GoalEnd::kMinX);
 
-  REQUIRE_THAT(pitch.distanceToGoalMouthMeters(GoalEnd::kMinX, pitch.center()),
+  REQUIRE_THAT(pitch.distanceToGoalMeters(GoalEnd::kMinX, pitch.center()),
                WithinAbs(52.5, kTolerance));
-  REQUIRE_THAT(pitch.distanceToGoalMouthMeters(GoalEnd::kMaxX, pitch.center()),
+  REQUIRE_THAT(pitch.distanceToGoalMeters(GoalEnd::kMaxX, pitch.center()),
                WithinAbs(52.5, kTolerance));
-  REQUIRE(pitch.distanceToGoalMouthMeters(GoalEnd::kMinX, goal.center) == 0.0);
-  REQUIRE(pitch.distanceToGoalMouthMeters(GoalEnd::kMinX, goal.postAtMaxY()) == 0.0);
+  REQUIRE(pitch.distanceToGoalMeters(GoalEnd::kMinX, goal.center) == 0.0);
+  REQUIRE(pitch.distanceToGoalMeters(GoalEnd::kMinX, goal.postAtMaxY()) == 0.0);
 
-  // Beside the mouth the distance runs to the nearer post, not to the center.
-  REQUIRE_THAT(pitch.distanceToGoalMouthMeters(GoalEnd::kMinX, {.x = 0.0, .y = 41.0}),
+  // Beside the goal the distance runs to the nearer post, not to the center.
+  REQUIRE_THAT(pitch.distanceToGoalMeters(GoalEnd::kMinX, {.x = 0.0, .y = 41.0}),
                WithinAbs(3.34, kTolerance));
-  REQUIRE_THAT(pitch.distanceToGoalMouthMeters(GoalEnd::kMinX, {.x = 3.0, .y = 34.0}),
+  REQUIRE_THAT(pitch.distanceToGoalMeters(GoalEnd::kMinX, {.x = 3.0, .y = 34.0}),
                WithinAbs(3.0, kTolerance));
-  REQUIRE_THAT(pitch.distanceToGoalMouthMeters(GoalEnd::kMaxX, {.x = 100.0, .y = 34.0}),
+  REQUIRE_THAT(pitch.distanceToGoalMeters(GoalEnd::kMaxX, {.x = 100.0, .y = 34.0}),
                WithinAbs(5.0, kTolerance));
-  REQUIRE(std::isnan(pitch.distanceToGoalMouthMeters(
+  REQUIRE(std::isnan(pitch.distanceToGoalMeters(
       GoalEnd::kMinX, {.x = std::numeric_limits<double>::quiet_NaN(), .y = 34.0})));
 }
 
-TEST_CASE("Pitch measures the open angle a goal mouth subtends", "[pitch][goal]") {
+TEST_CASE("Pitch measures the open angle a goal subtends", "[pitch][goal]") {
   const Pitch pitch(kStandardLengthMeters, kStandardWidthMeters);
   const Goal goal = pitch.goal(GoalEnd::kMinX);
 
   // From the penalty spot: twice the angle to one post, 2·atan(3.66 / 11).
-  REQUIRE_THAT(pitch.goalMouthAngleRadians(GoalEnd::kMinX, pitch.penaltySpot(GoalEnd::kMinX)),
+  REQUIRE_THAT(pitch.goalAngleRadians(GoalEnd::kMinX, pitch.penaltySpot(GoalEnd::kMinX)),
                WithinAbs(2.0 * std::atan(3.66 / 11.0), 1e-9));
-  // On the mouth the goal fills the half plane; on a post there is no angle.
-  REQUIRE_THAT(pitch.goalMouthAngleRadians(GoalEnd::kMinX, goal.center),
+  // Between the posts the goal fills the half plane; on a post there is no angle.
+  REQUIRE_THAT(pitch.goalAngleRadians(GoalEnd::kMinX, goal.center),
                WithinAbs(std::numbers::pi, kTolerance));
-  REQUIRE(pitch.goalMouthAngleRadians(GoalEnd::kMinX, goal.postAtMinY()) == 0.0);
-  REQUIRE(pitch.goalMouthAngleRadians(
+  REQUIRE(pitch.goalAngleRadians(GoalEnd::kMinX, goal.postAtMinY()) == 0.0);
+  REQUIRE(pitch.goalAngleRadians(
               GoalEnd::kMinX, {.x = 20.0, .y = std::numeric_limits<double>::infinity()}) == 0.0);
 
   // It narrows with distance, mirrors across the goal's center line, and is the
@@ -393,21 +393,21 @@ TEST_CASE("Pitch measures the open angle a goal mouth subtends", "[pitch][goal]"
   for (int meters = 1; meters <= 100; ++meters) {
     const auto depth = static_cast<double>(meters);
     CAPTURE(depth);
-    const double angle = pitch.goalMouthAngleRadians(GoalEnd::kMinX, {.x = depth, .y = 34.0});
+    const double angle = pitch.goalAngleRadians(GoalEnd::kMinX, {.x = depth, .y = 34.0});
     REQUIRE(angle < previous);
-    REQUIRE_THAT(pitch.goalMouthAngleRadians(GoalEnd::kMaxX, {.x = 105.0 - depth, .y = 34.0}),
+    REQUIRE_THAT(pitch.goalAngleRadians(GoalEnd::kMaxX, {.x = 105.0 - depth, .y = 34.0}),
                  WithinAbs(angle, kTolerance));
     previous = angle;
   }
   REQUIRE_THAT(
-      pitch.goalMouthAngleRadians(GoalEnd::kMinX, {.x = 20.0, .y = 41.0}),
-      WithinAbs(pitch.goalMouthAngleRadians(GoalEnd::kMinX, {.x = 20.0, .y = 27.0}), kTolerance));
+      pitch.goalAngleRadians(GoalEnd::kMinX, {.x = 20.0, .y = 41.0}),
+      WithinAbs(pitch.goalAngleRadians(GoalEnd::kMinX, {.x = 20.0, .y = 27.0}), kTolerance));
 
-  // At the same distance from the mouth, in front of the center beats the flank.
+  // At the same distance from the goal, in front of the center beats the flank.
   const Vec2 central{.x = 20.0, .y = 34.0};
   const Vec2 flank{.x = 12.0, .y = 53.66};
-  REQUIRE_THAT(pitch.distanceToGoalMouthMeters(GoalEnd::kMinX, flank),
-               WithinAbs(pitch.distanceToGoalMouthMeters(GoalEnd::kMinX, central), 1e-9));
-  REQUIRE(pitch.goalMouthAngleRadians(GoalEnd::kMinX, central) >
-          pitch.goalMouthAngleRadians(GoalEnd::kMinX, flank));
+  REQUIRE_THAT(pitch.distanceToGoalMeters(GoalEnd::kMinX, flank),
+               WithinAbs(pitch.distanceToGoalMeters(GoalEnd::kMinX, central), 1e-9));
+  REQUIRE(pitch.goalAngleRadians(GoalEnd::kMinX, central) >
+          pitch.goalAngleRadians(GoalEnd::kMinX, flank));
 }
