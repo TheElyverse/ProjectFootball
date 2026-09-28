@@ -55,7 +55,13 @@ using ElyverseFootball::SimMatch::TeamSide;
 namespace {
 
 constexpr double kSecondsPerTick = 1.0 / 30.0;
-const Pitch kPitch(60.0, 40.0);
+
+// Built on first use, not while static objects are initialized: Pitch's
+// constructor validates its dimensions and may throw.
+[[nodiscard]] const Pitch& pitch() {
+  static const Pitch kPitch(60.0, 40.0);
+  return kPitch;
+}
 
 [[nodiscard]] PlayerMatchState playerAt(const std::uint32_t playerId, const TeamSide side,
                                         const Vec2 position) {
@@ -76,7 +82,7 @@ const Pitch kPitch(60.0, 40.0);
 
 // Two a side: home 1 and 2, away 3 and 4.
 [[nodiscard]] MatchState twoASide(const std::vector<Vec2>& positions, const BallState& ball) {
-  auto state = MatchState::create({.pitch = kPitch,
+  auto state = MatchState::create({.pitch = pitch(),
                                    .players = {playerAt(1, TeamSide::kHome, positions.at(0)),
                                                playerAt(2, TeamSide::kHome, positions.at(1)),
                                                playerAt(3, TeamSide::kAway, positions.at(2)),
@@ -302,7 +308,7 @@ TEST_CASE("An interception is the earliest point reached before the ball", "[rec
   const PlayerMatchState onTheLine = playerAt(3, TeamSide::kAway, {.x = 30.0, .y = 22.0});
 
   const auto interception =
-      findInterception(onTheLine, ball, BallPhysics{}, kPitch, PursuitConfig{});
+      findInterception(onTheLine, ball, BallPhysics{}, pitch(), PursuitConfig{});
 
   REQUIRE(interception.has_value());
   const Interception reached = interception.value_or(kNoInterception);
@@ -314,7 +320,7 @@ TEST_CASE("An interception is the earliest point reached before the ball", "[rec
 
   // A ball at rest is reached where it lies.
   const auto loose = findInterception(onTheLine, freeBall({.x = 35.0, .y = 22.0}), BallPhysics{},
-                                      kPitch, PursuitConfig{});
+                                      pitch(), PursuitConfig{});
   REQUIRE(loose.value_or(kNoInterception).point == Vec2{.x = 35.0, .y = 22.0});
 }
 
@@ -328,9 +334,9 @@ TEST_CASE("The ball path is predicted no further than the horizon", "[reception]
   config.sampleSeconds = 0.3;
   config.horizonSeconds = 1.0;
 
-  const auto interception = findInterception(far, ball, BallPhysics{}, kPitch, config);
+  const auto interception = findInterception(far, ball, BallPhysics{}, pitch(), config);
 
-  const BallState atHorizon = stepFreeBall(ball, BallPhysics{}, kPitch, 1.0);
+  const BallState atHorizon = stepFreeBall(ball, BallPhysics{}, pitch(), 1.0);
   REQUIRE(interception.has_value());
   REQUIRE_THAT(interception.value_or(kNoInterception).point.x,
                WithinAbs(atHorizon.position.x, 1e-9));

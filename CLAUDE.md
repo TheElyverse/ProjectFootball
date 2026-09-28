@@ -187,7 +187,17 @@ Introduce MatchState with two teams, their players and one ball.
 Never add attribution trailers such as `Co-Authored-By:` or `Claude-Session:`, in commit
 messages or in pull request descriptions.
 
+Give a good commit message everytime you change something.
+
+Never commit yourself unless it is requested to do.
+
 ## Language note
 
 Design/planning docs are written primarily in German with English technical terms. Match that convention
 if extending those specific documents. Code (identifiers, comments) is English.
+
+## Changes
+
+* Always keep the change as small as possible
+* Reuse existing code
+* Prefer extracting functions over redefining same or very similar logic

@@ -37,7 +37,7 @@ using ElyverseFootball::SimMatch::TeamSide;
 
 namespace {
 
-constexpr std::uint64_t kSeeds = 20;
+constexpr int kSeeds = 20;
 
 using Builder = std::function<std::expected<MatchSetup, std::string>(std::uint64_t)>;
 
@@ -46,7 +46,7 @@ using Builder = std::function<std::expected<MatchSetup, std::string>(std::uint64
 [[nodiscard]] int seedsWhere(const Builder& build, const std::int64_t ticks,
                              const std::function<bool(const MatchSimulation&)>& happened) {
   int count = 0;
-  for (std::uint64_t seed = 1; seed <= kSeeds; ++seed) {
+  for (std::uint64_t seed = 1; seed <= static_cast<std::uint64_t>(kSeeds); ++seed) {
     const auto setup = build(seed);
     REQUIRE(setup.has_value());
     MatchSimulation simulation = ElyverseFootball::SimMatch::startMatch(*setup);
@@ -104,7 +104,7 @@ TEST_CASE("Golden: an isolated winger triggers the press", "[acceptance][p2][gol
                started->assignments.size() >= 3;
       });
   CAPTURE(pressed);
-  REQUIRE(pressed == static_cast<int>(kSeeds));
+  REQUIRE(pressed == kSeeds);
 }
 
 namespace {
@@ -156,7 +156,7 @@ TEST_CASE("Golden: a coordinated press at the touchline traps the receiver",
   const int triggered = trapTriggered(TrapSpot::kTouchline);
   CAPTURE(coordinated, lone, centre, triggered);
   // The receiver facing his own goal is what starts the press, in every seed.
-  REQUIRE(triggered == static_cast<int>(kSeeds));
+  REQUIRE(triggered == kSeeds);
   // At the time of writing 13, 2 and 0 of 20.
   REQUIRE(coordinated >= 10);
   // Uncoordinated: one presser leaves the carrier's lanes open.

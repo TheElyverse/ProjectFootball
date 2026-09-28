@@ -1,5 +1,6 @@
 #pragma once
 
+#include <algorithm>
 #include <array>
 #include <cmath>
 #include <limits>
@@ -58,6 +59,99 @@ namespace ElyverseFootball::SimCore {
     sum = (sum * remainder) + inverseFactorial;
   }
   return std::ldexp(sum, static_cast<int>(powerOfTwo));
+}
+
+// sqrt(x² + y²) -- the length of a vector (x, y) -- from basic arithmetic and
+// std::sqrt only, so the result is bit-identical on every platform. std::hypot
+// is not: like std::exp (see stableExp) it need not be correctly rounded, and
+// a last-bit difference in a distance is enough to flip a decision.
+//
+// Where squaring is safe it is exactly std::sqrt(x * x + y * y), the length the
+// movement code already uses. Beyond that range both components are scaled by a
+// power of two first and the result scaled back, all exactly, so the squares
+// cannot overflow to infinity or underflow to zero. A result beyond the largest
+// double is infinity; an infinite component gives infinity even beside a NaN,
+// like std::hypot, and otherwise NaN gives NaN.
+[[nodiscard]] inline double stableHypot(const double x, const double y) noexcept {
+  const double absX = std::abs(x);
+  const double absY = std::abs(y);
+  if (std::isinf(absX) || std::isinf(absY)) {
+    return std::numeric_limits<double>::infinity();
+  }
+  if (std::isnan(absX) || std::isnan(absY)) {
+    return std::numeric_limits<double>::quiet_NaN();
+  }
+  const double largest = std::max(absX, absY);
+  // Squares of components within these bounds stay normal and finite, and a
+  // smaller component whose square underflows loses less than the sum's rounding.
+  constexpr double kSafeMin = 0x1p-500;
+  constexpr double kSafeMax = 0x1p500;
+  if (largest == 0.0 || (largest >= kSafeMin && largest <= kSafeMax)) {
+    return std::sqrt((absX * absX) + (absY * absY));
+  }
+  const int exponent = std::ilogb(largest);
+  const double scaledX = std::ldexp(absX, -exponent);
+  const double scaledY = std::ldexp(absY, -exponent);
+  return std::ldexp(std::sqrt((scaledX * scaledX) + (scaledY * scaledY)), exponent);
+}
+
+namespace Detail {
+
+// arctan for 0 <= value <= 1, the core of stableArcTangent().
+//
+// Halving with atan(x) = 2·atan(x / (1 + sqrt(1 + x²))) brings the argument
+// below a tenth -- three halvings take even 1 down to tan(pi / 32), about
+// 0.0985 -- and std::sqrt is correctly rounded in IEEE 754, so every step is
+// exact to the last bit. An argument already that small is left alone, which
+// keeps the smallest subnormals from halving away into zero.
+//
+// The Taylor series x - x³/3 + x⁵/5 - ... then converges fast: from a tenth
+// its first omitted term is below 1e-22, and the result is within a few units
+// in the last place of atan(value).
+[[nodiscard]] inline double arcTangentAtMostOne(const double value) noexcept {
+  constexpr double kSeriesLimit = 0.1;
+  constexpr int kMaxHalvings = 3;
+  double reduced = value;
+  int halvings = 0;
+  while (reduced > kSeriesLimit && halvings < kMaxHalvings) {
+    reduced = reduced / (1.0 + std::sqrt(1.0 + (reduced * reduced)));
+    ++halvings;
+  }
+  // 1/21, 1/19, ..., 1/3, 1 in Horner form over x²:
+  // x·(1 - x²·(1/3 - x²·(1/5 - ...))).
+  const double square = reduced * reduced;
+  double sum = 1.0 / 21.0;
+  for (int denominator = 19; denominator >= 1; denominator -= 2) {
+    sum = (1.0 / static_cast<double>(denominator)) - (square * sum);
+  }
+  return static_cast<double>(1 << halvings) * reduced * sum;
+}
+
+}  // namespace Detail
+
+// arctan(value) in radians, from basic arithmetic and std::sqrt only, so the
+// result is bit-identical on every platform. std::atan and std::atan2 are not:
+// like std::exp (see stableExp) they need not be correctly rounded, and a
+// last-bit difference is enough to make two machines rate the same shooting
+// angle differently and a replay diverge.
+//
+// The result is in (-pi/2, pi/2) and has the sign of the argument, including
+// for a negative zero. An argument beyond 1 in magnitude folds to
+// pi/2 - arctan(1/|value|), infinity gives +-pi/2, and NaN gives NaN.
+[[nodiscard]] inline double stableArcTangent(const double value) noexcept {
+  if (std::isnan(value)) {
+    return value;
+  }
+  const double sign = std::signbit(value) ? -1.0 : 1.0;
+  const double magnitude = std::abs(value);
+  constexpr double kRightAngle = std::numbers::pi / 2.0;
+  if (std::isinf(magnitude)) {
+    return sign * kRightAngle;
+  }
+  if (magnitude > 1.0) {
+    return sign * (kRightAngle - Detail::arcTangentAtMostOne(1.0 / magnitude));
+  }
+  return sign * Detail::arcTangentAtMostOne(magnitude);
 }
 
 }  // namespace ElyverseFootball::SimCore

@@ -35,7 +35,12 @@ using ElyverseFootball::SimMatch::TeamSide;
 
 namespace {
 
-const Pitch kPitch(60.0, 40.0);
+// Built on first use, not while static objects are initialized: Pitch's
+// constructor validates its dimensions and may throw.
+[[nodiscard]] const Pitch& pitch() {
+  static const Pitch kPitch(60.0, 40.0);
+  return kPitch;
+}
 
 [[nodiscard]] PlayerMatchState playerAt(const std::uint32_t playerId, const TeamSide side,
                                         const Vec2 position, const Vec2 velocity = {}) {
@@ -51,7 +56,7 @@ const Pitch kPitch(60.0, 40.0);
 // Three a side around (30, 20). Player 5 and player 2 are both exactly 5 m
 // from the center; player 2 is listed later in the state but has the lower id.
 [[nodiscard]] MatchState threeASide() {
-  auto state = MatchState::create({.pitch = kPitch,
+  auto state = MatchState::create({.pitch = pitch(),
                                    .players = {playerAt(5, TeamSide::kHome, {.x = 33.0, .y = 24.0}),
                                                playerAt(1, TeamSide::kHome, {.x = 30.0, .y = 21.0}),
                                                playerAt(3, TeamSide::kHome, {.x = 10.0, .y = 20.0}),
@@ -135,7 +140,7 @@ TEST_CASE("The nearest player honors side, exclusion and ties", "[spatial]") {
   REQUIRE(nearestId(findNearestPlayer(state, {.x = 55.0, .y = 5.0},
                                       PlayerFilter::onSide(TeamSide::kHome))) == 5);
   const auto twoPlayers = MatchState::create(
-      {.pitch = kPitch,
+      {.pitch = pitch(),
        .players = {playerAt(1, TeamSide::kHome, {}), playerAt(2, TeamSide::kAway, {})},
        .ball = {},
        .playersPerSide = 1});
@@ -151,29 +156,29 @@ TEST_CASE("A stationary player's arrival time follows his limits", "[spatial]") 
   constexpr double kAccelerationDistance =
       kDefaultMaxSpeed * kDefaultMaxSpeed / (2.0 * kDefaultAcceleration);
 
-  REQUIRE(estimateArrivalSeconds(player, player.position, kPitch) == 0.0);
+  REQUIRE(estimateArrivalSeconds(player, player.position, pitch()) == 0.0);
   // Within the acceleration phase: d = a·t²/2.
-  REQUIRE_THAT(estimateArrivalSeconds(player, {.x = 12.0, .y = 20.0}, kPitch).value_or(-1.0),
+  REQUIRE_THAT(estimateArrivalSeconds(player, {.x = 12.0, .y = 20.0}, pitch()).value_or(-1.0),
                WithinAbs(1.0, 1e-12));
   REQUIRE_THAT(
-      estimateArrivalSeconds(player, {.x = 10.0 + kAccelerationDistance, .y = 20.0}, kPitch)
+      estimateArrivalSeconds(player, {.x = 10.0 + kAccelerationDistance, .y = 20.0}, pitch())
           .value_or(-1.0),
       WithinAbs(1.875, 1e-12));
   // Beyond it, the rest at full speed: 1.875 s + (30 - 7.03125) / 7.5.
-  REQUIRE_THAT(estimateArrivalSeconds(player, {.x = 40.0, .y = 20.0}, kPitch).value_or(-1.0),
+  REQUIRE_THAT(estimateArrivalSeconds(player, {.x = 40.0, .y = 20.0}, pitch()).value_or(-1.0),
                WithinAbs(1.875 + ((30.0 - kAccelerationDistance) / 7.5), 1e-12));
 }
 
 TEST_CASE("Running toward a position arrives sooner than running away", "[spatial]") {
   const Vec2 start{.x = 30.0, .y = 20.0};
   const Vec2 goal{.x = 40.0, .y = 20.0};
-  const auto still = estimateArrivalSeconds(playerAt(1, TeamSide::kHome, start), goal, kPitch);
+  const auto still = estimateArrivalSeconds(playerAt(1, TeamSide::kHome, start), goal, pitch());
   const auto toward = estimateArrivalSeconds(
-      playerAt(1, TeamSide::kHome, start, {.x = 6.0, .y = 0.0}), goal, kPitch);
+      playerAt(1, TeamSide::kHome, start, {.x = 6.0, .y = 0.0}), goal, pitch());
   const auto away = estimateArrivalSeconds(
-      playerAt(1, TeamSide::kHome, start, {.x = -6.0, .y = 0.0}), goal, kPitch);
+      playerAt(1, TeamSide::kHome, start, {.x = -6.0, .y = 0.0}), goal, pitch());
   const auto sideways = estimateArrivalSeconds(
-      playerAt(1, TeamSide::kHome, start, {.x = 0.0, .y = 6.0}), goal, kPitch);
+      playerAt(1, TeamSide::kHome, start, {.x = 0.0, .y = 6.0}), goal, pitch());
 
   REQUIRE(toward.value_or(-1.0) < still.value_or(-1.0));
   REQUIRE(still.value_or(-1.0) < away.value_or(-1.0));
@@ -181,7 +186,7 @@ TEST_CASE("Running toward a position arrives sooner than running away", "[spatia
   REQUIRE(sideways == still);
   // From full speed toward it: 10 m at 7.5 m/s.
   REQUIRE_THAT(estimateArrivalSeconds(playerAt(1, TeamSide::kHome, start, {.x = 7.5, .y = 0.0}),
-                                      goal, kPitch)
+                                      goal, pitch())
                    .value_or(-1.0),
                WithinAbs(10.0 / 7.5, 1e-12));
 }
@@ -189,12 +194,12 @@ TEST_CASE("Running toward a position arrives sooner than running away", "[spatia
 TEST_CASE("Positions off the pitch are unreachable", "[spatial]") {
   const PlayerMatchState player = playerAt(1, TeamSide::kHome, {.x = 10.0, .y = 20.0});
 
-  REQUIRE_FALSE(estimateArrivalSeconds(player, {.x = -0.5, .y = 20.0}, kPitch).has_value());
-  REQUIRE_FALSE(estimateArrivalSeconds(player, {.x = 30.0, .y = 41.0}, kPitch).has_value());
+  REQUIRE_FALSE(estimateArrivalSeconds(player, {.x = -0.5, .y = 20.0}, pitch()).has_value());
+  REQUIRE_FALSE(estimateArrivalSeconds(player, {.x = 30.0, .y = 41.0}, pitch()).has_value());
   REQUIRE_FALSE(estimateArrivalSeconds(
-                    player, {.x = std::numeric_limits<double>::quiet_NaN(), .y = 1.0}, kPitch)
+                    player, {.x = std::numeric_limits<double>::quiet_NaN(), .y = 1.0}, pitch())
                     .has_value());
-  REQUIRE(estimateArrivalSeconds(player, {.x = 0.0, .y = 20.0}, kPitch).has_value());
+  REQUIRE(estimateArrivalSeconds(player, {.x = 0.0, .y = 20.0}, pitch()).has_value());
 }
 
 TEST_CASE("Arrival estimates agree with the movement system", "[spatial]") {
@@ -205,7 +210,7 @@ TEST_CASE("Arrival estimates agree with the movement system", "[spatial]") {
   PlayerMatchState player = playerAt(1, TeamSide::kHome, {.x = 5.0, .y = 20.0});
   player.target = Vec2{.x = 59.0, .y = 20.0};
   const Vec2 position{.x = 5.0 + distance, .y = 20.0};
-  const double estimate = estimateArrivalSeconds(player, position, kPitch).value_or(-1.0);
+  const double estimate = estimateArrivalSeconds(player, position, pitch()).value_or(-1.0);
 
   constexpr double kSecondsPerTick = 1.0 / kDefaultTicksPerSecond;
   int ticks = 0;

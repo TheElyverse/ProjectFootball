@@ -35,7 +35,12 @@ using ElyverseFootball::SimTactics::Tactic;
 
 namespace {
 
-const Pitch kPitch(60.0, 40.0);
+// Built on first use, not while static objects are initialized: Pitch's
+// constructor validates its dimensions and may throw.
+[[nodiscard]] const Pitch& pitch() {
+  static const Pitch kPitch(60.0, 40.0);
+  return kPitch;
+}
 
 // Home in a 1-2-1-3 around its own half, away in a flat back line and a
 // midfield; ids 1-7 home, 8-14 away. Slot 0 of each side is its goalkeeper
@@ -62,7 +67,7 @@ const Pitch kPitch(60.0, 40.0);
                          .facing = {.x = side == TeamSide::kHome ? 1.0 : -1.0, .y = 0.0}});
     }
   }
-  auto state = MatchState::create({.pitch = kPitch,
+  auto state = MatchState::create({.pitch = pitch(),
                                    .players = std::move(players),
                                    .ball = {.position = {.x = 30.0, .y = 20.0},
                                             .velocity = {},
@@ -91,45 +96,45 @@ const Pitch kPitch(60.0, 40.0);
 
 TEST_CASE("Lanes are seen from the side's attacking direction", "[zones]") {
   // Home attacks +x, so its left touchline is y = 40; away's is y = 0.
-  REQUIRE(laneOf(TeamSide::kHome, {.x = 30.0, .y = 38.0}, kPitch) == Lane::kLeftWing);
-  REQUIRE(laneOf(TeamSide::kHome, {.x = 30.0, .y = 30.0}, kPitch) == Lane::kLeftHalfspace);
-  REQUIRE(laneOf(TeamSide::kHome, {.x = 30.0, .y = 20.0}, kPitch) == Lane::kCentre);
-  REQUIRE(laneOf(TeamSide::kHome, {.x = 30.0, .y = 10.0}, kPitch) == Lane::kRightHalfspace);
-  REQUIRE(laneOf(TeamSide::kHome, {.x = 30.0, .y = 2.0}, kPitch) == Lane::kRightWing);
-  REQUIRE(laneOf(TeamSide::kAway, {.x = 30.0, .y = 2.0}, kPitch) == Lane::kLeftWing);
-  REQUIRE(laneOf(TeamSide::kAway, {.x = 30.0, .y = 38.0}, kPitch) == Lane::kRightWing);
+  REQUIRE(laneOf(TeamSide::kHome, {.x = 30.0, .y = 38.0}, pitch()) == Lane::kLeftWing);
+  REQUIRE(laneOf(TeamSide::kHome, {.x = 30.0, .y = 30.0}, pitch()) == Lane::kLeftHalfspace);
+  REQUIRE(laneOf(TeamSide::kHome, {.x = 30.0, .y = 20.0}, pitch()) == Lane::kCentre);
+  REQUIRE(laneOf(TeamSide::kHome, {.x = 30.0, .y = 10.0}, pitch()) == Lane::kRightHalfspace);
+  REQUIRE(laneOf(TeamSide::kHome, {.x = 30.0, .y = 2.0}, pitch()) == Lane::kRightWing);
+  REQUIRE(laneOf(TeamSide::kAway, {.x = 30.0, .y = 2.0}, pitch()) == Lane::kLeftWing);
+  REQUIRE(laneOf(TeamSide::kAway, {.x = 30.0, .y = 38.0}, pitch()) == Lane::kRightWing);
   // Boundaries belong to the lane further right; off the pitch to the nearest.
-  REQUIRE(laneOf(TeamSide::kAway, {.x = 0.0, .y = 8.0}, kPitch) == Lane::kLeftHalfspace);
-  REQUIRE(laneOf(TeamSide::kAway, {.x = 0.0, .y = 40.0}, kPitch) == Lane::kRightWing);
-  REQUIRE(laneOf(TeamSide::kHome, {.x = 30.0, .y = 45.0}, kPitch) == Lane::kLeftWing);
+  REQUIRE(laneOf(TeamSide::kAway, {.x = 0.0, .y = 8.0}, pitch()) == Lane::kLeftHalfspace);
+  REQUIRE(laneOf(TeamSide::kAway, {.x = 0.0, .y = 40.0}, pitch()) == Lane::kRightWing);
+  REQUIRE(laneOf(TeamSide::kHome, {.x = 30.0, .y = 45.0}, pitch()) == Lane::kLeftWing);
   // y = 24 is exactly the centre/right-halfspace boundary on this 40 m pitch.
-  REQUIRE(laneOf(TeamSide::kAway, {.x = 30.0, .y = 24.0}, kPitch) == Lane::kRightHalfspace);
+  REQUIRE(laneOf(TeamSide::kAway, {.x = 30.0, .y = 24.0}, pitch()) == Lane::kRightHalfspace);
   REQUIRE(laneName(Lane::kRightHalfspace) == "rightHalfspace");
 }
 
 TEST_CASE("A lane's rectangle and centre line match laneOf", "[zones]") {
-  REQUIRE(laneRect(TeamSide::kHome, Lane::kLeftWing, kPitch) ==
+  REQUIRE(laneRect(TeamSide::kHome, Lane::kLeftWing, pitch()) ==
           PitchRect{.min = {.x = 0.0, .y = 32.0}, .max = {.x = 60.0, .y = 40.0}});
-  REQUIRE(laneRect(TeamSide::kAway, Lane::kLeftWing, kPitch) ==
+  REQUIRE(laneRect(TeamSide::kAway, Lane::kLeftWing, pitch()) ==
           PitchRect{.min = {.x = 0.0, .y = 0.0}, .max = {.x = 60.0, .y = 8.0}});
   for (const TeamSide side : {TeamSide::kHome, TeamSide::kAway}) {
     for (const Lane lane : {Lane::kLeftWing, Lane::kLeftHalfspace, Lane::kCentre,
                             Lane::kRightHalfspace, Lane::kRightWing}) {
-      const Vec2 centre{.x = 30.0, .y = laneCenterY(side, lane, kPitch)};
-      REQUIRE(laneOf(side, centre, kPitch) == lane);
-      REQUIRE(laneRect(side, lane, kPitch).contains(centre));
+      const Vec2 centre{.x = 30.0, .y = laneCenterY(side, lane, pitch())};
+      REQUIRE(laneOf(side, centre, pitch()) == lane);
+      REQUIRE(laneRect(side, lane, pitch()).contains(centre));
     }
   }
 }
 
 TEST_CASE("Thirds are measured from the side's own goal line", "[zones]") {
-  REQUIRE(thirdOf(TeamSide::kHome, {.x = 5.0, .y = 20.0}, kPitch) == Third::kDefensive);
-  REQUIRE(thirdOf(TeamSide::kHome, {.x = 20.0, .y = 20.0}, kPitch) == Third::kMiddle);
-  REQUIRE(thirdOf(TeamSide::kHome, {.x = 55.0, .y = 20.0}, kPitch) == Third::kAttacking);
-  REQUIRE(thirdOf(TeamSide::kAway, {.x = 55.0, .y = 20.0}, kPitch) == Third::kDefensive);
-  REQUIRE(thirdRect(TeamSide::kAway, Third::kDefensive, kPitch) ==
+  REQUIRE(thirdOf(TeamSide::kHome, {.x = 5.0, .y = 20.0}, pitch()) == Third::kDefensive);
+  REQUIRE(thirdOf(TeamSide::kHome, {.x = 20.0, .y = 20.0}, pitch()) == Third::kMiddle);
+  REQUIRE(thirdOf(TeamSide::kHome, {.x = 55.0, .y = 20.0}, pitch()) == Third::kAttacking);
+  REQUIRE(thirdOf(TeamSide::kAway, {.x = 55.0, .y = 20.0}, pitch()) == Third::kDefensive);
+  REQUIRE(thirdRect(TeamSide::kAway, Third::kDefensive, pitch()) ==
           PitchRect{.min = {.x = 40.0, .y = 0.0}, .max = {.x = 60.0, .y = 40.0}});
-  REQUIRE(thirdRect(TeamSide::kHome, Third::kAttacking, kPitch) ==
+  REQUIRE(thirdRect(TeamSide::kHome, Third::kAttacking, pitch()) ==
           PitchRect{.min = {.x = 40.0, .y = 0.0}, .max = {.x = 60.0, .y = 40.0}});
 }
 
@@ -177,20 +182,20 @@ TEST_CASE("Dynamic zones follow the opponent's shape", "[zones]") {
 
   // Between away's defensive line (x = 45) and its midfield line (x = 39.5),
   // across its outfield width (y 8 to 32).
-  REQUIRE(betweenLines(TeamSide::kAway, shape, kPitch) ==
+  REQUIRE(betweenLines(TeamSide::kAway, shape, pitch()) ==
           PitchRect{.min = {.x = 39.5, .y = 8.0}, .max = {.x = 45.0, .y = 32.0}});
   // Home's striker at (36, 20) is in front of it; a player at (42, 20) in it.
-  REQUIRE_FALSE(betweenLines(TeamSide::kAway, shape, kPitch).contains({.x = 36.0, .y = 20.0}));
-  REQUIRE(betweenLines(TeamSide::kAway, shape, kPitch).contains({.x = 42.0, .y = 20.0}));
-  REQUIRE(behindLine(TeamSide::kAway, shape, kPitch) ==
+  REQUIRE_FALSE(betweenLines(TeamSide::kAway, shape, pitch()).contains({.x = 36.0, .y = 20.0}));
+  REQUIRE(betweenLines(TeamSide::kAway, shape, pitch()).contains({.x = 42.0, .y = 20.0}));
+  REQUIRE(behindLine(TeamSide::kAway, shape, pitch()) ==
           PitchRect{.min = {.x = 45.0, .y = 0.0}, .max = {.x = 60.0, .y = 40.0}});
 }
 
 TEST_CASE("Rest defence stands behind the ball, never behind the goal line", "[zones]") {
-  REQUIRE(restDefenceZone(TeamSide::kHome, {.x = 40.0, .y = 5.0}, kPitch) ==
+  REQUIRE(restDefenceZone(TeamSide::kHome, {.x = 40.0, .y = 5.0}, pitch()) ==
           PitchRect{.min = {.x = 20.0, .y = 8.0}, .max = {.x = 35.0, .y = 32.0}});
-  REQUIRE(restDefenceZone(TeamSide::kAway, {.x = 20.0, .y = 20.0}, kPitch) ==
+  REQUIRE(restDefenceZone(TeamSide::kAway, {.x = 20.0, .y = 20.0}, pitch()) ==
           PitchRect{.min = {.x = 25.0, .y = 8.0}, .max = {.x = 40.0, .y = 32.0}});
-  REQUIRE(restDefenceZone(TeamSide::kHome, {.x = 3.0, .y = 20.0}, kPitch) ==
+  REQUIRE(restDefenceZone(TeamSide::kHome, {.x = 3.0, .y = 20.0}, pitch()) ==
           PitchRect{.min = {.x = 0.0, .y = 8.0}, .max = {.x = 0.0, .y = 32.0}});
 }

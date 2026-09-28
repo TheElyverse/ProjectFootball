@@ -1,7 +1,6 @@
 #include "ballMovement.hpp"
 
 #include <algorithm>
-#include <cmath>
 #include <limits>
 #include <stdexcept>
 #include <string>
@@ -109,8 +108,7 @@ double rollingDistance(const double speed, const BallPhysics& physics) noexcept 
 
 BallState stepFreeBall(const BallState& ball, const BallPhysics& physics, const Pitch& pitch,
                        const double secondsPerTick) noexcept {
-  // std::sqrt rather than std::hypot: correctly rounded on every platform.
-  const double speed = std::sqrt(ball.velocity.lengthSquared());
+  const double speed = ball.velocity.length();
   if (speed == 0.0) {
     return ball;
   }
@@ -192,7 +190,7 @@ MatchSystem makeBallMovementSystem(const BallPhysics& physics, const PassConfig&
                                          .intendedReceiver = intent->receiver,
                                          .from = ball.position,
                                          .target = intent->target,
-                                         .speed = std::sqrt(ball.velocity.lengthSquared())});
+                                         .speed = ball.velocity.length()});
             context.record(PossessionChanged{
                 .tick = context.tick(), .previousOwner = intent->passer, .newOwner = std::nullopt});
           }
@@ -221,10 +219,9 @@ MatchSystem makeBallMovementSystem(const BallPhysics& physics, const PassConfig&
                                              secondsPerTick, reception)) {
           next.setBallOwner(claim->playerId);
           next.setBallLastTouch(BallTouch{.playerId = claim->playerId, .tick = context.tick()});
-          next.setLastReception(
-              ReceptionRecord{.player = claim->playerId,
-                              .tick = context.tick(),
-                              .ballSpeed = std::sqrt(ball.velocity.lengthSquared())});
+          next.setLastReception(ReceptionRecord{.player = claim->playerId,
+                                                .tick = context.tick(),
+                                                .ballSpeed = ball.velocity.length()});
           carryBy(current.players()[claim->playerIndex]);
           const Vec2 contactPosition =
               ball.position + ((rolled.position - ball.position) * claim->contact.contactFraction);

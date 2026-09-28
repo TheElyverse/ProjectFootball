@@ -49,7 +49,7 @@ void requireRejected(const std::string& json, const ReplayErrorCode code,
   REQUIRE_FALSE(replay.has_value());
   CAPTURE(replay.error().message);
   REQUIRE(replay.error().code == code);
-  REQUIRE(replay.error().message.find(fragment) != std::string::npos);
+  REQUIRE(replay.error().message.contains(fragment));
 }
 
 constexpr auto kMalformed = ReplayErrorCode::kMalformed;
@@ -221,7 +221,7 @@ TEST_CASE("A tactic whose content does not match its hash is rejected", "[replay
   REQUIRE(replay.has_value());
   const std::string json = toReplayJson(*replay);
   // The reference tactic's pinned content hash (tacticHashTests.cpp).
-  REQUIRE(json.find(R"("contentHash": "d1f008d25b46aabf")") != std::string::npos);
+  REQUIRE(json.contains(R"("contentHash": "d1f008d25b46aabf")"));
 
   // An edited tactic no longer matches the hash recorded with it.
   std::string edited = json;
@@ -232,7 +232,7 @@ TEST_CASE("A tactic whose content does not match its hash is rejected", "[replay
 }
 
 TEST_CASE("The checkpoint interval is recorded and must be positive", "[replayJson]") {
-  REQUIRE(validJson().find(R"("checkpointIntervalTicks": 1)") != std::string::npos);
+  REQUIRE(validJson().contains(R"("checkpointIntervalTicks": 1)"));
   requireRejected(
       validJsonWith(R"("checkpointIntervalTicks": 1)", R"("checkpointIntervalTicks": 0)"),
       kMalformed, "checkpointIntervalTicks");

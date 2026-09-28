@@ -10,12 +10,6 @@ namespace {
 
 using SimCore::Vec2;
 
-// std::sqrt is correctly rounded by IEEE 754, unlike std::hypot, so lengths
-// computed this way are the same on every conforming platform.
-[[nodiscard]] double lengthOf(const Vec2 vector) noexcept {
-  return std::sqrt(vector.lengthSquared());
-}
-
 // The velocity the player would like to have: toward the target, no faster
 // than maxSpeed, and no faster than he can still stop from on the target,
 // braking at his full acceleration from the next tick on. Zero without a
@@ -32,7 +26,7 @@ using SimCore::Vec2;
     return {};
   }
   const Vec2 offset = *player.target - player.position;
-  const double distance = lengthOf(offset);
+  const double distance = offset.length();
   if (distance == 0.0) {
     return {};
   }
@@ -52,7 +46,7 @@ PlayerKinematics stepPlayerMovement(const PlayerMatchState& player,
   // within maxSpeed, so every point between them does too.
   const double maxChange = player.attributes.acceleration * secondsPerTick;
   Vec2 change = desiredVelocity(player, secondsPerTick) - player.velocity;
-  const double changeLength = lengthOf(change);
+  const double changeLength = change.length();
   if (changeLength > maxChange) {
     change = change * (maxChange / changeLength);
   }
@@ -79,12 +73,12 @@ PlayerKinematics stepPlayerMovement(const PlayerMatchState& player,
 
 Vec2 facingAfterMove(const PlayerMatchState& player, const PlayerKinematics& moved,
                      const Vec2 ballPosition) noexcept {
-  const double speed = lengthOf(moved.velocity);
+  const double speed = moved.velocity.length();
   if (speed > kFacingRunSpeed) {
     return moved.velocity * (1.0 / speed);
   }
   const Vec2 towardBall = ballPosition - moved.position;
-  const double distance = lengthOf(towardBall);
+  const double distance = towardBall.length();
   if (distance > 0.0) {
     return towardBall * (1.0 / distance);
   }

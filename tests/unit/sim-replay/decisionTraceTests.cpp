@@ -186,8 +186,8 @@ TEST_CASE("The tracer attributes the risky pass of intercepted-pass to the decis
   const std::string text = formatTrace(std::vector<TraceEntry>{first});
   CAPTURE(text);
   REQUIRE(text.starts_with("t=18 #1 passes to #2 (utility "));
-  REQUIRE(text.find("because ") != std::string::npos);
-  REQUIRE(text.find("-> intercepted by #8 at t=") != std::string::npos);
+  REQUIRE(text.contains("because "));
+  REQUIRE(text.contains("-> intercepted by #8 at t="));
   REQUIRE(text.ends_with(": decision\n"));
 }
 
@@ -288,5 +288,5 @@ TEST_CASE("The tracer keeps to the filtered players and ticks", "[decisionTrace]
   }
   const std::string text = formatTrace(entries);
   REQUIRE(text.starts_with("t="));
-  REQUIRE(text.find(" #4 ") != std::string::npos);
+  REQUIRE(text.contains(" #4 "));
 }

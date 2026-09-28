@@ -224,8 +224,9 @@ void MatchAnalyzer::onOwner(const SimMatch::PossessionChanged& change,
     return;
   }
   if (possession_) {
-    tally(*possession_).possessionTicks += change.tick.value() - possessionSince_.value();
-    ++tally(*possession_).turnovers;
+    SideTally& loser = tally(*possession_);
+    loser.possessionTicks += change.tick.value() - possessionSince_.value();
+    ++loser.turnovers;
     SideTally& winner = tally(*side);
     ++winner.regains;
     if (wonAt) {

@@ -21,8 +21,8 @@ namespace ElyverseFootball::SimMatch {
 namespace {
 
 // The sandbox pitch of every scenario.
-constexpr double kLength = 60.0;
-constexpr double kWidth = 40.0;
+constexpr double kLength = kSandboxLengthMeters;
+constexpr double kWidth = kSandboxWidthMeters;
 
 // Where a player stands and which way he faces: +1 toward the away goal
 // (+x), -1 toward the home goal.
