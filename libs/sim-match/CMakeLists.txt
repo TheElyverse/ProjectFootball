@@ -4,6 +4,7 @@ add_library(sim-match STATIC
         src/kickoffScenario.cpp
         src/matchSimulation.cpp
         src/playerMovement.cpp
+        src/ballPhysics.cpp
         src/ballMovement.cpp
         src/matchStateHash.cpp
         src/matchSetup.cpp

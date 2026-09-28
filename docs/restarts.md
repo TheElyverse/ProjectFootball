@@ -11,8 +11,11 @@ hashes; the [benchmark](sim-benchmark.md) turns it on.
 
 ## When
 
-The ball is **out of play** (`isOutOfPlay()`) when it is free, at rest and on a
-touchline or goal line — exactly where a ball that left the pitch stops. The
+The ball is **out of play** (`isOutOfPlay()`) when it is free, at rest on the
+ground and on a
+touchline or goal line — exactly where a ball that left the pitch stops. At rest
+means in every direction: a ball still in the air over the line, even one at the
+apex of its flight with no speed across the grass, is in play. The
 restart system runs every tick, last in the [standard order](match-loop.md),
 and restarts in the step after the ball stopped there.
 

@@ -12,8 +12,10 @@
 
 namespace ElyverseFootball::SimMatch {
 
-// Whether the ball is out of play: free, at rest, and on a touchline or goal
-// line, where a ball that leaves the pitch stops (docs/ball-movement.md).
+// Whether the ball is out of play: free, at rest on the ground, and on a
+// touchline or goal line, where a ball that leaves the pitch stops
+// (docs/ball-movement.md). A ball still in the air, even one directly over the
+// line, is in play.
 [[nodiscard]] bool isOutOfPlay(const BallState& ball, const Pitch& pitch) noexcept;
 [[nodiscard]] bool isOutOfPlay(const MatchState& state) noexcept;
 

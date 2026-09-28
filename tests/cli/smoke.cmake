@@ -37,7 +37,7 @@ string(JSON seedType TYPE "${contents}" seed)
 string(JSON gameTime GET "${contents}" gameTime)
 string(JSON schemaVersion GET "${contents}" schemaVersion)
 if(NOT seedType STREQUAL "STRING" OR NOT seed STREQUAL "42" OR NOT gameTime STREQUAL "300"
-        OR NOT schemaVersion STREQUAL "4")
+        OR NOT schemaVersion STREQUAL "5")
     message(FATAL_ERROR "Unexpected replay: ${contents}")
 endif()
 

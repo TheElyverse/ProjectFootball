@@ -231,6 +231,40 @@ TEST_CASE("An interception's position interpolates the contact, not the tick's s
   REQUIRE_FALSE(intercepted.position == ballStart);
 }
 
+TEST_CASE("The system writes a flying ball's height, and nobody takes it at his feet",
+          "[ballMovement]") {
+  // The kickoff squad, with the ball lofted over the man on the center spot.
+  auto kickoff = makeSevenASideKickoff(pitch());
+  REQUIRE(kickoff.has_value());
+  BallState lofted = kickoff->ball();
+  lofted.verticalVelocity = 9.0;
+  lofted.velocity = {.x = 6.0, .y = 0.0};
+  auto state = MatchState::create({.pitch = pitch(),
+                                   .players = std::vector<PlayerMatchState>(
+                                       kickoff->players().begin(), kickoff->players().end()),
+                                   .ball = lofted});
+  REQUIRE(state.has_value());
+
+  MatchSimulation simulation({.initialState = *std::move(state),
+                              .seed = 3,
+                              .ticksPerSecond = kDefaultTicksPerSecond,
+                              .systems = {makeBallMovementSystem({}), makePlayerMovementSystem()},
+                              .commands = {}});
+  for (int tick = 0; tick < 15; ++tick) {
+    REQUIRE(simulation.step().has_value());
+  }
+
+  // Half a second on it is well over head height and still nobody's.
+  REQUIRE(simulation.state().ball().height > 1.5);
+  REQUIRE(simulation.state().ball().owner == std::nullopt);
+
+  // It comes down, is taken by somebody and lies on the grass again.
+  for (int tick = 0; tick < 120; ++tick) {
+    REQUIRE(simulation.step().has_value());
+  }
+  REQUIRE(simulation.state().ball().height == 0.0);
+}
+
 TEST_CASE("The ball moves independently of the players", "[ballMovement]") {
   // Straight up from the center spot while two players run elsewhere: a free
   // ball nobody reaches rolls the same whoever moves around it.

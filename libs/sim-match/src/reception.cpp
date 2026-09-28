@@ -60,8 +60,13 @@ std::optional<Contact> findContact(const Vec2 playerFrom, const Vec2 playerTo, c
                  .closestDistance = closestDistance};
 }
 
+double heightAtFraction(const BallState& ball, const BallState& moved,
+                        const double fraction) noexcept {
+  return ball.height + ((moved.height - ball.height) * fraction);
+}
+
 std::optional<BallClaim> findBallClaim(const MatchState& state, const BallState& ball,
-                                       const Vec2 ballTo, const SimCore::SimTick now,
+                                       const BallState& moved, const SimCore::SimTick now,
                                        const double secondsPerTick, const ReceptionConfig& config) {
   std::optional<BallClaim> best;
   for (std::size_t index = 0; const PlayerMatchState& player : state.players()) {
@@ -69,10 +74,14 @@ std::optional<BallClaim> findBallClaim(const MatchState& state, const BallState&
     if (!mayClaim(player, ball, now, secondsPerTick, config)) {
       continue;
     }
-    const PlayerKinematics moved = stepPlayerMovement(player, secondsPerTick);
-    const auto contact =
-        findContact(player.position, moved.position, ball.position, ballTo, config.controlRadius);
+    const PlayerKinematics stepped = stepPlayerMovement(player, secondsPerTick);
+    const auto contact = findContact(player.position, stepped.position, ball.position,
+                                     moved.position, config.controlRadius);
     if (!contact) {
+      continue;
+    }
+    // Out of reach: the ball passes over his head rather than to his feet.
+    if (heightAtFraction(ball, moved, contact->contactFraction) > config.controlHeight) {
       continue;
     }
     const BallClaim claim{
@@ -90,7 +99,8 @@ std::optional<BallClaim> findBallClaim(const MatchState& state, const BallState&
 
 void validate(const ReceptionConfig& config) {
   if (!isFiniteNonNegative(config.controlRadius) ||
-      !isFiniteNonNegative(config.reclaimDelaySeconds)) {
+      !isFiniteNonNegative(config.reclaimDelaySeconds) ||
+      !isFiniteNonNegative(config.controlHeight)) {
     throw std::invalid_argument("reception: invalid configuration");
   }
 }

@@ -7,8 +7,9 @@ decides who goes after it.
 
 ## Gaining control
 
-The [ball movement](ball-movement.md) system rolls a free ball from where it is
-at the start of a tick to where it is at the end. During the same tick every
+The [ball movement](ball-movement.md) system moves a free ball from where it is
+at the start of a tick to where it is at the end -- rolling, flying or
+bouncing. During the same tick every
 player moves as the movement system moves him. `findBallClaim()` checks every
 player against the ball:
 
@@ -16,6 +17,11 @@ player against the ball:
   player gains the ball if they come within `controlRadius` (1 m) of each other
   at any moment of the tick — so a fast pass cannot slip through a player
   between two ticks. `findContact()` computes the first such moment.
+- **Reach upwards.** A ball higher than `controlHeight` (1 m) at the moment of
+  contact passes over the player: he cannot take it at his feet. The height is
+  read along the same straight line through the tick that the reach test uses.
+  Heading a ball and challenging for it in the air are their own systems; until
+  they exist a high ball simply runs through.
 - **No instant reclaim.** The ball's last touch cannot take it back for
   `reclaimDelaySeconds` (0.3 s) after touching it, so a pass does not stick to
   the passer's foot.
@@ -74,6 +80,7 @@ Both are part of `MatchConfig` and of every replay:
 |---------------------------------|---------|-------------------------------------------------|
 | `reception.controlRadius`       | 1 m     | how close a free ball must come to be controlled |
 | `reception.reclaimDelaySeconds` | 0.3 s   | how long the last touch cannot take the ball back |
+| `reception.controlHeight`       | 1 m     | how high the ball may be and still be taken at the feet |
 | `pursuit.intervalTicks`         | 3       | ticks between chase decisions                   |
 | `pursuit.sampleSeconds`         | 0.1 s   | resolution of the predicted ball path           |
 | `pursuit.horizonSeconds`        | 8 s     | how far ahead the path is predicted             |
@@ -86,5 +93,6 @@ is rejected.
 ## What this is not
 
 There is no first-touch quality, no deflection and no failed control: a player
-who reaches the ball has it. Pressing a player on the ball, tackles and
+who reaches the ball at a height he can play has it. Nobody heads a ball or
+jumps for one. Pressing a player on the ball, tackles and
 duels are out of scope.

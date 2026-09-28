@@ -167,5 +167,8 @@ TEST_CASE("M0: the final state hash is pinned", "[acceptance][m0]") {
   // Identical on every platform and compiler CI builds with. It changes only
   // with the simulation's behavior, the scenario or the state layout -- each
   // of which must bump the core version and update this value deliberately.
-  REQUIRE(record().checkpoints.back().stateHash == 0xed0d6e4e29d48034ULL);
+  // Re-pinned for the ball's third dimension: the scenario plays out tick for
+  // tick as before -- nothing lifts the ball off the grass -- and only the
+  // hash grew by the ball's height, vertical velocity and spin.
+  REQUIRE(record().checkpoints.back().stateHash == 0x8817ab00b913ce94ULL);
 }

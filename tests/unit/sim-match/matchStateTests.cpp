@@ -20,6 +20,7 @@ using ElyverseFootball::SimMatch::kDefaultAcceleration;
 using ElyverseFootball::SimMatch::kDefaultMaxSpeed;
 using ElyverseFootball::SimMatch::kDefaultPlayersPerSide;
 using ElyverseFootball::SimMatch::kMaxBallSpeed;
+using ElyverseFootball::SimMatch::kMaxBallSpin;
 using ElyverseFootball::SimMatch::MatchState;
 using ElyverseFootball::SimMatch::MatchStateError;
 using ElyverseFootball::SimMatch::MatchStateErrorCode;
@@ -418,6 +419,40 @@ TEST_CASE("MatchState::create rejects a ball faster than any kick", "[matchState
 
   spec.ball.velocity = {.x = 0.0, .y = -kMaxBallSpeed};
   REQUIRE(MatchState::create(spec).has_value());
+}
+
+TEST_CASE("MatchState::create rejects a ball that is nowhere in the third dimension",
+          "[matchState]") {
+  const auto codes = [](auto change) {
+    MatchStateSpec spec = validSpec();
+    change(spec);
+    const auto state = MatchState::create(spec);
+    REQUIRE_FALSE(state.has_value());
+    return codesOf(state.error());
+  };
+
+  REQUIRE(codes([](MatchStateSpec& spec) {
+            spec.ball.height = std::numeric_limits<double>::quiet_NaN();
+          }) == std::vector{MatchStateErrorCode::kNonFiniteBallHeight});
+  REQUIRE(codes([](MatchStateSpec& spec) { spec.ball.height = -0.5; }) ==
+          std::vector{MatchStateErrorCode::kBallBelowGround});
+  REQUIRE(codes([](MatchStateSpec& spec) {
+            spec.ball.verticalVelocity = std::numeric_limits<double>::infinity();
+          }) == std::vector{MatchStateErrorCode::kNonFiniteBallVerticalVelocity});
+  REQUIRE(codes([](MatchStateSpec& spec) { spec.ball.verticalVelocity = -2.0 * kMaxBallSpeed; }) ==
+          std::vector{MatchStateErrorCode::kBallRisingTooFast});
+  REQUIRE(codes([](MatchStateSpec& spec) {
+            spec.ball.spin = std::numeric_limits<double>::quiet_NaN();
+          }) == std::vector{MatchStateErrorCode::kNonFiniteBallSpin});
+  REQUIRE(codes([](MatchStateSpec& spec) { spec.ball.spin = 2.0 * kMaxBallSpin; }) ==
+          std::vector{MatchStateErrorCode::kBallSpinningTooFast});
+
+  // A ball high above the pitch, spinning hard, is football.
+  MatchStateSpec flying = validSpec();
+  flying.ball.height = 12.0;
+  flying.ball.verticalVelocity = 8.0;
+  flying.ball.spin = 60.0;
+  REQUIRE(MatchState::create(flying).has_value());
 }
 
 TEST_CASE("MatchState::create reports every broken rule in a fixed order", "[matchState]") {

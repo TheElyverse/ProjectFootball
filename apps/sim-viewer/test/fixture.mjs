@@ -14,7 +14,15 @@ export function fixture() {
   const frame = (tick, extra = {}) => ({
     tick,
     stateHash: "0000000000000000",
-    ball: { position: [30, 20], velocity: [0, 0], owner: null, lastTouch: null },
+    ball: {
+      position: [30, 20],
+      velocity: [0, 0],
+      height: 0,
+      verticalVelocity: 0,
+      spin: 0,
+      owner: null,
+      lastTouch: null,
+    },
     pendingPass: null,
     players: [player(1, 20, 20), player(2, 40, 20)],
         events: [],
@@ -29,7 +37,7 @@ export function fixture() {
   });
   return {
     format: "elyverse-debug-frames",
-        version: 2,
+        version: 3,
     coreVersion: "0.7.0",
     scenario: "test",
     seed: "42",

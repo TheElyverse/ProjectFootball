@@ -314,7 +314,10 @@ TEST_CASE("P1: the final hashes are pinned", "[acceptance][p1]") {
   // Identical on every platform and compiler CI builds with. They change only
   // with the simulation's behavior, a scenario or the state layout -- each of
   // which must bump the core version or document the scenario change, and
-  // update these values deliberately.
+  // update these values deliberately. The state hashes were re-pinned when
+  // the ball gained height, vertical velocity and spin: every scenario plays
+  // out exactly as before -- the event hashes prove it -- and only the state
+  // hash covers three numbers more.
   struct Pinned {
     std::string_view name;
     std::uint64_t stateHash;
@@ -322,13 +325,13 @@ TEST_CASE("P1: the final hashes are pinned", "[acceptance][p1]") {
   };
   const std::array<Pinned, 3> pinned{{
       {.name = "pass-chain",
-       .stateHash = 0x646d93b67d9a2c85ULL,
+       .stateHash = 0x392da1d866e44605ULL,
        .eventHash = 0x998519c3360aaabbULL},
       {.name = "intercepted-pass",
-       .stateHash = 0x7532246440e19d93ULL,
+       .stateHash = 0xf529403725aeab73ULL,
        .eventHash = 0x22f2a2f2ddabf1e5ULL},
       {.name = "no-passing-option",
-       .stateHash = 0xf7c856bbbf1acbfdULL,
+       .stateHash = 0xcd2cf253cbe4af7dULL,
        .eventHash = 0x4c3da4b4c5ecf1a7ULL},
   }};
   for (const Pinned& expected : pinned) {

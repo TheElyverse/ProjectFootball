@@ -3,7 +3,7 @@
 // change a match.
 
 export const FRAMES_FORMAT = "elyverse-debug-frames";
-export const FRAMES_VERSION = 2;
+export const FRAMES_VERSION = 3;
 
 // [x, y] in meters; x along the pitch length, y across it.
 export type Vec2 = readonly [number, number];
@@ -119,6 +119,11 @@ export interface ActionDecision {
 export interface BallFrame {
   readonly position: Vec2;
   readonly velocity: Vec2;
+  // Meters above the ground, meters per second upwards, and top- or backspin
+  // in radians per second.
+  readonly height: number;
+  readonly verticalVelocity: number;
+  readonly spin: number;
   readonly owner: number | null;
   readonly lastTouch: number | null;
 }

@@ -45,7 +45,7 @@ state hash of its tick, so a frame can be matched against a replay checkpoint.
 |--------------------------------|--------------------------------------------------------------|
 | blue / red disc with a number  | a home / away player and his id; the white stroke is his facing |
 | yellow ring                    | the ball's owner                                             |
-| white disc                     | the ball                                                     |
+| white disc                     | the ball; a flying ball grows with its height and casts a shadow on the grass |
 | dashed yellow line             | a pending pass, from the passer to its target               |
 | dashed white line and cross    | a movement target (selected player, or all with **all targets**) |
 
@@ -77,8 +77,8 @@ overlays, drawn under the players:
 
 Each side's tactic and phase stand above its half of the pitch.
 
-The side panel lists the match (tick, time, state hash, ball owner and last
-touch); each side's tactic, phase, defensive line against the one asked for,
+The side panel lists the match (tick, time, state hash, ball owner, last touch,
+and how fast and how high the ball is); each side's tactic, phase, defensive line against the one asked for,
 length and width, and running press with its trigger and roles; the selected
 player's position, speed, target, observations, his latest action decision
 (action, subject, utility and the dominant reason) and the candidate table of
@@ -108,8 +108,8 @@ abridged example with illustrative values:
 ```json
 {
     "format": "elyverse-debug-frames",
-  "version": 2,
-  "coreVersion": "0.7.0",
+  "version": 3,
+  "coreVersion": "0.20.0",
   "scenario": "m0-acceptance",
   "seed": "42",
   "ticksPerSecond": 30,
@@ -121,7 +121,11 @@ abridged example with illustrative values:
     {
       "tick": 1,
       "stateHash": "d96934b44b13ded7",
-      "ball": { "position": [30, 20], "velocity": [0, 0], "owner": null, "lastTouch": null },
+      "ball": {
+        "position": [30, 20], "velocity": [0, 0],
+        "height": 0, "verticalVelocity": 0, "spin": 0,
+        "owner": null, "lastTouch": null
+      },
       "pendingPass": null,
       "players": [
         {
@@ -199,7 +203,8 @@ abridged example with illustrative values:
 
 A change that breaks existing readers raises `version`; the viewer rejects
 versions it does not know. Version 2 added `zones`, `pitchControl` and the
-teams' `tactic`, `instruction` and `press`.
+teams' `tactic`, `instruction` and `press`. Version 3 added the ball's `height`,
+`verticalVelocity` and `spin` ([ball movement](ball-movement.md)).
 
 ## Development
 

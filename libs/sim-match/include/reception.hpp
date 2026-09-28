@@ -18,6 +18,11 @@ struct ReceptionConfig {
   // The last player to touch the ball cannot take it back for this long, so
   // a pass does not stick to the passer's foot.
   double reclaimDelaySeconds = 0.3;
+  // The highest a ball can be and still be taken at the feet. A ball above
+  // this passes over the player: heading it and challenging for it in the air
+  // are their own systems, and until they exist a high ball simply runs
+  // through.
+  double controlHeight = 1.0;  // m
 
   friend bool operator==(const ReceptionConfig&, const ReceptionConfig&) = default;
 };
@@ -46,18 +51,27 @@ struct BallClaim {
   Contact contact;
 };
 
-// `ball` is the free ball at the start of the tick, ballTo where it rolls to
-// by the end. Every player of `state` competes, moving as the movement system
-// moves him in this tick, except the ball's last touch within
+// `ball` is the free ball at the start of the tick, `moved` the ball as
+// stepFreeBall() leaves it at the end. Every player of `state` competes, moving
+// as the movement system moves him in this tick, except the ball's last touch
+// within
 // reclaimDelaySeconds of it. The earliest contact wins; equal contact times
-// go to the player who comes closer, and then to the lower id. Empty if no
+// go to the player who comes closer, and then to the lower id. A contact above
+// controlHeight does not count: the ball flies over the player. Empty if no
 // one reaches the ball.
 [[nodiscard]] std::optional<BallClaim> findBallClaim(const MatchState& state, const BallState& ball,
-                                                     SimCore::Vec2 ballTo, SimCore::SimTick now,
+                                                     const BallState& moved, SimCore::SimTick now,
                                                      double secondsPerTick,
                                                      const ReceptionConfig& config);
 
-// Throws std::invalid_argument unless both values are finite and not
+// How high the ball is at a moment within the tick, as a fraction of it: the
+// straight line from its height at the start to its height at the end. The
+// same straight line findContact() already assumes for its flight through the
+// pitch plane.
+[[nodiscard]] double heightAtFraction(const BallState& ball, const BallState& moved,
+                                      double fraction) noexcept;
+
+// Throws std::invalid_argument unless every value is finite and not
 // negative.
 void validate(const ReceptionConfig& config);
 

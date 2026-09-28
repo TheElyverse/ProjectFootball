@@ -91,9 +91,6 @@ struct PlayerMatchState {
   friend bool operator==(const PlayerMatchState&, const PlayerMatchState&) = default;
 };
 
-// Position in meters, velocity in meters per second, both in the pitch plane.
-// The third dimension and spin (section 6.7) arrive with the passing model.
-//
 // Who last played the ball, and in which tick.
 struct BallTouch {
   SimCore::PlayerId playerId;
@@ -104,24 +101,53 @@ struct BallTouch {
 
 // owner is the player in control of the ball; empty while the ball is free.
 // One optional id rather than a flag per player, so the ball can never have
-// two owners. A controlled ball follows its owner, a free ball rolls on its
-// own (docs/possession.md). lastTouch is the last player to kick or take the
-// ball; empty until someone has.
+// two owners. A controlled ball follows its owner, a free ball rolls, flies
+// and bounces on its own (docs/possession.md, docs/ball-movement.md).
+// lastTouch is the last player to kick or take the ball; empty until someone
+// has.
+//
+// position and velocity are the ball in the pitch plane, in meters and meters
+// per second; height and verticalVelocity are the third dimension, meters
+// above the ground and meters per second upwards. A ball with both of them at
+// zero lies on the grass and rolls exactly as it always has.
+//
+// spin is top- or backspin in radians per second about the horizontal axis
+// across its direction of travel: positive is topspin, which drives the ball
+// on when it bounces, negative backspin, which checks it. Sidespin, and with
+// it a curving flight, is not modelled yet.
 struct BallState {
   SimCore::Vec2 position;
   SimCore::Vec2 velocity;
   std::optional<SimCore::PlayerId> owner;
   std::optional<BallTouch> lastTouch;
+  double height = 0.0;
+  double verticalVelocity = 0.0;
+  double spin = 0.0;
 
   [[nodiscard]] bool isControlled() const noexcept { return owner.has_value(); }
+
+  // Whether the ball lies still on the grass: no velocity in any direction and
+  // no height. A ball at the apex of its flight has no velocity in the pitch
+  // plane either, so this is what tells the two apart.
+  [[nodiscard]] bool isAtRest() const noexcept {
+    return velocity == SimCore::Vec2{} && height == 0.0 && verticalVelocity == 0.0;
+  }
+
+  // Whether the ball is off the ground, and so out of reach of a foot.
+  [[nodiscard]] bool isAirborne() const noexcept { return height > 0.0; }
 
   friend bool operator==(const BallState&, const BallState&) = default;
 };
 
 // No kicked football gets near this; the hardest shots are around 60 m/s. A
 // faster ball is a broken fixture, and would overflow when its speed is
-// squared.
+// squared. It bounds the speed in the pitch plane and the vertical speed
+// separately.
 inline constexpr double kMaxBallSpeed = 100.0;  // m/s
+
+// A hard-struck ball spins at some 60 rad/s (ten revolutions a second); this
+// leaves room for a fixture that exaggerates and still catches a broken one.
+inline constexpr double kMaxBallSpin = 500.0;  // rad/s
 
 enum class MatchStateErrorCode : std::uint8_t {
   kInvalidPlayersPerSide,
@@ -140,6 +166,12 @@ enum class MatchStateErrorCode : std::uint8_t {
   kBallOutsidePitch,
   kNonFiniteBallVelocity,
   kBallTooFast,
+  kNonFiniteBallHeight,
+  kBallBelowGround,
+  kNonFiniteBallVerticalVelocity,
+  kBallRisingTooFast,
+  kNonFiniteBallSpin,
+  kBallSpinningTooFast,
   kUnknownBallOwner,
   kUnknownLastTouch,
   kTacticDoesNotFitSquad,
@@ -248,7 +280,8 @@ class MatchStateWriter;
 // The invariants hold for every state, from kickoff to the final whistle:
 // both squads have the stated size, every player has a unique valid id, a
 // declared side, positive finite attributes and a unit facing vector, every
-// position, velocity and target is finite, and the ball belongs to no one or
+// position, velocity and target is finite, the ball's height is finite and not
+// below the ground, and the ball belongs to no one or
 // to a player in the state. Being on the
 // pitch is deliberately not one of them: a ball that crossed the touchline or
 // a player standing behind the goal line is football, not a broken state.
@@ -361,7 +394,8 @@ class MatchState {
 };
 
 // What a simulation system or command may change in a state: positions,
-// velocities, movement targets, facings, perception memories, who owns and
+// velocities, movement targets, facings, perception memories, the ball's
+// height, vertical velocity and spin, who owns and
 // last touched the ball, the pending pass, the last pass and reception, team
 // possession and phases, the
 // pitch-control grid, the chasers, presses and players' tactical states,
@@ -392,6 +426,13 @@ class MatchStateWriter {
   }
   void setBallPosition(SimCore::Vec2 position) noexcept { state_->ball_.position = position; }
   void setBallVelocity(SimCore::Vec2 velocity) noexcept { state_->ball_.velocity = velocity; }
+  // The third dimension and the spin. A negative height is below the ground
+  // and is rejected by the loop's checks like a non-finite one.
+  void setBallHeight(double height) noexcept { state_->ball_.height = height; }
+  void setBallVerticalVelocity(double verticalVelocity) noexcept {
+    state_->ball_.verticalVelocity = verticalVelocity;
+  }
+  void setBallSpin(double spin) noexcept { state_->ball_.spin = spin; }
   // Hands the ball to a player, or frees it with std::nullopt. Throws
   // std::invalid_argument for an id no player in the state has, so the ball
   // can only ever belong to a player on the pitch.
@@ -454,8 +495,10 @@ class MatchStateWriter {
 [[nodiscard]] std::size_t slotIndex(const MatchState& state, std::size_t playerIndex);
 
 // The finiteness rules of MatchState::create(), for a state the simulation
-// has just written: every non-finite position, velocity and target and every
-// facing that is not a finite unit vector, players by index
+// has just written: every non-finite position, velocity and target, every
+// facing that is not a finite unit vector, and a ball height, vertical
+// velocity or spin that is not finite or a ball below the ground, players by
+// index
 // first and then the ball, with the same codes and messages create() uses.
 // Empty for a state without defects.
 [[nodiscard]] std::vector<MatchStateError> findNonFiniteValues(const MatchState& state);
