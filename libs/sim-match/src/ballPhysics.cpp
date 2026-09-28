@@ -1,7 +1,9 @@
 #include "ballPhysics.hpp"
 
 #include <algorithm>
+#include <array>
 #include <cmath>
+#include <cstddef>
 #include <limits>
 #include <stdexcept>
 
@@ -40,34 +42,95 @@ inline constexpr int kMaxBouncesPerTick = 8;
   return value >= 0.0 && value <= 1.0;
 }
 
+// Below this much drag over a span the closed forms below are all cancellation
+// and their Taylor series has long converged, so the two meet with no seam.
+inline constexpr double kDragSeriesCutoff = 0.5;
+
+// The table read as coefficient[n] · (-x)^n, summed in Horner form.
+template <std::size_t kCount>
+[[nodiscard]] double alternatingSeries(const std::array<double, kCount>& coefficients,
+                                       const double x) noexcept {
+  double sum = 0.0;
+  for (auto coefficient = coefficients.rbegin(); coefficient != coefficients.rend();
+       ++coefficient) {
+    sum = *coefficient - (x * sum);
+  }
+  return sum;
+}
+
+// (1 - e^{-x}) / x for x >= 0, and its limit 1 at x = 0: what a unit speed
+// covers over a span that costs it x of drag.
+//
+// The closed form cancels away as x shrinks -- at x = 1e-16 the subtraction is
+// exactly zero and the quotient with it -- and validate() accepts an airDrag
+// that small, so below the cutoff the series 1 - x/2 + x²/6 - ... is summed
+// instead. Both branches are basic arithmetic over stableExp(), so both stay
+// bit-identical on every platform.
+[[nodiscard]] double dragSpanFactor(const double x) noexcept {
+  if (x > kDragSeriesCutoff) {
+    return (1.0 - SimCore::stableExp(-x)) / x;
+  }
+  // 1/1!, 1/2!, ..., 1/13!.
+  constexpr std::array<double, 13> kCoefficients{1.0,
+                                                 1.0 / 2.0,
+                                                 1.0 / 6.0,
+                                                 1.0 / 24.0,
+                                                 1.0 / 120.0,
+                                                 1.0 / 720.0,
+                                                 1.0 / 5040.0,
+                                                 1.0 / 40320.0,
+                                                 1.0 / 362880.0,
+                                                 1.0 / 3628800.0,
+                                                 1.0 / 39916800.0,
+                                                 1.0 / 479001600.0,
+                                                 1.0 / 6227020800.0};
+  return alternatingSeries(kCoefficients, x);
+}
+
+// (e^{-x} - 1 + x) / x² for x >= 0, and its limit 1/2 at x = 0: what gravity
+// takes off a flight over a span that costs it x of drag, per g · t².
+//
+// Written as ((e^{-x} - 1) / x + 1) / x rather than over x², so a huge drag
+// cannot square its way to infinity; a small one goes to the series
+// 1/2 - x/6 + x²/24 - ... for the same reason as dragSpanFactor().
+[[nodiscard]] double dragDropFactor(const double x) noexcept {
+  if (x > kDragSeriesCutoff) {
+    return (((SimCore::stableExp(-x) - 1.0) / x) + 1.0) / x;
+  }
+  // 1/2!, 1/3!, ..., 1/14!.
+  constexpr std::array<double, 13> kCoefficients{
+      1.0 / 2.0,         1.0 / 6.0,          1.0 / 24.0,         1.0 / 120.0,     1.0 / 720.0,
+      1.0 / 5040.0,      1.0 / 40320.0,      1.0 / 362880.0,     1.0 / 3628800.0, 1.0 / 39916800.0,
+      1.0 / 479001600.0, 1.0 / 6227020800.0, 1.0 / 87178291200.0};
+  return alternatingSeries(kCoefficients, x);
+}
+
 // The ball `seconds` into its flight, in closed form: gravity and a linear air
 // drag. Horizontal speed decays as e^{-k·t}; the vertical velocity approaches
 // the terminal speed g / k from wherever it starts, and the height is the
 // integral of that. Spin dies away the same exponential way.
+//
+// The terminal speed itself never appears: it is g / k, which overflows for
+// the smallest drags validate() accepts, and the two factors above fold it
+// away. With no drag at all they are 1 and 1/2, which is the plain parabola,
+// so the whole range from no drag to any drag is one formula.
 //
 // Exact for any span, so the same flight comes out the same however the ticks
 // are cut -- the one thing a numerical integrator could not promise. It knows
 // nothing about the ground: the caller splits the span at the landing.
 [[nodiscard]] BallState flownFor(const BallState& ball, const BallPhysics& physics,
                                  const double seconds) noexcept {
+  const double drag = physics.airDrag * seconds;
+  const double decay = SimCore::stableExp(-drag);
+  // How far a unit speed carries over the span, and the drop gravity adds.
+  const double span = seconds * dragSpanFactor(drag);
+  const double drop = physics.gravity * seconds * seconds * dragDropFactor(drag);
   BallState flown = ball;
   flown.spin = ball.spin * SimCore::stableExp(-physics.spinDecay * seconds);
-  if (physics.airDrag <= 0.0) {
-    // Without drag the flight is the plain parabola.
-    flown.position = ball.position + (ball.velocity * seconds);
-    flown.height = ball.height + (ball.verticalVelocity * seconds) -
-                   (0.5 * physics.gravity * seconds * seconds);
-    flown.verticalVelocity = ball.verticalVelocity - (physics.gravity * seconds);
-    return flown;
-  }
-  const double decay = SimCore::stableExp(-physics.airDrag * seconds);
-  // The integral of the decay over the span: how far a unit speed carries.
-  const double span = (1.0 - decay) / physics.airDrag;
-  const double terminal = physics.gravity / physics.airDrag;
   flown.position = ball.position + (ball.velocity * span);
   flown.velocity = ball.velocity * decay;
-  flown.height = ball.height + ((ball.verticalVelocity + terminal) * span) - (terminal * seconds);
-  flown.verticalVelocity = ((ball.verticalVelocity + terminal) * decay) - terminal;
+  flown.height = ball.height + (ball.verticalVelocity * span) - drop;
+  flown.verticalVelocity = (ball.verticalVelocity * decay) - (physics.gravity * span);
   return flown;
 }
 

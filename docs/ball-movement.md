@@ -95,6 +95,24 @@ and its constant is tuned rather than measured: at the default, the terminal
 speed of a falling ball is `gravity / airDrag ≈ 30 m/s`, which is about right
 for a football.
 
+**Why the terminal speed does not appear in the code.** `g/k` above is that
+terminal speed, and it is a trap: every drag down to zero is a valid
+configuration, and the smallest of them make `g/k` overflow and `1 - e^(-k·t)`
+cancel to nothing, so a formula written in those terms turns a legal
+configuration into a ball that flies to 270 m or to `NaN`. The step is
+therefore written over the span `t · φ₁(k·t)` a unit speed covers and the drop
+`g · t² · φ₂(k·t)` gravity adds, where
+
+```
+φ₁(x) = (1 - e^(-x)) / x        φ₂(x) = (e^(-x) - 1 + x) / x²
+```
+
+Neither ever divides by the drag. Both are summed from their Taylor series
+below `x = 0.5`, where the closed forms are all cancellation and the series has
+long converged, and `φ₁(0) = 1`, `φ₂(0) = ½` are exactly the plain parabola --
+so no drag, a vanishing drag and a real one are one formula rather than a
+special case each.
+
 ## Bounce
 
 Where the flight reaches the ground within a tick, the ball bounces:

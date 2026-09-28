@@ -1,6 +1,7 @@
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
 #include <cmath>
+#include <limits>
 #include <optional>
 #include <stdexcept>
 #include <vector>
@@ -136,6 +137,29 @@ TEST_CASE("Without drag a flight is the plain parabola", "[ballPhysics]") {
                WithinAbs(2.0 * 6.0 / physics.gravity, 1e-9));
   REQUIRE_THAT(landing.value_or(BallLanding{}).apexHeight,
                WithinAbs((6.0 * 6.0) / (2.0 * physics.gravity), 1e-9));
+}
+
+TEST_CASE("A vanishing drag flies like no drag at all", "[ballPhysics]") {
+  // validate() accepts every finite drag down to zero, so every one of them
+  // has to fly: the terminal speed gravity / airDrag overflows long before
+  // the smallest, and 1 - e^{-k·t} cancels to nothing not far above it.
+  BallPhysics none;
+  none.airDrag = 0.0;
+  const BallState ball =
+      ballAt({.x = 10.0, .y = 20.0}, {.x = 12.0, .y = 0.0}, {.verticalVelocity = 6.0});
+  const BallState parabola = stepFreeBall(ball, none, pitch(), kSecondsPerTick);
+
+  for (const double drag : {1e-300, std::numeric_limits<double>::min(), 1e-10}) {
+    BallPhysics physics = none;
+    physics.airDrag = drag;
+    const BallState flown = stepFreeBall(ball, physics, pitch(), kSecondsPerTick);
+    // None of these drags takes as much as a nanometer off a tick, so the
+    // flight has to be the parabola to within one.
+    REQUIRE(std::isfinite(flown.height));
+    REQUIRE_THAT(flown.height, WithinAbs(parabola.height, 1e-9));
+    REQUIRE_THAT(flown.position.x, WithinAbs(parabola.position.x, 1e-9));
+    REQUIRE_THAT(flown.verticalVelocity, WithinAbs(parabola.verticalVelocity, 1e-9));
+  }
 }
 
 TEST_CASE("Air drag shortens a flight and caps a fall", "[ballPhysics]") {
