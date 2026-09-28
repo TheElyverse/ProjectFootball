@@ -1,4 +1,5 @@
 #include <catch2/catch_test_macros.hpp>
+#include <catch2/matchers/catch_matchers_floating_point.hpp>
 #include <cmath>
 #include <limits>
 #include <numbers>
@@ -7,6 +8,7 @@
 
 using ElyverseFootball::SimCore::stableArcTangent;
 using ElyverseFootball::SimCore::stableExp;
+using ElyverseFootball::SimCore::stableHypot;
 
 TEST_CASE("stableExp agrees with std::exp to the last bits", "[stableMath]") {
   REQUIRE(stableExp(0.0) == 1.0);
@@ -81,4 +83,51 @@ TEST_CASE("stableArcTangent is pinned for values decisions depend on", "[stableM
   REQUIRE(stableArcTangent(1.0) == 0.7853981633974483);
   REQUIRE(stableArcTangent(0.5) == 0.4636476090008061);
   REQUIRE(stableArcTangent(3.0) == 1.2490457723982544);
+}
+
+TEST_CASE("stableHypot is exactly sqrt(x * x + y * y) where squaring is safe", "[stableMath]") {
+  REQUIRE(stableHypot(3.0, 4.0) == 5.0);
+  REQUIRE(stableHypot(0.0, 0.0) == 0.0);
+  for (int step = -300; step <= 300; ++step) {
+    const double x = static_cast<double>(step) * 0.0137;
+    const double y = 7.25 - (static_cast<double>(step) * 0.031);
+    CAPTURE(x, y);
+    REQUIRE(stableHypot(x, y) == std::sqrt((x * x) + (y * y)));
+    REQUIRE(stableHypot(x, y) == stableHypot(-y, x));
+  }
+  for (const double scale : {1e-150, 1e-6, 1e6, 1e150}) {
+    CAPTURE(scale);
+    const double x = 3.0 * scale;
+    const double y = 4.0 * scale;
+    REQUIRE(stableHypot(x, y) == std::sqrt((x * x) + (y * y)));
+  }
+}
+
+TEST_CASE("stableHypot neither overflows nor underflows on extreme components", "[stableMath]") {
+  constexpr double kMax = std::numeric_limits<double>::max();
+  constexpr double kDenormMin = std::numeric_limits<double>::denorm_min();
+  const double tolerance = 4.0 * std::numeric_limits<double>::epsilon();
+
+  REQUIRE(stableHypot(kMax, 0.0) == kMax);
+  REQUIRE(stableHypot(0.0, -kMax) == kMax);
+  REQUIRE_THAT(stableHypot(kMax / 2.0, kMax / 2.0) / (kMax / 2.0),
+               Catch::Matchers::WithinRel(std::numbers::sqrt2, tolerance));
+  REQUIRE(stableHypot(kMax, kMax) == std::numeric_limits<double>::infinity());
+  REQUIRE_THAT(stableHypot(3e300, 4e300) / 1e300, Catch::Matchers::WithinRel(5.0, tolerance));
+
+  REQUIRE_THAT(stableHypot(3e-300, 4e-300) / 1e-300, Catch::Matchers::WithinRel(5.0, tolerance));
+  REQUIRE(stableHypot(1e-200, 1e-200) > 1e-200);
+  REQUIRE(stableHypot(kDenormMin, 0.0) == kDenormMin);
+  REQUIRE(stableHypot(0.0, -kDenormMin) == kDenormMin);
+}
+
+TEST_CASE("stableHypot handles non-finite components like std::hypot", "[stableMath]") {
+  constexpr double kInfinity = std::numeric_limits<double>::infinity();
+  constexpr double kNaN = std::numeric_limits<double>::quiet_NaN();
+  REQUIRE(stableHypot(kInfinity, 1.0) == kInfinity);
+  REQUIRE(stableHypot(1.0, -kInfinity) == kInfinity);
+  REQUIRE(stableHypot(kInfinity, kNaN) == kInfinity);
+  REQUIRE(stableHypot(kNaN, -kInfinity) == kInfinity);
+  REQUIRE(std::isnan(stableHypot(kNaN, 1.0)));
+  REQUIRE(std::isnan(stableHypot(0.0, kNaN)));
 }

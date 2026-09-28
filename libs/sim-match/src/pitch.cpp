@@ -160,7 +160,9 @@ double Pitch::distanceToGoalMouthMeters(const GoalEnd end,
                                         const SimCore::Vec2 position) const noexcept {
   const Goal frame = goal(end);
   const double nearestY = std::clamp(position.y, frame.postAtMinY().y, frame.postAtMaxY().y);
-  return SimCore::distance(position, {.x = frame.center.x, .y = nearestY});
+  // Not SimCore::distance(): std::hypot may differ in the last bit between
+  // platforms, and shot decisions weigh this distance.
+  return SimCore::stableHypot(position.x - frame.center.x, position.y - nearestY);
 }
 
 double Pitch::goalMouthAngleRadians(const GoalEnd end,

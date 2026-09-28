@@ -1,5 +1,6 @@
 #pragma once
 
+#include <algorithm>
 #include <array>
 #include <cmath>
 #include <limits>
@@ -58,6 +59,40 @@ namespace ElyverseFootball::SimCore {
     sum = (sum * remainder) + inverseFactorial;
   }
   return std::ldexp(sum, static_cast<int>(powerOfTwo));
+}
+
+// sqrt(x² + y²) -- the length of a vector (x, y) -- from basic arithmetic and
+// std::sqrt only, so the result is bit-identical on every platform. std::hypot
+// is not: like std::exp (see stableExp) it need not be correctly rounded, and
+// a last-bit difference in a distance is enough to flip a decision.
+//
+// Where squaring is safe it is exactly std::sqrt(x * x + y * y), the length the
+// movement code already uses. Beyond that range both components are scaled by a
+// power of two first and the result scaled back, all exactly, so the squares
+// cannot overflow to infinity or underflow to zero. A result beyond the largest
+// double is infinity; an infinite component gives infinity even beside a NaN,
+// like std::hypot, and otherwise NaN gives NaN.
+[[nodiscard]] inline double stableHypot(const double x, const double y) noexcept {
+  const double absX = std::abs(x);
+  const double absY = std::abs(y);
+  if (std::isinf(absX) || std::isinf(absY)) {
+    return std::numeric_limits<double>::infinity();
+  }
+  if (std::isnan(absX) || std::isnan(absY)) {
+    return std::numeric_limits<double>::quiet_NaN();
+  }
+  const double largest = std::max(absX, absY);
+  // Squares of components within these bounds stay normal and finite, and a
+  // smaller component whose square underflows loses less than the sum's rounding.
+  constexpr double kSafeMin = 0x1p-500;
+  constexpr double kSafeMax = 0x1p500;
+  if (largest == 0.0 || (largest >= kSafeMin && largest <= kSafeMax)) {
+    return std::sqrt((absX * absX) + (absY * absY));
+  }
+  const int exponent = std::ilogb(largest);
+  const double scaledX = std::ldexp(absX, -exponent);
+  const double scaledY = std::ldexp(absY, -exponent);
+  return std::ldexp(std::sqrt((scaledX * scaledX) + (scaledY * scaledY)), exponent);
 }
 
 namespace Detail {

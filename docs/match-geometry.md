@@ -121,11 +121,11 @@ teams change ends, so an end says nothing about which side defends it.
 
 `PitchCircle::contains()` includes the edge and rejects non-finite points, the
 way `PitchRect::contains()` and `Pitch::contains()` do. It compares the
-`std::hypot` length of the offset against the radius rather than their squares,
-so it stays correct on the extreme pitch sizes where squaring would overflow or
-underflow. Heights are meters above the ground and are the one quantity a caller
-supplies rather than reads: the simulation is otherwise flat, and no state
-stores a height yet.
+`SimCore::stableHypot()` length of the offset against the radius rather than
+their squares, so it stays correct on the extreme pitch sizes where squaring
+would overflow or underflow. Heights are meters above the ground and are the one
+quantity a caller supplies rather than reads: the simulation is otherwise flat,
+and no state stores a height yet.
 
 `Goal::framesPoint(pitchY, height)` answers whether a point is inside the frame:
 `isBetweenPosts()` and `isUnderCrossbar()` both hold, so a point beside a post
@@ -159,6 +159,13 @@ last-bit difference between two machines would be enough to rate the same shot
 differently and make a replay diverge. `stableArcTangent()` works from basic
 arithmetic and `std::sqrt`, both correctly rounded, and is accurate to a few
 units in the last place.
+
+The goal-mouth distance, like the circles' containment, uses
+`SimCore::stableHypot()` rather than `SimCore::distance()`, which calls
+`std::hypot`: that too need not be correctly rounded. `stableHypot()` is exactly
+`std::sqrt(x * x + y * y)` wherever the squares are safe -- the length the
+movement code already uses -- and scales both components by an exact power of
+two first where they would overflow or underflow.
 
 ## Vector operations
 

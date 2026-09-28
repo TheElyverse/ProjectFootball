@@ -191,3 +191,9 @@ messages or in pull request descriptions.
 
 Design/planning docs are written primarily in German with English technical terms. Match that convention
 if extending those specific documents. Code (identifiers, comments) is English.
+
+## Changes
+
+* Always keep the change as small as possible
+* Reuse existing code
+* Prefer extracting functions over redefining same or very similar logic
