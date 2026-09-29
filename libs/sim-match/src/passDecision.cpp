@@ -68,15 +68,15 @@ MatchSystem makePassDecisionSystem(const DecisionConfig& config, const PassCandi
           [config, scored](const MatchStepContext& context, const MatchState& current,
                            MatchStateWriter& next) {
             const BallState& ball = current.ball();
-            if (!ball.owner || current.pendingPass()) {
+            if (!ball.owner) {
+              return;
+            }
+            const auto carrier = findPlayerIndex(current, *ball.owner);
+            if (!carrier || current.pendingAction(*carrier)) {
               return;
             }
             if (heldSeconds(ball, context.tick(), context.secondsPerTick()) <
                 config.minHoldSeconds) {
-              return;
-            }
-            const auto carrier = findPlayerIndex(current, *ball.owner);
-            if (!carrier) {
               return;
             }
             PassCandidateRules carrierRules = scored;
@@ -108,10 +108,10 @@ MatchSystem makePassDecisionSystem(const DecisionConfig& config, const PassCandi
               return;
             }
             const PassCandidate& pass = candidates[*chosen];
-            next.setPendingPass(PassIntent{.passer = *ball.owner,
-                                           .target = pass.target,
-                                           .speed = pass.speed,
-                                           .receiver = pass.receiver});
+            next.setPendingAction(*carrier, PassIntent{.passer = *ball.owner,
+                                                       .target = pass.target,
+                                                       .speed = pass.speed,
+                                                       .receiver = pass.receiver});
           },
       .intervalTicks = config.intervalTicks,
       .phaseTicks = 0};

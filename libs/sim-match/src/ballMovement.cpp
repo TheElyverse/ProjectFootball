@@ -1,9 +1,11 @@
 #include "ballMovement.hpp"
 
 #include <algorithm>
+#include <cstddef>
 #include <limits>
 #include <stdexcept>
 #include <string>
+#include <variant>
 
 #include "passing.hpp"
 #include "playerMovement.hpp"
@@ -107,34 +109,41 @@ MatchSystem makeBallMovementSystem(const BallPhysics& physics, const PassConfig&
           next.setBallSpin(0.0);
         };
 
-        // 1. Play the pending pass, if its passer owns the ball. The pass
-        //    itself comes from current, not next: a pass decided this same
-        //    step is played next step, one step of pending pass being
-        //    deliberate. The ball comes from next, and next.pendingPass() is
-        //    checked too, because a challenge earlier this same step may
-        //    have already taken the ball and dropped the pass, and current
-        //    would still show the stale pre-step values.
+        // 1. Play the pending pass, if its passer owns the ball, and drop
+        //    every other. The pass itself comes from current, not next: a
+        //    pass decided this same step is played next step, one step of
+        //    pending pass being deliberate. The ball comes from next, and
+        //    next.pendingAction() is checked too, because a challenge earlier
+        //    this same step may have already taken the ball and dropped the
+        //    pass, and current would still show the stale pre-step values.
         BallState ball = next.ball();
-        if (const std::optional<PassIntent> intent = current.pendingPass();
-            intent && next.pendingPass()) {
-          next.setPendingPass(std::nullopt);
-          if (ball.owner == intent->passer) {
-            ball = kicked(current, *intent, physics, passing, context);
-            next.setBallOwner(ball.owner);
-            next.setBallLastTouch(ball.lastTouch);
-            next.setLastPass(PassRecord{.passer = intent->passer,
-                                        .from = ball.position,
-                                        .tick = context.tick(),
-                                        .receiver = intent->receiver});
-            context.record(PassAttempted{.tick = context.tick(),
-                                         .passer = intent->passer,
-                                         .intendedReceiver = intent->receiver,
-                                         .from = ball.position,
-                                         .target = intent->target,
-                                         .speed = ball.velocity.length()});
-            context.record(PossessionChanged{
-                .tick = context.tick(), .previousOwner = intent->passer, .newOwner = std::nullopt});
+        std::optional<PassIntent> intent;
+        for (std::size_t index = 0; index < current.players().size(); ++index) {
+          const std::optional<PendingAction>& action = current.pendingAction(index);
+          if (!action || !next.pendingAction(index)) {
+            continue;
           }
+          next.setPendingAction(index, std::nullopt);
+          if (current.players()[index].playerId == ball.owner) {
+            intent = std::get<PassIntent>(*action);
+          }
+        }
+        if (intent) {
+          ball = kicked(current, *intent, physics, passing, context);
+          next.setBallOwner(ball.owner);
+          next.setBallLastTouch(ball.lastTouch);
+          next.setLastPass(PassRecord{.passer = intent->passer,
+                                      .from = ball.position,
+                                      .tick = context.tick(),
+                                      .receiver = intent->receiver});
+          context.record(PassAttempted{.tick = context.tick(),
+                                       .passer = intent->passer,
+                                       .intendedReceiver = intent->receiver,
+                                       .from = ball.position,
+                                       .target = intent->target,
+                                       .speed = ball.velocity.length()});
+          context.record(PossessionChanged{
+              .tick = context.tick(), .previousOwner = intent->passer, .newOwner = std::nullopt});
         }
 
         // 2. A controlled ball stays with its owner. create() and the

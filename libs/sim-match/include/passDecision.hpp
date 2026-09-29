@@ -48,7 +48,8 @@ inline constexpr std::string_view kPassDecisionSystemName = "pass decision";
 
 // Every config.intervalTicks ticks, the player on the ball decides:
 //
-//   1. Nothing to decide if the ball is free or a pass is already pending.
+//   1. Nothing to decide if the ball is free or its owner already has an
+//      action pending.
 //   2. He keeps a ball he took less than minHoldSeconds ago.
 //   3. He lists and scores his options with generatePassCandidates(), from
 //      his perception only -- scored for the passing risk of his side's

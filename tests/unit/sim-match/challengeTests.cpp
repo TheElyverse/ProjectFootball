@@ -77,10 +77,10 @@ namespace {
                                                  .decidedAt = SimTick(0),
                                                  .withBall = false};
         }
-        next.setPendingPass(PassIntent{.passer = PlayerId(1),
-                                       .target = {.x = 50.0, .y = 20.0},
-                                       .speed = 10.0,
-                                       .receiver = std::nullopt});
+        next.setPendingAction(0, PassIntent{.passer = PlayerId(1),
+                                            .target = {.x = 50.0, .y = 20.0},
+                                            .speed = 10.0,
+                                            .receiver = std::nullopt});
       }};
 }
 
@@ -170,10 +170,10 @@ TEST_CASE("A challenge win survives ball movement in the same step", "[challenge
                                                .subject = PlayerId(1),
                                                .decidedAt = SimTick(0),
                                                .withBall = false};
-        next.setPendingPass(PassIntent{.passer = PlayerId(1),
-                                       .target = {.x = 50.0, .y = 20.0},
-                                       .speed = 10.0,
-                                       .receiver = std::nullopt});
+        next.setPendingAction(0, PassIntent{.passer = PlayerId(1),
+                                            .target = {.x = 50.0, .y = 20.0},
+                                            .speed = 10.0,
+                                            .receiver = std::nullopt});
       }};
   ChallengeConfig always;
   always.intervalTicks = 1;

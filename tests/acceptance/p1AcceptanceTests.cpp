@@ -317,7 +317,9 @@ TEST_CASE("P1: the final hashes are pinned", "[acceptance][p1]") {
   // update these values deliberately. The state hashes were re-pinned when
   // the ball gained height, vertical velocity and spin: every scenario plays
   // out exactly as before -- the event hashes prove it -- and only the state
-  // hash covers three numbers more.
+  // hash covers three numbers more. They were re-pinned again when the
+  // pending pass became a pending action per player, with unchanged event
+  // hashes: the same play, one hashed slot per player.
   struct Pinned {
     std::string_view name;
     std::uint64_t stateHash;
@@ -325,13 +327,13 @@ TEST_CASE("P1: the final hashes are pinned", "[acceptance][p1]") {
   };
   const std::array<Pinned, 3> pinned{{
       {.name = "pass-chain",
-       .stateHash = 0x392da1d866e44605ULL,
+       .stateHash = 0xa6d77f41b88df1adULL,
        .eventHash = 0x998519c3360aaabbULL},
       {.name = "intercepted-pass",
-       .stateHash = 0xf529403725aeab73ULL,
+       .stateHash = 0xac79cc02735c798dULL,
        .eventHash = 0x22f2a2f2ddabf1e5ULL},
       {.name = "no-passing-option",
-       .stateHash = 0xcd2cf253cbe4af7dULL,
+       .stateHash = 0x7fecf683d5f0c6d1ULL,
        .eventHash = 0x4c3da4b4c5ecf1a7ULL},
   }};
   for (const Pinned& expected : pinned) {

@@ -11,6 +11,7 @@
 #include <string_view>
 #include <unordered_map>
 #include <utility>
+#include <variant>
 
 namespace ElyverseFootball::SimMatch {
 namespace {
@@ -298,7 +299,17 @@ MatchState::MatchState(MatchStateSpec spec, TeamTactics tactics)
       playersPerSide_(spec.playersPerSide),
       tactics_(std::move(tactics)),
       perceptions_(players_.size()),
+      pendingActions_(players_.size()),
       tactical_(players_.size()) {}
+
+std::optional<PassIntent> MatchState::pendingPass() const noexcept {
+  for (const std::optional<PendingAction>& action : pendingActions_) {
+    if (const PassIntent* pass = action ? std::get_if<PassIntent>(&*action) : nullptr) {
+      return *pass;
+    }
+  }
+  return std::nullopt;
+}
 
 std::expected<MatchState, std::vector<MatchStateError>> MatchState::create(MatchStateSpec spec,
                                                                            TeamTactics tactics) {
@@ -350,14 +361,20 @@ void MatchStateWriter::setBallLastTouch(const std::optional<BallTouch> touch) {
   state_->ball_.lastTouch = touch;
 }
 
-void MatchStateWriter::setPendingPass(const std::optional<PassIntent> pass) {
-  if (pass) {
-    requirePlayer(pass->passer, "a passer");
+void MatchStateWriter::setPendingAction(const std::size_t playerIndex,
+                                        const std::optional<PendingAction> action) {
+  const SimCore::PlayerId player = state_->players_.at(playerIndex).playerId;
+  if (const PassIntent* pass = action ? std::get_if<PassIntent>(&*action) : nullptr) {
+    if (pass->passer != player) {
+      throw std::invalid_argument(
+          std::format("MatchStateWriter: player {} cannot wait to play a pass of player {}",
+                      player.value(), pass->passer.value()));
+    }
     if (pass->receiver) {
       requirePlayer(*pass->receiver, "a receiver");
     }
   }
-  state_->pendingPass_ = pass;
+  state_->pendingActions_[playerIndex] = action;
 }
 
 void MatchStateWriter::setLastPass(const std::optional<PassRecord> pass) {

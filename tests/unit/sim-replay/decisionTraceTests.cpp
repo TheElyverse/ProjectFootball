@@ -236,10 +236,10 @@ TEST_CASE("A pass challenged away the step it is decided is traced as not played
         if (context.tick() != SimTick(1)) {
           return;
         }
-        next.setPendingPass(PassIntent{.passer = PlayerId(1),
-                                       .target = {.x = 40.0, .y = 20.0},
-                                       .speed = 10.0,
-                                       .receiver = std::nullopt});
+        next.setPendingAction(0, PassIntent{.passer = PlayerId(1),
+                                            .target = {.x = 40.0, .y = 20.0},
+                                            .speed = 10.0,
+                                            .receiver = std::nullopt});
         if (context.collectsDiagnostics(PlayerId(1))) {
           context.diagnose(DecisionDiagnostic{.tick = SimTick(1),
                                               .player = PlayerId(1),

@@ -62,8 +62,9 @@ TEST_CASE("The kickoff hash is pinned", "[matchStateHash]") {
   // each of those invalidates recorded replays, so update it deliberately.
   // Re-pinned when the ball gained its height, vertical velocity and spin:
   // the kickoff ball lies still on the grass as it always has, but the hash
-  // covers three numbers more.
-  REQUIRE(hashOf(kickoffSpec()) == 0xed951bd81d2d0b7eULL);
+  // covers three numbers more. Re-pinned again when the pending pass became
+  // a pending action per player: the hash covers one slot per player.
+  REQUIRE(hashOf(kickoffSpec()) == 0xb713216731e6a49aULL);
 }
 
 // Guards against a field that is added to the state but forgotten here.

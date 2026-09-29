@@ -8,6 +8,7 @@
 #include <span>
 #include <string>
 #include <string_view>
+#include <variant>
 #include <vector>
 
 #include "ids.hpp"
@@ -271,6 +272,11 @@ struct PassIntent {
   friend bool operator==(const PassIntent&, const PassIntent&) = default;
 };
 
+// What a player has decided and not yet done: an action waiting for the
+// system that carries it out. Each player has his own; so far only the player
+// on the ball decides one.
+using PendingAction = std::variant<PassIntent>;
+
 class MatchSimulation;
 class MatchStateWriter;
 
@@ -351,11 +357,16 @@ class MatchState {
     return side == TeamSide::kHome ? phases_[0] : phases_[1];
   }
 
-  // The pass decided and waiting to be played; empty almost always. Every
-  // state created from a spec starts without one.
-  [[nodiscard]] const std::optional<PassIntent>& pendingPass() const noexcept {
-    return pendingPass_;
+  // What the player at this index has decided and not yet done; empty almost
+  // always, and for every player of a state created from a spec. Throws
+  // std::out_of_range past the end.
+  [[nodiscard]] const std::optional<PendingAction>& pendingAction(std::size_t playerIndex) const {
+    return pendingActions_.at(playerIndex);
   }
+
+  // The pass waiting to be played: the first pending pass in player order;
+  // empty almost always.
+  [[nodiscard]] std::optional<PassIntent> pendingPass() const noexcept;
 
   // The memory of the player at this index in players(); throws
   // std::out_of_range past the end. Every state created from a spec starts
@@ -378,7 +389,8 @@ class MatchState {
   TeamTactics tactics_;
   // Parallel to players_.
   std::vector<PlayerPerception> perceptions_;
-  std::optional<PassIntent> pendingPass_;
+  // Parallel to players_.
+  std::vector<std::optional<PendingAction>> pendingActions_;
   std::optional<PassRecord> lastPass_;
   std::optional<ReceptionRecord> lastReception_;
   TeamPossession possession_;
@@ -396,7 +408,7 @@ class MatchState {
 // What a simulation system or command may change in a state: positions,
 // velocities, movement targets, facings, perception memories, the ball's
 // height, vertical velocity and spin, who owns and
-// last touched the ball, the pending pass, the last pass and reception, team
+// last touched the ball, the players' pending actions, the last pass and reception, team
 // possession and phases, the
 // pitch-control grid, the chasers, presses and players' tactical states,
 // nothing else. Squad, ids, sides,
@@ -419,10 +431,11 @@ class MatchStateWriter {
   // system's current parameter; the ball-state writer reads this to see an
   // owner a challenge already assigned this same step.
   [[nodiscard]] const BallState& ball() const noexcept { return state_->ball_; }
-  // The pass waiting to be played, as this step has left it so far; see
-  // ball() for why this differs from MatchState::pendingPass().
-  [[nodiscard]] const std::optional<PassIntent>& pendingPass() const noexcept {
-    return state_->pendingPass_;
+  // The action the player at this index waits to do, as this step has left
+  // it so far; see ball() for why this differs from
+  // MatchState::pendingAction().
+  [[nodiscard]] const std::optional<PendingAction>& pendingAction(std::size_t playerIndex) const {
+    return state_->pendingActions_.at(playerIndex);
   }
   void setBallPosition(SimCore::Vec2 position) noexcept { state_->ball_.position = position; }
   void setBallVelocity(SimCore::Vec2 velocity) noexcept { state_->ball_.velocity = velocity; }
@@ -440,9 +453,10 @@ class MatchStateWriter {
   // Records who last played the ball; throws std::invalid_argument for a
   // player not in the state.
   void setBallLastTouch(std::optional<BallTouch> touch);
-  // Sets or clears the pass waiting to be played; throws
-  // std::invalid_argument for a passer or receiver not in the state.
-  void setPendingPass(std::optional<PassIntent> pass);
+  // Sets or clears the action the player at this index waits to do; throws
+  // std::invalid_argument for an action another player would do or one
+  // naming a player not in the state.
+  void setPendingAction(std::size_t playerIndex, std::optional<PendingAction> action);
   // Throw std::invalid_argument for a player not in the state.
   void setLastPass(std::optional<PassRecord> pass);
   void setLastReception(std::optional<ReceptionRecord> reception);

@@ -10,8 +10,8 @@ system executes passes.
 
 `PassIntent` is the *what*: the passer, the target position, the speed the ball
 should leave the foot with, and optionally the intended receiver. It sits in
-`MatchState::pendingPass()` until the ball system plays it; every state created
-from a spec starts without one.
+the passer's `MatchState::pendingAction()` until the ball system plays it;
+every state created from a spec starts without one.
 
 Two things create an intent:
 
