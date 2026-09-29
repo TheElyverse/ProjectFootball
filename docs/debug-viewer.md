@@ -197,8 +197,8 @@ abridged example with illustrative values:
   `passAttempted`, `pressingStarted`, `pitchControlSampled`, ... -- with their
   fields; sides and phases are spelled `home`,
   `buildUp`, ... as in [tactics](tactics.md). The viewer shows an event type it
-  does not know by its name. A decision's `outcome` is `passed` or
-  `noValidOption`, `chosen` indexes `candidates`, and `rejection` is `valid` or
+  does not know by its name. A decision's `outcome` is `passed`, `shot` or
+  `noValidOption`, `chosen` indexes `candidates` (null for a shot), and `rejection` is `valid` or
   the reason a candidate cannot be played.
 
 A change that breaks existing readers raises `version`; the viewer rejects
