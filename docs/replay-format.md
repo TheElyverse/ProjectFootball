@@ -233,7 +233,7 @@ Positions are meters and velocities meters per second, as in the
 its third dimension, in meters and meters per second, and `spin` is top- or
 backspin in radians per second ([ball movement](ball-movement.md)). A player's `target` is `null` when he has none,
 the ball's `owner` is `null` while it is free, and its `lastTouch` is `null` or
-`{ "playerId": 7, "tick": 120 }`. The pending pass is not recorded: every
+`{ "playerId": 7, "tick": 120 }`. No pending action is recorded: every
 initial state has none. `tactics` holds, for each side, the tactic as a complete
 [tactic file](tactic-format.md) document under `tactic` next to its
 `contentHash` (`tacticHash.hpp`, 16 hexadecimal digits), or `null` for a

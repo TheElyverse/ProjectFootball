@@ -38,9 +38,9 @@ The ball's `owner` is the player in control of it, empty while it is free, and
 `lastTouch` the last player to kick or take it; see [possession](possession.md).
 Every player has a slot for the action he has decided on and not yet done,
 `pendingAction(index)`, empty for every player of a state created from a spec.
-So far the only action is a pass (see [passing](passing.md)), and only the
-player on the ball decides one; `pendingPass()` finds the pass waiting to be
-played, if any.
+The action is a pass (see [passing](passing.md)) or a shot (see
+[shot decisions](shot-decisions.md)), and only the player on the ball decides
+one; `pendingPass()` finds the pass waiting to be played, if any.
 
 `facing` is the unit vector a player looks along; it decides what he can see. It
 is a vector rather than an angle so that no trigonometry, and none of its
