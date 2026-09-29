@@ -50,6 +50,6 @@ change of possession: the taker decides, his team shapes up around him.
 ## What this is not
 
 No throw-in technique, no set pieces, no goals: the ball is simply handed to
-the right side. A shot does not exist yet, so a ball over the goal line between
-the posts is a goal kick or corner like any other. Players do not take up
+the right side. Goals do not exist yet, so a shot over the goal line between the
+posts is a goal kick or corner like any other. Players do not take up
 positions for the restart; they are wherever the ball's journey left them.

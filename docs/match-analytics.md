@@ -87,5 +87,5 @@ order, so the same events always give the same bytes, on every platform.
 
 ## What this is not
 
-No shots, goals, expected goals or player ratings yet: the match has no
-shots. Pressures are team presses, not every individual pressing action.
+No goals, shot outcomes, expected goals or player ratings yet: shots are
+counted, but nothing becomes of them. Pressures are team presses, not every individual pressing action.

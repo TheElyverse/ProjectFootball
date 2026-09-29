@@ -185,7 +185,8 @@ like any other invalid state.
 ## What this is not
 
 Nothing kicks the ball off the ground yet: every pass is a ground pass, and it
-leaves the foot without height, vertical velocity or spin. Shots, crosses and
+leaves the foot without height, vertical velocity or spin; until shot execution
+exists, a [shot](shot-decisions.md) is struck along the ground as well. Shots, crosses and
 lofted passes are what will fill the third dimension; headers and aerial duels
 decide who wins a high ball, and until they exist a ball above
 `controlHeight` simply runs through (see [reception](reception.md)).

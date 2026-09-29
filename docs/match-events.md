@@ -29,6 +29,7 @@ Every event carries the `tick` of its step and the players involved:
 | `PitchControlSampled` | `homeShare`, `ball`                                         | the [pitch control](pitch-control.md) grid is updated: home's share of the pitch and the ball's position, a regular sample for [analytics](match-analytics.md) |
 | `RestartTaken`       | `kind`, `player`, `position`                                 | play [restarts](restarts.md) after the ball went out: `throwIn`, `goalKick` or `corner`, to `player`; `position` is where the ball left the pitch. `PossessionChanged` follows |
 | `TacticChanged`      | `side`, `tactic`, `contentHash`                              | a [tactic change command](match-loop.md#tactic-changes) applies; `tactic` is the new tactic's name |
+| `ShotAttempted`      | `shooter`, `from`, `target`, `height`, `speed`, `distance`, `opening` | a [shot](shot-decisions.md) leaves the shooter's foot toward the aimed point and height; `distance` and `opening` are to and of the goal. `PossessionChanged` follows |
 
 `speed` is the speed the ball left the foot with, execution error included. A
 pass shows up as
@@ -39,10 +40,11 @@ PassAttempted(t, passer)  PossessionChanged(t, passer → none)
 ```
 
 **Classification.** When a player takes a free ball, the ball's last touch
-decides what it was. In P1 a ball becomes free only by a pass, so a last touch
-means the ball was passed: a teammate of the passer received it, an opponent
-intercepted it. Without a last touch, or when the passer takes his own ball
-back, the ball was loose.
+decides what it was. A ball becomes free by a pass or a shot, so a last touch
+that was not the last shot (`MatchState::lastShot()`) means the ball was
+passed: a teammate of the passer received it, an opponent intercepted it.
+Without a last touch, after a shot, or when the passer takes his own ball back,
+the ball was loose.
 
 Events are part of the match: the same setup produces the same events in the
 same order. `addEvent()` feeds an event into a `StableHasher` — its type, tick
@@ -59,10 +61,11 @@ A `DecisionDiagnostic` explains one decision of a player on the ball (see
 | `tick`         | the tick of the decision                                    |
 | `player`       | the player on the ball                                      |
 | `observations` | his perception memory at that moment                        |
-| `candidates`   | every option with all score components and rejection reason |
-| `outcome`      | `kPassed` or `kNoValidOption`                               |
-| `chosen`       | index of the chosen candidate, if he passed                 |
-| `scoring`      | the weights the candidates were scored with, after the tactic's passing risk; `passContributions()` with them explains every utility |
+| `candidates`   | every pass with all score components and rejection reason   |
+| `shots`        | every zone of the goal he could aim at, the best first; only that one competed with the passes |
+| `outcome`      | `kPassed`, `kShot` or `kNoValidOption`                      |
+| `chosen`       | index of the chosen pass in `candidates` or shot in `shots`, if he chose one |
+| `scoring`, `shotScoring` | the weights the passes and shots were scored with, after the tactic's passing risk; `passContributions()` and `shotContributions()` with them explain every utility |
 
 An `ActionDiagnostic` explains one decision of a player without the ball (see
 [off-ball movement](off-ball-movement.md)): the `tick`, the `player`, every
