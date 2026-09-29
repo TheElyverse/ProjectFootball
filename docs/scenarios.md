@@ -13,6 +13,9 @@ in `sim-match` (`scenarios.hpp`), and `sim-cli --scenario <name>` runs one.
 | `pass-chain`   | home player 1 on the ball, teammates in a zigzag ahead, no opponent in reach |
 | `intercepted-pass` | home player 1's only option is a risky pass past away player 8 |
 | `no-passing-option` | home player 1 on the ball, every teammate behind him out of sight |
+| `clear-chance` | home player 1 eight meters out, only the keeper to beat ([shot decisions](shot-decisions.md)) |
+| `hopeless-angle` | home player 1 on the goal line wide of the post, a teammate free |
+| `blocked-lane` | home player 1 twelve meters out, a defender in the way, a teammate free |
 | `tactic-match` | the reference tactic against itself, home's forward kicks off      |
 | `transition-3v2` | home wins the ball in midfield, three attackers against two defenders ([golden](golden-scenarios.md)) |
 | `isolated-winger` | home plays out to an isolated winger, away presses on the trigger |
@@ -119,6 +122,28 @@ What to look at:
 - **`no-passing-option`**: select player 1. His vision cone points at the away
   side, his teammates are behind him with no observation circle, and every
   decision reads "no valid option".
+
+## The shot scenarios
+
+Home player 1 has the ball near the away goal. The away side plays the
+reference tactic, so away player 8 is its keeper; home plays without a tactic,
+and home's other players wait in their own half.
+
+- **`clear-chance`**: player 1 stands eight meters out, straight in front of
+  the goal, with the keeper on his line and every away outfield player behind
+  him.
+- **`hopeless-angle`**: player 1 stands on the goal line six meters wide of the
+  post and looks infield. The goal is a sliver from there; his teammate 2 waits
+  free at the edge of the area.
+- **`blocked-lane`**: player 1 stands twelve meters out with away player 9 two
+  meters in front of him, square in the way; his teammate 2 stands free to his
+  left.
+
+`tests/acceptance/shotScenarioTests.cpp` looks at player 1's first decision in
+each of 100 seeds: at the clear chance he shoots at least 90 times, from the
+hopeless angle every shot is `too narrow` and he always passes, and past the
+blocked lane he passes more often than he shoots, with the middle of the goal
+at least half blocked in at least 90 seeds.
 
 ## The tactic match
 

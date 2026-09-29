@@ -108,12 +108,13 @@ constexpr double kPitchWidth = kSandboxWidthMeters;
 // the ball at kickoff and the standard systems -- perception, pass decisions,
 // execution, reception -- play on without further commands.
 
-// A hand-placed player: where he stands and which way he faces.
+// A hand-placed player: where he stands and which way he faces, a unit
+// vector: (+1, 0) toward the away goal, (-1, 0) toward the home goal.
 struct Placement {
   double x;
   double y;
-  // +1: facing the away goal (+x), -1: facing the home goal.
   double facingX;
+  double facingY = 0.0;
 };
 
 using Side = std::array<Placement, kDefaultPlayersPerSide>;
@@ -123,7 +124,8 @@ constexpr SimCore::PlayerId kFirstCarrier{1};
 // Home players get ids 1 to 7 in order, away players 8 to 14. The ball starts
 // at the first carrier's feet and is given to him at tick 0.
 [[nodiscard]] std::expected<MatchSetup, std::string> placed(const std::uint64_t seed,
-                                                            const Side& home, const Side& away) {
+                                                            const Side& home, const Side& away,
+                                                            TeamTactics tactics = {}) {
   const Pitch pitch(kPitchLength, kPitchWidth);
   const MatchConfig config;
   std::vector<PlayerMatchState> players;
@@ -138,7 +140,7 @@ constexpr SimCore::PlayerId kFirstCarrier{1};
                          .velocity = {},
                          .attributes = {},
                          .target = std::nullopt,
-                         .facing = {.x = placement.facingX, .y = 0.0}});
+                         .facing = {.x = placement.facingX, .y = placement.facingY}});
     }
   }
   const PlayerMatchState& carrier = players.front();
@@ -149,7 +151,8 @@ constexpr SimCore::PlayerId kFirstCarrier{1};
   auto state = MatchState::create({.pitch = pitch,
                                    .players = std::move(players),
                                    .ball = ball,
-                                   .playersPerSide = kDefaultPlayersPerSide});
+                                   .playersPerSide = kDefaultPlayersPerSide},
+                                  std::move(tactics));
   if (!state) {
     return std::unexpected("invalid scenario fixture: " + state.error().front().message);
   }
@@ -226,6 +229,93 @@ constexpr SimCore::PlayerId kFirstCarrier{1};
   return placed(seed, kHome, kAway);
 }
 
+// ---------------------------------------------------------------------------
+// Shot scenarios (docs/shot-decisions.md): home player 1 on the ball near the
+// away goal, which away player 8 keeps -- the away side plays the reference
+// tactic, whose first slot guards the goal -- and home plays without one.
+
+// Away with the reference tactic: away player 8 keeps goal.
+[[nodiscard]] std::expected<MatchSetup, std::string> againstKeeper(const std::uint64_t seed,
+                                                                   const Side& home,
+                                                                   const Side& away) {
+  auto reference = SimTactics::Tactic::create(SimTactics::referenceTacticSpec());
+  if (!reference) {
+    return std::unexpected("invalid reference tactic: " + reference.error().front().message);
+  }
+  return placed(seed, home, away, {.home = std::nullopt, .away = *std::move(reference)});
+}
+
+// Home's teammates wait in their own half, out of sight; away's outfield
+// players wait behind player 1, too far away to matter.
+constexpr std::array<Placement, 6> kHomeBehind{{{.x = 20.0, .y = 8.0, .facingX = 1.0},
+                                                {.x = 20.0, .y = 32.0, .facingX = 1.0},
+                                                {.x = 15.0, .y = 20.0, .facingX = 1.0},
+                                                {.x = 10.0, .y = 8.0, .facingX = 1.0},
+                                                {.x = 10.0, .y = 32.0, .facingX = 1.0},
+                                                {.x = 3.0, .y = 20.0, .facingX = 1.0}}};
+
+// Player 1, eight meters out in front of the goal, has only the keeper to
+// beat, standing on his line.
+[[nodiscard]] std::expected<MatchSetup, std::string> clearChance(const std::uint64_t seed) {
+  constexpr Side kHome{{{.x = 51.5, .y = 20.0, .facingX = 1.0},
+                        kHomeBehind[0],
+                        kHomeBehind[1],
+                        kHomeBehind[2],
+                        kHomeBehind[3],
+                        kHomeBehind[4],
+                        kHomeBehind[5]}};
+  constexpr Side kAway{{{.x = 59.5, .y = 20.0, .facingX = -1.0},
+                        {.x = 30.0, .y = 8.0, .facingX = -1.0},
+                        {.x = 30.0, .y = 32.0, .facingX = -1.0},
+                        {.x = 25.0, .y = 14.0, .facingX = -1.0},
+                        {.x = 25.0, .y = 26.0, .facingX = -1.0},
+                        {.x = 20.0, .y = 20.0, .facingX = -1.0},
+                        {.x = 35.0, .y = 20.0, .facingX = -1.0}}};
+  return againstKeeper(seed, kHome, kAway);
+}
+
+// Player 1 has run on to the goal line, six meters wide of the post, and looks
+// infield: from there the goal is a sliver, and his teammate 2, free at the
+// edge of the area, is the option.
+[[nodiscard]] std::expected<MatchSetup, std::string> hopelessAngle(const std::uint64_t seed) {
+  constexpr Side kHome{{{.x = 59.0, .y = 11.85, .facingX = 0.0, .facingY = 1.0},
+                        {.x = 50.0, .y = 20.0, .facingX = 1.0},
+                        kHomeBehind[1],
+                        kHomeBehind[2],
+                        kHomeBehind[3],
+                        kHomeBehind[4],
+                        kHomeBehind[5]}};
+  constexpr Side kAway{{{.x = 59.5, .y = 18.0, .facingX = -1.0},
+                        {.x = 30.0, .y = 8.0, .facingX = -1.0},
+                        {.x = 30.0, .y = 32.0, .facingX = -1.0},
+                        {.x = 25.0, .y = 14.0, .facingX = -1.0},
+                        {.x = 25.0, .y = 26.0, .facingX = -1.0},
+                        {.x = 20.0, .y = 20.0, .facingX = -1.0},
+                        {.x = 35.0, .y = 20.0, .facingX = -1.0}}};
+  return againstKeeper(seed, kHome, kAway);
+}
+
+// Player 1, twelve meters out in front of the goal, has away player 9 two
+// meters in front of him, square in the way of every shot; his teammate 2
+// stands free to his left.
+[[nodiscard]] std::expected<MatchSetup, std::string> blockedLane(const std::uint64_t seed) {
+  constexpr Side kHome{{{.x = 48.0, .y = 20.0, .facingX = 1.0},
+                        {.x = 52.0, .y = 32.0, .facingX = 1.0},
+                        kHomeBehind[1],
+                        kHomeBehind[2],
+                        kHomeBehind[3],
+                        kHomeBehind[4],
+                        kHomeBehind[5]}};
+  constexpr Side kAway{{{.x = 59.5, .y = 20.0, .facingX = -1.0},
+                        {.x = 50.5, .y = 20.0, .facingX = -1.0},
+                        {.x = 30.0, .y = 8.0, .facingX = -1.0},
+                        {.x = 25.0, .y = 14.0, .facingX = -1.0},
+                        {.x = 25.0, .y = 26.0, .facingX = -1.0},
+                        {.x = 20.0, .y = 20.0, .facingX = -1.0},
+                        {.x = 35.0, .y = 20.0, .facingX = -1.0}}};
+  return againstKeeper(seed, kHome, kAway);
+}
+
 constexpr std::array kScenarios{
     ScenarioDefinition{
         .name = "kickoff",
@@ -250,6 +340,17 @@ constexpr std::array kScenarios{
                        .description = "home player 1 on the ball, every teammate behind him "
                                       "out of sight",
                        .make = &noPassingOption},
+    ScenarioDefinition{.name = "clear-chance",
+                       .description = "home player 1 eight meters out, only the keeper to beat",
+                       .make = &clearChance},
+    ScenarioDefinition{.name = "hopeless-angle",
+                       .description = "home player 1 on the goal line wide of the post, a "
+                                      "teammate free",
+                       .make = &hopelessAngle},
+    ScenarioDefinition{.name = "blocked-lane",
+                       .description = "home player 1 twelve meters out, a defender in the way, a "
+                                      "teammate free",
+                       .make = &blockedLane},
     ScenarioDefinition{.name = "tactic-match",
                        .description = "reference tactic against reference tactic, home kicks off",
                        .make = &tacticMatch},
