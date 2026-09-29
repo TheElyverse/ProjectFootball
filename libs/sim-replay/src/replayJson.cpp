@@ -58,7 +58,8 @@ using SimMatch::TeamSide;
   json["position"] = vec2Json(player.position);
   json["velocity"] = vec2Json(player.velocity);
   json["attributes"] = {{"maxSpeed", player.attributes.maxSpeed},
-                        {"acceleration", player.attributes.acceleration}};
+                        {"acceleration", player.attributes.acceleration},
+                        {"shotAccuracy", player.attributes.shotAccuracy}};
   json["target"] = player.target ? vec2Json(*player.target) : Json(nullptr);
   json["facing"] = vec2Json(player.facing);
   return json;
@@ -441,7 +442,8 @@ constexpr std::int64_t kMaxTick = std::int64_t{1} << 53;
           .position = readVec2(field.member("position")),
           .velocity = readVec2(field.member("velocity")),
           .attributes = {.maxSpeed = attributes.member("maxSpeed").number(),
-                         .acceleration = attributes.member("acceleration").number()},
+                         .acceleration = attributes.member("acceleration").number(),
+                         .shotAccuracy = attributes.member("shotAccuracy").number()},
           .target = target.isNull() ? std::nullopt : std::optional(readVec2(target)),
           .facing = readVec2(field.member("facing"))};
 }

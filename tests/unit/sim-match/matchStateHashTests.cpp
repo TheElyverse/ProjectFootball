@@ -63,8 +63,9 @@ TEST_CASE("The kickoff hash is pinned", "[matchStateHash]") {
   // Re-pinned when the ball gained its height, vertical velocity and spin:
   // the kickoff ball lies still on the grass as it always has, but the hash
   // covers three numbers more. Re-pinned again when the pending pass became
-  // a pending action per player: the hash covers one slot per player.
-  REQUIRE(hashOf(kickoffSpec()) == 0xb713216731e6a49aULL);
+  // a pending action per player, and when players gained a shot accuracy:
+  // the hash covers one slot and one attribute more per player.
+  REQUIRE(hashOf(kickoffSpec()) == 0xfb792bd7e40cc180ULL);
 }
 
 // Guards against a field that is added to the state but forgotten here.
@@ -84,6 +85,7 @@ TEST_CASE("Every field of the state changes the hash", "[matchStateHash]") {
       {"player velocity", [](auto& spec) { spec.players.at(5).velocity.y = 1.0; }},
       {"max speed", [](auto& spec) { spec.players.at(2).attributes.maxSpeed = 8.0; }},
       {"acceleration", [](auto& spec) { spec.players.at(2).attributes.acceleration = 3.0; }},
+      {"shot accuracy", [](auto& spec) { spec.players.at(2).attributes.shotAccuracy = 0.9; }},
       {"target", [](auto& spec) { spec.players.at(9).target = Vec2{}; }},
       {"facing", [](auto& spec) { spec.players.at(4).facing = Vec2{.x = 0.0, .y = 1.0}; }},
       {"ball position", [](auto& spec) { spec.ball.position.y = 1.0; }},

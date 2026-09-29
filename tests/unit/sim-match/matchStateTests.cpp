@@ -358,6 +358,23 @@ TEST_CASE("MatchState::create rejects attributes that are not positive and finit
   REQUIRE(mentions(state.error().front().message, "expected both positive and finite"));
 }
 
+TEST_CASE("MatchState::create accepts a shot accuracy in [0, 1] only", "[matchState]") {
+  const double accuracy = GENERATE(0.0, 1.0, -0.01, 1.01, std::numeric_limits<double>::quiet_NaN());
+  CAPTURE(accuracy);
+  MatchStateSpec spec = validSpec();
+  spec.players.at(5).attributes.shotAccuracy = accuracy;
+
+  const auto state = MatchState::create(spec);
+
+  if (accuracy >= 0.0 && accuracy <= 1.0) {
+    REQUIRE(state.has_value());
+  } else {
+    REQUIRE_FALSE(state.has_value());
+    REQUIRE(codesOf(state.error()) == std::vector{MatchStateErrorCode::kInvalidPlayerAttributes});
+    REQUIRE(mentions(state.error().front().message, "shot accuracy"));
+  }
+}
+
 TEST_CASE("MatchState::create rejects a non-finite target", "[matchState]") {
   MatchStateSpec spec = validSpec();
   spec.players.at(10).target = Vec2{.x = std::numeric_limits<double>::quiet_NaN(), .y = 3.0};

@@ -15,7 +15,7 @@ and ball physics are separate concerns.
 |--------------------|---------------------------------------------------------------------------------|
 | `MatchState`       | the `Pitch`, the players in order, the `BallState`, the squad size per side, every player's perception memory, and each side's tactic |
 | `PlayerMatchState` | `playerId`, `side`, `position`, `velocity`, `attributes`, `target`, `facing`    |
-| `PlayerAttributes` | `maxSpeed` (m/s) and `acceleration` (m/s²), fixed for the match                 |
+| `PlayerAttributes` | `maxSpeed` (m/s), `acceleration` (m/s²) and `shotAccuracy` (0 … 1), fixed for the match |
 | `BallState`        | `position`, `velocity`, `owner`, `lastTouch`                                    |
 | `TeamSide`         | `kHome` or `kAway`                                                              |
 
@@ -30,7 +30,8 @@ rules let teams switch ends.
 `target` is where the player is moving to. It is empty until a command assigns
 one, and without a target a player comes to a stop where he is; see
 [player movement](player-movement.md). `attributes` default to `kDefaultMaxSpeed` (7.5 m/s) and
-`kDefaultAcceleration` (4 m/s²); they describe the predefined test players of the
+`kDefaultAcceleration` (4 m/s²), and `shotAccuracy` to `kDefaultShotAccuracy`
+(0.5, an average finisher; see [shot decisions](shot-decisions.md)); they describe the predefined test players of the
 sandbox, not a generated player.
 
 The ball's `owner` is the player in control of it, empty while it is free, and

@@ -152,7 +152,7 @@ validation leaves no file behind.
         "side": "home",
         "position": { "x": 3.0, "y": 20.0 },
         "velocity": { "x": 0.0, "y": 0.0 },
-        "attributes": { "maxSpeed": 7.5, "acceleration": 4.0 },
+        "attributes": { "maxSpeed": 7.5, "acceleration": 4.0, "shotAccuracy": 0.5 },
         "target": null,
         "facing": { "x": 1.0, "y": 0.0 }
       }

@@ -170,7 +170,8 @@ TEST_CASE("M0: the final state hash is pinned", "[acceptance][m0]") {
   // Re-pinned for the ball's third dimension: the scenario plays out tick for
   // tick as before -- nothing lifts the ball off the grass -- and only the
   // hash grew by the ball's height, vertical velocity and spin. Re-pinned
-  // again when the pending pass became a pending action per player: the
-  // same play, one hashed slot per player.
-  REQUIRE(record().checkpoints.back().stateHash == 0x126bc0bdf5b4fdb0ULL);
+  // again when the pending pass became a pending action per player and when
+  // players gained a shot accuracy: the same play, one hashed slot and one
+  // attribute more per player.
+  REQUIRE(record().checkpoints.back().stateHash == 0x542ef24393f0d70aULL);
 }

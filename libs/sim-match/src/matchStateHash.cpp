@@ -34,6 +34,7 @@ void addPlayer(StableHasher& hasher, const PlayerMatchState& player) noexcept {
   addVec2(hasher, player.velocity);
   hasher.addDouble(player.attributes.maxSpeed);
   hasher.addDouble(player.attributes.acceleration);
+  hasher.addDouble(player.attributes.shotAccuracy);
   addOptionalVec2(hasher, player.target);
   addVec2(hasher, player.facing);
 }

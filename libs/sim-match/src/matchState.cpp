@@ -140,6 +140,13 @@ void appendAttributeErrors(const std::size_t index, const PlayerMatchState& play
                                  " m/s^2, expected both positive and finite"});
     return;
   }
+  if (std::isnan(attributes.shotAccuracy) || attributes.shotAccuracy < 0.0 ||
+      attributes.shotAccuracy > 1.0) {
+    errors.push_back({.code = MatchStateErrorCode::kInvalidPlayerAttributes,
+                      .message = describePlayer(index, player) + " has shot accuracy " +
+                                 formatNumber(attributes.shotAccuracy) +
+                                 ", expected a number in [0, 1]"});
+  }
   // Movement assumes a player is never faster than his limit: it changes the
   // velocity by one tick's acceleration at a time and would leave a faster
   // player over it for many ticks. The margin absorbs rounding in a state

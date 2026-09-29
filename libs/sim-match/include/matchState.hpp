@@ -57,13 +57,18 @@ inline constexpr double kFacingTolerance = 1e-9;
 // the sandbox; generated players will derive theirs from capabilities.
 inline constexpr double kDefaultMaxSpeed = 7.5;      // m/s
 inline constexpr double kDefaultAcceleration = 4.0;  // m/s²
+// An average finisher's accuracy, on the scale of shotAccuracy.
+inline constexpr double kDefaultShotAccuracy = 0.5;
 
-// What a player's body allows, fixed for a match. Both values must be positive
-// and finite. The same acceleration limits speeding up, slowing down and
-// turning (see docs/player-movement.md).
+// What a player can do, fixed for a match. maxSpeed and acceleration are what
+// his body allows and must be positive and finite; the same acceleration
+// limits speeding up, slowing down and turning (see
+// docs/player-movement.md). shotAccuracy, in [0, 1], is how closely his shots
+// follow his aim, from wild to pinpoint (docs/shot-decisions.md).
 struct PlayerAttributes {
   double maxSpeed = kDefaultMaxSpeed;
   double acceleration = kDefaultAcceleration;
+  double shotAccuracy = kDefaultShotAccuracy;
 
   friend bool operator==(const PlayerAttributes&, const PlayerAttributes&) = default;
 };
@@ -285,7 +290,7 @@ class MatchStateWriter;
 //
 // The invariants hold for every state, from kickoff to the final whistle:
 // both squads have the stated size, every player has a unique valid id, a
-// declared side, positive finite attributes and a unit facing vector, every
+// declared side, valid attributes and a unit facing vector, every
 // position, velocity and target is finite, the ball's height is finite and not
 // below the ground, and the ball belongs to no one or
 // to a player in the state. Being on the
