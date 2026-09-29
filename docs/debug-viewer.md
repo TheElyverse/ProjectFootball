@@ -108,7 +108,7 @@ abridged example with illustrative values:
 ```json
 {
     "format": "elyverse-debug-frames",
-  "version": 3,
+  "version": 4,
   "coreVersion": "0.21.0",
   "scenario": "m0-acceptance",
   "seed": "42",
@@ -204,7 +204,9 @@ abridged example with illustrative values:
 A change that breaks existing readers raises `version`; the viewer rejects
 versions it does not know. Version 2 added `zones`, `pitchControl` and the
 teams' `tactic`, `instruction` and `press`. Version 3 added the ball's `height`,
-`verticalVelocity` and `spin` ([ball movement](ball-movement.md)).
+`verticalVelocity` and `spin` ([ball movement](ball-movement.md)). Version 4 added
+the decision outcome `shot` and the `shotAttempted` event
+([shot decisions](shot-decisions.md)).
 
 ## Development
 
