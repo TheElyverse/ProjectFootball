@@ -107,25 +107,20 @@ struct Lane {
   return *arrival - (radius / player.attributes.maxSpeed);
 }
 
-// The least time the player has to spare reaching the ball at any point of
-// the lane, negative if he gets there before it; infinite if he reaches none.
-// radiusAt(along) is how close he must come to the point `along` meters down
-// the lane, a negative radius meaning he cannot touch the ball there.
-template <typename RadiusAt>
-[[nodiscard]] double laneMargin(const PlayerMatchState& player, const Lane& lane,
-                                const Pitch& pitch, const BallPhysics& ball,
-                                const RadiusAt& radiusAt) {
+// The least time a player has to spare reaching the ball at any point of the
+// lane, negative if he gets there before it; infinite if he reaches none.
+// secondsTo(point, along) is how long he needs to reach the ball at the point
+// `along` meters down the lane, empty where he cannot.
+template <typename SecondsTo>
+[[nodiscard]] double laneMargin(const Lane& lane, const BallPhysics& ball,
+                                const SecondsTo& secondsTo) {
   double margin = std::numeric_limits<double>::infinity();
   // The samples are the running sum of kLaneStep, not step * kLaneStep: IEEE
   // addition is deterministic on every platform, and the exact sample points
   // are what the pinned scenario results were recorded with.
   // NOLINTNEXTLINE(bugprone-float-loop-counter)
   for (double along = kLaneStep; along < lane.length; along += kLaneStep) {
-    const double radius = radiusAt(along);
-    if (radius < 0.0) {
-      continue;
-    }
-    const auto reach = reachSeconds(player, lane.from + (lane.direction * along), pitch, radius);
+    const std::optional<double> reach = secondsTo(lane.from + (lane.direction * along), along);
     if (reach) {
       margin = std::min(margin, *reach - ballSeconds(along, lane.speed, ball));
     }

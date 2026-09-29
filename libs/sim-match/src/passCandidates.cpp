@@ -47,8 +47,10 @@ using LaneReach::Remembered;
 [[nodiscard]] double riskFrom(const Remembered& opponent, const Lane& lane, const Pitch& pitch,
                               const PassCandidateRules& rules) {
   const double margin =
-      LaneReach::laneMargin(opponent.player, lane, pitch, rules.ball,
-                            [&rules](double /*along*/) { return rules.reception.controlRadius; });
+      LaneReach::laneMargin(lane, rules.ball, [&](const Vec2 point, double /*along*/) {
+        return LaneReach::reachSeconds(opponent.player, point, pitch,
+                                       rules.reception.controlRadius);
+      });
   return LaneReach::riskOfMargin(margin, opponent.confidence,
                                  rules.scoring.interceptionMarginSeconds);
 }
