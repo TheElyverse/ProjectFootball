@@ -14,6 +14,7 @@
 #include "matchEvents.hpp"
 #include "matchSetup.hpp"
 #include "matchSimulation.hpp"
+#include "passing.hpp"
 #include "scenarios.hpp"
 #include "shotCandidate.hpp"
 
@@ -24,6 +25,7 @@ using ElyverseFootball::SimMatch::DiagnosticsFilter;
 using ElyverseFootball::SimMatch::findScenario;
 using ElyverseFootball::SimMatch::LooseBallRecovered;
 using ElyverseFootball::SimMatch::MatchSimulation;
+using ElyverseFootball::SimMatch::PassConfig;
 using ElyverseFootball::SimMatch::PassIntercepted;
 using ElyverseFootball::SimMatch::PassReceived;
 using ElyverseFootball::SimMatch::ShotAttempted;
@@ -41,6 +43,7 @@ constexpr int kTicks = 60;
 struct FirstDecision {
   std::optional<DecisionDiagnostic> decision;
   bool shotTaken = false;
+  double shotSpeed = 0.0;
 };
 
 [[nodiscard]] FirstDecision firstDecision(const std::string_view scenario,
@@ -62,7 +65,10 @@ struct FirstDecision {
       }
     }
     for (const auto& event : simulation.events()) {
-      first.shotTaken = first.shotTaken || std::holds_alternative<ShotAttempted>(event);
+      if (const auto* shot = std::get_if<ShotAttempted>(&event)) {
+        first.shotTaken = true;
+        first.shotSpeed = shot->speed;
+      }
     }
   }
   REQUIRE(first.decision.has_value());
@@ -73,8 +79,10 @@ struct FirstDecision {
 
 TEST_CASE("Shots: a clear chance is taken", "[acceptance][shots]") {
   int shots = 0;
+  double fastest = 0.0;
   for (std::uint64_t seed = 1; seed <= kSeeds; ++seed) {
     const FirstDecision first = firstDecision("clear-chance", seed);
+    fastest = std::max(fastest, first.shotSpeed);
     const DecisionDiagnostic& decision = first.decision.value_or(DecisionDiagnostic{});
     REQUIRE_FALSE(decision.shots.empty());
     REQUIRE(decision.shots.front().isValid());
@@ -83,9 +91,11 @@ TEST_CASE("Shots: a clear chance is taken", "[acceptance][shots]") {
       REQUIRE(first.shotTaken);
     }
   }
-  CAPTURE(shots);
+  CAPTURE(shots, fastest);
   // An average decision maker takes it at least nine times in ten.
   REQUIRE(shots >= 90);
+  // Struck at the speed it was judged at, harder than any pass.
+  REQUIRE(fastest > PassConfig{}.maxSpeed);
 }
 
 TEST_CASE("Shots: a hopeless angle is passed from", "[acceptance][shots]") {

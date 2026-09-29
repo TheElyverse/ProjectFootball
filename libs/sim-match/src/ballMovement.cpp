@@ -63,9 +63,8 @@ using SimCore::Vec2;
 // loose. The shot comes from the step's writer, not from state, so a shot
 // struck and blocked in the same step counts too.
 [[nodiscard]] MatchEvent controlEvent(const MatchState& state, const BallState& ball,
-                                      const std::optional<ShotRecord>& shot,
-                                      const BallClaim& claim, const Vec2 contactPosition,
-                                      const SimCore::SimTick tick) {
+                                      const std::optional<ShotRecord>& shot, const BallClaim& claim,
+                                      const Vec2 contactPosition, const SimCore::SimTick tick) {
   const PlayerMatchState& claimant = state.players()[claim.playerIndex];
   const bool shotLast = ball.lastTouch && shot && shot->shooter == ball.lastTouch->playerId &&
                         shot->tick == ball.lastTouch->tick;
@@ -136,12 +135,16 @@ MatchSystem makeBallMovementSystem(const BallPhysics& physics, const PassConfig&
           }
         }
         if (const ShotIntent* shot = owners ? std::get_if<ShotIntent>(&*owners) : nullptr) {
+          // A shot is struck as hard as the shooter judged it, not held to
+          // the hardest pass.
+          PassConfig striking = passing;
+          striking.maxSpeed = std::max(passing.maxSpeed, shot->speed);
           ball = kicked(current,
                         PassIntent{.passer = shot->shooter,
                                    .target = shot->target,
                                    .speed = shot->speed,
                                    .receiver = std::nullopt},
-                        physics, passing, context);
+                        physics, striking, context);
           next.setBallOwner(ball.owner);
           next.setBallLastTouch(ball.lastTouch);
           next.setLastShot(
@@ -209,7 +212,8 @@ MatchSystem makeBallMovementSystem(const BallPhysics& physics, const PassConfig&
           carryBy(current.players()[claim->playerIndex]);
           const Vec2 contactPosition =
               ball.position + ((moved.position - ball.position) * claim->contact.contactFraction);
-          context.record(controlEvent(current, ball, next.lastShot(), *claim, contactPosition, context.tick()));
+          context.record(controlEvent(current, ball, next.lastShot(), *claim, contactPosition,
+                                      context.tick()));
           context.record(PossessionChanged{
               .tick = context.tick(), .previousOwner = std::nullopt, .newOwner = claim->playerId});
           return;

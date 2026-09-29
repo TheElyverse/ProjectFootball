@@ -181,7 +181,8 @@ received or intercepted ([match events](match-events.md)).
 
 Until shot execution exists, the strike is a placeholder: the ball is kicked
 along the ground at the aimed point on the goal line with the pass execution's
-error, and the aimed height goes unused. There are no goals yet either: a ball
+error, at `shotSpeed` even where that is harder than the passes' `maxSpeed`, and
+the aimed height goes unused. There are no goals yet either: a ball
 over the goal line is a goal kick or a corner ([restarts](restarts.md)).
 
 ## Scenarios and guardrails
