@@ -45,8 +45,8 @@ struct ShotScoringConfig {
   // How far from his aim a shot may go, in meters to either side and up or
   // down: the half-width of a triangular spread, at zero distance and per
   // meter from the goal, for a player of average accuracy.
-  double spreadAtZero = 0.2;       // m
-  double spreadPerMeter = 0.04;    // m per m
+  double spreadAtZero = 0.2;     // m
+  double spreadPerMeter = 0.04;  // m per m
   // An opponent this close to the shooter puts no pressure on him at the
   // edge and full pressure at zero distance; full pressure widens the spread
   // by this share.
@@ -63,10 +63,12 @@ struct ShotScoringConfig {
   double maxBlockRisk = 0.7;
   double minGoalChance = 0.05;
   // Utility = goal·w_g + secondBall·w_s − loss·w_k, where loss is the chance
-  // the team loses the ball: neither a goal nor a second ball.
-  double goalWeight = 4.0;
+  // the team loses the ball: neither a goal nor a second ball. Keeping the
+  // ball is worth 0, so a shot is only offered at a positive utility; w_k
+  // matches a completed pass's worth (PassScoringConfig::completionWeight).
+  double goalWeight = 2.5;
   double secondBallWeight = 0.5;
-  double lossWeight = 0.3;
+  double lossWeight = 1.0;
 
   friend bool operator==(const ShotScoringConfig&, const ShotScoringConfig&) = default;
 };
@@ -75,9 +77,13 @@ struct ShotScoringConfig {
 enum class ShotRejection : std::uint8_t {
   kValid,
   kTooFar,
+  // He cannot see the goal's center: he is facing away from it.
+  kGoalUnseen,
   kTooNarrow,
   kBlocked,
   kUnlikely,
+  // Worth less than keeping the ball: a utility of 0 or less.
+  kNotWorthIt,
 };
 
 [[nodiscard]] std::string_view shotRejectionName(ShotRejection rejection) noexcept;

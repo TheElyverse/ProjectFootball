@@ -381,7 +381,20 @@ void MatchStateWriter::setPendingAction(const std::size_t playerIndex,
       requirePlayer(*pass->receiver, "a receiver");
     }
   }
+  if (const ShotIntent* shot = action ? std::get_if<ShotIntent>(&*action) : nullptr;
+      shot != nullptr && shot->shooter != player) {
+    throw std::invalid_argument(
+        std::format("MatchStateWriter: player {} cannot wait to take a shot of player {}",
+                    player.value(), shot->shooter.value()));
+  }
   state_->pendingActions_[playerIndex] = action;
+}
+
+void MatchStateWriter::setLastShot(const std::optional<ShotRecord> shot) {
+  if (shot) {
+    requirePlayer(shot->shooter, "a shooter");
+  }
+  state_->lastShot_ = shot;
 }
 
 void MatchStateWriter::setLastPass(const std::optional<PassRecord> pass) {

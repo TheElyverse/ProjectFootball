@@ -11,6 +11,7 @@
 #include "playerMovement.hpp"
 #include "reception.hpp"
 #include "restart.hpp"
+#include "shotCandidates.hpp"
 
 namespace ElyverseFootball::SimMatch {
 namespace {
@@ -35,8 +36,9 @@ using SimCore::Vec2;
 // pass velocity, and the passer as its last touch. At his feet is where a
 // controlled ball already is -- except when he got it by a command in this
 // very tick, which moves no ball. Every pass is a ground pass, so the ball
-// stays on the grass without vertical velocity or spin; lofted passes and
-// shots arrive with their own decisions.
+// stays on the grass without vertical velocity or spin; lofted passes arrive
+// with their own decisions. Until shot execution exists, a shot is struck the
+// same way, at the point it aims at on the goal line.
 [[nodiscard]] BallState kicked(const MatchState& state, const PassIntent& intent,
                                const BallPhysics& physics, const PassConfig& passing,
                                const MatchStepContext& context) {
@@ -57,12 +59,16 @@ using SimCore::Vec2;
 
 // What gaining control of a free ball was: the ball's last touch kicked it,
 // so a teammate of his received the pass and an opponent intercepted it. A
-// ball nobody played, or one the kicker takes back himself, was loose.
+// ball nobody played, a shot, or one the kicker takes back himself, was
+// loose.
 [[nodiscard]] MatchEvent controlEvent(const MatchState& state, const BallState& ball,
                                       const BallClaim& claim, const Vec2 contactPosition,
                                       const SimCore::SimTick tick) {
   const PlayerMatchState& claimant = state.players()[claim.playerIndex];
-  if (!ball.lastTouch || ball.lastTouch->playerId == claimant.playerId) {
+  const auto& shot = state.lastShot();
+  const bool shotLast = ball.lastTouch && shot && shot->shooter == ball.lastTouch->playerId &&
+                        shot->tick == ball.lastTouch->tick;
+  if (!ball.lastTouch || shotLast || ball.lastTouch->playerId == claimant.playerId) {
     return LooseBallRecovered{
         .tick = tick, .player = claimant.playerId, .position = contactPosition};
   }
@@ -117,7 +123,7 @@ MatchSystem makeBallMovementSystem(const BallPhysics& physics, const PassConfig&
         //    this same step may have already taken the ball and dropped the
         //    pass, and current would still show the stale pre-step values.
         BallState ball = next.ball();
-        std::optional<PassIntent> intent;
+        std::optional<PendingAction> owners;
         for (std::size_t index = 0; index < current.players().size(); ++index) {
           const std::optional<PendingAction>& action = current.pendingAction(index);
           if (!action || !next.pendingAction(index)) {
@@ -125,10 +131,35 @@ MatchSystem makeBallMovementSystem(const BallPhysics& physics, const PassConfig&
           }
           next.setPendingAction(index, std::nullopt);
           if (current.players()[index].playerId == ball.owner) {
-            intent = std::get<PassIntent>(*action);
+            owners = action;
           }
         }
-        if (intent) {
+        if (const ShotIntent* shot = owners ? std::get_if<ShotIntent>(&*owners) : nullptr) {
+          ball = kicked(current,
+                        PassIntent{.passer = shot->shooter,
+                                   .target = shot->target,
+                                   .speed = shot->speed,
+                                   .receiver = std::nullopt},
+                        physics, passing, context);
+          next.setBallOwner(ball.owner);
+          next.setBallLastTouch(ball.lastTouch);
+          next.setLastShot(
+              ShotRecord{.shooter = shot->shooter, .from = ball.position, .tick = context.tick()});
+          // The shooter owns the ball, so he is in the state.
+          const auto shooter = findPlayerIndex(current, shot->shooter).value_or(0);
+          const Goal goal = attackedGoal(current.pitch(), current.players()[shooter].side);
+          context.record(ShotAttempted{.tick = context.tick(),
+                                       .shooter = shot->shooter,
+                                       .from = ball.position,
+                                       .target = shot->target,
+                                       .height = shot->height,
+                                       .speed = ball.velocity.length(),
+                                       .distance = (goal.center - ball.position).length(),
+                                       .opening = goalOpening(ball.position, goal)});
+          context.record(PossessionChanged{
+              .tick = context.tick(), .previousOwner = shot->shooter, .newOwner = std::nullopt});
+        }
+        if (const PassIntent* intent = owners ? std::get_if<PassIntent>(&*owners) : nullptr) {
           ball = kicked(current, *intent, physics, passing, context);
           next.setBallOwner(ball.owner);
           next.setBallLastTouch(ball.lastTouch);

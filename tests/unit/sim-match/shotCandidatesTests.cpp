@@ -182,6 +182,25 @@ TEST_CASE("A goal seen from a hopeless angle offers no shot", "[shotCandidates]"
   }
 }
 
+TEST_CASE("A player facing away from the goal offers no shot", "[shotCandidates]") {
+  MatchState state = chanceState({.shooter = kClearChance});
+  auto spec = [&state] {
+    std::vector<PlayerMatchState> players(state.players().begin(), state.players().end());
+    players.front().facing = {.x = -1.0, .y = 0.0};
+    return players;
+  }();
+  auto turned = MatchState::create({.pitch = state.pitch(),
+                                    .players = std::move(spec),
+                                    .ball = state.ball(),
+                                    .playersPerSide = 7},
+                                   state.tactics());
+  REQUIRE(turned.has_value());
+
+  for (const ShotCandidate& shot : shotsOf(perceived(*std::move(turned)))) {
+    REQUIRE(shot.rejection == ShotRejection::kGoalUnseen);
+  }
+}
+
 TEST_CASE("A goal too far away offers no shot", "[shotCandidates]") {
   const auto shots = shotsAt({.shooter = {.x = 20.0, .y = 20.0}});
 
@@ -200,6 +219,17 @@ TEST_CASE("A defender in the lane blocks the shots behind him", "[shotCandidates
   REQUIRE(zone(blocked, 3, 1).rejection == ShotRejection::kBlocked);
   REQUIRE(zone(open, 3, 1).blockRisk == 0.0);
   REQUIRE(blocked.front().goalChance < open.front().goalChance);
+}
+
+TEST_CASE("A shot worth less than keeping the ball is not offered", "[shotCandidates]") {
+  ShotCandidateRules rules;
+  rules.scoring.lossWeight = 100.0;
+  const auto shots = shotsAt({.shooter = kClearChance}, rules);
+
+  for (const ShotCandidate& shot : shots) {
+    REQUIRE(shot.utility <= 0.0);
+    REQUIRE(shot.rejection == ShotRejection::kNotWorthIt);
+  }
 }
 
 TEST_CASE("An accurate shooter aims closer to the post and scores more", "[shotCandidates]") {
@@ -246,9 +276,11 @@ TEST_CASE("Shot utilities are their contributions, ordered best first", "[shotCa
 TEST_CASE("Shot rejections have names", "[shotCandidates]") {
   REQUIRE(shotRejectionName(ShotRejection::kValid) == "valid");
   REQUIRE(shotRejectionName(ShotRejection::kTooFar) == "too far");
+  REQUIRE(shotRejectionName(ShotRejection::kGoalUnseen) == "goal unseen");
   REQUIRE(shotRejectionName(ShotRejection::kTooNarrow) == "too narrow");
   REQUIRE(shotRejectionName(ShotRejection::kBlocked) == "blocked");
   REQUIRE(shotRejectionName(ShotRejection::kUnlikely) == "unlikely");
+  REQUIRE(shotRejectionName(ShotRejection::kNotWorthIt) == "not worth it");
 }
 
 TEST_CASE("Shot scoring rejects an invalid configuration", "[shotCandidates]") {

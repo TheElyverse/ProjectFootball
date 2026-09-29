@@ -229,6 +229,16 @@ struct PassRecord {
   friend bool operator==(const PassRecord&, const PassRecord&) = default;
 };
 
+// The last shot taken in the match: who struck it, from where, and when. A
+// free ball whose last touch was a shot is loose, not a pass.
+struct ShotRecord {
+  SimCore::PlayerId shooter;
+  SimCore::Vec2 from;
+  SimCore::SimTick tick;
+
+  friend bool operator==(const ShotRecord&, const ShotRecord&) = default;
+};
+
 // The last time a player gained control of a free ball: who, when, and how
 // fast the ball was coming -- a hard ball is hard to control.
 struct ReceptionRecord {
@@ -277,10 +287,25 @@ struct PassIntent {
   friend bool operator==(const PassIntent&, const PassIntent&) = default;
 };
 
+// A shot a player has decided on and not yet taken: where he aims, decided
+// apart from how well he strikes it (docs/shot-decisions.md). The ball system
+// takes it in the next step it runs, if the shooter still owns the ball, and
+// discards it otherwise.
+struct ShotIntent {
+  SimCore::PlayerId shooter;
+  // Where he aims: a point on the goal line, and a height above the ground.
+  SimCore::Vec2 target;
+  double height = 0.0;
+  // How fast the ball should leave the foot, in meters per second.
+  double speed = 0.0;
+
+  friend bool operator==(const ShotIntent&, const ShotIntent&) = default;
+};
+
 // What a player has decided and not yet done: an action waiting for the
 // system that carries it out. Each player has his own; so far only the player
 // on the ball decides one.
-using PendingAction = std::variant<PassIntent>;
+using PendingAction = std::variant<PassIntent, ShotIntent>;
 
 class MatchSimulation;
 class MatchStateWriter;
@@ -316,9 +341,11 @@ class MatchState {
   [[nodiscard]] const BallState& ball() const noexcept { return ball_; }
   [[nodiscard]] int playersPerSide() const noexcept { return playersPerSide_; }
 
-  // The last pass kicked and the last reception of a free ball; empty in
-  // every state created from a spec, until the ball system records one.
+  // The last pass kicked, the last shot taken and the last reception of a
+  // free ball; empty in every state created from a spec, until the ball
+  // system records one.
   [[nodiscard]] const std::optional<PassRecord>& lastPass() const noexcept { return lastPass_; }
+  [[nodiscard]] const std::optional<ShotRecord>& lastShot() const noexcept { return lastShot_; }
   [[nodiscard]] const std::optional<ReceptionRecord>& lastReception() const noexcept {
     return lastReception_;
   }
@@ -397,6 +424,7 @@ class MatchState {
   // Parallel to players_.
   std::vector<std::optional<PendingAction>> pendingActions_;
   std::optional<PassRecord> lastPass_;
+  std::optional<ShotRecord> lastShot_;
   std::optional<ReceptionRecord> lastReception_;
   TeamPossession possession_;
   // Home, away.
@@ -413,7 +441,7 @@ class MatchState {
 // What a simulation system or command may change in a state: positions,
 // velocities, movement targets, facings, perception memories, the ball's
 // height, vertical velocity and spin, who owns and
-// last touched the ball, the players' pending actions, the last pass and reception, team
+// last touched the ball, the players' pending actions, the last pass and shot and reception, team
 // possession and phases, the
 // pitch-control grid, the chasers, presses and players' tactical states,
 // nothing else. Squad, ids, sides,
@@ -464,6 +492,7 @@ class MatchStateWriter {
   void setPendingAction(std::size_t playerIndex, std::optional<PendingAction> action);
   // Throw std::invalid_argument for a player not in the state.
   void setLastPass(std::optional<PassRecord> pass);
+  void setLastShot(std::optional<ShotRecord> shot);
   void setLastReception(std::optional<ReceptionRecord> reception);
   void setPossession(const TeamPossession& possession) noexcept {
     state_->possession_ = possession;

@@ -49,20 +49,6 @@ using SimCore::Vec2;
   return 1.0 - ((1.0 - offset) * (1.0 - offset) / 2.0);
 }
 
-// How wide the goal looks from a point: the distance between the directions
-// to its two posts as unit vectors, 2·sin(angle / 2). No trigonometry, so no
-// platform differences.
-[[nodiscard]] double openingOf(const Vec2 from, const Goal& goal) noexcept {
-  const Vec2 toMin = goal.postAtMinY() - from;
-  const Vec2 toMax = goal.postAtMaxY() - from;
-  const double minLength = toMin.length();
-  const double maxLength = toMax.length();
-  if (minLength <= 0.0 || maxLength <= 0.0) {
-    return 0.0;
-  }
-  return ((toMin * (1.0 / minLength)) - (toMax * (1.0 / maxLength))).length();
-}
-
 // What becomes of a shot at one zone: the chance it is blocked on its way,
 // and, if it gets there, that it is saved or goes in.
 struct ZoneOutcome {
@@ -198,24 +184,53 @@ struct AxisAim {
   return center;
 }
 
-[[nodiscard]] ShotRejection rejectionOf(const ShotCandidate& candidate,
-                                        const ShotScoringConfig& scoring) noexcept {
-  if (candidate.distance > scoring.maxShotDistance) {
+// Why no shot can be taken from where the shooter stands, whatever he aims
+// at -- the same for every candidate; kValid if one can.
+[[nodiscard]] ShotRejection positionRejection(const PlayerMatchState& shooter, const Goal& goal,
+                                              const ShotCandidate& shot,
+                                              const ShotCandidateRules& rules) noexcept {
+  if (shot.distance > rules.scoring.maxShotDistance) {
     return ShotRejection::kTooFar;
   }
-  if (candidate.opening < scoring.minOpening) {
+  if (!canSee(shooter, goal.center, rules.perception)) {
+    return ShotRejection::kGoalUnseen;
+  }
+  if (shot.opening < rules.scoring.minOpening) {
     return ShotRejection::kTooNarrow;
   }
+  return ShotRejection::kValid;
+}
+
+[[nodiscard]] ShotRejection rejectionOf(const ShotCandidate& candidate,
+                                        const ShotScoringConfig& scoring) noexcept {
   if (candidate.blockRisk >= scoring.maxBlockRisk) {
     return ShotRejection::kBlocked;
   }
   if (candidate.goalChance < scoring.minGoalChance) {
     return ShotRejection::kUnlikely;
   }
+  if (candidate.utility <= 0.0) {
+    return ShotRejection::kNotWorthIt;
+  }
   return ShotRejection::kValid;
 }
 
 }  // namespace
+
+Goal attackedGoal(const Pitch& pitch, const TeamSide side) noexcept {
+  return pitch.goal(attackingDirection(side) > 0.0 ? GoalEnd::kMaxX : GoalEnd::kMinX);
+}
+
+double goalOpening(const Vec2 from, const Goal& goal) noexcept {
+  const Vec2 toMin = goal.postAtMinY() - from;
+  const Vec2 toMax = goal.postAtMaxY() - from;
+  const double minLength = toMin.length();
+  const double maxLength = toMax.length();
+  if (minLength <= 0.0 || maxLength <= 0.0) {
+    return 0.0;
+  }
+  return ((toMin * (1.0 / minLength)) - (toMax * (1.0 / maxLength))).length();
+}
 
 std::string_view shotRejectionName(const ShotRejection rejection) noexcept {
   switch (rejection) {
@@ -223,12 +238,16 @@ std::string_view shotRejectionName(const ShotRejection rejection) noexcept {
       return "valid";
     case ShotRejection::kTooFar:
       return "too far";
+    case ShotRejection::kGoalUnseen:
+      return "goal unseen";
     case ShotRejection::kTooNarrow:
       return "too narrow";
     case ShotRejection::kBlocked:
       return "blocked";
     case ShotRejection::kUnlikely:
       return "unlikely";
+    case ShotRejection::kNotWorthIt:
+      return "not worth it";
   }
   return "unknown";
 }
@@ -292,8 +311,7 @@ std::vector<ShotCandidate> generateShotCandidates(const MatchState& state,
   const ShotScoringConfig& scoring = rules.scoring;
   const PlayerMatchState& shooter = state.players()[shooterIndex];
   const Vec2 from = state.ball().position;
-  const Goal goal =
-      state.pitch().goal(attackingDirection(shooter.side) > 0.0 ? GoalEnd::kMaxX : GoalEnd::kMinX);
+  const Goal goal = attackedGoal(state.pitch(), shooter.side);
   const auto columns = static_cast<std::size_t>(scoring.zoneColumns);
   const auto rows = static_cast<std::size_t>(scoring.zoneRows);
   const double zoneWidth = goal.widthMeters / static_cast<double>(columns);
@@ -313,6 +331,7 @@ std::vector<ShotCandidate> generateShotCandidates(const MatchState& state,
   const double pressure = std::max(0.0, 1.0 - (nearestOpponent / scoring.pressureRadius));
 
   const double distance = (goal.center - from).length();
+  const double opening = goalOpening(from, goal);
   const double spread = (scoring.spreadAtZero + (scoring.spreadPerMeter * distance)) *
                         (1.0 + (scoring.pressureSpread * pressure)) *
                         accuracyFactor(shooter.attributes.shotAccuracy);
@@ -327,14 +346,13 @@ std::vector<ShotCandidate> generateShotCandidates(const MatchState& state,
           .target = {.x = goal.center.x, .y = lowPostY + aimAlong(column, across, spread, scoring)},
           .height = aimAlong(row, upward, spread, scoring),
           .distance = distance,
-          .opening = openingOf(from, goal),
+          .opening = opening,
           .spread = spread});
     }
   }
 
-  const ShotRejection position = rejectionOf(candidates.front(), scoring);
-  const bool scored = position != ShotRejection::kTooFar && position != ShotRejection::kTooNarrow;
-  if (scored) {
+  const ShotRejection position = positionRejection(shooter, goal, candidates.front(), rules);
+  if (position == ShotRejection::kValid) {
     // What becomes of a shot in each zone, from its center; where a shot may
     // end up is the same grid.
     std::vector<ZoneOutcome> outcomes;
@@ -367,7 +385,8 @@ std::vector<ShotCandidate> generateShotCandidates(const MatchState& state,
     }
   }
   for (ShotCandidate& candidate : candidates) {
-    candidate.rejection = rejectionOf(candidate, scoring);
+    candidate.rejection =
+        position == ShotRejection::kValid ? rejectionOf(candidate, scoring) : position;
   }
 
   std::ranges::sort(candidates, [](const ShotCandidate& left, const ShotCandidate& right) {

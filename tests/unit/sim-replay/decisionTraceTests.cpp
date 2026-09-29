@@ -76,9 +76,11 @@ struct Interception {
                               .player = PlayerId(1),
                               .observations = {},
                               .candidates = {pass},
+                              .shots = {},
                               .outcome = DecisionOutcome::kPassed,
                               .chosen = 0,
-                              .scoring = {}};
+                              .scoring = {},
+                              .shotScoring = {}};
   if (setup.seen) {
     decision.observations.push_back(Observation{.entity = ObservedEntity::player(PlayerId(3)),
                                                 .position = *setup.seen,
@@ -245,9 +247,11 @@ TEST_CASE("A pass challenged away the step it is decided is traced as not played
                                               .player = PlayerId(1),
                                               .observations = {},
                                               .candidates = {},
+                                              .shots = {},
                                               .outcome = DecisionOutcome::kPassed,
                                               .chosen = std::nullopt,
-                                              .scoring = {}});
+                                              .scoring = {},
+                                              .shotScoring = {}});
         }
       }};
   ChallengeConfig always;

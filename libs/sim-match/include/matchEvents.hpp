@@ -14,6 +14,7 @@
 #include "observation.hpp"
 #include "passCandidate.hpp"
 #include "restartKind.hpp"
+#include "shotCandidate.hpp"
 #include "simTime.hpp"
 #include "stableHash.hpp"
 #include "tacticalPhase.hpp"
@@ -158,9 +159,32 @@ struct PressingEnded {
   friend bool operator==(const PressingEnded&, const PressingEnded&) = default;
 };
 
-using MatchEvent = std::variant<PassAttempted, PassReceived, PassIntercepted, LooseBallRecovered,
-                                PossessionChanged, PhaseChanged, BallWon, PressingStarted,
-                                PressingEnded, TacticChanged, PitchControlSampled, RestartTaken>;
+// A player took a shot: the ball left his foot from `from` toward the aimed
+// point of the goal. Enough to reconstruct the chance. What became of it is
+// for shot execution to record, which does not exist yet: until it does, a
+// shot is struck like a ground pass at the aimed point, and the aimed height
+// goes unused (docs/shot-decisions.md).
+struct ShotAttempted {
+  SimCore::SimTick tick;
+  SimCore::PlayerId shooter;
+  SimCore::Vec2 from;
+  SimCore::Vec2 target;
+  double height = 0.0;
+  // The speed the ball left the foot with, execution error included.
+  double speed = 0.0;
+  // From `from` to the goal's center, and how wide the goal looked from
+  // there (goalOpening()).
+  double distance = 0.0;
+  double opening = 0.0;
+
+  friend bool operator==(const ShotAttempted&, const ShotAttempted&) = default;
+};
+
+// New alternatives go last: an event's index is part of its hash.
+using MatchEvent =
+    std::variant<PassAttempted, PassReceived, PassIntercepted, LooseBallRecovered,
+                 PossessionChanged, PhaseChanged, BallWon, PressingStarted, PressingEnded,
+                 TacticChanged, PitchControlSampled, RestartTaken, ShotAttempted>;
 
 // "pass attempted", "pass received", ... for logs and diagnostics.
 [[nodiscard]] std::string_view eventName(const MatchEvent& event);
@@ -176,6 +200,7 @@ void addEvent(SimCore::StableHasher& hasher, const MatchEvent& event);
 enum class DecisionOutcome : std::uint8_t {
   kPassed,
   kNoValidOption,
+  kShot,
 };
 
 // Why a player on the ball decided as he did: what he remembered, every
@@ -187,13 +212,18 @@ struct DecisionDiagnostic {
   SimCore::PlayerId player;
   std::vector<Observation> observations;
   std::vector<PassCandidate> candidates;
+  // Every zone he could have aimed at; only the first, the best, competed
+  // with the passes.
+  std::vector<ShotCandidate> shots;
   DecisionOutcome outcome = DecisionOutcome::kNoValidOption;
-  // Index into candidates of the chosen pass; empty without one.
+  // Index of the chosen option: into candidates for a pass, into shots for a
+  // shot; empty without one.
   std::optional<std::size_t> chosen;
   // The weights the candidates were scored with: the configured scoring,
-  // adjusted to the passing risk of his tactic. passContributions() with
-  // them explains each utility.
+  // adjusted to the passing risk of his tactic. passContributions() and
+  // shotContributions() with them explain each utility.
   PassScoringConfig scoring;
+  ShotScoringConfig shotScoring;
 
   friend bool operator==(const DecisionDiagnostic&, const DecisionDiagnostic&) = default;
 };

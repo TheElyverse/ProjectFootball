@@ -122,6 +122,12 @@ void addPendingAction(StableHasher& hasher, const PendingAction& action) noexcep
     hasher.addBool(pass->receiver.has_value());
     hasher.addU64(pass->receiver.value_or(SimCore::PlayerId::invalid()).value());
   }
+  if (const auto* shot = std::get_if<ShotIntent>(&action)) {
+    hasher.addU64(shot->shooter.value());
+    addVec2(hasher, shot->target);
+    hasher.addDouble(shot->height);
+    hasher.addDouble(shot->speed);
+  }
 }
 
 }  // namespace
@@ -170,6 +176,13 @@ std::uint64_t hashMatchState(const MatchState& state) noexcept {
     hasher.addI64(lastPass->tick.value());
     hasher.addBool(lastPass->receiver.has_value());
     hasher.addU64(lastPass->receiver.value_or(SimCore::PlayerId::invalid()).value());
+  }
+  const auto& lastShot = state.lastShot();
+  hasher.addBool(lastShot.has_value());
+  if (lastShot) {
+    hasher.addU64(lastShot->shooter.value());
+    addVec2(hasher, lastShot->from);
+    hasher.addI64(lastShot->tick.value());
   }
   const auto& reception = state.lastReception();
   hasher.addBool(reception.has_value());
