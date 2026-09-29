@@ -16,6 +16,7 @@
 #include "passCandidate.hpp"
 #include "replay.hpp"
 #include "scenarios.hpp"
+#include "shotCandidate.hpp"
 
 using ElyverseFootball::SimCore::PlayerId;
 using ElyverseFootball::SimCore::SimTick;
@@ -44,6 +45,8 @@ using ElyverseFootball::SimMatch::PassIntercepted;
 using ElyverseFootball::SimMatch::Pitch;
 using ElyverseFootball::SimMatch::PlayerAction;
 using ElyverseFootball::SimMatch::PlayerMatchState;
+using ElyverseFootball::SimMatch::ShotCandidate;
+using ElyverseFootball::SimMatch::ShotRejection;
 using ElyverseFootball::SimMatch::TeamSide;
 using ElyverseFootball::SimReplay::attributeInterception;
 using ElyverseFootball::SimReplay::DecisionTracer;
@@ -191,6 +194,55 @@ TEST_CASE("The tracer attributes the risky pass of intercepted-pass to the decis
   REQUIRE(text.contains("because "));
   REQUIRE(text.contains("-> intercepted by #8 at t="));
   REQUIRE(text.ends_with(": decision\n"));
+}
+
+TEST_CASE("A shot is traced with its aim, its chances and its reason", "[decisionTrace]") {
+  ShotCandidate shot;
+  shot.target = {.x = 60.0, .y = 21.25};
+  shot.height = 0.43;
+  shot.goalChance = 0.5;
+  shot.saveRisk = 0.3;
+  shot.blockRisk = 0.1;
+  shot.secondBallChance = 0.12;
+  const DecisionDiagnostic decision{.tick = SimTick(40),
+                                    .player = PlayerId(7),
+                                    .observations = {},
+                                    .candidates = {},
+                                    .shots = {shot},
+                                    .outcome = DecisionOutcome::kShot,
+                                    .chosen = 0,
+                                    .scoring = {},
+                                    .shotScoring = {}};
+
+  const std::string text =
+      formatTrace(std::vector<TraceEntry>{PassDecisionTrace{.decision = decision, .outcome = {}}});
+  CAPTURE(text);
+  REQUIRE(text.starts_with("t=40 #7 shoots at (60.0, 21.2) 0.43 m high (utility "));
+  REQUIRE(text.contains("goal chance 0.50, save 0.30, block 0.10"));
+  REQUIRE(text.ends_with("because goal\n"));
+}
+
+TEST_CASE("A decision without a shot says why the goal was not on", "[decisionTrace]") {
+  ShotCandidate shot;
+  shot.goalChance = 0.12;
+  shot.rejection = ShotRejection::kNotWorthIt;
+  DecisionDiagnostic decision{.tick = SimTick(40),
+                              .player = PlayerId(7),
+                              .observations = {},
+                              .candidates = {},
+                              .shots = {shot},
+                              .outcome = DecisionOutcome::kNoValidOption,
+                              .chosen = std::nullopt,
+                              .scoring = {},
+                              .shotScoring = {}};
+  const auto traced = [&decision] {
+    return formatTrace(
+        std::vector<TraceEntry>{PassDecisionTrace{.decision = decision, .outcome = {}}});
+  };
+
+  REQUIRE(traced().contains("; no shot: not worth it (goal chance 0.12))"));
+  decision.shots.front().rejection = ShotRejection::kGoalUnseen;
+  REQUIRE(traced().contains("; no shot: goal unseen)"));
 }
 
 TEST_CASE("A pass challenged away the step it is decided is traced as not played",
