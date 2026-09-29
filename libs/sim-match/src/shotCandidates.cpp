@@ -127,6 +127,18 @@ struct AxisAim {
   return *run + scoring.keeperDiveSeconds;
 }
 
+// Seconds an outfield player needs to get a body part to the ball at a point:
+// none if he already stands within reach of it -- a blocker in the way need
+// not move --, otherwise the run until he is.
+[[nodiscard]] std::optional<double> blockSeconds(const PlayerMatchState& blocker, const Vec2 point,
+                                                 const Pitch& pitch,
+                                                 const ShotCandidateRules& rules) {
+  if ((point - blocker.position).length() <= rules.reception.controlRadius) {
+    return 0.0;
+  }
+  return LaneReach::reachSeconds(blocker, point, pitch, rules.reception.controlRadius);
+}
+
 // The outcome of a shot at the center of a zone, rising in a straight line
 // from the ground at the ball to its height at the goal line.
 [[nodiscard]] ZoneOutcome zoneOutcome(const MatchState& state, const Vec2 from, const Vec2 target,
@@ -156,8 +168,7 @@ struct AxisAim {
     const double margin =
         LaneReach::laneMargin(lane, rules.ball, [&](const Vec2 point, const double along) {
           return heightAt(along) <= scoring.blockReach
-                     ? LaneReach::reachSeconds(opponent.player, point, state.pitch(),
-                                               rules.reception.controlRadius)
+                     ? blockSeconds(opponent.player, point, state.pitch(), rules)
                      : std::nullopt;
         });
     unblocked *=
