@@ -109,7 +109,7 @@ abridged example with illustrative values:
 {
     "format": "elyverse-debug-frames",
   "version": 3,
-  "coreVersion": "0.20.0",
+  "coreVersion": "0.21.0",
   "scenario": "m0-acceptance",
   "seed": "42",
   "ticksPerSecond": 30,
