@@ -60,12 +60,13 @@ using SimCore::Vec2;
 // What gaining control of a free ball was: the ball's last touch kicked it,
 // so a teammate of his received the pass and an opponent intercepted it. A
 // ball nobody played, a shot, or one the kicker takes back himself, was
-// loose.
+// loose. The shot comes from the step's writer, not from state, so a shot
+// struck and blocked in the same step counts too.
 [[nodiscard]] MatchEvent controlEvent(const MatchState& state, const BallState& ball,
+                                      const std::optional<ShotRecord>& shot,
                                       const BallClaim& claim, const Vec2 contactPosition,
                                       const SimCore::SimTick tick) {
   const PlayerMatchState& claimant = state.players()[claim.playerIndex];
-  const auto& shot = state.lastShot();
   const bool shotLast = ball.lastTouch && shot && shot->shooter == ball.lastTouch->playerId &&
                         shot->tick == ball.lastTouch->tick;
   if (!ball.lastTouch || shotLast || ball.lastTouch->playerId == claimant.playerId) {
@@ -208,7 +209,7 @@ MatchSystem makeBallMovementSystem(const BallPhysics& physics, const PassConfig&
           carryBy(current.players()[claim->playerIndex]);
           const Vec2 contactPosition =
               ball.position + ((moved.position - ball.position) * claim->contact.contactFraction);
-          context.record(controlEvent(current, ball, *claim, contactPosition, context.tick()));
+          context.record(controlEvent(current, ball, next.lastShot(), *claim, contactPosition, context.tick()));
           context.record(PossessionChanged{
               .tick = context.tick(), .previousOwner = std::nullopt, .newOwner = claim->playerId});
           return;

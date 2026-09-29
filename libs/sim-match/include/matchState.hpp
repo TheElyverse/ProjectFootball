@@ -493,6 +493,11 @@ class MatchStateWriter {
   // Throw std::invalid_argument for a player not in the state.
   void setLastPass(std::optional<PassRecord> pass);
   void setLastShot(std::optional<ShotRecord> shot);
+  // The last shot as this step has left it so far; see ball() for why this
+  // differs from MatchState::lastShot().
+  [[nodiscard]] const std::optional<ShotRecord>& lastShot() const noexcept {
+    return state_->lastShot_;
+  }
   void setLastReception(std::optional<ReceptionRecord> reception);
   void setPossession(const TeamPossession& possession) noexcept {
     state_->possession_ = possession;

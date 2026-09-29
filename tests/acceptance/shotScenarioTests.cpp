@@ -1,6 +1,7 @@
 // The shot scenarios (docs/shot-decisions.md): player 1's first decision on
 // the ball, over many seeds, shoots at a clear chance, passes from a hopeless
-// angle, and mostly passes past a defender in the way.
+// angle, and mostly passes past a defender in the way. A shot blocked as it is
+// struck is a loose ball, not an intercepted pass.
 
 #include <algorithm>
 #include <catch2/catch_test_macros.hpp>
@@ -21,7 +22,10 @@ using ElyverseFootball::SimMatch::DecisionDiagnostic;
 using ElyverseFootball::SimMatch::DecisionOutcome;
 using ElyverseFootball::SimMatch::DiagnosticsFilter;
 using ElyverseFootball::SimMatch::findScenario;
+using ElyverseFootball::SimMatch::LooseBallRecovered;
 using ElyverseFootball::SimMatch::MatchSimulation;
+using ElyverseFootball::SimMatch::PassIntercepted;
+using ElyverseFootball::SimMatch::PassReceived;
 using ElyverseFootball::SimMatch::ShotAttempted;
 using ElyverseFootball::SimMatch::ShotCandidate;
 using ElyverseFootball::SimMatch::ShotRejection;
@@ -115,4 +119,33 @@ TEST_CASE("Shots: a blocked lane is mostly passed around", "[acceptance][shots]"
   CAPTURE(shots, passes, blocked);
   REQUIRE(passes > shots);
   REQUIRE(blocked >= 90);
+}
+
+TEST_CASE("Shots: a shot blocked as it is struck is a loose ball", "[acceptance][shots]") {
+  int blocked = 0;
+  for (const std::string_view scenario : {"clear-chance", "blocked-lane"}) {
+    const auto* definition = findScenario(scenario);
+    REQUIRE(definition != nullptr);
+    for (std::uint64_t seed = 1; seed <= kSeeds; ++seed) {
+      auto setup = definition->make(seed);
+      REQUIRE(setup.has_value());
+      MatchSimulation simulation = startMatch(*setup);
+      for (int tick = 0; tick < 5 * kTicks; ++tick) {
+        REQUIRE(simulation.step().has_value());
+        bool shot = false;
+        for (const auto& event : simulation.events()) {
+          shot = shot || std::holds_alternative<ShotAttempted>(event);
+          if (shot) {
+            REQUIRE_FALSE(std::holds_alternative<PassIntercepted>(event));
+            REQUIRE_FALSE(std::holds_alternative<PassReceived>(event));
+            blocked += std::holds_alternative<LooseBallRecovered>(event) ? 1 : 0;
+          }
+        }
+      }
+    }
+  }
+  CAPTURE(blocked);
+  // The keeper or the defender in the way takes some shots the tick they are
+  // struck.
+  REQUIRE(blocked > 0);
 }
