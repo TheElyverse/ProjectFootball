@@ -75,7 +75,7 @@ the ball -- within the last perception interval.
 | Trigger                 | Spotted when                                                    |
 |-------------------------|-----------------------------------------------------------------|
 | `poorFirstTouch`        | the carrier received within `recentSeconds` (1.5 s) a ball arriving at `heavyTouchSpeed` (11 m/s) or more |
-| `backPass`              | the carrier just received a teammate's pass that ended at least `backPassMeters` (2 m) deeper than it started |
+| `backPass`              | the carrier just received a teammate's pass, with no shot since, that ended at least `backPassMeters` (2 m) deeper than it started |
 | `receiverFacingOwnGoal` | the carrier just received and faces his own goal: the cosine to his attacking direction below `facingOwnGoal` (−0.3) |
 | `isolatedReceiver`      | the carrier just received and the defender remembers no teammate of his within `isolationRadius` (10 m) |
 | `slowPass`              | a recent pass to a receiver of the other side rolls slower than `slowPassSpeed` (6 m/s): the receiver is pressed before it arrives |

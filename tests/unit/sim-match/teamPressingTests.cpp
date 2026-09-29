@@ -28,6 +28,9 @@ using ElyverseFootball::SimMatch::MatchEvent;
 using ElyverseFootball::SimMatch::MatchSetup;
 using ElyverseFootball::SimMatch::MatchSimulation;
 using ElyverseFootball::SimMatch::MatchState;
+using ElyverseFootball::SimMatch::MatchStateWriter;
+using ElyverseFootball::SimMatch::MatchStepContext;
+using ElyverseFootball::SimMatch::MatchSystem;
 using ElyverseFootball::SimMatch::PassCommand;
 using ElyverseFootball::SimMatch::Pitch;
 using ElyverseFootball::SimMatch::PlayerMatchState;
@@ -39,6 +42,7 @@ using ElyverseFootball::SimMatch::pressJoiners;
 using ElyverseFootball::SimMatch::PressOutcome;
 using ElyverseFootball::SimMatch::PressRole;
 using ElyverseFootball::SimMatch::ScheduledCommand;
+using ElyverseFootball::SimMatch::ShotRecord;
 using ElyverseFootball::SimMatch::spotTrigger;
 using ElyverseFootball::SimMatch::startMatch;
 using ElyverseFootball::SimMatch::TeamSide;
@@ -210,6 +214,24 @@ TEST_CASE("Defenders spot each pressing trigger", "[teamPressing]") {
                                            {.x = 33.0, .y = 20.0}, {.x = 43.0, .y = 22.0}, 8.0);
     untilReceived(simulation);
     REQUIRE(spotted(simulation) == PressingTrigger::kBackPass);
+
+    // A shot after that pass: whatever 9 holds now is not the pass back.
+    const SimTick now = simulation.tick();
+    const MatchSystem shoot{
+        .name = "shoot",
+        .update = [now](const MatchStepContext&, const MatchState&, MatchStateWriter& next) {
+          next.setLastShot(
+              ShotRecord{.shooter = PlayerId(9), .from = {.x = 43.0, .y = 22.0}, .tick = now});
+        }};
+    MatchSimulation shotSince({.initialState = simulation.state(),
+                               .seed = 1,
+                               .ticksPerSecond = 30,
+                               .systems = {shoot},
+                               .commands = {}});
+    REQUIRE(shotSince.step().has_value());
+    const auto trigger =
+        spotTrigger(shotSince.state(), TeamSide::kHome, now, kSecondsPerTick, PressingConfig{}, {});
+    REQUIRE((!trigger || trigger->trigger != PressingTrigger::kBackPass));
   }
   SECTION("poor first touch") {
     MatchSimulation simulation = passScene(pressingTactic({PressingTrigger::kPoorFirstTouch}, 0.0),
