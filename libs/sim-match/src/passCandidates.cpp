@@ -5,11 +5,11 @@
 #include <cmath>
 #include <cstddef>
 #include <limits>
-#include <optional>
 #include <stdexcept>
 #include <tuple>
 #include <utility>
 
+#include "laneReach.hpp"
 #include "spatialQueries.hpp"
 
 namespace ElyverseFootball::SimMatch {
@@ -17,69 +17,10 @@ namespace {
 
 using SimCore::Vec2;
 
-// Spacing of the points along a pass where interception is checked.
-constexpr double kLaneStep = 0.5;  // m
-
-// A smooth step from 1 at value <= -1 through 1/2 at 0 to 0 at value >= 1:
-// the cubic smoothstep, built from arithmetic only, so no std::exp and none
-// of its platform differences enter the scores.
-[[nodiscard]] double fallingStep(const double value) noexcept {
-  const double rising = std::clamp((1.0 - value) / 2.0, 0.0, 1.0);
-  return rising * rising * (3.0 - (2.0 * rising));
-}
-
-// Seconds a ball kicked at `speed` needs to roll `distance` meters, from
-// s = v·t − a·t²/2; infinite if it stops before.
-[[nodiscard]] double ballSeconds(const double distance, const double speed,
-                                 const BallPhysics& physics) noexcept {
-  const double deceleration = physics.rollingDeceleration;
-  const double remaining = (speed * speed) - (2.0 * deceleration * distance);
-  if (remaining < 0.0) {
-    return std::numeric_limits<double>::infinity();
-  }
-  return (speed - std::sqrt(remaining)) / deceleration;
-}
-
-// An observed player as the carrier imagines him: where and how fast he
-// believes he is, with default movement limits -- the carrier does not know
-// anyone's attributes.
-[[nodiscard]] PlayerMatchState imagined(const PlayerMatchState& actual, const Vec2 position,
-                                        const Vec2 velocity) {
-  PlayerMatchState player = actual;
-  player.position = position;
-  player.velocity = velocity;
-  player.attributes = PlayerAttributes{};
-  player.target = std::nullopt;
-  return player;
-}
-
-// A remembered player, as the carrier imagines him now.
-struct Remembered {
-  PlayerMatchState player;
-  double confidence = 0.0;
-};
-
-// The straight line a pass rolls along, up to where the receiver takes it.
-struct Lane {
-  Vec2 from;
-  Vec2 direction;
-  double speed = 0.0;
-  // How far along the line the ball gets before the receiver controls it.
-  double length = 0.0;
-};
-
-// Seconds the player needs to come within the control radius of a point:
-// his arrival time less the radius covered at full speed. Empty if the
-// point is off the pitch.
-[[nodiscard]] std::optional<double> reachSeconds(const PlayerMatchState& player, const Vec2 point,
-                                                 const Pitch& pitch,
-                                                 const PassCandidateRules& rules) {
-  const auto arrival = estimateArrivalSeconds(player, point, pitch);
-  if (!arrival) {
-    return std::nullopt;
-  }
-  return *arrival - (rules.reception.controlRadius / player.attributes.maxSpeed);
-}
+using LaneReach::ballSeconds;
+using LaneReach::kLaneStep;
+using LaneReach::Lane;
+using LaneReach::Remembered;
 
 // How far the ball rolls before the receiver can take it: the first point
 // on the line he reaches no later than the ball, or the whole distance.
@@ -91,7 +32,8 @@ struct Lane {
   // are what the pinned scenario results were recorded with.
   // NOLINTNEXTLINE(bugprone-float-loop-counter)
   for (double along = kLaneStep; along < distance; along += kLaneStep) {
-    const auto reach = reachSeconds(receiver, lane.from + (lane.direction * along), pitch, rules);
+    const auto reach = LaneReach::reachSeconds(receiver, lane.from + (lane.direction * along),
+                                               pitch, rules.reception.controlRadius);
     if (reach && *reach <= ballSeconds(along, lane.speed, rules.ball)) {
       return along;
     }
@@ -104,22 +46,11 @@ struct Lane {
 // negative if he gets there before the ball.
 [[nodiscard]] double riskFrom(const Remembered& opponent, const Lane& lane, const Pitch& pitch,
                               const PassCandidateRules& rules) {
-  double margin = std::numeric_limits<double>::infinity();
-  // The samples are the running sum of kLaneStep, not step * kLaneStep: IEEE
-  // addition is deterministic on every platform, and the exact sample points
-  // are what the pinned scenario results were recorded with.
-  // NOLINTNEXTLINE(bugprone-float-loop-counter)
-  for (double along = kLaneStep; along < lane.length; along += kLaneStep) {
-    const auto reach =
-        reachSeconds(opponent.player, lane.from + (lane.direction * along), pitch, rules);
-    if (reach) {
-      margin = std::min(margin, *reach - ballSeconds(along, lane.speed, rules.ball));
-    }
-  }
-  if (margin == std::numeric_limits<double>::infinity()) {
-    return 0.0;
-  }
-  return opponent.confidence * fallingStep(margin / rules.scoring.interceptionMarginSeconds);
+  const double margin =
+      LaneReach::laneMargin(opponent.player, lane, pitch, rules.ball,
+                            [&rules](double /*along*/) { return rules.reception.controlRadius; });
+  return LaneReach::riskOfMargin(margin, opponent.confidence,
+                                 rules.scoring.interceptionMarginSeconds);
 }
 
 [[nodiscard]] PassRejection rejectionOf(const PassCandidate& candidate,
@@ -211,29 +142,12 @@ std::vector<PassCandidate> generatePassCandidates(const MatchState& state,
                                                   const double secondsPerTick,
                                                   const PassCandidateRules& rules) {
   const PlayerMatchState& carrier = state.players()[carrierIndex];
-  const PlayerPerception& memory = state.perception(carrierIndex);
   const Vec2 from = state.ball().position;
 
-  // Everyone the carrier remembers well enough, split into teammates and
-  // opponents, at the positions he believes they have now.
-  std::vector<Remembered> teammates;
-  std::vector<Remembered> opponents;
-  for (const Observation& observation : memory.observations) {
-    if (observation.entity.isBall() || observation.confidence < rules.scoring.minConfidence) {
-      continue;
-    }
-    const auto index = findPlayerIndex(state, observation.entity.playerId());
-    if (!index) {
-      continue;
-    }
-    const PlayerMatchState& actual = state.players()[*index];
-    const Remembered remembered{
-        .player =
-            imagined(actual, estimatePosition(observation, now, secondsPerTick, rules.perception),
-                     observation.velocity),
-        .confidence = observation.confidence};
-    (actual.side == carrier.side ? teammates : opponents).push_back(remembered);
-  }
+  // Everyone the carrier remembers well enough, at the positions he believes
+  // they have now.
+  const auto [teammates, opponents] = LaneReach::rememberedPlayers(
+      state, carrierIndex, now, secondsPerTick, rules.perception, rules.scoring.minConfidence);
 
   std::vector<PassCandidate> candidates;
   candidates.reserve(teammates.size());
