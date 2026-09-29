@@ -76,6 +76,10 @@ function matchSection(recording: Recording, frame: Frame): HTMLElement[] {
       ["ball owner", player(frame.ball.owner)],
       ["last touch", player(frame.ball.lastTouch)],
       ["ball speed", `${number(Math.hypot(...frame.ball.velocity), 1)} m/s`],
+      [
+        "ball height",
+        `${number(frame.ball.height, 2)} m (${number(frame.ball.verticalVelocity, 1)} m/s up)`,
+      ],
     ]),
   ];
 }

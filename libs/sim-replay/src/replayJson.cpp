@@ -103,6 +103,9 @@ using SimMatch::TeamSide;
   const auto& owner = state.ball().owner;
   json["ball"] = {{"position", vec2Json(state.ball().position)},
                   {"velocity", vec2Json(state.ball().velocity)},
+                  {"height", state.ball().height},
+                  {"verticalVelocity", state.ball().verticalVelocity},
+                  {"spin", state.ball().spin},
                   {"owner", owner ? Json(owner->value()) : Json(nullptr)},
                   {"lastTouch", touchJson(state.ball().lastTouch)}};
   json["tactics"] = tacticsJson(state.tactics());
@@ -193,7 +196,14 @@ using SimMatch::TeamSide;
   return {{"ticksPerSecond", config.ticksPerSecond},
           {"ball",
            {{"rollingDeceleration", config.ball.rollingDeceleration},
-            {"carryDistance", config.ball.carryDistance}}},
+            {"carryDistance", config.ball.carryDistance},
+            {"gravity", config.ball.gravity},
+            {"airDrag", config.ball.airDrag},
+            {"bounceRestitution", config.ball.bounceRestitution},
+            {"bounceGrip", config.ball.bounceGrip},
+            {"spinTransfer", config.ball.spinTransfer},
+            {"spinDecay", config.ball.spinDecay},
+            {"restingVerticalSpeed", config.ball.restingVerticalSpeed}}},
           {"perception",
            {{"intervalTicks", perception.intervalTicks},
             {"viewDistance", perception.viewDistance},
@@ -210,7 +220,8 @@ using SimMatch::TeamSide;
             {"pressureErrorFactor", config.passing.pressureErrorFactor}}},
           {"reception",
            {{"controlRadius", config.reception.controlRadius},
-            {"reclaimDelaySeconds", config.reception.reclaimDelaySeconds}}},
+            {"reclaimDelaySeconds", config.reception.reclaimDelaySeconds},
+            {"controlHeight", config.reception.controlHeight}}},
           {"pursuit",
            {{"intervalTicks", config.pursuit.intervalTicks},
             {"sampleSeconds", config.pursuit.sampleSeconds},
@@ -503,7 +514,10 @@ constexpr std::int64_t kMaxTick = std::int64_t{1} << 53;
        .ball = {.position = readVec2(ball.member("position")),
                 .velocity = readVec2(ball.member("velocity")),
                 .owner = readOwner(ball.member("owner")),
-                .lastTouch = readTouch(ball.member("lastTouch"))},
+                .lastTouch = readTouch(ball.member("lastTouch")),
+                .height = ball.member("height").number(),
+                .verticalVelocity = ball.member("verticalVelocity").number(),
+                .spin = ball.member("spin").number()},
        .playersPerSide = static_cast<int>(field.member("playersPerSide").integerIn(1, 1000))},
       {.home = readTactic(field.member("tactics").member("home")),
        .away = readTactic(field.member("tactics").member("away"))});
@@ -644,16 +658,28 @@ constexpr std::int64_t kMaxTick = std::int64_t{1} << 53;
           .maxPressSeconds = number("maxPressSeconds")};
 }
 
+[[nodiscard]] SimMatch::BallPhysics readBall(const Field& field) {
+  return {.rollingDeceleration = field.member("rollingDeceleration").number(),
+          .carryDistance = field.member("carryDistance").number(),
+          .gravity = field.member("gravity").number(),
+          .airDrag = field.member("airDrag").number(),
+          .bounceRestitution = field.member("bounceRestitution").number(),
+          .bounceGrip = field.member("bounceGrip").number(),
+          .spinTransfer = field.member("spinTransfer").number(),
+          .spinDecay = field.member("spinDecay").number(),
+          .restingVerticalSpeed = field.member("restingVerticalSpeed").number()};
+}
+
 [[nodiscard]] MatchConfig readConfig(const Field& field) {
   return {
       .ticksPerSecond = static_cast<int>(field.member("ticksPerSecond").integerIn(1, 100000)),
-      .ball = {.rollingDeceleration = field.member("ball").member("rollingDeceleration").number(),
-               .carryDistance = field.member("ball").member("carryDistance").number()},
+      .ball = readBall(field.member("ball")),
       .perception = readPerception(field.member("perception")),
       .passing = readPassing(field.member("passing")),
       .reception = {.controlRadius = field.member("reception").member("controlRadius").number(),
                     .reclaimDelaySeconds =
-                        field.member("reception").member("reclaimDelaySeconds").number()},
+                        field.member("reception").member("reclaimDelaySeconds").number(),
+                    .controlHeight = field.member("reception").member("controlHeight").number()},
       .pursuit = readPursuit(field.member("pursuit")),
       .decisions = readDecisions(field.member("decisions")),
       .phases = readPhases(field.member("phases")),

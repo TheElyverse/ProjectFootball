@@ -24,7 +24,11 @@ facing and moves with his velocity:
 ```text
 ball.position = carrier.position + carrier.facing · carryDistance, moved onto the pitch
 ball.velocity = carrier.velocity
+ball.height = 0, ball.verticalVelocity = 0, ball.spin = 0
 ```
+
+A controlled ball is always on the ground, whatever it did before someone took
+it: a player keeps the ball at his feet.
 
 A carrier standing on a line does not carry the ball out of play: a carried ball
 that would lie off the pitch is moved onto its nearest point.

@@ -82,6 +82,15 @@ TEST_CASE("A free ball at rest on a line is out of play", "[restart]") {
   BallState owned = ballAt({.x = 30.0, .y = 0.0}, 2);
   owned.owner = PlayerId(2);
   REQUIRE_FALSE(isOutOfPlay(scene(owned)));
+
+  // A ball over the line but still in the air is in play: it has not come to
+  // rest anywhere yet.
+  BallState flying = ballAt({.x = 30.0, .y = 0.0}, 2);
+  flying.height = 1.5;
+  REQUIRE_FALSE(isOutOfPlay(scene(flying)));
+  BallState rising = ballAt({.x = 30.0, .y = 0.0}, 2);
+  rising.verticalVelocity = 4.0;
+  REQUIRE_FALSE(isOutOfPlay(scene(rising)));
 }
 
 TEST_CASE("Over a touchline the other side throws in, nearest player first", "[restart]") {

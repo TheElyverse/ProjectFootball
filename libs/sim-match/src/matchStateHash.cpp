@@ -124,6 +124,9 @@ std::uint64_t hashMatchState(const MatchState& state) noexcept {
   }
   addVec2(hasher, state.ball().position);
   addVec2(hasher, state.ball().velocity);
+  hasher.addDouble(state.ball().height);
+  hasher.addDouble(state.ball().verticalVelocity);
+  hasher.addDouble(state.ball().spin);
   hasher.addBool(state.ball().owner.has_value());
   hasher.addU64(state.ball().owner.value_or(SimCore::PlayerId::invalid()).value());
   const auto& touch = state.ball().lastTouch;

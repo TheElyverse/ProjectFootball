@@ -7,6 +7,7 @@
 #include "matchSimulation.hpp"
 #include "matchState.hpp"
 #include "pitch.hpp"
+#include "reception.hpp"
 #include "vec2.hpp"
 
 namespace ElyverseFootball::SimMatch {
@@ -36,16 +37,18 @@ struct Interception {
   double seconds = 0.0;
 };
 
-// The earliest point on the free ball's predicted path -- rolled with
-// stepFreeBall() in sampleSeconds steps -- the player reaches no later than
-// the ball, by estimateArrivalSeconds(). If he reaches none before it stops
+// The earliest point on the free ball's predicted path -- stepped with
+// stepFreeBall() in sampleSeconds steps, so it rolls, flies and bounces as it
+// will in the match -- the player reaches no later than
+// the ball, by estimateArrivalSeconds(). A point where the ball is higher than
+// reachHeight is no interception: he cannot play it there, and a ball over his
+// head is chased to where it comes down. If he reaches none before the ball
+// stops
 // or before horizonSeconds, where the ball ends up and when he gets there.
 // Empty if he cannot reach that either.
-[[nodiscard]] std::optional<Interception> findInterception(const PlayerMatchState& player,
-                                                           const BallState& ball,
-                                                           const BallPhysics& physics,
-                                                           const Pitch& pitch,
-                                                           const PursuitConfig& config);
+[[nodiscard]] std::optional<Interception> findInterception(
+    const PlayerMatchState& player, const BallState& ball, const BallPhysics& physics,
+    const Pitch& pitch, const PursuitConfig& config, double reachHeight);
 
 inline constexpr std::string_view kPursuitSystemName = "ball pursuit";
 
@@ -56,6 +59,9 @@ inline constexpr std::string_view kPursuitSystemName = "ball pursuit";
 // player to touch the ball does not chase it while it still moves -- he just
 // passed it.
 //
+// The reach comes from the reception configuration: a chaser runs to where he
+// can actually play the ball, not to a point it flies over.
+//
 // The chaser's target belongs to pursuit. A player who stops being the
 // chaser -- someone else is closer, or anyone controls the ball -- has his
 // target cleared and stops, rather than running on to where the ball was
@@ -65,6 +71,8 @@ inline constexpr std::string_view kPursuitSystemName = "ball pursuit";
 // perception. Throws std::invalid_argument for an interval below one tick, a
 // sample or horizon that is not positive and finite, or a horizon of more
 // than kMaxPursuitSamples samples.
+[[nodiscard]] MatchSystem makePursuitSystem(const BallPhysics& physics, const PursuitConfig& config,
+                                            const ReceptionConfig& reception);
 [[nodiscard]] MatchSystem makePursuitSystem(const BallPhysics& physics,
                                             const PursuitConfig& config);
 

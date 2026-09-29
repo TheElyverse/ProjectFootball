@@ -82,7 +82,9 @@ errors and factor, a speed error that could reach 1 under full pressure
 
 ## What this is not
 
-All passes are ground passes. There is no chip, lofted pass or shot, and the
+All passes are ground passes: the ball leaves the foot on the grass, without
+vertical velocity or spin, however much of a third dimension the
+[ball model](ball-movement.md) now has. There is no chip, lofted pass or shot, and the
 error does not yet depend on the passer's technique, pressure or body shape — the
 capabilities that will shape it arrive with the player model. Who gets the ball
 afterwards is decided by [reception](reception.md).

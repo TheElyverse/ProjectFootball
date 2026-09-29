@@ -24,6 +24,7 @@ const COLORS = {
   home: "#4f8ef7",
   away: "#e5534b",
   ball: "#ffffff",
+  ballShadow: "rgba(0, 0, 0, 0.45)",
   owner: "#ffd33d",
   selection: "#ffffff",
   target: "rgba(255, 255, 255, 0.7)",
@@ -38,6 +39,9 @@ const COLORS = {
 
 const PLAYER_RADIUS_METERS = 0.8;
 const BALL_RADIUS_METERS = 0.35;
+// A ball this high is drawn twice its size. Five meters is about as high as
+// anything in a match goes, so the ball stays readable over its whole flight.
+const BALL_HEIGHT_SCALE_METERS = 5;
 
 function teamColor(recording: Recording, playerId: number): string {
   return sideOf(recording, playerId) === "away" ? COLORS.away : COLORS.home;
@@ -239,10 +243,19 @@ function drawBall(context: CanvasRenderingContext2D, viewport: Viewport, frame: 
       context.setLineDash([]);
     }
   }
+  const radius = Math.max(viewport.pixels(BALL_RADIUS_METERS), 4);
+  // A ball off the ground has nowhere to go on a flat pitch, so its height is
+  // drawn instead: a shadow stays where it is over the grass, and the ball
+  // itself grows the higher it flies.
+  if (frame.ball.height > 0) {
+    context.fillStyle = COLORS.ballShadow;
+    circle(context, viewport, frame.ball.position, radius);
+    context.fill();
+  }
   context.fillStyle = COLORS.ball;
   context.strokeStyle = "#000000";
   context.lineWidth = 1;
-  circle(context, viewport, frame.ball.position, Math.max(viewport.pixels(BALL_RADIUS_METERS), 4));
+  circle(context, viewport, frame.ball.position, radius * (1 + frame.ball.height / BALL_HEIGHT_SCALE_METERS));
   context.fill();
   context.stroke();
 }

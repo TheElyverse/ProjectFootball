@@ -123,9 +123,9 @@ teams change ends, so an end says nothing about which side defends it.
 way `PitchRect::contains()` and `Pitch::contains()` do. It compares the
 `length()` of the offset against the radius rather than
 their squares, so it stays correct on the extreme pitch sizes where squaring
-would overflow or underflow. Heights are meters above the ground and are the one
-quantity a caller supplies rather than reads: the simulation is otherwise flat,
-and no state stores a height yet.
+would overflow or underflow. Heights are meters above the ground. The pitch geometry stores none of its own:
+a caller supplies the height it asks about, and the ball carries its own
+([ball movement](ball-movement.md)).
 
 `Goal::framesPoint(pitchY, height)` answers whether a point is inside the frame:
 `isBetweenPosts()` and `isUnderCrossbar()` both hold, so a point beside a post

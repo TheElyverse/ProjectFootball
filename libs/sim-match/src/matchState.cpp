@@ -113,6 +113,10 @@ void appendNonFinitePlayerErrors(const std::size_t index, const PlayerMatchState
   return value > 0.0 && value <= std::numeric_limits<double>::max();
 }
 
+[[nodiscard]] bool isFinite(const double value) noexcept {
+  return std::abs(value) <= std::numeric_limits<double>::max();
+}
+
 void appendFacingErrors(const std::size_t index, const PlayerMatchState& player,
                         std::vector<MatchStateError>& errors) {
   const double lengthSquared = player.facing.lengthSquared();
@@ -159,6 +163,23 @@ void appendNonFiniteBallErrors(const BallState& ball, std::vector<MatchStateErro
     errors.push_back(
         {.code = MatchStateErrorCode::kNonFiniteBallVelocity,
          .message = "the ball has a non-finite velocity: " + formatVelocity(ball.velocity)});
+  }
+  if (!isFinite(ball.height)) {
+    errors.push_back({.code = MatchStateErrorCode::kNonFiniteBallHeight,
+                      .message = "the ball has a non-finite height: " + formatNumber(ball.height)});
+  } else if (ball.height < 0.0) {
+    errors.push_back({.code = MatchStateErrorCode::kBallBelowGround,
+                      .message = "the ball is " + formatNumber(ball.height) +
+                                 " m above the ground, which is below it"});
+  }
+  if (!isFinite(ball.verticalVelocity)) {
+    errors.push_back({.code = MatchStateErrorCode::kNonFiniteBallVerticalVelocity,
+                      .message = "the ball has a non-finite vertical velocity: " +
+                                 formatNumber(ball.verticalVelocity)});
+  }
+  if (!isFinite(ball.spin)) {
+    errors.push_back({.code = MatchStateErrorCode::kNonFiniteBallSpin,
+                      .message = "the ball has a non-finite spin: " + formatNumber(ball.spin)});
   }
 }
 
@@ -214,6 +235,18 @@ void validateBall(const MatchStateSpec& spec, std::vector<MatchStateError>& erro
     errors.push_back({.code = MatchStateErrorCode::kBallTooFast,
                       .message = "the ball moves at " + formatVelocity(velocity) +
                                  ", faster than " + formatNumber(kMaxBallSpeed) + " m/s"});
+  }
+  const double verticalVelocity = spec.ball.verticalVelocity;
+  if (isFinite(verticalVelocity) && std::abs(verticalVelocity) > kMaxBallSpeed) {
+    errors.push_back({.code = MatchStateErrorCode::kBallVerticallyTooFast,
+                      .message = "the ball moves at " + formatNumber(verticalVelocity) +
+                                 " m/s vertically, faster than " + formatNumber(kMaxBallSpeed) +
+                                 " m/s"});
+  }
+  if (isFinite(spec.ball.spin) && std::abs(spec.ball.spin) > kMaxBallSpin) {
+    errors.push_back({.code = MatchStateErrorCode::kBallSpinningTooFast,
+                      .message = "the ball spins at " + formatNumber(spec.ball.spin) +
+                                 " rad/s, faster than " + formatNumber(kMaxBallSpin) + " rad/s"});
   }
   if (spec.ball.lastTouch && !hasPlayer(spec.players, spec.ball.lastTouch->playerId)) {
     errors.push_back({.code = MatchStateErrorCode::kUnknownLastTouch,

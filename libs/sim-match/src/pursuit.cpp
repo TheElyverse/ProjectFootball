@@ -52,16 +52,19 @@ void handOver(const MatchState& current, MatchStateWriter& next, const TeamSide 
 
 std::optional<Interception> findInterception(const PlayerMatchState& player, const BallState& ball,
                                              const BallPhysics& physics, const Pitch& pitch,
-                                             const PursuitConfig& config) {
+                                             const PursuitConfig& config,
+                                             const double reachHeight) {
   BallState predicted = ball;
   double seconds = 0.0;
   while (true) {
     const auto arrival = estimateArrivalSeconds(player, predicted.position, pitch);
-    if (arrival && *arrival <= seconds) {
+    // A ball above his reach is no interception: he keeps going and takes it
+    // where it has come down.
+    const bool reachable = predicted.height <= reachHeight;
+    if (reachable && arrival && *arrival <= seconds) {
       return Interception{.point = predicted.position, .seconds = seconds};
     }
-    const bool resting = predicted.velocity == SimCore::Vec2{};
-    if (resting || seconds >= config.horizonSeconds) {
+    if (predicted.isAtRest() || seconds >= config.horizonSeconds) {
       if (!arrival) {
         return std::nullopt;
       }
@@ -80,9 +83,9 @@ namespace {
 // Per side, the player who reaches the free ball first, ties to the lower id.
 // The last player to touch the ball does not chase it while it still moves.
 [[nodiscard]] Chasers findChasers(const MatchState& current, const BallPhysics& physics,
-                                  const PursuitConfig& config) {
+                                  const PursuitConfig& config, const double reachHeight) {
   const BallState& ball = current.ball();
-  const bool moving = ball.velocity != SimCore::Vec2{};
+  const bool moving = !ball.isAtRest();
   Chasers chasers;
   for (std::size_t index = 0; const PlayerMatchState& player : current.players()) {
     const std::size_t playerIndex = index++;
@@ -90,7 +93,8 @@ namespace {
     if (justPassed) {
       continue;
     }
-    const auto interception = findInterception(player, ball, physics, current.pitch(), config);
+    const auto interception =
+        findInterception(player, ball, physics, current.pitch(), config, reachHeight);
     if (!interception) {
       continue;
     }
@@ -109,19 +113,22 @@ namespace {
 
 }  // namespace
 
-MatchSystem makePursuitSystem(const BallPhysics& physics, const PursuitConfig& config) {
+MatchSystem makePursuitSystem(const BallPhysics& physics, const PursuitConfig& config,
+                              const ReceptionConfig& reception) {
   validate(config);
+  validate(reception);
   return {.name = std::string(kPursuitSystemName),
           .update =
-              [physics, config](const MatchStepContext& /*context*/, const MatchState& current,
-                                MatchStateWriter& next) {
+              [physics, config, reachHeight = reception.controlHeight](
+                  const MatchStepContext& /*context*/, const MatchState& current,
+                  MatchStateWriter& next) {
                 if (current.ball().owner) {
                   for (const TeamSide side : {TeamSide::kHome, TeamSide::kAway}) {
                     handOver(current, next, side, std::nullopt);
                   }
                   return;
                 }
-                const Chasers chasers = findChasers(current, physics, config);
+                const Chasers chasers = findChasers(current, physics, config, reachHeight);
                 for (const TeamSide side : {TeamSide::kHome, TeamSide::kAway}) {
                   const auto& chaser = chasers.at(side == TeamSide::kHome ? 0 : 1);
                   handOver(current, next, side,
@@ -133,6 +140,10 @@ MatchSystem makePursuitSystem(const BallPhysics& physics, const PursuitConfig& c
               },
           .intervalTicks = config.intervalTicks,
           .phaseTicks = 0};
+}
+
+MatchSystem makePursuitSystem(const BallPhysics& physics, const PursuitConfig& config) {
+  return makePursuitSystem(physics, config, ReceptionConfig{});
 }
 
 }  // namespace ElyverseFootball::SimMatch

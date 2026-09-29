@@ -70,7 +70,9 @@ std::string_view restartKindName(const RestartKind kind) noexcept {
 bool isOutOfPlay(const BallState& ball, const Pitch& pitch) noexcept {
   const bool onLine = ball.position.x == 0.0 || ball.position.x == pitch.lengthMeters() ||
                       ball.position.y == 0.0 || ball.position.y == pitch.widthMeters();
-  return !ball.owner && ball.velocity == SimCore::Vec2{} && onLine && pitch.contains(ball.position);
+  // At rest rather than merely without velocity in the pitch plane: a ball at
+  // the apex of its flight has none either, and it is still in play.
+  return !ball.owner && ball.isAtRest() && onLine && pitch.contains(ball.position);
 }
 
 bool isOutOfPlay(const MatchState& state) noexcept {

@@ -14,18 +14,28 @@ default is `replay.json` in the working directory, and `--play` plays one back. 
 before the terminal interface opens, so a run rejected by argument or terminal
 validation leaves no file behind.
 
-## Schema version 4
+## Schema version 5
 
 ```json
 {
-    "schemaVersion": 4,
-  "coreVersion": "0.18.0",
+    "schemaVersion": 5,
+  "coreVersion": "0.20.0",
   "createdAt": "2026-09-24T10:00:00Z",
   "seed": "18446744073709551615",
   "gameTime": 300,
   "config": {
     "ticksPerSecond": 30,
-    "ball": { "rollingDeceleration": 1.5, "carryDistance": 0.5 },
+    "ball": {
+      "rollingDeceleration": 1.5,
+      "carryDistance": 0.5,
+      "gravity": 9.81,
+      "airDrag": 0.33,
+      "bounceRestitution": 0.6,
+      "bounceGrip": 0.8,
+      "spinTransfer": 0.2,
+      "spinDecay": 0.4,
+      "restingVerticalSpeed": 0.25
+    },
     "perception": {
       "intervalTicks": 3,
       "viewDistance": 60.0,
@@ -42,7 +52,7 @@ validation leaves no file behind.
       "pressureRadius": 3.0,
       "pressureErrorFactor": 1.0
     },
-    "reception": { "controlRadius": 1.0, "reclaimDelaySeconds": 0.3 },
+    "reception": { "controlRadius": 1.0, "reclaimDelaySeconds": 0.3, "controlHeight": 1.0 },
         "pursuit": { "intervalTicks": 3, "sampleSeconds": 0.1, "horizonSeconds": 8.0 },
     "decisions": {
       "intervalTicks": 6,
@@ -150,6 +160,9 @@ validation leaves no file behind.
     "ball": {
       "position": { "x": 30.0, "y": 20.0 },
       "velocity": { "x": 6.5, "y": -1.25 },
+      "height": 0.0,
+      "verticalVelocity": 0.0,
+      "spin": 0.0,
             "owner": null,
       "lastTouch": null
     },
@@ -179,7 +192,7 @@ player and the whole tactic.
 
 | Field           | JSON type | Meaning                                                       |
 |-----------------|-----------|---------------------------------------------------------------|
-| `schemaVersion` | number    | Version of this format. Currently `4`.                        |
+| `schemaVersion` | number    | Version of this format. Currently `5`.                        |
 | `coreVersion`   | string    | The `sim-core` version that recorded the match.               |
 | `createdAt`     | string    | Creation time in UTC, `%Y-%m-%dT%H:%M:%SZ`. Metadata only.    |
 | `seed`          | string    | Unsigned 64-bit master seed, in decimal.                      |
@@ -191,7 +204,9 @@ player and the whole tactic.
 | `checkpoints`   | array     | State and event hashes after the steps that reached these ticks. |
 
 Positions are meters and velocities meters per second, as in the
-[match state](match-state.md). A player's `target` is `null` when he has none,
+[match state](match-state.md). The ball's `height` and `verticalVelocity` are
+its third dimension, in meters and meters per second, and `spin` is top- or
+backspin in radians per second ([ball movement](ball-movement.md)). A player's `target` is `null` when he has none,
 the ball's `owner` is `null` while it is free, and its `lastTouch` is `null` or
 `{ "playerId": 7, "tick": 120 }`. The pending pass is not recorded: every
 initial state has none. `tactics` holds, for each side, the tactic as a complete
@@ -337,3 +352,4 @@ recorded replays without changing the file format, and surfaces as a new
 | 2       | A playable replay: adds `config`, `initialState`, `commands` and `checkpoints`; `gameTime` is the final tick. Version 1 files cannot be played back and are rejected. |
 | 3       | Checkpoints add `eventHash`. Version 2 files are rejected; record the scenario again with the same seed to get a version 3 file of the same match. |
 | 4       | Tactics carry their `contentHash` next to the tactic, `changeTactic` commands, and `checkpointIntervalTicks`. Versions 2 and 3 are rejected with a message to record the scenario again with the same seed. |
+| 5       | The ball gains `height`, `verticalVelocity` and `spin`, the ball configuration its flight and bounce constants, and reception its `controlHeight`. Versions 2 to 4 are rejected with a message to record the scenario again with the same seed. |

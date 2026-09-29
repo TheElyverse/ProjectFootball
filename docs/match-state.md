@@ -73,8 +73,14 @@ for it; the state hash includes it.
 
 The fields are deliberately few. Orientation, energy, action, perception, and
 tactical runtime state from [implementation plan](implementation-plan.md)
-section 6.2 arrive with the systems that fill them, and the ball's third
-dimension and spin (section 6.7) arrive with the passing model.
+section 6.2 arrive with the systems that fill them.
+
+The ball carries its third dimension: `height` and `verticalVelocity` in meters
+and meters per second, and `spin` as top- or backspin in radians per second
+(section 6.7, [ball movement](ball-movement.md)). A ball with neither height
+nor vertical velocity lies or rolls on the grass. Validation rejects a
+non-finite height, a ball below the ground, a vertical velocity or spin that is
+not finite, and both of them beyond `kMaxBallSpeed` and `kMaxBallSpin`.
 
 Player order is part of the state. Two states holding the same players in a
 different order are not equal, because the order in which players are updated

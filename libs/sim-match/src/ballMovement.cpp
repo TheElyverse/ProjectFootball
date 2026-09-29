@@ -16,24 +16,6 @@ namespace {
 using SimCore::PlayerId;
 using SimCore::Vec2;
 
-// The fraction t in (0, 1] of the move from start to end at which the ball
-// crosses the pitch boundary, for a start on the pitch and an end off it.
-// Checked per boundary line; the earliest crossing is where the ball leaves.
-[[nodiscard]] double exitFraction(const Vec2 start, const Vec2 end, const Pitch& pitch) noexcept {
-  double fraction = 1.0;
-  const auto crossing = [&fraction](const double from, const double until, const double line) {
-    const bool crosses = (from <= line && until > line) || (from >= line && until < line);
-    if (crosses) {
-      fraction = std::min(fraction, (line - from) / (until - from));
-    }
-  };
-  crossing(start.x, end.x, 0.0);
-  crossing(start.x, end.x, pitch.lengthMeters());
-  crossing(start.y, end.y, 0.0);
-  crossing(start.y, end.y, pitch.widthMeters());
-  return fraction;
-}
-
 // The owner as the movement system leaves him after this tick: moved and
 // turned with the same pure functions, so ball and carrier stay together.
 [[nodiscard]] PlayerMatchState ownerAfterMove(const PlayerMatchState& owner,
@@ -50,7 +32,9 @@ using SimCore::Vec2;
 // The ball as a pass leaves it: free, at the passer's feet, with the executed
 // pass velocity, and the passer as its last touch. At his feet is where a
 // controlled ball already is -- except when he got it by a command in this
-// very tick, which moves no ball.
+// very tick, which moves no ball. Every pass is a ground pass, so the ball
+// stays on the grass without vertical velocity or spin; lofted passes and
+// shots arrive with their own decisions.
 [[nodiscard]] BallState kicked(const MatchState& state, const PassIntent& intent,
                                const BallPhysics& physics, const PassConfig& passing,
                                const MatchStepContext& context) {
@@ -63,6 +47,9 @@ using SimCore::Vec2;
                               passPressure(state, passer, passing));
   ball.owner = std::nullopt;
   ball.lastTouch = BallTouch{.playerId = intent.passer, .tick = context.tick()};
+  ball.height = 0.0;
+  ball.verticalVelocity = 0.0;
+  ball.spin = 0.0;
   return ball;
 }
 
@@ -89,12 +76,6 @@ using SimCore::Vec2;
                          .position = contactPosition};
 }
 
-[[nodiscard]] bool isValid(const BallPhysics& physics) noexcept {
-  constexpr double kMax = std::numeric_limits<double>::max();
-  return physics.rollingDeceleration > 0.0 && physics.rollingDeceleration <= kMax &&
-         physics.carryDistance >= 0.0 && physics.carryDistance <= kMax;
-}
-
 }  // namespace
 
 Vec2 carriedBallPosition(const PlayerMatchState& carrier, const BallPhysics& physics,
@@ -102,54 +83,10 @@ Vec2 carriedBallPosition(const PlayerMatchState& carrier, const BallPhysics& phy
   return pitch.clamp(carrier.position + (carrier.facing * physics.carryDistance));
 }
 
-double rollingDistance(const double speed, const BallPhysics& physics) noexcept {
-  return (speed * speed) / (2.0 * physics.rollingDeceleration);
-}
-
-BallState stepFreeBall(const BallState& ball, const BallPhysics& physics, const Pitch& pitch,
-                       const double secondsPerTick) noexcept {
-  const double speed = ball.velocity.length();
-  if (speed == 0.0) {
-    return ball;
-  }
-  const Vec2 direction = ball.velocity * (1.0 / speed);
-
-  // Constant deceleration along the direction of travel. A ball that stops
-  // within the tick covers exactly its remaining rolling distance and rests;
-  // otherwise it moves at the average of its start and end speed.
-  const double speedLoss = physics.rollingDeceleration * secondsPerTick;
-  double endSpeed = 0.0;
-  double distance = rollingDistance(speed, physics);
-  if (speed > speedLoss) {
-    endSpeed = speed - speedLoss;
-    distance = (speed + endSpeed) / 2.0 * secondsPerTick;
-  }
-  const Vec2 end = ball.position + (direction * distance);
-
-  // Out of play: a ball that leaves the pitch stops on the line where it
-  // crossed it. The clamp removes rounding that would leave it a hair off the
-  // line. A ball already off the pitch (a hand-built state) rolls on.
-  if (pitch.contains(ball.position) && !pitch.contains(end)) {
-    const double fraction = exitFraction(ball.position, end, pitch);
-    BallState stopped = ball;
-    stopped.position = pitch.clamp(ball.position + ((end - ball.position) * fraction));
-    stopped.velocity = {};
-    return stopped;
-  }
-  BallState moved = ball;
-  moved.position = end;
-  moved.velocity = direction * endSpeed;
-  return moved;
-}
-
 MatchSystem makeBallMovementSystem(const BallPhysics& physics, const PassConfig& passing,
                                    const ReceptionConfig& reception,
                                    const RestartConfig& restarts) {
-  if (!isValid(physics)) {
-    throw std::invalid_argument(
-        "ball movement: rolling deceleration must be positive and finite, carry distance finite "
-        "and not negative");
-  }
+  validate(physics);
   validate(passing);
   validate(reception);
   return {
@@ -158,12 +95,16 @@ MatchSystem makeBallMovementSystem(const BallPhysics& physics, const PassConfig&
                                                         const MatchState& current,
                                                         MatchStateWriter& next) {
         const double secondsPerTick = context.secondsPerTick();
-        // Leaves the ball with this player, at his feet as he ends the tick.
+        // Leaves the ball with this player, at his feet as he ends the tick:
+        // on the ground, since that is where a player keeps a ball he has.
         const auto carryBy = [&](const PlayerMatchState& player) {
           const PlayerMatchState owner =
               ownerAfterMove(player, current.ball().position, secondsPerTick);
           next.setBallPosition(carriedBallPosition(owner, physics, current.pitch()));
           next.setBallVelocity(owner.velocity);
+          next.setBallHeight(0.0);
+          next.setBallVerticalVelocity(0.0);
+          next.setBallSpin(0.0);
         };
 
         // 1. Play the pending pass, if its passer owns the ball. The pass
@@ -205,17 +146,19 @@ MatchSystem makeBallMovementSystem(const BallPhysics& physics, const PassConfig&
           return;
         }
 
-        // 3. A free ball rolls, and the first player to reach it on its
-        //    way takes it -- unless it is already out of play and the
+        // 3. A free ball rolls, flies and bounces, and the first player to
+        //    reach it on its way takes it -- unless it is already out of play
+        //    and the
         //    restart system, which runs after this one, is there to settle
         //    who plays on: a player standing on the line must not receive or
         //    intercept the ball first and have the restart overwrite him.
-        const BallState rolled = stepFreeBall(ball, physics, current.pitch(), secondsPerTick);
+        const BallStep step = stepFreeBallTimed(ball, physics, current.pitch(), secondsPerTick);
+        const BallState& moved = step.ball;
         const bool awaitsRestart = restarts.enabled && isOutOfPlay(ball, current.pitch());
         if (awaitsRestart) {
           return;
         }
-        if (const auto claim = findBallClaim(current, ball, rolled.position, context.tick(),
+        if (const auto claim = findBallClaim(current, ball, step, physics, context.tick(),
                                              secondsPerTick, reception)) {
           next.setBallOwner(claim->playerId);
           next.setBallLastTouch(BallTouch{.playerId = claim->playerId, .tick = context.tick()});
@@ -224,14 +167,17 @@ MatchSystem makeBallMovementSystem(const BallPhysics& physics, const PassConfig&
                                                 .ballSpeed = ball.velocity.length()});
           carryBy(current.players()[claim->playerIndex]);
           const Vec2 contactPosition =
-              ball.position + ((rolled.position - ball.position) * claim->contact.contactFraction);
+              ball.position + ((moved.position - ball.position) * claim->contact.contactFraction);
           context.record(controlEvent(current, ball, *claim, contactPosition, context.tick()));
           context.record(PossessionChanged{
               .tick = context.tick(), .previousOwner = std::nullopt, .newOwner = claim->playerId});
           return;
         }
-        next.setBallPosition(rolled.position);
-        next.setBallVelocity(rolled.velocity);
+        next.setBallPosition(moved.position);
+        next.setBallVelocity(moved.velocity);
+        next.setBallHeight(moved.height);
+        next.setBallVerticalVelocity(moved.verticalVelocity);
+        next.setBallSpin(moved.spin);
       }};
 }
 

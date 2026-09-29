@@ -1,0 +1,359 @@
+#include "ballPhysics.hpp"
+
+#include <algorithm>
+#include <array>
+#include <cmath>
+#include <limits>
+#include <ranges>
+#include <span>
+#include <stdexcept>
+
+#include "stableMath.hpp"
+
+namespace ElyverseFootball::SimMatch {
+namespace {
+
+using SimCore::Vec2;
+
+// Halvings of the interval a landing is searched in. The interval shrinks by a
+// factor of two per step, so this many steps reach the last bits of a double
+// for any tick: the search is exact rather than approximate, and its cost is
+// fixed, which is what a replay needs.
+inline constexpr int kLandingIterations = 64;
+
+// How often predictBallLanding() may double its horizon before it gives up.
+// One second doubled twenty times is longer than a week; only a ball without
+// gravity never comes down.
+inline constexpr int kMaxHorizonDoublings = 20;
+
+// Bounces resolved within a single tick. A ball hopping this often in a
+// thirtieth of a second has all but stopped hopping, and the bound keeps a
+// wildly tuned configuration from making a step run long.
+inline constexpr int kMaxBouncesPerTick = 8;
+
+[[nodiscard]] bool isFiniteNonNegative(const double value) noexcept {
+  return value >= 0.0 && value <= std::numeric_limits<double>::max();
+}
+
+[[nodiscard]] bool isPositiveFinite(const double value) noexcept {
+  return value > 0.0 && value <= std::numeric_limits<double>::max();
+}
+
+[[nodiscard]] bool isShare(const double value) noexcept {
+  return value >= 0.0 && value <= 1.0;
+}
+
+// Below this much drag over a span the closed forms below are all cancellation
+// and their Taylor series has long converged, so the two meet with no seam.
+inline constexpr double kDragSeriesCutoff = 0.5;
+
+// The table read as coefficient[n] · (-x)^n, summed in Horner form.
+[[nodiscard]] double alternatingSeries(const std::span<const double> coefficients,
+                                       const double x) noexcept {
+  double sum = 0.0;
+  for (const double coefficient : std::views::reverse(coefficients)) {
+    sum = coefficient - (x * sum);
+  }
+  return sum;
+}
+
+// (1 - e^{-x}) / x for x >= 0, and its limit 1 at x = 0: what a unit speed
+// covers over a span that costs it x of drag.
+//
+// The closed form cancels away as x shrinks -- at x = 1e-16 the subtraction is
+// exactly zero and the quotient with it -- and validate() accepts an airDrag
+// that small, so below the cutoff the series 1 - x/2 + x²/6 - ... is summed
+// instead. Both branches are basic arithmetic over stableExp(), so both stay
+// bit-identical on every platform.
+[[nodiscard]] double dragSpanFactor(const double x) noexcept {
+  if (x > kDragSeriesCutoff) {
+    return (1.0 - SimCore::stableExp(-x)) / x;
+  }
+  // 1/1!, 1/2!, ..., 1/13!.
+  constexpr std::array<double, 13> kCoefficients{1.0,
+                                                 1.0 / 2.0,
+                                                 1.0 / 6.0,
+                                                 1.0 / 24.0,
+                                                 1.0 / 120.0,
+                                                 1.0 / 720.0,
+                                                 1.0 / 5040.0,
+                                                 1.0 / 40320.0,
+                                                 1.0 / 362880.0,
+                                                 1.0 / 3628800.0,
+                                                 1.0 / 39916800.0,
+                                                 1.0 / 479001600.0,
+                                                 1.0 / 6227020800.0};
+  return alternatingSeries(kCoefficients, x);
+}
+
+// (e^{-x} - 1 + x) / x² for x >= 0, and its limit 1/2 at x = 0: what gravity
+// takes off a flight over a span that costs it x of drag, per g · t².
+//
+// Written as ((e^{-x} - 1) / x + 1) / x rather than over x², so a huge drag
+// cannot square its way to infinity; a small one goes to the series
+// 1/2 - x/6 + x²/24 - ... for the same reason as dragSpanFactor().
+[[nodiscard]] double dragDropFactor(const double x) noexcept {
+  if (x > kDragSeriesCutoff) {
+    return (((SimCore::stableExp(-x) - 1.0) / x) + 1.0) / x;
+  }
+  // 1/2!, 1/3!, ..., 1/14!.
+  constexpr std::array<double, 13> kCoefficients{
+      1.0 / 2.0,         1.0 / 6.0,          1.0 / 24.0,         1.0 / 120.0,     1.0 / 720.0,
+      1.0 / 5040.0,      1.0 / 40320.0,      1.0 / 362880.0,     1.0 / 3628800.0, 1.0 / 39916800.0,
+      1.0 / 479001600.0, 1.0 / 6227020800.0, 1.0 / 87178291200.0};
+  return alternatingSeries(kCoefficients, x);
+}
+
+// The ball `seconds` into its flight, in closed form: gravity and a linear air
+// drag. Horizontal speed decays as e^{-k·t}; the vertical velocity approaches
+// the terminal speed g / k from wherever it starts, and the height is the
+// integral of that. Spin dies away the same exponential way.
+//
+// The terminal speed itself never appears: it is g / k, which overflows for
+// the smallest drags validate() accepts, and the two factors above fold it
+// away. With no drag at all they are 1 and 1/2, which is the plain parabola,
+// so the whole range from no drag to any drag is one formula.
+//
+// Exact for any span, so the same flight comes out the same however the ticks
+// are cut -- the one thing a numerical integrator could not promise. It knows
+// nothing about the ground: the caller splits the span at the landing.
+[[nodiscard]] BallState flownFor(const BallState& ball, const BallPhysics& physics,
+                                 const double seconds) noexcept {
+  const double drag = physics.airDrag * seconds;
+  const double decay = SimCore::stableExp(-drag);
+  // How far a unit speed carries over the span, and the drop gravity adds.
+  const double span = seconds * dragSpanFactor(drag);
+  const double drop = physics.gravity * seconds * seconds * dragDropFactor(drag);
+  BallState flown = ball;
+  flown.spin = ball.spin * SimCore::stableExp(-physics.spinDecay * seconds);
+  flown.position = ball.position + (ball.velocity * span);
+  flown.velocity = ball.velocity * decay;
+  flown.height = ball.height + (ball.verticalVelocity * span) - drop;
+  flown.verticalVelocity = (ball.verticalVelocity * decay) - (physics.gravity * span);
+  return flown;
+}
+
+// When within (0, seconds] the flight reaches the ground, for a flight that is
+// on or below it at the end of the span. A flight rises at most once and then
+// falls, so "already down" is monotone in time and bisection finds the single
+// crossing.
+[[nodiscard]] double landingSeconds(const BallState& ball, const BallPhysics& physics,
+                                    const double seconds) noexcept {
+  double low = 0.0;
+  double high = seconds;
+  for (int step = 0; step < kLandingIterations; ++step) {
+    const double middle = low + ((high - low) / 2.0);
+    if (flownFor(ball, physics, middle).height > 0.0) {
+      low = middle;
+    } else {
+      high = middle;
+    }
+  }
+  return high;
+}
+
+// The ball as it leaves the ground it just landed on: it keeps
+// bounceRestitution of its vertical speed, bounceGrip of its speed along the
+// ground, and spends spinTransfer of its spin driving itself on -- topspin
+// forward, backspin against the travel, never far enough to turn it around. A
+// ball dropping straight down has no direction to drive along and keeps none.
+[[nodiscard]] BallState bounced(const BallState& landed, const BallPhysics& physics) noexcept {
+  BallState after = landed;
+  after.height = 0.0;
+  after.verticalVelocity = -physics.bounceRestitution * landed.verticalVelocity;
+  const double speed = landed.velocity.length();
+  if (speed > 0.0) {
+    const Vec2 direction = landed.velocity * (1.0 / speed);
+    const double driven =
+        (speed * physics.bounceGrip) + (physics.spinTransfer * landed.spin * kBallRadius);
+    after.velocity = direction * std::clamp(driven, 0.0, kMaxBallSpeed);
+  }
+  after.spin = landed.spin * (1.0 - physics.spinTransfer);
+  return after;
+}
+
+// The ball rolled for this span, without the pitch boundary: constant
+// deceleration along its direction of travel, exactly integrated, so it stops
+// after its rolling distance whatever the span. It never reverses, and a ball
+// at rest stays as it is, spin and all.
+[[nodiscard]] BallState rolled(const BallState& ball, const BallPhysics& physics,
+                               const double seconds) noexcept {
+  const double speed = ball.velocity.length();
+  if (speed == 0.0) {
+    return ball;
+  }
+  const Vec2 direction = ball.velocity * (1.0 / speed);
+  const double speedLoss = physics.rollingDeceleration * seconds;
+  double endSpeed = 0.0;
+  double distance = rollingDistance(speed, physics);
+  if (speed > speedLoss) {
+    endSpeed = speed - speedLoss;
+    distance = (speed + endSpeed) / 2.0 * seconds;
+  }
+  BallState moved = ball;
+  moved.position = ball.position + (direction * distance);
+  moved.velocity = direction * endSpeed;
+  return moved;
+}
+
+// A ball that left the pitch stops on the line where it crossed it, on the
+// ground and at rest; one that stayed on is left as the move made it. The
+// clamp removes rounding that would leave it a hair off the line. A ball
+// already off the pitch -- only possible in a hand-built state -- plays on.
+//
+// The step reports how much of the span the ball travelled before that, which
+// is what tells reception when a contact on the shortened path happened. The
+// fraction is of the way rather than of the time, and the two differ by
+// whatever the ball gains or loses in speed within one tick: far less than a
+// reception decision can see, and the same straight-line reading findContact()
+// makes of the very same segment.
+[[nodiscard]] BallStep withPitchBoundary(const BallState& before, const BallState& after,
+                                         const Pitch& pitch, const double seconds) noexcept {
+  if (!pitch.contains(before.position) || pitch.contains(after.position)) {
+    return {.ball = after, .seconds = seconds};
+  }
+  const double fraction = pitchExitFraction(before.position, after.position, pitch);
+  BallState stopped = before;
+  stopped.position = pitch.clamp(before.position + ((after.position - before.position) * fraction));
+  stopped.velocity = {};
+  stopped.height = 0.0;
+  stopped.verticalVelocity = 0.0;
+  stopped.spin = 0.0;
+  return {.ball = stopped, .seconds = seconds * fraction};
+}
+
+// A flying ball this far into its span: fly to the end of it, or to the ground
+// and on from there, resolving every bounce on the way. The span is split at
+// each landing rather than at its end, which is what makes a flight
+// independent of the tick rate. The pitch boundary is not applied -- this is
+// the flight itself, and the caller decides what a line means for it.
+[[nodiscard]] BallState flownWithBounces(const BallState& ball, const BallPhysics& physics,
+                                         const double seconds) noexcept {
+  BallState current = ball;
+  double remaining = seconds;
+  for (int bounces = 0; bounces < kMaxBouncesPerTick; ++bounces) {
+    if (remaining <= 0.0) {
+      return current;
+    }
+    const BallState flown = flownFor(current, physics, remaining);
+    if (flown.height > 0.0) {
+      return flown;
+    }
+    const double landing = landingSeconds(current, physics, remaining);
+    current = bounced(flownFor(current, physics, landing), physics);
+    remaining -= landing;
+    // Too slow to leave the ground again: the ball stays down and rolls what
+    // is left of the span. Not faster rather than slower, so a bounce that
+    // returns nothing -- restitution and resting speed both zero, a valid
+    // configuration -- settles on its one real impact instead of resolving
+    // seven more of zero duration, each spending grip and spin again.
+    if (current.verticalVelocity <= physics.restingVerticalSpeed) {
+      current.verticalVelocity = 0.0;
+      return rolled(current, physics, std::max(remaining, 0.0));
+    }
+  }
+  // A ball still hopping after this many bounces in one span hops no higher
+  // than rounding; it stays down.
+  current.height = 0.0;
+  current.verticalVelocity = 0.0;
+  return rolled(current, physics, std::max(remaining, 0.0));
+}
+
+}  // namespace
+
+void validate(const BallPhysics& physics) {
+  const bool valid =
+      isPositiveFinite(physics.rollingDeceleration) && isPositiveFinite(physics.gravity) &&
+      isFiniteNonNegative(physics.carryDistance) && isFiniteNonNegative(physics.airDrag) &&
+      isFiniteNonNegative(physics.spinDecay) && isFiniteNonNegative(physics.restingVerticalSpeed) &&
+      isShare(physics.bounceRestitution) && isShare(physics.bounceGrip) &&
+      isShare(physics.spinTransfer);
+  if (!valid) {
+    throw std::invalid_argument(
+        "ball physics: rolling deceleration and gravity must be positive and finite, carry "
+        "distance, air drag, spin decay and resting vertical speed finite and not negative, and "
+        "bounce restitution, bounce grip and spin transfer between 0 and 1");
+  }
+}
+
+bool isInFlight(const BallState& ball) noexcept {
+  return ball.height > 0.0 || ball.verticalVelocity != 0.0;
+}
+
+double rollingDistance(const double speed, const BallPhysics& physics) noexcept {
+  return (speed * speed) / (2.0 * physics.rollingDeceleration);
+}
+
+double pitchExitFraction(const Vec2 start, const Vec2 end, const Pitch& pitch) noexcept {
+  double fraction = 1.0;
+  const auto crossing = [&fraction](const double from, const double until, const double line) {
+    const bool crosses = (from <= line && until > line) || (from >= line && until < line);
+    if (crosses) {
+      fraction = std::min(fraction, (line - from) / (until - from));
+    }
+  };
+  crossing(start.x, end.x, 0.0);
+  crossing(start.x, end.x, pitch.lengthMeters());
+  crossing(start.y, end.y, 0.0);
+  crossing(start.y, end.y, pitch.widthMeters());
+  return fraction;
+}
+
+std::optional<BallLanding> predictBallLanding(const BallState& ball,
+                                              const BallPhysics& physics) noexcept {
+  if (!isInFlight(ball)) {
+    return std::nullopt;
+  }
+  // Bracket the landing first: a falling ball covers at least its terminal
+  // speed per second, so doubling reaches the ground in a few steps.
+  double horizon = 1.0;
+  for (int step = 0; step < kMaxHorizonDoublings; ++step) {
+    if (flownFor(ball, physics, horizon).height <= 0.0) {
+      break;
+    }
+    horizon *= 2.0;
+  }
+  if (flownFor(ball, physics, horizon).height > 0.0) {
+    // A ball without gravity never comes down.
+    return std::nullopt;
+  }
+  const double seconds = landingSeconds(ball, physics, horizon);
+
+  // The apex is where the ball stops rising. Its vertical velocity falls
+  // throughout the flight, so the same bisection finds that moment.
+  double low = 0.0;
+  double high = seconds;
+  for (int step = 0; step < kLandingIterations; ++step) {
+    const double middle = low + ((high - low) / 2.0);
+    if (flownFor(ball, physics, middle).verticalVelocity > 0.0) {
+      low = middle;
+    } else {
+      high = middle;
+    }
+  }
+  return BallLanding{.position = flownFor(ball, physics, seconds).position,
+                     .seconds = seconds,
+                     .apexHeight = std::max(flownFor(ball, physics, high).height, ball.height)};
+}
+
+double ballHeightAfter(const BallState& ball, const BallPhysics& physics,
+                       const double seconds) noexcept {
+  if (!isInFlight(ball)) {
+    return ball.height;
+  }
+  return flownWithBounces(ball, physics, std::max(seconds, 0.0)).height;
+}
+
+BallStep stepFreeBallTimed(const BallState& ball, const BallPhysics& physics, const Pitch& pitch,
+                           const double secondsPerTick) noexcept {
+  const BallState moved = isInFlight(ball) ? flownWithBounces(ball, physics, secondsPerTick)
+                                           : rolled(ball, physics, secondsPerTick);
+  return withPitchBoundary(ball, moved, pitch, secondsPerTick);
+}
+
+BallState stepFreeBall(const BallState& ball, const BallPhysics& physics, const Pitch& pitch,
+                       const double secondsPerTick) noexcept {
+  return stepFreeBallTimed(ball, physics, pitch, secondsPerTick).ball;
+}
+
+}  // namespace ElyverseFootball::SimMatch
