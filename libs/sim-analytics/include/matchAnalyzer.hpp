@@ -70,6 +70,7 @@ class MatchAnalyzer {
   struct SideTally {
     std::int64_t possessionTicks = 0;
     int passes = 0;
+    int shots = 0;
     int completedPasses = 0;
     double passMeters = 0.0;
     int progressivePasses = 0;

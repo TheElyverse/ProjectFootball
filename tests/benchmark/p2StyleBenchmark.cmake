@@ -53,3 +53,22 @@ foreach(separation IN LISTS expected)
         message(FATAL_ERROR "Expected the separation ${separation}; found ${found}")
     endif()
 endforeach()
+
+# How often the sides shoot (docs/shot-decisions.md): every side of every
+# pairing shoots, and none shoots at every chance. The band is set from the
+# first measurement -- 2 to 27 shots a side in six minutes -- with room
+# either way; it guards against a change that stops the shooting or makes a
+# shooting gallery of the sandbox, not against balancing.
+set(minShots 1)
+set(maxShots 40)
+math(EXPR lastPairing "${pairings} - 1")
+foreach(index RANGE ${lastPairing})
+    foreach(side IN ITEMS home away)
+        string(JSON shots GET "${json}" pairings ${index} summary ${side} shots mean)
+        string(JSON style GET "${json}" pairings ${index} ${side})
+        if(shots LESS minShots OR shots GREATER maxShots)
+            message(FATAL_ERROR
+                    "Pairing ${index}: ${side} (${style}) took ${shots} shots, expected ${minShots} to ${maxShots}")
+        endif()
+    endforeach()
+endforeach()

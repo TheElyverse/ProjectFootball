@@ -22,6 +22,7 @@ using Json = nlohmann::ordered_json;
   json["meanPassMeters"] = optionalJson(stats.meanPassMeters);
   json["progressivePasses"] = stats.progressivePasses;
   json["completedProgressivePasses"] = stats.completedProgressivePasses;
+  json["shots"] = stats.shots;
   json["turnovers"] = stats.turnovers;
   json["regains"] = stats.regains;
   json["regainsByThird"] = {

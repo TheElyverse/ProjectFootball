@@ -33,6 +33,9 @@ struct TeamStats {
   int progressivePasses = 0;
   int completedProgressivePasses = 0;
 
+  // Shots taken.
+  int shots = 0;
+
   // Times the side lost the ball to the opponent, and won it from him.
   int turnovers = 0;
   int regains = 0;
