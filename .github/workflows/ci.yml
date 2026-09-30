@@ -12,11 +12,40 @@ jobs:
       matrix:
         os: [ubuntu-latest, windows-latest]
     runs-on: ${{ matrix.os }}
+    env:
+      CMAKE_CXX_COMPILER_LAUNCHER: ccache
+      # The hosted runners have four cores; ctest runs one test at a time
+      # unless told otherwise.
+      CTEST_PARALLEL_LEVEL: 4
     steps:
       - uses: actions/checkout@v7
 
+      # Object files carried over from earlier runs: third-party code and
+      # unchanged sources are not compiled again.
+      - uses: hendrikmuhs/ccache-action@v1.2
+        with:
+          key: ${{ matrix.os }}-ci
+
+      # Ninja, unlike the Visual Studio generator, expects the compiler
+      # environment to be set up already.
+      - name: Set up MSVC environment
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $vs = & "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe" `
+            -latest -products * -property installationPath
+          cmd /c "`"$vs\VC\Auxiliary\Build\vcvars64.bat`" >nul && set" | ForEach-Object {
+            $name, $value = $_ -split '=', 2
+            if ($value -ne [Environment]::GetEnvironmentVariable($name)) {
+              "$name=$value" >> $env:GITHUB_ENV
+            }
+          }
+          "CXX=cl" >> $env:GITHUB_ENV
+
+      # ccache cannot cache MSVC objects whose debug information goes to a
+      # shared PDB file (/Zi), so it is embedded in each object (/Z7).
       - name: Configure
-        run: cmake --preset ci
+        run: cmake --preset ci -DCMAKE_MSVC_DEBUG_INFORMATION_FORMAT=Embedded
 
       - name: Build
         run: cmake --build --preset ci
@@ -34,8 +63,14 @@ jobs:
   # in a Release build within its time budget (docs/sim-benchmark.md).
   style-benchmark:
     runs-on: ubuntu-latest
+    env:
+      CMAKE_CXX_COMPILER_LAUNCHER: ccache
     steps:
       - uses: actions/checkout@v7
+
+      - uses: hendrikmuhs/ccache-action@v1.2
+        with:
+          key: ubuntu-latest-ci-release
 
       - name: Configure
         run: cmake --preset ci-release
@@ -111,7 +146,11 @@ jobs:
   lint:
     runs-on: ubuntu-latest
     steps:
+      # Two commits deep: a pull request is checked out as its merge commit,
+      # whose first parent is the base branch.
       - uses: actions/checkout@v7
+        with:
+          fetch-depth: 2
 
       # clang-tidy-18 (the version bundled with ubuntu-latest) reports
       # __cpp_concepts as 201907L instead of 202002L, so libstdc++'s <expected>
@@ -136,7 +175,22 @@ jobs:
       - name: Configure
         run: cmake --preset ci
 
+      # A pull request checks the sources it changes, and for a changed header
+      # the sources that include it; a push to main checks everything, and so
+      # does a pull request that changes the lint or build configuration.
       - name: Run clang-tidy
         run: |
-          find libs apps tests -name '*.hpp' -o -name '*.cpp' \
-            | xargs run-clang-tidy-19 -quiet -p build/ci
+          sources() { find libs apps tests -name '*.cpp'; }
+          if [ "$GITHUB_EVENT_NAME" = pull_request ]; then
+            changed=$(git diff --name-only --diff-filter=d HEAD^1 HEAD)
+            if ! grep -qE '(^|/)(\.clang-tidy|CMakeLists\.txt|CMakePresets\.json|ci\.yml)$|^cmake/' <<< "$changed"; then
+              headers=$(grep -E '^(libs|apps|tests)/.*\.hpp$' <<< "$changed" | xargs -r -n1 basename || true)
+              files=$({
+                grep -E '^(libs|apps|tests)/.*\.cpp$' <<< "$changed" || true
+                for header in $headers; do
+                  sources | xargs grep -lF "\"$header\"" || true
+                done
+              } | sort -u)
+            fi
+          fi
+          echo "${files-$(sources)}" | xargs -r run-clang-tidy-19 -quiet -p build/ci
