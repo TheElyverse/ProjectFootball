@@ -17,6 +17,7 @@
 #include "matchState.hpp"
 #include "pitch.hpp"
 #include "referenceTactic.hpp"
+#include "restart.hpp"
 #include "simTime.hpp"
 #include "tactic.hpp"
 #include "vec2.hpp"
@@ -383,17 +384,34 @@ std::span<const ScenarioDefinition> scenarios() noexcept {
 
 std::expected<MatchSetup, std::string> makeTacticMatch(TeamTactics tactics,
                                                        const std::uint64_t seed) {
-  // Home's forward, the last home player of the fixture, takes the kickoff.
-  constexpr SimCore::PlayerId kKickoffTaker{7};
-  auto state = makeSevenASideKickoff(Pitch(kPitchLength, kPitchWidth), {}, std::move(tactics));
+  auto fixture = makeSevenASideKickoff(Pitch(kPitchLength, kPitchWidth), {}, std::move(tactics));
+  if (!fixture) {
+    return std::unexpected("invalid tactic match: " + fixture.error().front().message);
+  }
+  // Home kicks off, from the same line-up as after a goal (docs/restarts.md).
+  const MatchConfig config;
+  const auto lineUp = lineUpForKickoff(*fixture, TeamSide::kHome, config.ball);
+  if (!lineUp) {
+    return std::unexpected("invalid tactic match: nobody to kick off");
+  }
+  std::vector<PlayerMatchState> players(fixture->players().begin(), fixture->players().end());
+  for (std::size_t index = 0; index < players.size(); ++index) {
+    players[index].position = lineUp->positions[index];
+  }
+  const SimCore::PlayerId taker = players[lineUp->takerIndex].playerId;
+  auto state = MatchState::create({.pitch = fixture->pitch(),
+                                   .players = std::move(players),
+                                   .ball = fixture->ball(),
+                                   .playersPerSide = fixture->playersPerSide()},
+                                  fixture->tactics());
   if (!state) {
     return std::unexpected("invalid tactic match: " + state.error().front().message);
   }
-  return MatchSetup{.initialState = *std::move(state),
-                    .config = {},
-                    .seed = seed,
-                    .commands = {{.tick = SimCore::SimTick(0),
-                                  .command = GiveBallCommand{.playerId = kKickoffTaker}}}};
+  return MatchSetup{
+      .initialState = *std::move(state),
+      .config = config,
+      .seed = seed,
+      .commands = {{.tick = SimCore::SimTick(0), .command = GiveBallCommand{.playerId = taker}}}};
 }
 
 const ScenarioDefinition* findScenario(const std::string_view name) noexcept {

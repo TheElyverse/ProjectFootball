@@ -16,7 +16,7 @@ in `sim-match` (`scenarios.hpp`), and `sim-cli --scenario <name>` runs one.
 | `clear-chance` | home player 1 eight meters out, only the keeper to beat ([shot decisions](shot-decisions.md)) |
 | `hopeless-angle` | home player 1 on the goal line wide of the post, a teammate free |
 | `blocked-lane` | home player 1 twelve meters out, a defender in the way, a teammate free |
-| `tactic-match` | the reference tactic against itself, home's forward kicks off      |
+| `tactic-match` | the reference tactic against itself, lined up for home's kickoff   |
 | `transition-3v2` | home wins the ball in midfield, three attackers against two defenders ([golden](golden-scenarios.md)) |
 | `isolated-winger` | home plays out to an isolated winger, away presses on the trigger |
 | `touchline-trap` | away's receiver faces his own goal at the touchline, home presses four players |
@@ -149,9 +149,12 @@ its end: the first shot is a goal in 55 to 90 of the seeds
 
 ## The tactic match
 
-`tactic-match` is the fixture two tactics play on: the seven-a-side kickoff
-fixture with a tactic on each side, the standard configuration, and
-`GiveBall` to home's forward (player 7) at tick 0. `makeTacticMatch()` builds it
+`tactic-match` is the fixture two tactics play on: the players of the
+seven-a-side kickoff fixture with a tactic on each side, lined up for a
+[kickoff](restarts.md#the-kickoff) by home — each side in its tactic's base
+shape in its own half, the ball on the centre spot — the standard
+configuration, and `GiveBall` to home's taker, the striker (player 7) of every
+preset, at tick 0. `makeTacticMatch()` builds it
 for any two tactics that fit seven a side; the catalog entry uses the reference
 tactic on both sides. The CLI swaps in tactic files:
 

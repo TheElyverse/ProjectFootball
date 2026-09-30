@@ -3,6 +3,7 @@
 
 #include <algorithm>
 #include <catch2/catch_test_macros.hpp>
+#include <cmath>
 #include <cstddef>
 #include <cstdint>
 #include <optional>
@@ -263,8 +264,6 @@ TEST_CASE("The attempt records the aim and where the ball really left for", "[sh
 TEST_CASE("A goal restarts with a kickoff by the side that conceded", "[shotOutcome]") {
   Chance chance;
   chance.restarts = true;
-  // Away 9 is the nearest to the centre spot.
-  chance.defender = {.x = 33.0, .y = 20.0};
   MatchSimulation simulation = shotMatch(chance, shotAt(goal().center, 1.0));
   const auto events = play(simulation, 30);
 
@@ -272,10 +271,35 @@ TEST_CASE("A goal restarts with a kickoff by the side that conceded", "[shotOutc
   const auto restarts = eventsOf<RestartTaken>(events);
   REQUIRE(restarts.size() == 1);
   REQUIRE(restarts.front().kind == RestartKind::kKickoff);
-  REQUIRE(restarts.front().player == PlayerId(9));
+  // Away 14 is the striker of its tactic: the nearest to the centre spot in
+  // its formation.
+  REQUIRE(restarts.front().player == PlayerId(14));
   REQUIRE(restarts.front().position == Vec2{.x = 30.0, .y = 20.0});
-  REQUIRE(simulation.state().ball().owner == PlayerId(9));
-  REQUIRE(simulation.state().score() == Score{.home = 1, .away = 0});
+  const MatchState& state = simulation.state();
+  REQUIRE(state.ball().owner == PlayerId(14));
+  REQUIRE(state.score() == Score{.home = 1, .away = 0});
+
+  // Both sides are lined up in their own halves, at rest, and the ball lies
+  // on the centre spot.
+  REQUIRE(state.ball().position == Vec2{.x = 30.0, .y = 20.0});
+  REQUIRE(state.ball().isAtRest());
+  for (const PlayerMatchState& player : state.players()) {
+    CAPTURE(player.playerId.value());
+    const bool home = player.side == TeamSide::kHome;
+    REQUIRE((home ? player.position.x <= 30.0 : player.position.x >= 30.0));
+    REQUIRE(player.velocity == Vec2{});
+  }
+  // Away is in its formation: the goalkeeper in front of his goal, the taker
+  // behind the ball, facing the goal he attacks.
+  REQUIRE(state.players()[7].position == Vec2{.x = 60.0 - (0.04 * 30.0), .y = 20.0});
+  REQUIRE(state.players()[13].position == Vec2{.x = 30.5, .y = 20.0});
+  REQUIRE(state.players()[13].facing == Vec2{.x = -1.0, .y = 0.0});
+  // The scorer, scripted and without a formation, went straight back from
+  // (50, 20) and keeps out of the centre circle.
+  const double radius = state.pitch().centerCircle().radiusMeters;
+  REQUIRE(state.players()[0].position.y == 20.0);
+  REQUIRE(std::abs(state.players()[0].position.x - (30.0 - radius)) < 1.0e-9);
+  REQUIRE(state.players()[1].position == kFarAway);
 }
 
 TEST_CASE("A shot against the post comes back into play", "[shotOutcome]") {
