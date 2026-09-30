@@ -76,7 +76,8 @@ Requirements:
 - CMake 3.25 or newer.
 - A C++23 compiler and standard library supporting the features used by the project,
   including `std::expected`.
-- A build tool supported by the chosen CMake generator.
+- [Ninja](https://ninja-build.org/), the generator every preset uses; on Windows,
+  configure from a Visual Studio developer prompt so that Ninja finds MSVC.
 - Git and network access for the initial dependency download.
 
 ```sh
@@ -155,7 +156,9 @@ ctest --preset ci
 
 With Make, clang-format, and run-clang-tidy available, `make ci` also runs the
 repository's formatting and static-analysis checks. CI uses clang-tidy 19; see
-[the workflow](.github/workflows/ci.yml) for toolchain setup.
+[the workflow](.github/workflows/ci.yml) for toolchain setup. On a pull request CI
+runs clang-tidy only on the changed sources and on the sources that include a
+changed header; `make lint` and a push to `main` check everything.
 
 For AddressSanitizer and UndefinedBehaviorSanitizer with GCC or Clang:
 

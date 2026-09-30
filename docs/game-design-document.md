@@ -109,6 +109,8 @@ Zeitfortschritt orientiert sich an relevanten Ereignissen. Der Spieler kann gran
 | Youth       | Entwicklungspläne, Beförderungen, Leihen       | Manager / Head of Youth Development      |
 | Media       | Relevante Presse- und Kommunikationsereignisse | Manager / Press Officer                  |
 | Staff       | Suche, Rollen, Verträge                        | Manager / Sporting Director              |
+| Infrastructure | Bauprojekte, Ausbau, Finanzierung           | Manager / Commercial Director            |
+| Commercial  | Sponsoren, Werbeflächen, Ticketpreise          | Manager / Commercial Director            |
 
 ### 4.2 Policies und Eskalationen
 
@@ -118,6 +120,7 @@ Delegation erfolgt über Ziele, Grenzen und Eskalationsregeln. Beispiel Recruitm
 - Mitarbeiter besitzen eigene Präferenzen und Kompetenzen; gute Delegation hängt vom passenden Personal ab.
 - Der Spieler kann jederzeit „Take Control“ oder „Delegate“ wählen, ohne Systemwechsel.
 - Delegierte Aktionen müssen nachvollziehbar sein: Mitarbeiter erläutern Empfehlungen und Trade-offs.
+- Infrastruktur-Investitionen sind die Ausnahme von der freien Eskalationsgrenze: Sie binden Budget, das dem Manager an anderer Stelle fehlt, z. B. für einen vorbereiteten Transfer. Der Commercial Director bereitet Vorhaben vor und legt sie als Antrag vor; die Freigabe bleibt immer beim Manager. Der Bereich Commercial lässt sich dagegen vollständig delegieren.
 
 ## 5. Living Football World
 
@@ -143,6 +146,44 @@ Die Welt ist kein statischer Hintergrund. Vereine, Mitarbeiter, Spieler, Ligen u
 ### 5.3 Personen und Beziehungen
 
 Trainer, Direktoren, Spieler und Agenten entwickeln Beziehungen, Reputation und Präferenzen. Personalwechsel können die Identität eines Vereins schrittweise verändern. Rivalitäten und Karrieregeschichten sollen aus Ereignissen entstehen statt ausschließlich vorgegeben zu sein.
+
+### 5.4 Club-Infrastruktur
+
+Ein Club besitzt Gebäude, die er einzeln baut und ausbaut. Der Katalog bleibt klein; jedes Gebäude hat eine nachvollziehbare Wirkung in der Simulation und ist keine Dekoration.
+
+| **Gruppe**     | **Gebäude**                                   | **Wirkung**                                                                 |
+| -------------- | --------------------------------------------- | --------------------------------------------------------------------------- |
+| Stadion        | Tribünen, Dach, Logen, Flutlicht, Rasen       | Kapazität, Komfort, Einnahmen je Platz, Zahl der Werbeflächen, Stimmung     |
+| Trainingscampus | Trainingsplätze                              | Kapazität und mögliche Trainingsformen                                      |
+|                | Medizin / Reha                                | Verletzungsdauer und Rückfallrisiko                                         |
+|                | Akademie                                      | Qualität der Nachwuchsgenerationen                                          |
+|                | Analyseabteilung                              | Genauigkeit der Bewertungen durch Trainer und Scouts                        |
+| Umfeld         | Parkplätze, Fanzone, Fanshop                  | Auslastung und Einnahmen am Spieltag                                        |
+
+- Ein Bauprojekt hat Kosten, eine Bauzeit in Monaten und laufende Betriebskosten. Während der Bauzeit fällt die betroffene Tribüne oder Anlage ganz oder teilweise aus; der Zeitpunkt ist damit Teil der Entscheidung.
+- Gebäude verfallen nicht. Wiederkehrende Renovierungen wären Pflichtklicks ohne Entscheidung.
+- Finanziert wird aus Guthaben oder über Kredite mit Zinsen und Laufzeit. Der Vorstand gibt Verschuldungsgrenzen vor. Überinvestition hat Folgen: gekürztes Transferbudget, Verkaufszwang. Insolvenz, Punktabzug und Lizenzentzug sind eine spätere Ausbaustufe.
+- Der Club baut nur auf eigenem Gelände. Nahverkehrsanbindung und Lage sind Eigenschaften des Standorts und ändern sich langsam und außerhalb der Clubkontrolle. Verhandlungen mit der Stadt über Anbindung und Zuschüsse sind eine spätere Ausbaustufe.
+- Die Trainingsanlagen sind der Faktor „Environment“ der Entwicklungsformel (siehe Abschnitt 6.3).
+- KI-Clubs bauen über dieselben Commands; dort gibt der Vorstand die Anträge des Commercial Director frei.
+
+### 5.5 Fanbasis und Stimmung
+
+Jeder Club hat eine Fanbasis mit Größe, Bindung und Laune. Sie wächst und schrumpft langfristig mit sportlichem Erfolg und Auftreten des Clubs.
+
+- Die Auslastung eines Spiels entsteht aus Fanbasis, Attraktivität des Gegners, Ticketpreis, Komfort des Stadions und Anbindung. Schlechte Parkmöglichkeiten oder eine schwache Verkehrsanbindung halten Fans zu Hause.
+- Die Stimmung entsteht aus Auslastung, Laune der Fans, Spielverlauf und Bauform des Stadions (Dach, Stehplätze). Wie sie auf das Match wirkt, beschreibt Abschnitt 8.9.
+- Einzelne Fangruppen mit eigenen Forderungen (Ultras, Familien, Logenkunden) sind eine spätere Ausbaustufe.
+
+### 5.6 Sponsoren
+
+Sponsoren sind generierte, fiktive Unternehmen mit Budget, Region, Branche und eigenen Zielen (Reichweite, Image, Regionalität). Sie sind Akteure der Fußballökonomie, keine feste Angebotsliste.
+
+- Große Verträge: Trikot, Ausrüster, Namensrecht am Stadion.
+- Werbeflächen-Pakete pro Saison (z. B. Haupttribüne, Hintertor, LED-Rotation), jeweils einzeln vergeben. Wie viele Pakete ein Club anbieten kann, hängt am Ausbau des Stadions.
+- Verhandelt wird über Laufzeit, Fixum, Erfolgsprämien und Ausstiegsklauseln – mit demselben Verhandlungsmechanismus wie bei Spielerverträgen.
+- Der Bereich lässt sich vollständig delegieren. Je besser der Commercial Director, desto besser die Verträge.
+- Imagekonflikte (z. B. umstrittene Geldgeber) mit Reaktion der Fans sind eine spätere Ausbaustufe.
 
 ## 6. Spieler- und Entwicklungsmodell
 
@@ -173,12 +214,15 @@ Es gibt keine einzelne sichtbare Potential-Zahl. Entwicklung ist eine Kurve mit 
 - Verletzungen können Entwicklung verzögern oder Profile verändern.
 - Mentale Reifung und taktische Entwicklung können länger anhalten als körperliche Entwicklung.
 - Leihen werden zu einer echten Entwicklungsentscheidung statt zu einem simplen Spielzeitbonus.
+- Environment sind die Trainingsanlagen des Clubs (siehe Abschnitt 5.4). Jede Anlage wirkt auf ihrem eigenen Weg, nicht als pauschaler Multiplikator.
 
 ### 6.4 Prozedurale Spielergenerierung
 
 Spieler für die Kader zum Karrierestart und spätere Nachwuchsgenerationen werden prozedural erzeugt. Jeder Spieler besitzt eine eigene Identität, ein individuelles Fähigkeitsprofil, eine Persönlichkeit und Entwicklungsmöglichkeiten. Alter sowie nationale und clubbezogene Rahmenbedingungen prägen plausible, vielfältige Profile.
 
 Dadurch bieten unterschiedliche Karrieren neue Talente und Kaderkonstellationen, die der Manager durch Scouting und Beobachtung entdecken und einschätzen muss. Generierte Spieler unterliegen demselben Beobachtungs- und Entwicklungsmodell wie alle anderen Spieler: Ihre Fähigkeiten sind nicht unmittelbar vollständig bekannt, und ihr Werdegang hängt von Training, Spielzeit, Gesundheit und Umfeld ab.
+
+Ein Weltpaket kann einzelne Spieler fest vorgeben (siehe Abschnitt 13.2). Der Generator füllt dann nur die Lücken.
 
 ## 7. Taktiksystem
 
@@ -279,6 +323,8 @@ Duelle werden als kurze Sequenzen aus Position, Geschwindigkeit, Winkel, Balance
 
 Müdigkeit wirkt auf Sprintkapazität, Beschleunigung, technische Präzision, Scan-Frequenz und Entscheidungszeit. Mentale Zustände wie Confidence, Composure, Frustration und Focus verändern Verhalten subtil; es gibt keine pauschalen Arcade-Buffs und keinen versteckten Momentum-Regler.
 
+Die Stimmung im Stadion (siehe Abschnitt 5.5) wirkt ausschließlich über diese mentalen Zustände. Ein volles Stadion mit guter Stimmung treibt die Heimmannschaft an und setzt den Gast unter Druck; wie stark, hängt von der Persönlichkeit des einzelnen Spielers ab. Ein nervenschwacher Gastspieler leidet, ein abgeklärter nicht. Der Heimvorteil ist damit eine Folge der Simulation und in den Erklärungen sichtbar (siehe Abschnitt 14), kein Bonus auf das Ergebnis.
+
 ### 8.10 Spieldauer, Matchzeit und Wiedergabe
 
 **Spieldauer.** Standard sind 90 Minuten. Nutzer können eine kürzere Spieldauer wählen, z. B. 10 Minuten. Kürzer wird die Dauer, nicht der Fußball: Laufwege, Passgeschwindigkeiten und Reaktionszeiten bleiben unverändert, ein kürzeres Match läuft nicht schneller ab, sondern endet früher. Die angezeigte Spieluhr läuft im 90-Minuten-Äquivalent (bei 10 Minuten Spieldauer entspricht eine gespielte Minute neun Spielminuten), damit Anzeige, Wechselzeitpunkte und Spielerstatistiken vertraut bleiben.
@@ -340,6 +386,7 @@ Jeder KI-Verein führt fortlaufend Squad Planning durch. Ausgangspunkte sind Kad
 - Mitarbeiter handeln gemäß eigener Kompetenz, Philosophie und Informationslage.
 - Trainer-AI analysiert Matches und kann auf Überladungen, Aufbauprobleme, Pressing oder Mismatches reagieren.
 - Vorstände definieren Ziele und akzeptierbare Risiken statt nur Endplatzierungen.
+- KI-Clubs planen Infrastruktur und Sponsoren (siehe Abschnitte 5.4 und 5.6) nach ihrer Strategie und ihrem Finanzrisiko; der Vorstand gibt Investitionen frei und setzt Verschuldungsgrenzen.
 
 ## 12. UX / Desktop-first Interface
 
@@ -362,6 +409,15 @@ Jeder KI-Verein führt fortlaufend Squad Planning durch. Ausgangspunkte sind Kad
 
 Presse ist ereignisgetrieben. Normale Spiele erfordern keine Pflichtkonferenz. Relevante Ereignisse – Finalspiele, Krisen, Transfers, Rivalitäten – können Kommunikation auslösen. Antworten haben Trade-offs, aber keine versteckte „richtige“ Option.
 
+### 12.2 Vereinsgelände in 3D
+
+Bis zu einer späten Ausbaustufe nach dem Early Access wird die Infrastruktur über die normale Oberfläche bedient (Liste oder Lageplan). Danach zeigt ein 3D-Vereinsgelände denselben Zustand: Stadion, Trainingscampus und Umfeld aus der Vogelperspektive, zusätzlich mit einer Managerfigur begehbar.
+
+- Das Gelände ist Darstellung. Gebäudezustand und Wirkung liegen im Core.
+- Gebäude sind alternative Einstiegspunkte in die Oberfläche: Wer das Reha-Zentrum betritt, öffnet die Medizin-Ansicht. Jede Funktion bleibt auch über Oberfläche und Command Palette erreichbar; es gibt keine Pflichtwege.
+- Die Managerfigur hat kein anpassbares Aussehen und keinen Fortschritt.
+- Das Gelände ist kein Online-Hub. Es gehört zu einem Club und einem Spielstand.
+
 ## 13. Karriere, Saison und Langzeitspiel
 
 - Saisonkalender mit Wettbewerben, Registrierung, Transferfenstern und Periodisierung.
@@ -378,6 +434,14 @@ Presse ist ereignisgetrieben. Normale Spiele erfordern keine Pflichtkonferenz. R
 | 1         | Vereinfachte Positions-/Kader-Simulation | Sekundäre Wettbewerbe          |
 | 2         | Volle taktische Matchsimulation          | Relevante Spiele               |
 | 3         | Volle Simulation + Unreal-Präsentation   | Vom Spieler angesehene Matches |
+
+### 13.2 Welt-Editor und Weltpakete
+
+Eine Karriere startet aus einem Weltpaket: Ligen, Clubs, Standorte, Startgebäude, Sponsoren und optional fest vorgegebene Spieler. Das Spiel liefert eine fiktive Standardwelt aus.
+
+- Der Welt-Editor ist ein eigenständiger Desktop-Client. Er bearbeitet Weltpakete vor dem Karrierestart; laufende Spielstände verändert er nicht.
+- Die Bedienung ist auf Massendaten ausgelegt: Tabellen, Mehrfachauswahl, Suchen und Ersetzen, Ausfüllen ganzer Spalten, CSV-Import und -Export. Die Namen eines ganzen Teams zu ändern, soll Sekunden dauern.
+- Pakete lassen sich teilen. Reale Namen, Wappen und Kader entstehen in der Community, nicht im ausgelieferten Spiel.
 
 ## 14. Analytics & Erklärbarkeit
 
@@ -423,7 +487,10 @@ Drei Teams mit identischer Spielerstärke: Possession, Counter, Pressing. Nach t
 - Keine verpflichtenden repetitiven Pressekonferenzen.
 - Kein wöchentliches Lob-/Moral-Minigame.
 - Kein Social Feed voller belangloser Meldungen.
-- Kein Privatleben-, Auto- oder Wohnungs-Metaspiel als Kernfeature.
+- Kein Privatleben-, Auto- oder Wohnungs-Metaspiel als Kernfeature. Das begehbare Vereinsgelände (siehe Abschnitt 12.2) ist Darstellung, kein Avatar-Metaspiel.
+- Kein pauschaler Heimbonus. Zuschauer wirken nur über die mentalen Zustände der Spieler.
+- Keine dekorativen Gebäude ohne Wirkung und kein Verfall, der Renovierungen erzwingt.
+- Keine realen Namen, Wappen oder Kader im ausgelieferten Spiel ohne Lizenz.
 - Keine tägliche Pflicht-Mikroverwaltung von Training oder Meetings.
 - Keine KI, die beim Delegieren außerhalb derselben Regeln cheatet.
 - Keine versteckte Momentum-Mechanik.
@@ -448,6 +515,9 @@ Drei Teams mit identischer Spielerstärke: Possession, Counter, Pressing. Nach t
 - Welche Simulationsauflösung ist für zehntausende Weltmatches wirtschaftlich?
 - Wie stark dürfen Clubidentitäten driften, ohne ihre historische Glaubwürdigkeit zu verlieren?
 - Wie werden echte Lizenzen / Daten später optional integriert, ohne das Kernsystem davon abhängig zu machen?
+- Welche rechtlichen Grenzen gelten für Weltpakete der Community mit realen Namen, Wappen und Spielern, und über welchen Weg werden Pakete verteilt (z. B. Steam Workshop)? Vor einem Release rechtlich zu klären.
+- Wie stark darf der Heimvorteil durch Stimmung sein, und an welchen realen Kennzahlen wird er kalibriert?
+- Wie viele Gebäude und Ausbaustufen tragen echte Entscheidungen, bevor Club-Aufbau zu Verwaltungsarbeit wird?
 - Welche Teile der Match-Engine benötigen echte 3D-Physik und welche sollten deterministisch im Core bleiben?
 - Welche Verzögerung von Anweisungen wirkt realistisch, ohne Eingriffe während des Spiels träge wirken zu lassen?
 - Welche Kennzahlen bestimmen die Relevanz einer Szene für relevanzgesteuerte Wiedergabe und Highlights?
