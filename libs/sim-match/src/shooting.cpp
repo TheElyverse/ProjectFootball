@@ -89,8 +89,11 @@ ShotConditions shotConditions(const MatchState& state, const std::size_t shooter
   conditions.weakFoot = shooter.attributes.strongFoot == Foot::kRight ? side > config.weakFootSide
                                                                       : side < -config.weakFootSide;
 
+  // His reception counts while it is his last touch: a ball he lost and won
+  // back since is not the one he received.
   if (const auto& reception = state.lastReception();
-      reception && reception->player == shooter.playerId) {
+      reception && reception->player == shooter.playerId &&
+      state.ball().lastTouch == BallTouch{.playerId = reception->player, .tick = reception->tick}) {
     const double since =
         static_cast<double>(now.value() - reception->tick.value()) * secondsPerTick;
     if (since >= 0.0 && since < config.unsettledSeconds) {

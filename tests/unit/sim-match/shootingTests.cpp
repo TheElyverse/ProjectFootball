@@ -27,6 +27,7 @@ using ElyverseFootball::SimCore::Vec2;
 using ElyverseFootball::SimMatch::ballAfter;
 using ElyverseFootball::SimMatch::BallPhysics;
 using ElyverseFootball::SimMatch::BallState;
+using ElyverseFootball::SimMatch::BallTouch;
 using ElyverseFootball::SimMatch::Deflection;
 using ElyverseFootball::SimMatch::deflectShot;
 using ElyverseFootball::SimMatch::executeShot;
@@ -320,22 +321,24 @@ TEST_CASE("The weaker foot costs what it lacks in accuracy", "[shooting]") {
 }
 
 TEST_CASE("A ball only just received is unsettled, the harder it came the more", "[shooting]") {
-  // Writes the shooter's reception of a ball at this speed in tick 0.
-  const auto received = [](const double ballSpeed) {
+  // Writes the shooter's reception of a ball at this speed in tick 0, and his
+  // last touch of the ball in this tick.
+  const auto received = [](const double ballSpeed, const SimTick lastTouch = SimTick(0)) {
     MatchSimulation simulation(
         {.initialState = duel(playerAt(1, TeamSide::kHome, kFrom), {.x = 10.0, .y = 10.0}),
          .seed = 1,
          .ticksPerSecond = 30,
-         .systems = {{.name = "reception",
-                      .update =
-                          [ballSpeed](const MatchStepContext& context, const MatchState& /*state*/,
-                                      MatchStateWriter& next) {
-                            if (context.tick() == SimTick(0)) {
-                              next.setLastReception(ReceptionRecord{.player = PlayerId(1),
-                                                                    .tick = SimTick(0),
-                                                                    .ballSpeed = ballSpeed});
-                            }
-                          }}},
+         .systems =
+             {{.name = "reception",
+               .update =
+                   [ballSpeed, lastTouch](const MatchStepContext& context,
+                                          const MatchState& /*state*/, MatchStateWriter& next) {
+                     if (context.tick() == SimTick(0)) {
+                       next.setBallLastTouch(BallTouch{.playerId = PlayerId(1), .tick = lastTouch});
+                       next.setLastReception(ReceptionRecord{
+                           .player = PlayerId(1), .tick = SimTick(0), .ballSpeed = ballSpeed});
+                     }
+                   }}},
          .commands = {}});
     REQUIRE(simulation.step().has_value());
     return simulation.state();
@@ -347,6 +350,8 @@ TEST_CASE("A ball only just received is unsettled, the harder it came the more",
   REQUIRE_THAT(conditionsOf(received(10.0), intent, SimTick(0)).unsettled, WithinAbs(0.5, 1e-12));
   REQUIRE_THAT(conditionsOf(received(20.0), intent, SimTick(15)).unsettled, WithinAbs(0.5, 1e-12));
   REQUIRE(conditionsOf(received(20.0), intent, SimTick(30)).unsettled == 0.0);
+  // A ball he lost and won back since is not the one he received.
+  REQUIRE(conditionsOf(received(20.0, SimTick(10)), intent, SimTick(15)).unsettled == 0.0);
 }
 
 TEST_CASE("The conditions of a shot multiply", "[shooting]") {

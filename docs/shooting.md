@@ -84,7 +84,8 @@ worst, and all four together make them sixteen times as wide.
   default 0.5 makes them half as wide again.
 - **The ball.** A ball received within the last `unsettledSeconds` (1 s) is not
   settled: fully unsettled the moment it arrives at `unsettledBallSpeed`
-  (20 m/s) or faster, less the slower it came and the longer he has had it.
+  (20 m/s) or faster, less the slower it came and the longer he has had it. A
+  ball he lost and won back since is no longer the one he received.
 
 ## On the way
 
