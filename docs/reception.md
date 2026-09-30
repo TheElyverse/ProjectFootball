@@ -32,6 +32,9 @@ player against the ball:
 - **No instant reclaim.** The ball's last touch cannot take it back for
   `reclaimDelaySeconds` (0.3 s) after touching it, so a pass does not stick to
   the passer's foot.
+- **Not a fast shot.** A [shot](shooting.md) still fast comes off an outfield
+  player in its way instead of being taken by him; `findBallContact()` looks
+  for that body with its own reach. The keeper takes a shot like any ball.
 - **Competing claims.** The earliest contact in the tick wins. At the same
   moment the player who comes closer wins, and at the same distance the lower
   player id: deterministic whatever the order of players in the state.

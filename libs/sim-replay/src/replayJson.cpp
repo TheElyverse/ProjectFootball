@@ -59,7 +59,10 @@ using SimMatch::TeamSide;
   json["velocity"] = vec2Json(player.velocity);
   json["attributes"] = {{"maxSpeed", player.attributes.maxSpeed},
                         {"acceleration", player.attributes.acceleration},
-                        {"shotAccuracy", player.attributes.shotAccuracy}};
+                        {"shotAccuracy", player.attributes.shotAccuracy},
+                        {"shotTechnique", player.attributes.shotTechnique},
+                        {"strongFoot", SimMatch::footName(player.attributes.strongFoot)},
+                        {"weakFootAccuracy", player.attributes.weakFootAccuracy}};
   json["target"] = player.target ? vec2Json(*player.target) : Json(nullptr);
   json["facing"] = vec2Json(player.facing);
   return json;
@@ -109,6 +112,7 @@ using SimMatch::TeamSide;
                   {"spin", state.ball().spin},
                   {"owner", owner ? Json(owner->value()) : Json(nullptr)},
                   {"lastTouch", touchJson(state.ball().lastTouch)}};
+  json["score"] = {{"home", state.score().home}, {"away", state.score().away}};
   json["tactics"] = tacticsJson(state.tactics());
   return json;
 }
@@ -217,6 +221,30 @@ using SimMatch::TeamSide;
       {"maxPressSeconds", pressing.maxPressSeconds}};
 }
 
+[[nodiscard]] Json shootingJson(const SimMatch::ShotConfig& shooting) {
+  return {{"spreadAtZero", shooting.spreadAtZero},
+          {"spreadPerMeter", shooting.spreadPerMeter},
+          {"speedError", shooting.speedError},
+          {"maxLaunchSlope", shooting.maxLaunchSlope},
+          {"topspin", shooting.topspin},
+          {"spinError", shooting.spinError},
+          {"pressureErrorFactor", shooting.pressureErrorFactor},
+          {"balanceErrorFactor", shooting.balanceErrorFactor},
+          {"weakFootErrorFactor", shooting.weakFootErrorFactor},
+          {"unsettledErrorFactor", shooting.unsettledErrorFactor},
+          {"weakFootSide", shooting.weakFootSide},
+          {"unsettledSeconds", shooting.unsettledSeconds},
+          {"unsettledBallSpeed", shooting.unsettledBallSpeed},
+          {"deflectionSpeed", shooting.deflectionSpeed},
+          {"blockRadius", shooting.blockRadius},
+          {"blockReach", shooting.blockReach},
+          {"minDeflectedSpeed", shooting.minDeflectedSpeed},
+          {"maxDeflectedSpeed", shooting.maxDeflectedSpeed},
+          {"blockedBelow", shooting.blockedBelow},
+          {"deflectionSpread", shooting.deflectionSpread},
+          {"deflectionLift", shooting.deflectionLift}};
+}
+
 [[nodiscard]] Json configJson(const MatchConfig& config) {
   const SimMatch::PerceptionConfig& perception = config.perception;
   return {{"ticksPerSecond", config.ticksPerSecond},
@@ -271,7 +299,10 @@ using SimMatch::TeamSide;
             {"attemptSeconds", config.challenge.attemptSeconds},
             {"protectSeconds", config.challenge.protectSeconds}}},
           {"pressing", pressingJson(config.pressing)},
-          {"restarts", {{"enabled", config.restarts.enabled}}}};
+          {"restarts", {{"enabled", config.restarts.enabled}}},
+          {"shooting", shootingJson(config.shooting)},
+          {"woodwork",
+           {{"radius", config.woodwork.radius}, {"restitution", config.woodwork.restitution}}}};
 }
 
 void addCommandFields(Json& json, const MovePlayerCommand& command) {
@@ -423,6 +454,8 @@ class Field {
 };
 
 constexpr std::int64_t kMaxTick = std::int64_t{1} << 53;
+// More goals than any match has; keeps a score inside an int.
+constexpr std::int64_t kMaxGoals = 1'000'000;
 
 [[nodiscard]] Vec2 readVec2(const Field& field) {
   return {.x = field.member("x").number(), .y = field.member("y").number()};
@@ -459,6 +492,17 @@ constexpr std::int64_t kMaxTick = std::int64_t{1} << 53;
                              .tick = SimTick(field.member("tick").integerIn(-kMaxTick, kMaxTick))};
 }
 
+[[nodiscard]] SimMatch::Foot readFoot(const Field& field) {
+  const std::string foot = field.string();
+  if (foot == "left") {
+    return SimMatch::Foot::kLeft;
+  }
+  if (foot == "right") {
+    return SimMatch::Foot::kRight;
+  }
+  field.fail(std::format(R"(expected "left" or "right", got "{}")", foot));
+}
+
 [[nodiscard]] PlayerMatchState readPlayer(const Field& field) {
   const Field attributes = field.member("attributes");
   const Field target = field.member("target");
@@ -468,7 +512,10 @@ constexpr std::int64_t kMaxTick = std::int64_t{1} << 53;
           .velocity = readVec2(field.member("velocity")),
           .attributes = {.maxSpeed = attributes.member("maxSpeed").number(),
                          .acceleration = attributes.member("acceleration").number(),
-                         .shotAccuracy = attributes.member("shotAccuracy").number()},
+                         .shotAccuracy = attributes.member("shotAccuracy").number(),
+                         .shotTechnique = attributes.member("shotTechnique").number(),
+                         .strongFoot = readFoot(attributes.member("strongFoot")),
+                         .weakFootAccuracy = attributes.member("weakFootAccuracy").number()},
           .target = target.isNull() ? std::nullopt : std::optional(readVec2(target)),
           .facing = readVec2(field.member("facing"))};
 }
@@ -535,6 +582,7 @@ constexpr std::int64_t kMaxTick = std::int64_t{1} << 53;
     players.push_back(readPlayer(player));
   }
   const Field ball = field.member("ball");
+  const Field score = field.member("score");
   auto state = MatchState::create(
       {.pitch = *pitch,
        .players = std::move(players),
@@ -545,7 +593,9 @@ constexpr std::int64_t kMaxTick = std::int64_t{1} << 53;
                 .height = ball.member("height").number(),
                 .verticalVelocity = ball.member("verticalVelocity").number(),
                 .spin = ball.member("spin").number()},
-       .playersPerSide = static_cast<int>(field.member("playersPerSide").integerIn(1, 1000))},
+       .playersPerSide = static_cast<int>(field.member("playersPerSide").integerIn(1, 1000)),
+       .score = {.home = static_cast<int>(score.member("home").integerIn(0, kMaxGoals)),
+                 .away = static_cast<int>(score.member("away").integerIn(0, kMaxGoals))}},
       {.home = readTactic(field.member("tactics").member("home")),
        .away = readTactic(field.member("tactics").member("away"))});
   if (!state) {
@@ -723,6 +773,31 @@ constexpr std::int64_t kMaxTick = std::int64_t{1} << 53;
           .restingVerticalSpeed = field.member("restingVerticalSpeed").number()};
 }
 
+[[nodiscard]] SimMatch::ShotConfig readShooting(const Field& field) {
+  const auto number = [&field](const std::string_view key) { return field.member(key).number(); };
+  return {.spreadAtZero = number("spreadAtZero"),
+          .spreadPerMeter = number("spreadPerMeter"),
+          .speedError = number("speedError"),
+          .maxLaunchSlope = number("maxLaunchSlope"),
+          .topspin = number("topspin"),
+          .spinError = number("spinError"),
+          .pressureErrorFactor = number("pressureErrorFactor"),
+          .balanceErrorFactor = number("balanceErrorFactor"),
+          .weakFootErrorFactor = number("weakFootErrorFactor"),
+          .unsettledErrorFactor = number("unsettledErrorFactor"),
+          .weakFootSide = number("weakFootSide"),
+          .unsettledSeconds = number("unsettledSeconds"),
+          .unsettledBallSpeed = number("unsettledBallSpeed"),
+          .deflectionSpeed = number("deflectionSpeed"),
+          .blockRadius = number("blockRadius"),
+          .blockReach = number("blockReach"),
+          .minDeflectedSpeed = number("minDeflectedSpeed"),
+          .maxDeflectedSpeed = number("maxDeflectedSpeed"),
+          .blockedBelow = number("blockedBelow"),
+          .deflectionSpread = number("deflectionSpread"),
+          .deflectionLift = number("deflectionLift")};
+}
+
 [[nodiscard]] MatchConfig readConfig(const Field& field) {
   return {
       .ticksPerSecond = static_cast<int>(field.member("ticksPerSecond").integerIn(1, 100000)),
@@ -746,7 +821,10 @@ constexpr std::int64_t kMaxTick = std::int64_t{1} << 53;
       .defensive = readDefensive(field.member("defensive")),
       .challenge = readChallenge(field.member("challenge")),
       .pressing = readPressing(field.member("pressing")),
-      .restarts = {.enabled = field.member("restarts").member("enabled").boolean()}};
+      .restarts = {.enabled = field.member("restarts").member("enabled").boolean()},
+      .shooting = readShooting(field.member("shooting")),
+      .woodwork = {.radius = field.member("woodwork").member("radius").number(),
+                   .restitution = field.member("woodwork").member("restitution").number()}};
 }
 
 [[nodiscard]] MatchCommand readCommand(const Field& field) {

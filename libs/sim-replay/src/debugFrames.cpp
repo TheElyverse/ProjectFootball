@@ -263,9 +263,46 @@ void addEventFields(Json& json, const SimMatch::ShotAttempted& event) {
   json["from"] = vec2Json(event.from);
   json["target"] = vec2Json(event.target);
   json["height"] = rounded(event.height);
+  json["struckAt"] = vec2Json(event.struckAt);
+  json["struckHeight"] = rounded(event.struckHeight);
   json["speed"] = rounded(event.speed);
   json["distance"] = rounded(event.distance);
   json["opening"] = rounded(event.opening);
+}
+
+void addEventFields(Json& json, const SimMatch::ShotDeflected& event) {
+  json["type"] = "shotDeflected";
+  json["shooter"] = event.shooter.value();
+  json["shotTick"] = event.shotTick.value();
+  json["player"] = event.player.value();
+  json["position"] = vec2Json(event.position);
+  json["height"] = rounded(event.height);
+  json["blocked"] = event.blocked;
+}
+
+void addEventFields(Json& json, const SimMatch::ShotHitWoodwork& event) {
+  json["type"] = "shotHitWoodwork";
+  json["shooter"] = event.shooter.value();
+  json["shotTick"] = event.shotTick.value();
+  json["part"] = SimMatch::woodworkPartName(event.part);
+  json["position"] = vec2Json(event.position);
+  json["height"] = rounded(event.height);
+}
+
+void addEventFields(Json& json, const SimMatch::ShotResolved& event) {
+  json["type"] = "shotResolved";
+  json["shooter"] = event.shooter.value();
+  json["shotTick"] = event.shotTick.value();
+  json["outcome"] = SimMatch::shotOutcomeName(event.outcome);
+}
+
+void addEventFields(Json& json, const SimMatch::GoalScored& event) {
+  json["type"] = "goalScored";
+  json["side"] = SimMatch::teamSideName(event.side);
+  json["scorer"] = idJson(event.scorer);
+  json["assist"] = idJson(event.assist);
+  json["ownGoal"] = event.ownGoal;
+  json["score"] = {{"home", event.score.home}, {"away", event.score.away}};
 }
 
 [[nodiscard]] Json eventJson(const SimMatch::MatchEvent& event) {
@@ -382,6 +419,7 @@ void addEventFields(Json& json, const SimMatch::ShotAttempted& event) {
   json["tick"] = frame.tick.value();
   json["stateHash"] = std::format("{:016x}", SimMatch::hashMatchState(frame.state));
   json["ball"] = ballJson(frame.state.ball());
+  json["score"] = {{"home", frame.state.score().home}, {"away", frame.state.score().away}};
   json["pendingPass"] = pendingPassJson(frame.state.pendingPass());
   json["teams"] = teamsJson(frame.state);
   json["pitchControl"] = pitchControlJson(frame);

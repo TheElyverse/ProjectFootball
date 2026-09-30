@@ -57,18 +57,36 @@ inline constexpr double kFacingTolerance = 1e-9;
 // the sandbox; generated players will derive theirs from capabilities.
 inline constexpr double kDefaultMaxSpeed = 7.5;      // m/s
 inline constexpr double kDefaultAcceleration = 4.0;  // m/s²
-// An average finisher's accuracy, on the scale of shotAccuracy.
+// An average finisher's accuracy, on the scale of shotAccuracy, and the same
+// for his technique and his weaker foot.
 inline constexpr double kDefaultShotAccuracy = 0.5;
+inline constexpr double kDefaultShotTechnique = 0.5;
+inline constexpr double kDefaultWeakFootAccuracy = 0.5;
+
+// The foot a player strikes the ball with.
+enum class Foot : std::uint8_t {
+  kLeft,
+  kRight,
+};
+
+// "left", "right"; "unknown" outside the enumerators.
+[[nodiscard]] std::string_view footName(Foot foot) noexcept;
 
 // What a player can do, fixed for a match. maxSpeed and acceleration are what
 // his body allows and must be positive and finite; the same acceleration
 // limits speeding up, slowing down and turning (see
 // docs/player-movement.md). shotAccuracy, in [0, 1], is how closely his shots
 // follow his aim, from wild to pinpoint (docs/shot-decisions.md).
+// shotTechnique, in [0, 1], is how cleanly he strikes the ball -- its pace,
+// its lift and its spin -- and weakFootAccuracy, in [0, 1], how much of his
+// shooting he keeps on the foot that is not his strongFoot (docs/shooting.md).
 struct PlayerAttributes {
   double maxSpeed = kDefaultMaxSpeed;
   double acceleration = kDefaultAcceleration;
   double shotAccuracy = kDefaultShotAccuracy;
+  double shotTechnique = kDefaultShotTechnique;
+  Foot strongFoot = Foot::kRight;
+  double weakFootAccuracy = kDefaultWeakFootAccuracy;
 
   friend bool operator==(const PlayerAttributes&, const PlayerAttributes&) = default;
 };
@@ -155,6 +173,18 @@ inline constexpr double kMaxBallSpeed = 100.0;  // m/s
 // leaves room for a fixture that exaggerates and still catches a broken one.
 inline constexpr double kMaxBallSpin = 500.0;  // rad/s
 
+// The goals each side has scored.
+struct Score {
+  int home = 0;
+  int away = 0;
+
+  [[nodiscard]] int of(const TeamSide side) const noexcept {
+    return side == TeamSide::kHome ? home : away;
+  }
+
+  friend bool operator==(const Score&, const Score&) = default;
+};
+
 enum class MatchStateErrorCode : std::uint8_t {
   kInvalidPlayersPerSide,
   kWrongPlayerCountPerSide,
@@ -181,6 +211,7 @@ enum class MatchStateErrorCode : std::uint8_t {
   kUnknownBallOwner,
   kUnknownLastTouch,
   kTacticDoesNotFitSquad,
+  kInvalidScore,
 };
 
 // The code is what tests and callers branch on; the message names the offending
@@ -201,6 +232,8 @@ struct MatchStateSpec {
   std::vector<PlayerMatchState> players;
   BallState ball;
   int playersPerSide = kDefaultPlayersPerSide;
+  // The score the match stands at; neither side's may be negative.
+  Score score{};
 };
 
 // The tactic each side plays, if any (docs/tactics.md). A side without a
@@ -230,11 +263,17 @@ struct PassRecord {
 };
 
 // The last shot taken in the match: who struck it, from where, and when. A
-// free ball whose last touch was a shot is loose, not a pass.
+// free ball whose last touch was a shot, or a deflection of one, is loose,
+// not a pass. deflection is the last outfield player the shot came off, and
+// resolved whether its outcome has been recorded: a shot stays open until the
+// ball crosses the goal line, a player controls it, it leaves the pitch or
+// comes to rest (docs/shooting.md).
 struct ShotRecord {
   SimCore::PlayerId shooter;
   SimCore::Vec2 from;
   SimCore::SimTick tick;
+  std::optional<BallTouch> deflection = std::nullopt;
+  bool resolved = false;
 
   friend bool operator==(const ShotRecord&, const ShotRecord&) = default;
 };
@@ -247,6 +286,17 @@ struct ReceptionRecord {
   double ballSpeed = 0.0;
 
   friend bool operator==(const ReceptionRecord&, const ReceptionRecord&) = default;
+};
+
+// The last goal scored in the match: the side it counts for, who scored it --
+// nobody, for a ball no player had touched -- and when. The restart after it
+// is a kickoff (docs/restarts.md).
+struct GoalRecord {
+  TeamSide side = TeamSide::kHome;
+  std::optional<SimCore::PlayerId> scorer;
+  SimCore::SimTick tick;
+
+  friend bool operator==(const GoalRecord&, const GoalRecord&) = default;
 };
 
 // Which team has the ball, as the tactical phase system last saw it
@@ -331,8 +381,8 @@ class MatchState {
   // The only way to obtain a MatchState from outside the simulation, so every
   // instance that exists is valid. Reports every rule the spec breaks, not just
   // the first one, in a fixed order: squad size, then players by index, then
-  // the ball, then the tactics. A tactic must have one slot per player of its
-  // side.
+  // the ball, then the tactics, then the score. A tactic must have one slot per
+  // player of its side.
   [[nodiscard]] static std::expected<MatchState, std::vector<MatchStateError>> create(
       MatchStateSpec spec, TeamTactics tactics = {});
 
@@ -340,6 +390,11 @@ class MatchState {
   [[nodiscard]] std::span<const PlayerMatchState> players() const noexcept { return players_; }
   [[nodiscard]] const BallState& ball() const noexcept { return ball_; }
   [[nodiscard]] int playersPerSide() const noexcept { return playersPerSide_; }
+
+  // The goals both sides have scored, and the last of them; none in a state
+  // created from a spec, whatever score it starts at.
+  [[nodiscard]] const Score& score() const noexcept { return score_; }
+  [[nodiscard]] const std::optional<GoalRecord>& lastGoal() const noexcept { return lastGoal_; }
 
   // The last pass kicked, the last shot taken and the last reception of a
   // free ball; empty in every state created from a spec, until the ball
@@ -426,6 +481,8 @@ class MatchState {
   std::optional<PassRecord> lastPass_;
   std::optional<ShotRecord> lastShot_;
   std::optional<ReceptionRecord> lastReception_;
+  Score score_;
+  std::optional<GoalRecord> lastGoal_;
   TeamPossession possession_;
   // Home, away.
   std::array<std::optional<TeamPhase>, 2> phases_;
@@ -441,8 +498,8 @@ class MatchState {
 // What a simulation system or command may change in a state: positions,
 // velocities, movement targets, facings, perception memories, the ball's
 // height, vertical velocity and spin, who owns and
-// last touched the ball, the players' pending actions, the last pass and shot and reception, team
-// possession and phases, the
+// last touched the ball, the players' pending actions, the last pass and shot and reception, the
+// score, team possession and phases, the
 // pitch-control grid, the chasers, presses and players' tactical states,
 // nothing else. Squad, ids, sides,
 // attributes, player order and the pitch have no setter, so a system cannot break those invariants
@@ -499,6 +556,9 @@ class MatchStateWriter {
     return state_->lastShot_;
   }
   void setLastReception(std::optional<ReceptionRecord> reception);
+  // Counts a goal for the record's side and keeps the record as the last
+  // goal; throws std::invalid_argument for a scorer not in the state.
+  void addGoal(const GoalRecord& goal);
   void setPossession(const TeamPossession& possession) noexcept {
     state_->possession_ = possession;
   }

@@ -35,6 +35,9 @@ void addPlayer(StableHasher& hasher, const PlayerMatchState& player) noexcept {
   hasher.addDouble(player.attributes.maxSpeed);
   hasher.addDouble(player.attributes.acceleration);
   hasher.addDouble(player.attributes.shotAccuracy);
+  hasher.addDouble(player.attributes.shotTechnique);
+  hasher.addU64(static_cast<std::uint64_t>(player.attributes.strongFoot));
+  hasher.addDouble(player.attributes.weakFootAccuracy);
   addOptionalVec2(hasher, player.target);
   addVec2(hasher, player.facing);
 }
@@ -183,6 +186,12 @@ std::uint64_t hashMatchState(const MatchState& state) noexcept {
     hasher.addU64(lastShot->shooter.value());
     addVec2(hasher, lastShot->from);
     hasher.addI64(lastShot->tick.value());
+    hasher.addBool(lastShot->deflection.has_value());
+    if (lastShot->deflection) {
+      hasher.addU64(lastShot->deflection->playerId.value());
+      hasher.addI64(lastShot->deflection->tick.value());
+    }
+    hasher.addBool(lastShot->resolved);
   }
   const auto& reception = state.lastReception();
   hasher.addBool(reception.has_value());
@@ -190,6 +199,16 @@ std::uint64_t hashMatchState(const MatchState& state) noexcept {
     hasher.addU64(reception->player.value());
     hasher.addI64(reception->tick.value());
     hasher.addDouble(reception->ballSpeed);
+  }
+  hasher.addI64(state.score().home);
+  hasher.addI64(state.score().away);
+  const auto& lastGoal = state.lastGoal();
+  hasher.addBool(lastGoal.has_value());
+  if (lastGoal) {
+    hasher.addU64(static_cast<std::uint64_t>(lastGoal->side));
+    hasher.addBool(lastGoal->scorer.has_value());
+    hasher.addU64(lastGoal->scorer.value_or(SimCore::PlayerId::invalid()).value());
+    hasher.addI64(lastGoal->tick.value());
   }
   for (const TeamSide side : {TeamSide::kHome, TeamSide::kAway}) {
     const auto& tactic = state.tactics().of(side);

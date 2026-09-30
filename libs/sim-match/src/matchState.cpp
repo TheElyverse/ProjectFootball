@@ -140,12 +140,20 @@ void appendAttributeErrors(const std::size_t index, const PlayerMatchState& play
                                  " m/s^2, expected both positive and finite"});
     return;
   }
-  if (std::isnan(attributes.shotAccuracy) || attributes.shotAccuracy < 0.0 ||
-      attributes.shotAccuracy > 1.0) {
+  const auto appendShareError = [&](const double value, const std::string_view name) {
+    if (std::isnan(value) || value < 0.0 || value > 1.0) {
+      errors.push_back({.code = MatchStateErrorCode::kInvalidPlayerAttributes,
+                        .message = describePlayer(index, player) + " has " + std::string(name) +
+                                   " " + formatNumber(value) + ", expected a number in [0, 1]"});
+    }
+  };
+  appendShareError(attributes.shotAccuracy, "shot accuracy");
+  appendShareError(attributes.shotTechnique, "shot technique");
+  appendShareError(attributes.weakFootAccuracy, "weak foot accuracy");
+  if (attributes.strongFoot != Foot::kLeft && attributes.strongFoot != Foot::kRight) {
     errors.push_back({.code = MatchStateErrorCode::kInvalidPlayerAttributes,
-                      .message = describePlayer(index, player) + " has shot accuracy " +
-                                 formatNumber(attributes.shotAccuracy) +
-                                 ", expected a number in [0, 1]"});
+                      .message = describePlayer(index, player) +
+                                 " has a strong foot that is neither left nor right"});
   }
   // Movement assumes a player is never faster than his limit: it changes the
   // velocity by one tick's acceleration at a time and would leave a faster
@@ -283,7 +291,25 @@ void validateTactics(const MatchStateSpec& spec, const TeamTactics& tactics,
   }
 }
 
+void validateScore(const MatchStateSpec& spec, std::vector<MatchStateError>& errors) {
+  if (spec.score.home < 0 || spec.score.away < 0) {
+    errors.push_back({.code = MatchStateErrorCode::kInvalidScore,
+                      .message = std::format("the score is {}:{}, expected no negative goals",
+                                             spec.score.home, spec.score.away)});
+  }
+}
+
 }  // namespace
+
+std::string_view footName(const Foot foot) noexcept {
+  switch (foot) {
+    case Foot::kLeft:
+      return "left";
+    case Foot::kRight:
+      return "right";
+  }
+  return "unknown";
+}
 
 std::string_view teamSideName(const TeamSide side) noexcept {
   switch (side) {
@@ -307,6 +333,7 @@ MatchState::MatchState(MatchStateSpec spec, TeamTactics tactics)
       tactics_(std::move(tactics)),
       perceptions_(players_.size()),
       pendingActions_(players_.size()),
+      score_(spec.score),
       tactical_(players_.size()) {}
 
 std::optional<PassIntent> MatchState::pendingPass() const noexcept {
@@ -325,6 +352,7 @@ std::expected<MatchState, std::vector<MatchStateError>> MatchState::create(Match
   validatePlayers(spec, errors);
   validateBall(spec, errors);
   validateTactics(spec, tactics, errors);
+  validateScore(spec, errors);
 
   if (!errors.empty()) {
     return std::unexpected(std::move(errors));
@@ -393,8 +421,19 @@ void MatchStateWriter::setPendingAction(const std::size_t playerIndex,
 void MatchStateWriter::setLastShot(const std::optional<ShotRecord> shot) {
   if (shot) {
     requirePlayer(shot->shooter, "a shooter");
+    if (shot->deflection) {
+      requirePlayer(shot->deflection->playerId, "a deflector");
+    }
   }
   state_->lastShot_ = shot;
+}
+
+void MatchStateWriter::addGoal(const GoalRecord& goal) {
+  if (goal.scorer) {
+    requirePlayer(*goal.scorer, "a scorer");
+  }
+  (goal.side == TeamSide::kHome ? state_->score_.home : state_->score_.away) += 1;
+  state_->lastGoal_ = goal;
 }
 
 void MatchStateWriter::setLastPass(const std::optional<PassRecord> pass) {

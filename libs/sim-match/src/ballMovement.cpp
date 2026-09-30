@@ -7,11 +7,16 @@
 #include <string>
 #include <variant>
 
+#include "goalFrame.hpp"
+#include "matchEvents.hpp"
+#include "passCandidates.hpp"
 #include "passing.hpp"
 #include "playerMovement.hpp"
 #include "reception.hpp"
 #include "restart.hpp"
+#include "shooting.hpp"
 #include "shotCandidates.hpp"
+#include "zones.hpp"
 
 namespace ElyverseFootball::SimMatch {
 namespace {
@@ -37,8 +42,7 @@ using SimCore::Vec2;
 // controlled ball already is -- except when he got it by a command in this
 // very tick, which moves no ball. Every pass is a ground pass, so the ball
 // stays on the grass without vertical velocity or spin; lofted passes arrive
-// with their own decisions. Until shot execution exists, a shot is struck the
-// same way, at the point it aims at on the goal line.
+// with their own decisions.
 [[nodiscard]] BallState kicked(const MatchState& state, const PassIntent& intent,
                                const BallPhysics& physics, const PassConfig& passing,
                                const MatchStepContext& context) {
@@ -57,6 +61,71 @@ using SimCore::Vec2;
   return ball;
 }
 
+// What the ball system is configured with.
+struct BallRules {
+  BallPhysics physics;
+  PassConfig passing;
+  ReceptionConfig reception;
+  RestartConfig restarts;
+  ShotConfig shooting;
+  WoodworkConfig woodwork;
+};
+
+// The ball as a shot leaves it: free, off the grass at the shooter's feet, on
+// the flight executeShot() strikes it on, and the shooter as its last touch.
+// Records the shot in the state and as an event.
+[[nodiscard]] BallState struck(const MatchState& state, const ShotIntent& intent,
+                               const BallRules& rules, const MatchStepContext& context,
+                               MatchStateWriter& next) {
+  BallState ball = state.ball();
+  // The shooter owns the ball, so he is in the state.
+  const auto index = findPlayerIndex(state, intent.shooter).value_or(0);
+  const PlayerMatchState& shooter = state.players()[index];
+  ball.position = carriedBallPosition(shooter, rules.physics, state.pitch());
+  const ShotConditions conditions =
+      shotConditions(state, index, ball.position, intent, context.tick(), context.secondsPerTick(),
+                     rules.shooting, rules.passing);
+  const ShotStrike strike =
+      executeShot(intent, ball.position, shooter,
+                  shotErrorFactor(conditions, shooter.attributes, rules.shooting), rules.shooting,
+                  rules.physics, context.random(SimCore::RandomNumberGeneratorDomain::kExecution));
+  ball.velocity = strike.velocity;
+  ball.verticalVelocity = strike.verticalVelocity;
+  ball.spin = strike.spin;
+  ball.height = 0.0;
+  ball.owner = std::nullopt;
+  ball.lastTouch = BallTouch{.playerId = intent.shooter, .tick = context.tick()};
+
+  next.setLastShot(ShotRecord{.shooter = intent.shooter,
+                              .from = ball.position,
+                              .tick = context.tick(),
+                              .deflection = std::nullopt,
+                              .resolved = false});
+  const Goal goal = attackedGoal(state.pitch(), shooter.side);
+  context.record(ShotAttempted{.tick = context.tick(),
+                               .shooter = intent.shooter,
+                               .from = ball.position,
+                               .target = intent.target,
+                               .height = intent.height,
+                               .struckAt = strike.target,
+                               .struckHeight = strike.height,
+                               .speed = ball.velocity.length(),
+                               .distance = (goal.center - ball.position).length(),
+                               .opening = goalOpening(ball.position, goal)});
+  return ball;
+}
+
+// Whether the ball's last touch was a shot or a deflection of one: such a
+// ball is loose, not a pass.
+[[nodiscard]] bool isFromShot(const BallState& ball,
+                              const std::optional<ShotRecord>& shot) noexcept {
+  if (!ball.lastTouch || !shot) {
+    return false;
+  }
+  return ball.lastTouch == BallTouch{.playerId = shot->shooter, .tick = shot->tick} ||
+         ball.lastTouch == shot->deflection;
+}
+
 // What gaining control of a free ball was: the ball's last touch kicked it,
 // so a teammate of his received the pass and an opponent intercepted it. A
 // ball nobody played, a shot, or one the kicker takes back himself, was
@@ -66,9 +135,7 @@ using SimCore::Vec2;
                                       const std::optional<ShotRecord>& shot, const BallClaim& claim,
                                       const Vec2 contactPosition, const SimCore::SimTick tick) {
   const PlayerMatchState& claimant = state.players()[claim.playerIndex];
-  const bool shotLast = ball.lastTouch && shot && shot->shooter == ball.lastTouch->playerId &&
-                        shot->tick == ball.lastTouch->tick;
-  if (!ball.lastTouch || shotLast || ball.lastTouch->playerId == claimant.playerId) {
+  if (!ball.lastTouch || isFromShot(ball, shot) || ball.lastTouch->playerId == claimant.playerId) {
     return LooseBallRecovered{
         .tick = tick, .player = claimant.playerId, .position = contactPosition};
   }
@@ -84,6 +151,308 @@ using SimCore::Vec2;
                          .position = contactPosition};
 }
 
+// The side of the player with this id; he is in the state.
+[[nodiscard]] TeamSide sideOf(const MatchState& state, const PlayerId player) {
+  return state.players()[findPlayerIndex(state, player).value_or(0)].side;
+}
+
+// Records what became of the step's open shot, once: the shot is resolved
+// from here on.
+void resolveShot(const ShotRecord& shot, const ShotOutcome outcome, const MatchStepContext& context,
+                 MatchStateWriter& next) {
+  ShotRecord resolved = shot;
+  resolved.resolved = true;
+  next.setLastShot(resolved);
+  context.record(ShotResolved{
+      .tick = context.tick(), .shooter = shot.shooter, .shotTick = shot.tick, .outcome = outcome});
+}
+
+// What a shot that did not go in was: blocked if an outfield player touched
+// it, off target otherwise.
+[[nodiscard]] ShotOutcome missOutcome(const ShotRecord& shot) noexcept {
+  return shot.deflection ? ShotOutcome::kBlocked : ShotOutcome::kOffTarget;
+}
+
+// What a shot a player took control of was: blocked if it had come off an
+// outfield player or an outfield opponent took it; saved if the keeper it was
+// meant to beat took it on its way into his goal; and off target if he took it
+// on its way past, or the shooter's own side got to it first.
+[[nodiscard]] ShotOutcome controlOutcome(const MatchState& state, const ShotRecord& shot,
+                                         const BallState& ball, const BallClaim& claim,
+                                         const BallRules& rules) {
+  const TeamSide shooterSide = sideOf(state, shot.shooter);
+  if (shot.deflection) {
+    return ShotOutcome::kBlocked;
+  }
+  if (state.players()[claim.playerIndex].side == shooterSide) {
+    return ShotOutcome::kOffTarget;
+  }
+  if (!isGoalkeeper(state, claim.playerIndex)) {
+    return ShotOutcome::kBlocked;
+  }
+  const GoalEnd end = attackingDirection(shooterSide) > 0.0 ? GoalEnd::kMaxX : GoalEnd::kMinX;
+  const auto crossing = predictGoalLineCrossing(ball, rules.physics, state.pitch(), end);
+  const bool onTarget =
+      crossing && state.pitch().goal(end).framesPoint(crossing->y, crossing->height);
+  return onTarget ? ShotOutcome::kSaved : ShotOutcome::kOffTarget;
+}
+
+// The teammate whose pass the scorer received last, if that is how he came by
+// the ball.
+[[nodiscard]] std::optional<PlayerId> assistOf(const MatchState& state, const PlayerId scorer) {
+  const auto& pass = state.lastPass();
+  const auto& reception = state.lastReception();
+  const bool received = pass && reception && pass->receiver == scorer &&
+                        reception->player == scorer && reception->tick >= pass->tick;
+  if (!received || pass->passer == scorer || sideOf(state, pass->passer) != sideOf(state, scorer)) {
+    return std::nullopt;
+  }
+  return pass->passer;
+}
+
+// Counts the goal of a ball that crossed this end's goal line inside the
+// frame, and records it: for the side attacking that end, by the shooter of
+// its shot still on its way, otherwise by whoever touched the ball last.
+void scoreGoal(const MatchState& state, const GoalEnd end, const BallState& ball,
+               const std::optional<ShotRecord>& openShot, const MatchStepContext& context,
+               MatchStateWriter& next) {
+  const bool homeAttacksMaxX = attackingDirection(TeamSide::kHome) > 0.0;
+  const TeamSide side =
+      (end == GoalEnd::kMaxX) == homeAttacksMaxX ? TeamSide::kHome : TeamSide::kAway;
+  std::optional<PlayerId> scorer;
+  if (openShot && sideOf(state, openShot->shooter) == side) {
+    scorer = openShot->shooter;
+  } else if (ball.lastTouch) {
+    scorer = ball.lastTouch->playerId;
+  }
+  const bool ownGoal = scorer && sideOf(state, *scorer) != side;
+  next.addGoal(GoalRecord{.side = side, .scorer = scorer, .tick = context.tick()});
+  Score score = state.score();
+  (side == TeamSide::kHome ? score.home : score.away) += 1;
+  context.record(GoalScored{.tick = context.tick(),
+                            .side = side,
+                            .scorer = scorer,
+                            .assist = scorer && !ownGoal ? assistOf(state, *scorer) : std::nullopt,
+                            .ownGoal = ownGoal,
+                            .score = score});
+}
+
+// Leaves the ball with this player, at his feet as he ends the tick: on the
+// ground, since that is where a player keeps a ball he has.
+void carryBy(const PlayerMatchState& player, const BallRules& rules,
+             const MatchStepContext& context, const MatchState& current, MatchStateWriter& next) {
+  const PlayerMatchState owner =
+      ownerAfterMove(player, current.ball().position, context.secondsPerTick());
+  next.setBallPosition(carriedBallPosition(owner, rules.physics, current.pitch()));
+  next.setBallVelocity(owner.velocity);
+  next.setBallHeight(0.0);
+  next.setBallVerticalVelocity(0.0);
+  next.setBallSpin(0.0);
+}
+
+// Plays the pending pass or shot, if its player owns the ball, and drops
+// every other; returns the ball as that leaves it. The action itself comes
+// from current, not next: one decided this same step is played next step, one
+// step of pending action being deliberate. The ball comes from next, and
+// next.pendingAction() is checked too, because a challenge earlier this same
+// step may have already taken the ball and dropped the action, and current
+// would still show the stale pre-step values.
+[[nodiscard]] BallState playPendingAction(const BallRules& rules, const MatchStepContext& context,
+                                          const MatchState& current, MatchStateWriter& next) {
+  BallState ball = next.ball();
+  std::optional<PendingAction> owners;
+  for (std::size_t index = 0; index < current.players().size(); ++index) {
+    const std::optional<PendingAction>& action = current.pendingAction(index);
+    if (!action || !next.pendingAction(index)) {
+      continue;
+    }
+    next.setPendingAction(index, std::nullopt);
+    if (current.players()[index].playerId == ball.owner) {
+      owners = action;
+    }
+  }
+  if (const ShotIntent* shot = owners ? std::get_if<ShotIntent>(&*owners) : nullptr) {
+    ball = struck(current, *shot, rules, context, next);
+    next.setBallOwner(ball.owner);
+    next.setBallLastTouch(ball.lastTouch);
+    context.record(PossessionChanged{
+        .tick = context.tick(), .previousOwner = shot->shooter, .newOwner = std::nullopt});
+  }
+  if (const PassIntent* intent = owners ? std::get_if<PassIntent>(&*owners) : nullptr) {
+    ball = kicked(current, *intent, rules.physics, rules.passing, context);
+    next.setBallOwner(ball.owner);
+    next.setBallLastTouch(ball.lastTouch);
+    next.setLastPass(PassRecord{.passer = intent->passer,
+                                .from = ball.position,
+                                .tick = context.tick(),
+                                .receiver = intent->receiver});
+    context.record(PassAttempted{.tick = context.tick(),
+                                 .passer = intent->passer,
+                                 .intendedReceiver = intent->receiver,
+                                 .from = ball.position,
+                                 .target = intent->target,
+                                 .speed = ball.velocity.length()});
+    context.record(PossessionChanged{
+        .tick = context.tick(), .previousOwner = intent->passer, .newOwner = std::nullopt});
+  }
+  return ball;
+}
+
+// A free ball on its way through a tick: where it started, the shot it is, if
+// one is still open, and the way it goes -- to the end of the tick, to the
+// line it leaves the pitch over, or to the goal frame if it gets to that
+// first.
+struct FreeBall {
+  BallState ball;
+  std::optional<ShotRecord> shot;
+  BallStep step;
+  std::optional<WoodworkHit> frameHit;
+};
+
+[[nodiscard]] FreeBall freeBallOf(const BallState& ball, const std::optional<ShotRecord>& lastShot,
+                                  const BallRules& rules, const Pitch& pitch,
+                                  const double secondsPerTick) {
+  FreeBall free{
+      .ball = ball,
+      .shot = lastShot && !lastShot->resolved ? lastShot : std::nullopt,
+      .step = stepFreeBallTimed(ball, rules.physics, pitch, secondsPerTick),
+      .frameHit = findWoodworkHit(ball, rules.physics, pitch, rules.woodwork, secondsPerTick)};
+  // A hit beyond the line the ball leaves the pitch over never happens.
+  if (free.frameHit && SimCore::distance(ball.position, free.frameHit->ball.position) >
+                           SimCore::distance(ball.position, free.step.ball.position)) {
+    free.frameHit.reset();
+  }
+  if (free.frameHit) {
+    free.step = {.ball = free.frameHit->ball, .seconds = free.frameHit->seconds};
+  }
+  return free;
+}
+
+// Gives the free ball to the player who reached it, and records what that
+// was: a pass received or intercepted or a loose ball recovered, and the
+// outcome of a shot.
+void takeBall(const FreeBall& free, const BallClaim& claim, const BallRules& rules,
+              const MatchStepContext& context, const MatchState& current, MatchStateWriter& next) {
+  const BallState& ball = free.ball;
+  next.setBallOwner(claim.playerId);
+  next.setBallLastTouch(BallTouch{.playerId = claim.playerId, .tick = context.tick()});
+  next.setLastReception(ReceptionRecord{
+      .player = claim.playerId, .tick = context.tick(), .ballSpeed = ball.velocity.length()});
+  carryBy(current.players()[claim.playerIndex], rules, context, current, next);
+  const Vec2 contactPosition =
+      ball.position + ((free.step.ball.position - ball.position) * claim.contact.contactFraction);
+  context.record(
+      controlEvent(current, ball, next.lastShot(), claim, contactPosition, context.tick()));
+  context.record(PossessionChanged{
+      .tick = context.tick(), .previousOwner = std::nullopt, .newOwner = claim.playerId});
+  if (free.shot) {
+    resolveShot(*free.shot, controlOutcome(current, *free.shot, ball, claim, rules), context, next);
+  }
+}
+
+// The shot as it comes off the outfield player who got in its way: he is its
+// last touch, the shot remembers him, and the ball flies on from there.
+[[nodiscard]] BallState deflectedBy(const BallClaim& contact, FreeBall& free,
+                                    const BallRules& rules, const MatchStepContext& context,
+                                    MatchStateWriter& next) {
+  const double moment = contact.contact.contactFraction * free.step.seconds;
+  const Deflection deflection =
+      deflectShot(ballAfter(free.ball, rules.physics, moment), rules.shooting,
+                  context.random(SimCore::RandomNumberGeneratorDomain::kExecution));
+  BallState ball = deflection.ball;
+  ball.lastTouch = BallTouch{.playerId = contact.playerId, .tick = context.tick()};
+  next.setBallLastTouch(ball.lastTouch);
+  // Only an open shot is deflected.
+  ShotRecord shot = free.shot.value_or(ShotRecord{});
+  shot.deflection = ball.lastTouch;
+  free.shot = shot;
+  next.setLastShot(shot);
+  context.record(ShotDeflected{.tick = context.tick(),
+                               .shooter = shot.shooter,
+                               .shotTick = shot.tick,
+                               .player = contact.playerId,
+                               .position = ball.position,
+                               .height = ball.height,
+                               .blocked = deflection.blocked});
+  return ball;
+}
+
+// Writes the ball as the tick leaves it after flying on from `from`. A ball
+// that left the pitch over a goal line, between the posts and under the
+// crossbar, is a goal; the line stops it flat, so the height it crossed at is
+// asked of the flight. And a shot that left the pitch or came to rest has
+// become what it will be.
+void settleFreeBall(const BallState& from, const FreeBall& free, const BallRules& rules,
+                    const MatchStepContext& context, const MatchState& current,
+                    MatchStateWriter& next) {
+  const Pitch& pitch = current.pitch();
+  const BallState& moved = free.step.ball;
+  next.setBallPosition(moved.position);
+  next.setBallVelocity(moved.velocity);
+  next.setBallHeight(moved.height);
+  next.setBallVerticalVelocity(moved.verticalVelocity);
+  next.setBallSpin(moved.spin);
+
+  const bool left = isOutOfPlay(moved, pitch) && !isOutOfPlay(from, pitch);
+  bool goal = false;
+  for (const GoalEnd end : {GoalEnd::kMinX, GoalEnd::kMaxX}) {
+    if (left && moved.position.x == pitch.goalLineX(end) &&
+        pitch.goal(end).framesPoint(moved.position.y,
+                                    ballHeightAfter(from, rules.physics, free.step.seconds))) {
+      scoreGoal(current, end, from, free.shot, context, next);
+      goal = true;
+    }
+  }
+  if (free.shot && (left || moved.isAtRest())) {
+    resolveShot(*free.shot, goal ? ShotOutcome::kGoal : missOutcome(*free.shot), context, next);
+  }
+}
+
+// A free ball rolls, flies and bounces, and the first player to reach it on
+// its way takes it. A shot still fast comes off an outfield player's body
+// rather than to his feet -- the keeper takes it like any ball -- and any
+// ball comes off the goal frame; either way it flies on for the rest of the
+// tick, and nothing else gets to it before the next.
+void moveFreeBall(const BallState& ball, const BallRules& rules, const MatchStepContext& context,
+                  const MatchState& current, MatchStateWriter& next) {
+  const Pitch& pitch = current.pitch();
+  const double secondsPerTick = context.secondsPerTick();
+  // The shot comes from the step's writer: one struck this step counts.
+  FreeBall free = freeBallOf(ball, next.lastShot(), rules, pitch, secondsPerTick);
+
+  const bool deflects = free.shot && ball.velocity.length() >= rules.shooting.deflectionSpeed;
+  const auto contact = deflects ? findBallContact(current, ball, free.step, rules.physics,
+                                                  context.tick(), secondsPerTick, rules.reception,
+                                                  {.radius = rules.shooting.blockRadius,
+                                                   .height = rules.shooting.blockReach})
+                                : findBallClaim(current, ball, free.step, rules.physics,
+                                                context.tick(), secondsPerTick, rules.reception);
+  if (contact && (!deflects || isGoalkeeper(current, contact->playerIndex))) {
+    takeBall(free, *contact, rules, context, current, next);
+    return;
+  }
+
+  BallState from = ball;
+  if (contact) {
+    const double moment = contact->contact.contactFraction * free.step.seconds;
+    from = deflectedBy(*contact, free, rules, context, next);
+    free.step = stepFreeBallTimed(from, rules.physics, pitch, secondsPerTick - moment);
+  } else if (free.frameHit) {
+    from = free.frameHit->rebound;
+    if (free.shot) {
+      context.record(ShotHitWoodwork{.tick = context.tick(),
+                                     .shooter = free.shot->shooter,
+                                     .shotTick = free.shot->tick,
+                                     .part = free.frameHit->part,
+                                     .position = from.position,
+                                     .height = from.height});
+    }
+    free.step =
+        stepFreeBallTimed(from, rules.physics, pitch, secondsPerTick - free.frameHit->seconds);
+  }
+  settleFreeBall(from, free, rules, context, current, next);
+}
+
 }  // namespace
 
 Vec2 carriedBallPosition(const PlayerMatchState& carrier, const BallPhysics& physics,
@@ -92,138 +461,51 @@ Vec2 carriedBallPosition(const PlayerMatchState& carrier, const BallPhysics& phy
 }
 
 MatchSystem makeBallMovementSystem(const BallPhysics& physics, const PassConfig& passing,
-                                   const ReceptionConfig& reception,
-                                   const RestartConfig& restarts) {
+                                   const ReceptionConfig& reception, const RestartConfig& restarts,
+                                   const ShotConfig& shooting, const WoodworkConfig& woodwork) {
   validate(physics);
   validate(passing);
   validate(reception);
-  return {
-      .name = std::string(kBallMovementSystemName),
-      .update = [physics, passing, reception, restarts](const MatchStepContext& context,
-                                                        const MatchState& current,
-                                                        MatchStateWriter& next) {
-        const double secondsPerTick = context.secondsPerTick();
-        // Leaves the ball with this player, at his feet as he ends the tick:
-        // on the ground, since that is where a player keeps a ball he has.
-        const auto carryBy = [&](const PlayerMatchState& player) {
-          const PlayerMatchState owner =
-              ownerAfterMove(player, current.ball().position, secondsPerTick);
-          next.setBallPosition(carriedBallPosition(owner, physics, current.pitch()));
-          next.setBallVelocity(owner.velocity);
-          next.setBallHeight(0.0);
-          next.setBallVerticalVelocity(0.0);
-          next.setBallSpin(0.0);
-        };
+  validate(shooting);
+  validate(woodwork);
+  const BallRules rules{.physics = physics,
+                        .passing = passing,
+                        .reception = reception,
+                        .restarts = restarts,
+                        .shooting = shooting,
+                        .woodwork = woodwork};
+  return {.name = std::string(kBallMovementSystemName),
+          .update = [rules](const MatchStepContext& context, const MatchState& current,
+                            MatchStateWriter& next) {
+            // 1. Play the pending pass or shot.
+            const BallState ball = playPendingAction(rules, context, current, next);
 
-        // 1. Play the pending pass, if its passer owns the ball, and drop
-        //    every other. The pass itself comes from current, not next: a
-        //    pass decided this same step is played next step, one step of
-        //    pending pass being deliberate. The ball comes from next, and
-        //    next.pendingAction() is checked too, because a challenge earlier
-        //    this same step may have already taken the ball and dropped the
-        //    pass, and current would still show the stale pre-step values.
-        BallState ball = next.ball();
-        std::optional<PendingAction> owners;
-        for (std::size_t index = 0; index < current.players().size(); ++index) {
-          const std::optional<PendingAction>& action = current.pendingAction(index);
-          if (!action || !next.pendingAction(index)) {
-            continue;
-          }
-          next.setPendingAction(index, std::nullopt);
-          if (current.players()[index].playerId == ball.owner) {
-            owners = action;
-          }
-        }
-        if (const ShotIntent* shot = owners ? std::get_if<ShotIntent>(&*owners) : nullptr) {
-          // A shot is struck as hard as the shooter judged it, not held to
-          // the hardest pass.
-          PassConfig striking = passing;
-          striking.maxSpeed = std::max(passing.maxSpeed, shot->speed);
-          ball = kicked(current,
-                        PassIntent{.passer = shot->shooter,
-                                   .target = shot->target,
-                                   .speed = shot->speed,
-                                   .receiver = std::nullopt},
-                        physics, striking, context);
-          next.setBallOwner(ball.owner);
-          next.setBallLastTouch(ball.lastTouch);
-          next.setLastShot(
-              ShotRecord{.shooter = shot->shooter, .from = ball.position, .tick = context.tick()});
-          // The shooter owns the ball, so he is in the state.
-          const auto shooter = findPlayerIndex(current, shot->shooter).value_or(0);
-          const Goal goal = attackedGoal(current.pitch(), current.players()[shooter].side);
-          context.record(ShotAttempted{.tick = context.tick(),
-                                       .shooter = shot->shooter,
-                                       .from = ball.position,
-                                       .target = shot->target,
-                                       .height = shot->height,
-                                       .speed = ball.velocity.length(),
-                                       .distance = (goal.center - ball.position).length(),
-                                       .opening = goalOpening(ball.position, goal)});
-          context.record(PossessionChanged{
-              .tick = context.tick(), .previousOwner = shot->shooter, .newOwner = std::nullopt});
-        }
-        if (const PassIntent* intent = owners ? std::get_if<PassIntent>(&*owners) : nullptr) {
-          ball = kicked(current, *intent, physics, passing, context);
-          next.setBallOwner(ball.owner);
-          next.setBallLastTouch(ball.lastTouch);
-          next.setLastPass(PassRecord{.passer = intent->passer,
-                                      .from = ball.position,
-                                      .tick = context.tick(),
-                                      .receiver = intent->receiver});
-          context.record(PassAttempted{.tick = context.tick(),
-                                       .passer = intent->passer,
-                                       .intendedReceiver = intent->receiver,
-                                       .from = ball.position,
-                                       .target = intent->target,
-                                       .speed = ball.velocity.length()});
-          context.record(PossessionChanged{
-              .tick = context.tick(), .previousOwner = intent->passer, .newOwner = std::nullopt});
-        }
+            // 2. A controlled ball stays with its owner. create() and the
+            //    writer accept no owner outside the state.
+            if (ball.owner) {
+              if (const auto index = findPlayerIndex(current, *ball.owner)) {
+                carryBy(current.players()[*index], rules, context, current, next);
+              }
+              return;
+            }
 
-        // 2. A controlled ball stays with its owner. create() and the
-        //    writer accept no owner outside the state.
-        if (ball.owner) {
-          if (const auto index = findPlayerIndex(current, *ball.owner)) {
-            carryBy(current.players()[*index]);
-          }
-          return;
-        }
+            // 3. A free ball moves on -- unless it is already out of play and
+            //    the restart system, which runs after this one, is there to
+            //    settle who plays on: a player standing on the line must not
+            //    receive or intercept the ball first and have the restart
+            //    overwrite him.
+            if (rules.restarts.enabled && isOutOfPlay(ball, current.pitch())) {
+              return;
+            }
+            moveFreeBall(ball, rules, context, current, next);
+          }};
+}
 
-        // 3. A free ball rolls, flies and bounces, and the first player to
-        //    reach it on its way takes it -- unless it is already out of play
-        //    and the
-        //    restart system, which runs after this one, is there to settle
-        //    who plays on: a player standing on the line must not receive or
-        //    intercept the ball first and have the restart overwrite him.
-        const BallStep step = stepFreeBallTimed(ball, physics, current.pitch(), secondsPerTick);
-        const BallState& moved = step.ball;
-        const bool awaitsRestart = restarts.enabled && isOutOfPlay(ball, current.pitch());
-        if (awaitsRestart) {
-          return;
-        }
-        if (const auto claim = findBallClaim(current, ball, step, physics, context.tick(),
-                                             secondsPerTick, reception)) {
-          next.setBallOwner(claim->playerId);
-          next.setBallLastTouch(BallTouch{.playerId = claim->playerId, .tick = context.tick()});
-          next.setLastReception(ReceptionRecord{.player = claim->playerId,
-                                                .tick = context.tick(),
-                                                .ballSpeed = ball.velocity.length()});
-          carryBy(current.players()[claim->playerIndex]);
-          const Vec2 contactPosition =
-              ball.position + ((moved.position - ball.position) * claim->contact.contactFraction);
-          context.record(controlEvent(current, ball, next.lastShot(), *claim, contactPosition,
-                                      context.tick()));
-          context.record(PossessionChanged{
-              .tick = context.tick(), .previousOwner = std::nullopt, .newOwner = claim->playerId});
-          return;
-        }
-        next.setBallPosition(moved.position);
-        next.setBallVelocity(moved.velocity);
-        next.setBallHeight(moved.height);
-        next.setBallVerticalVelocity(moved.verticalVelocity);
-        next.setBallSpin(moved.spin);
-      }};
+MatchSystem makeBallMovementSystem(const BallPhysics& physics, const PassConfig& passing,
+                                   const ReceptionConfig& reception,
+                                   const RestartConfig& restarts) {
+  return makeBallMovementSystem(physics, passing, reception, restarts, ShotConfig{},
+                                WoodworkConfig{});
 }
 
 MatchSystem makeBallMovementSystem(const BallPhysics& physics, const PassConfig& passing,

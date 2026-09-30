@@ -204,6 +204,9 @@ TEST_CASE("A replay survives the JSON round trip unchanged", "[replay]") {
   // Values without a short decimal form must come back bit for bit.
   matchSetup.config.ball.rollingDeceleration = 1.0 / 3.0;
   matchSetup.config.restarts.enabled = true;
+  matchSetup.config.shooting.topspin = 100.0 / 3.0;
+  matchSetup.config.shooting.blockedBelow = 0.1;
+  matchSetup.config.woodwork.restitution = 1.0 / 7.0;
   matchSetup.commands.push_back(move(120, 5, 0.1, 1e-300));
   matchSetup.commands.push_back(
       {.tick = SimTick(60),

@@ -126,6 +126,7 @@ abridged example with illustrative values:
         "height": 0, "verticalVelocity": 0, "spin": 0,
         "owner": null, "lastTouch": null
       },
+      "score": { "home": 0, "away": 0 },
       "pendingPass": null,
       "players": [
         {
@@ -206,7 +207,9 @@ versions it does not know. Version 2 added `zones`, `pitchControl` and the
 teams' `tactic`, `instruction` and `press`. Version 3 added the ball's `height`,
 `verticalVelocity` and `spin` ([ball movement](ball-movement.md)). Version 4 added
 the decision outcome `shot` and the `shotAttempted` event
-([shot decisions](shot-decisions.md)).
+([shot decisions](shot-decisions.md)). Version 5 added every frame's `score`,
+`struckAt` and `struckHeight` to `shotAttempted`, and the events `shotDeflected`,
+`shotHitWoodwork`, `shotResolved` and `goalScored` ([shooting](shooting.md)).
 
 ## Development
 

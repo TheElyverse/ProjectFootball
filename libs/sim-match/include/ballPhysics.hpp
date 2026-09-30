@@ -104,9 +104,14 @@ struct BallLanding {
 [[nodiscard]] std::optional<BallLanding> predictBallLanding(const BallState& ball,
                                                             const BallPhysics& physics) noexcept;
 
-// How high a free ball is `seconds` into its step: the flight stepFreeBall()
-// itself follows, gravity, drag and every bounce within the span, but without
-// the pitch boundary.
+// A free ball `seconds` from now: the roll or the flight stepFreeBall() itself
+// follows, gravity, drag and every bounce within the span, but without the
+// pitch boundary. What asks where a ball will be -- the goal frame, a shot's
+// way to the goal line -- asks this.
+[[nodiscard]] BallState ballAfter(const BallState& ball, const BallPhysics& physics,
+                                  double seconds) noexcept;
+
+// How high a free ball is `seconds` into its step: the height of ballAfter().
 //
 // A ball that crosses a line is stopped on it and put down flat, which says
 // nothing about how high it was as it crossed, so reception asks this rather
@@ -115,6 +120,22 @@ struct BallLanding {
 // at zero whatever it is asked.
 [[nodiscard]] double ballHeightAfter(const BallState& ball, const BallPhysics& physics,
                                      double seconds) noexcept;
+
+// A strike off the grass: the speed along the ground the ball leaves with,
+// and the height it should have after a distance along it.
+struct Launch {
+  double speed = 0.0;     // m/s
+  double distance = 0.0;  // m
+  double height = 0.0;    // m
+};
+
+// The vertical speed a launch needs, in closed form from the same flight
+// stepFreeBall() follows. Such a flight only rises and falls once and never
+// touches the ground on the way. Empty where the ball cannot fly that far --
+// drag stops it short of speed / airDrag -- and for a speed or a distance
+// that is not positive.
+[[nodiscard]] std::optional<double> launchVerticalVelocity(const Launch& launch,
+                                                           const BallPhysics& physics) noexcept;
 
 // One tick of a free ball as described in docs/ball-movement.md.
 //

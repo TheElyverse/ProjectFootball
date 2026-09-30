@@ -237,6 +237,101 @@ TEST_CASE("Event hashes tell events apart", "[matchEvents]") {
   REQUIRE(eventName(intercepted) == "pass intercepted");
 }
 
+TEST_CASE("Every field of a shot's events is part of their hash", "[matchEvents]") {
+  using namespace ElyverseFootball::SimMatch;
+  const auto hashOf = [](const MatchEvent& event) {
+    StableHasher hasher;
+    addEvent(hasher, event);
+    return hasher.value();
+  };
+  const auto changed = [](auto event, auto change) {
+    change(event);
+    return MatchEvent{event};
+  };
+  const ShotAttempted attempted{.tick = SimTick(5),
+                                .shooter = PlayerId(1),
+                                .from = {.x = 50.0, .y = 20.0},
+                                .target = {.x = 60.0, .y = 21.0},
+                                .height = 1.0,
+                                .struckAt = {.x = 60.0, .y = 21.2},
+                                .struckHeight = 1.1,
+                                .speed = 25.0,
+                                .distance = 10.0,
+                                .opening = 0.4};
+  const ShotDeflected deflected{.tick = SimTick(6),
+                                .shooter = PlayerId(1),
+                                .shotTick = SimTick(5),
+                                .player = PlayerId(9),
+                                .position = {.x = 54.0, .y = 20.0},
+                                .height = 0.4,
+                                .blocked = false};
+  const ShotHitWoodwork woodwork{.tick = SimTick(7),
+                                 .shooter = PlayerId(1),
+                                 .shotTick = SimTick(5),
+                                 .part = WoodworkPart::kCrossbar,
+                                 .position = {.x = 59.9, .y = 20.0},
+                                 .height = 1.3};
+  const ShotResolved resolved{.tick = SimTick(8),
+                              .shooter = PlayerId(1),
+                              .shotTick = SimTick(5),
+                              .outcome = ShotOutcome::kSaved};
+  const GoalScored goal{.tick = SimTick(8),
+                        .side = TeamSide::kHome,
+                        .scorer = PlayerId(1),
+                        .assist = PlayerId(2),
+                        .ownGoal = false,
+                        .score = {.home = 1, .away = 0}};
+
+  const std::vector<std::pair<std::string, MatchEvent>> events{
+      {"attempted", attempted},
+      {"struck at", changed(attempted, [](ShotAttempted& event) { event.struckAt.y = 21.3; })},
+      {"struck height", changed(attempted, [](ShotAttempted& event) { event.struckHeight = 1.2; })},
+      {"deflected", deflected},
+      {"deflected shooter", changed(deflected, [](auto& event) { event.shooter = PlayerId(2); })},
+      {"deflected shot", changed(deflected, [](auto& event) { event.shotTick = SimTick(4); })},
+      {"deflected player", changed(deflected, [](auto& event) { event.player = PlayerId(10); })},
+      {"deflected position", changed(deflected, [](auto& event) { event.position.x = 55.0; })},
+      {"deflected height", changed(deflected, [](auto& event) { event.height = 0.5; })},
+      {"deflected blocked", changed(deflected, [](auto& event) { event.blocked = true; })},
+      {"woodwork", woodwork},
+      {"woodwork shooter", changed(woodwork, [](auto& event) { event.shooter = PlayerId(2); })},
+      {"woodwork shot", changed(woodwork, [](auto& event) { event.shotTick = SimTick(4); })},
+      {"woodwork part",
+       changed(woodwork, [](auto& event) { event.part = WoodworkPart::kPostAtMinY; })},
+      {"woodwork position", changed(woodwork, [](auto& event) { event.position.y = 21.0; })},
+      {"woodwork height", changed(woodwork, [](auto& event) { event.height = 1.4; })},
+      {"resolved", resolved},
+      {"resolved shooter", changed(resolved, [](auto& event) { event.shooter = PlayerId(2); })},
+      {"resolved shot", changed(resolved, [](auto& event) { event.shotTick = SimTick(4); })},
+      {"resolved outcome",
+       changed(resolved, [](auto& event) { event.outcome = ShotOutcome::kGoal; })},
+      {"goal", goal},
+      {"goal side", changed(goal, [](auto& event) { event.side = TeamSide::kAway; })},
+      {"goal scorer", changed(goal, [](auto& event) { event.scorer = PlayerId(3); })},
+      {"goal without a scorer", changed(goal, [](auto& event) { event.scorer.reset(); })},
+      {"goal assist", changed(goal, [](auto& event) { event.assist = PlayerId(3); })},
+      {"goal without an assist", changed(goal, [](auto& event) { event.assist.reset(); })},
+      {"own goal", changed(goal, [](auto& event) { event.ownGoal = true; })},
+      {"goal score home", changed(goal, [](auto& event) { event.score.home = 2; })},
+      {"goal score away", changed(goal, [](auto& event) { event.score.away = 1; })},
+  };
+  for (std::size_t first = 0; first < events.size(); ++first) {
+    for (std::size_t second = 0; second < first; ++second) {
+      CAPTURE(events.at(first).first, events.at(second).first);
+      REQUIRE(hashOf(events.at(first).second) != hashOf(events.at(second).second));
+    }
+  }
+  REQUIRE(eventName(attempted) == "shot attempted");
+  REQUIRE(eventName(deflected) == "shot deflected");
+  REQUIRE(eventName(woodwork) == "shot hit woodwork");
+  REQUIRE(eventName(resolved) == "shot resolved");
+  REQUIRE(eventName(goal) == "goal scored");
+  REQUIRE(shotOutcomeName(ShotOutcome::kGoal) == "goal");
+  REQUIRE(shotOutcomeName(ShotOutcome::kSaved) == "saved");
+  REQUIRE(shotOutcomeName(ShotOutcome::kOffTarget) == "offTarget");
+  REQUIRE(shotOutcomeName(ShotOutcome::kBlocked) == "blocked");
+}
+
 TEST_CASE("Decision diagnostics explain every decision", "[matchEvents]") {
   auto state = makeSevenASideKickoff(Pitch(60.0, 40.0));
   REQUIRE(state.has_value());

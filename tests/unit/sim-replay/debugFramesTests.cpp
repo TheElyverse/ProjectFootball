@@ -137,6 +137,48 @@ TEST_CASE("toDebugFramesJson rounds to three decimals and lists decision candida
   CHECK(sawCandidate);
 }
 
+TEST_CASE("Frames show what became of a shot and the score", "[debugFrames]") {
+  const auto* scenario = ElyverseFootball::SimMatch::findScenario("clear-chance");
+  REQUIRE(scenario != nullptr);
+  bool hitWoodwork = false;
+  bool scored = false;
+  for (std::uint64_t seed = 1; seed <= 20; ++seed) {
+    const auto matchSetup = scenario->make(seed);
+    REQUIRE(matchSetup.has_value());
+    const auto json = nlohmann::json::parse(toDebugFramesJson(record(*matchSetup, 45)));
+    CHECK(json.at("frames").at(0).at("score") == nlohmann::json{{"home", 0}, {"away", 0}});
+    for (const auto& frame : json.at("frames")) {
+      for (const auto& event : frame.at("events")) {
+        const std::string type = event.at("type");
+        if (type == "shotAttempted") {
+          CHECK(event.at("struckAt").size() == 2);
+          CHECK(event.at("struckHeight").is_number());
+        } else if (type == "shotHitWoodwork") {
+          hitWoodwork = true;
+          const std::string part = event.at("part");
+          CHECK((part == "postAtMinY" || part == "postAtMaxY" || part == "crossbar"));
+          CHECK(event.at("shotTick").is_number_integer());
+          CHECK(event.at("position").size() == 2);
+        } else if (type == "shotResolved") {
+          CHECK(event.at("shooter") == 1);
+          CHECK(event.at("outcome").is_string());
+        } else if (type == "goalScored") {
+          scored = true;
+          CHECK(event.at("side") == "home");
+          CHECK(event.at("scorer") == 1);
+          CHECK(event.at("assist").is_null());
+          CHECK(event.at("ownGoal") == false);
+          CHECK(event.at("score") == nlohmann::json{{"home", 1}, {"away", 0}});
+          // The frame the goal led to stands at the new score.
+          CHECK(frame.at("score") == nlohmann::json{{"home", 1}, {"away", 0}});
+        }
+      }
+    }
+  }
+  CHECK(hitWoodwork);
+  CHECK(scored);
+}
+
 TEST_CASE("saveDebugFrames reports a path it cannot write", "[debugFrames]") {
   const DebugRecording recording = record(setup(), 1);
   const auto missing = std::filesystem::temp_directory_path() / "no-such-directory" / "f.json";

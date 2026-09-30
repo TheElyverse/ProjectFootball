@@ -304,6 +304,66 @@ TEST_CASE("A ball that flies over the line stops on it", "[ballPhysics]") {
   REQUIRE(stepped.spin == 0.0);
 }
 
+TEST_CASE("A ball asked where it will be follows the flight it is stepped on", "[ballPhysics]") {
+  using ElyverseFootball::SimMatch::ballAfter;
+  const BallPhysics physics;
+  // A shot that bounces on the way, and a ball rolling to a stop.
+  const BallState flying = ballAt({.x = 10.0, .y = 20.0}, {.x = 12.0, .y = 3.0},
+                                  {.height = 0.0, .verticalVelocity = 4.0, .spin = 10.0});
+  const BallState rolling = ballAt({.x = 10.0, .y = 20.0}, {.x = 3.0, .y = 0.0});
+
+  for (const BallState& ball : {flying, rolling}) {
+    const BallState stepped = stepFreeBall(ball, physics, pitch(), 0.9);
+    const BallState asked = ballAfter(ball, physics, 0.9);
+    REQUIRE(asked == stepped);
+  }
+  REQUIRE(ballAfter(flying, physics, 0.0) == flying);
+  // It knows no pitch boundary.
+  const BallState leaving = ballAt({.x = 55.0, .y = 20.0}, {.x = 20.0, .y = 0.0});
+  REQUIRE(stepFreeBall(leaving, physics, pitch(), 1.0).position.x == 60.0);
+  REQUIRE(ballAfter(leaving, physics, 1.0).position.x > 70.0);
+}
+
+TEST_CASE("A launch is solved for the height the ball should arrive at", "[ballPhysics]") {
+  using ElyverseFootball::SimMatch::ballAfter;
+  using ElyverseFootball::SimMatch::launchVerticalVelocity;
+  for (const BallPhysics& physics : {BallPhysics{}, BallPhysics{.airDrag = 0.0}}) {
+    for (const double height : {0.0, 0.5, 2.4}) {
+      CAPTURE(physics.airDrag, height);
+      const auto lift =
+          launchVerticalVelocity({.speed = 25.0, .distance = 16.0, .height = height}, physics);
+      REQUIRE(lift.has_value());
+      REQUIRE(lift.value_or(0.0) > 0.0);
+
+      // Follow it until it has come that far along the ground.
+      const BallState ball = ballAt({.x = 10.0, .y = 20.0}, {.x = 25.0, .y = 0.0},
+                                    {.height = 0.0, .verticalVelocity = lift.value_or(0.0)});
+      double low = 0.0;
+      double high = 2.0;
+      for (int step = 0; step < 64; ++step) {
+        const double middle = (low + high) / 2.0;
+        (ballAfter(ball, physics, middle).position.x < 26.0 ? low : high) = middle;
+      }
+      REQUIRE_THAT(ballAfter(ball, physics, high).height, WithinAbs(height, 1e-9));
+      // It rises and falls once, without touching the ground on the way.
+      REQUIRE(ballAfter(ball, physics, high / 2.0).height > height / 2.0);
+    }
+  }
+}
+
+TEST_CASE("A ball cannot be launched farther than drag lets it fly", "[ballPhysics]") {
+  using ElyverseFootball::SimMatch::launchVerticalVelocity;
+  // 25 m/s against a drag of 0.33 per second never gets past 25 / 0.33 m.
+  const auto launch = [](const double speed, const double distance) {
+    return launchVerticalVelocity({.speed = speed, .distance = distance, .height = 1.0},
+                                  BallPhysics{});
+  };
+  REQUIRE(launch(25.0, 75.0).has_value());
+  REQUIRE_FALSE(launch(25.0, 76.0).has_value());
+  REQUIRE_FALSE(launch(0.0, 10.0).has_value());
+  REQUIRE_FALSE(launch(25.0, 0.0).has_value());
+}
+
 TEST_CASE("The physics reject constants a ball cannot have", "[ballPhysics]") {
   REQUIRE_NOTHROW(validate(BallPhysics{}));
 

@@ -4,7 +4,7 @@ A player on the ball weighs shooting against passing. He looks at the goal he
 attacks, splits it into zones, judges for each what his shot would become —
 blocked, saved, a goal, a second ball — and offers his best shot to the same
 [choice](pass-decisions.md) his passes compete in. The decision records where he
-aims; how well he strikes it is execution's business. Candidate generation lives
+aims; how well he strikes it is [execution](shooting.md)'s business. Candidate generation lives
 in `sim-match` (`shotCandidates.hpp`) as the pure function
 `generateShotCandidates(state, shooterIndex, now, secondsPerTick, rules)`; the
 choice and the pending shot live in the decision system of
@@ -179,11 +179,9 @@ where from, the aimed point and height, the speed, the distance and the opening 
 and the state's `lastShot()`. A ball won back from a shot is loose, not a pass
 received or intercepted ([match events](match-events.md)).
 
-Until shot execution exists, the strike is a placeholder: the ball is kicked
-along the ground at the aimed point on the goal line with the pass execution's
-error, at `shotSpeed` even where that is harder than the passes' `maxSpeed`, and
-the aimed height goes unused. There are no goals yet either: a ball
-over the goal line is a goal kick or a corner ([restarts](restarts.md)).
+How the ball leaves his foot and what becomes of it — a goal, a save, a block,
+the woodwork, a miss — is [shooting](shooting.md): the strike flies at the aimed
+point and height at `shotSpeed`, off by his execution error.
 
 ## Scenarios and guardrails
 
@@ -198,11 +196,10 @@ reduced P2 [style benchmark](sim-benchmark.md) requires every side to shoot 1 to
 At the time of writing, an average finisher facing a keeper on his line judges
 his best shot from straight in front of the goal at a goal chance of about 0.67
 from 8 m, 0.41 from 12 m, 0.09 from 18 m and 0.06 from 22 m. In the six-minute
-style benchmark a side shoots 2 to 27 times, pressing the most: it wins the ball
-high up the pitch. That is more than real football — the sandbox has no goals,
-so a shot that goes in becomes a goal kick that the pressing side wins back near
-the goal, and no keeper positioning, so keepers drift off their line — and the
-balance will be refined with them.
+style benchmark a side shoots 3 to 13 times, pressing the most: it wins the ball
+high up the pitch. That is more than real football, and about half of the shots
+go in — the sandbox has no keeper positioning, so keepers drift off their line,
+and no shot stopping — and the balance will be refined with them.
 
 ## Configuration
 
@@ -240,9 +237,10 @@ balance will be refined with them.
 
 ## What this is not
 
-Shots are struck along the ground and nothing becomes of them but a ball on its
-way: no flight to the aimed height, no goal, save or deflection, no goal events —
-that is shot execution. Keepers do not position themselves. How well a player
+The shooter judges a shot by a straight line from the ball to a point of the
+goal, slowing like a rolling ball, and the ball as a point: he knows neither the
+[flight](shooting.md) his strike really takes nor the thickness of the posts.
+Keepers do not position themselves. How well a player
 decides and how badly he misjudges his chances do not depend on him yet; every
 player chooses with the same temperature. He cannot turn toward the goal, carry
 the ball into a better position or hold it on purpose; those are the on-ball

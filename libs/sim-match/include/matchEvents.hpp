@@ -9,6 +9,7 @@
 #include <vector>
 
 #include "actionCandidate.hpp"
+#include "goalFrame.hpp"
 #include "ids.hpp"
 #include "matchState.hpp"
 #include "observation.hpp"
@@ -160,16 +161,19 @@ struct PressingEnded {
 };
 
 // A player took a shot: the ball left his foot from `from` toward the aimed
-// point of the goal. Enough to reconstruct the chance. What became of it is
-// for shot execution to record, which does not exist yet: until it does, a
-// shot is struck like a ground pass at the aimed point, and the aimed height
-// goes unused (docs/shot-decisions.md).
+// point of the goal. Enough to reconstruct the chance; what became of it
+// follows in the events below, which name the shot by its shooter and the
+// tick of this event (docs/shooting.md).
 struct ShotAttempted {
   SimCore::SimTick tick;
   SimCore::PlayerId shooter;
   SimCore::Vec2 from;
   SimCore::Vec2 target;
   double height = 0.0;
+  // The point on the goal line and the height the ball really left for: the
+  // aim, off by the shooter's execution error.
+  SimCore::Vec2 struckAt;
+  double struckHeight = 0.0;
   // The speed the ball left the foot with, execution error included.
   double speed = 0.0;
   // From `from` to the goal's center, and how wide the goal looked from
@@ -180,11 +184,81 @@ struct ShotAttempted {
   friend bool operator==(const ShotAttempted&, const ShotAttempted&) = default;
 };
 
+// A shot came off an outfield player and flew on, at the ball's position
+// and height. blocked if it lost most of its speed there.
+struct ShotDeflected {
+  SimCore::SimTick tick;
+  SimCore::PlayerId shooter;
+  SimCore::SimTick shotTick;
+  SimCore::PlayerId player;
+  SimCore::Vec2 position;
+  double height = 0.0;
+  bool blocked = false;
+
+  friend bool operator==(const ShotDeflected&, const ShotDeflected&) = default;
+};
+
+// A shot hit a post or the crossbar and rebounded, at the ball's position and
+// height.
+struct ShotHitWoodwork {
+  SimCore::SimTick tick;
+  SimCore::PlayerId shooter;
+  SimCore::SimTick shotTick;
+  WoodworkPart part = WoodworkPart::kCrossbar;
+  SimCore::Vec2 position;
+  double height = 0.0;
+
+  friend bool operator==(const ShotHitWoodwork&, const ShotHitWoodwork&) = default;
+};
+
+// What became of a shot: a goal; saved, taken by the keeper on its way into
+// the goal; off target, past the goal, short of it or taken by the keeper on
+// its way past; or blocked, touched by an outfield player without going in.
+// A shot on target is a goal or saved.
+enum class ShotOutcome : std::uint8_t {
+  kGoal,
+  kSaved,
+  kOffTarget,
+  kBlocked,
+};
+
+// "goal", "saved", "offTarget", "blocked"; "unknown" outside the enumerators.
+[[nodiscard]] std::string_view shotOutcomeName(ShotOutcome outcome) noexcept;
+
+// A shot's outcome, recorded exactly once per shot: when the ball crosses a
+// goal line, a player controls it, it leaves the pitch or comes to rest.
+struct ShotResolved {
+  SimCore::SimTick tick;
+  SimCore::PlayerId shooter;
+  SimCore::SimTick shotTick;
+  ShotOutcome outcome = ShotOutcome::kOffTarget;
+
+  friend bool operator==(const ShotResolved&, const ShotResolved&) = default;
+};
+
+// The ball crossed a goal line between the posts and under the crossbar: a
+// goal for `side`, and the score it makes. The scorer is the shooter of a
+// shot by that side still on its way, otherwise whoever touched the ball
+// last -- an own goal if he plays for the other side -- and nobody for a ball
+// no player had touched. The assist is the teammate whose pass the scorer
+// received last.
+struct GoalScored {
+  SimCore::SimTick tick;
+  TeamSide side = TeamSide::kHome;
+  std::optional<SimCore::PlayerId> scorer;
+  std::optional<SimCore::PlayerId> assist;
+  bool ownGoal = false;
+  Score score;
+
+  friend bool operator==(const GoalScored&, const GoalScored&) = default;
+};
+
 // New alternatives go last: an event's index is part of its hash.
 using MatchEvent =
     std::variant<PassAttempted, PassReceived, PassIntercepted, LooseBallRecovered,
                  PossessionChanged, PhaseChanged, BallWon, PressingStarted, PressingEnded,
-                 TacticChanged, PitchControlSampled, RestartTaken, ShotAttempted>;
+                 TacticChanged, PitchControlSampled, RestartTaken, ShotAttempted, ShotDeflected,
+                 ShotHitWoodwork, ShotResolved, GoalScored>;
 
 // "pass attempted", "pass received", ... for logs and diagnostics.
 [[nodiscard]] std::string_view eventName(const MatchEvent& event);

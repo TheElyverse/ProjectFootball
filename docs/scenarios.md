@@ -143,7 +143,9 @@ and home's other players wait in their own half.
 each of 100 seeds: at the clear chance he shoots at least 90 times, from the
 hopeless angle every shot is `too narrow` and he always passes, and past the
 blocked lane he passes more often than he shoots, with the middle of the goal
-at least half blocked in at least 90 seeds.
+at least half blocked in at least 90 seeds. The clear chance is also followed to
+its end: the first shot is a goal in 55 to 90 of the seeds
+([shooting](shooting.md)).
 
 ## The tactic match
 

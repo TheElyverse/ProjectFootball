@@ -336,19 +336,55 @@ std::optional<BallLanding> predictBallLanding(const BallState& ball,
                      .apexHeight = std::max(flownFor(ball, physics, high).height, ball.height)};
 }
 
+BallState ballAfter(const BallState& ball, const BallPhysics& physics,
+                    const double seconds) noexcept {
+  return isInFlight(ball) ? flownWithBounces(ball, physics, seconds)
+                          : rolled(ball, physics, seconds);
+}
+
 double ballHeightAfter(const BallState& ball, const BallPhysics& physics,
                        const double seconds) noexcept {
-  if (!isInFlight(ball)) {
-    return ball.height;
+  return ballAfter(ball, physics, std::max(seconds, 0.0)).height;
+}
+
+std::optional<double> launchVerticalVelocity(const Launch& launch,
+                                             const BallPhysics& physics) noexcept {
+  const double speed = launch.speed;
+  const double distance = launch.distance;
+  if (!(speed > 0.0) || !(distance > 0.0)) {
+    return std::nullopt;
   }
-  return flownWithBounces(ball, physics, std::max(seconds, 0.0)).height;
+  // How far the ball has flown along the ground after this long: it only
+  // grows, so doubling brackets the moment it has covered the distance and
+  // bisection finds it.
+  const auto covered = [&](const double seconds) {
+    return speed * seconds * dragSpanFactor(physics.airDrag * seconds);
+  };
+  double high = distance / speed;
+  for (int step = 0; step < kMaxHorizonDoublings && covered(high) < distance; ++step) {
+    high *= 2.0;
+  }
+  if (covered(high) < distance) {
+    return std::nullopt;
+  }
+  double low = 0.0;
+  for (int step = 0; step < kLandingIterations; ++step) {
+    const double middle = low + ((high - low) / 2.0);
+    if (covered(middle) < distance) {
+      low = middle;
+    } else {
+      high = middle;
+    }
+  }
+  // flownFor()'s height, solved for the vertical speed it starts with.
+  const double drag = physics.airDrag * high;
+  const double drop = physics.gravity * high * high * dragDropFactor(drag);
+  return (launch.height + drop) / (high * dragSpanFactor(drag));
 }
 
 BallStep stepFreeBallTimed(const BallState& ball, const BallPhysics& physics, const Pitch& pitch,
                            const double secondsPerTick) noexcept {
-  const BallState moved = isInFlight(ball) ? flownWithBounces(ball, physics, secondsPerTick)
-                                           : rolled(ball, physics, secondsPerTick);
-  return withPitchBoundary(ball, moved, pitch, secondsPerTick);
+  return withPitchBoundary(ball, ballAfter(ball, physics, secondsPerTick), pitch, secondsPerTick);
 }
 
 BallState stepFreeBall(const BallState& ball, const BallPhysics& physics, const Pitch& pitch,
