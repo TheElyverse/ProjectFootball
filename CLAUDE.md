@@ -70,7 +70,7 @@ apps/
   sim-viewer     TypeScript/Canvas debug viewer for sim-cli's frames (pnpm)    [exists]
   website        static landing page, HTML + Tailwind CSS v4 (pnpm)          [exists]
   sim-benchmark  series and style round robins of tactic matches, statistics [exists]
-  sim-replay, unreal-game                                                      [planned]
+  sim-replay, world-editor, unreal-game                                        [planned]
 data/            schemas, tactics, competitions, fixtures (JSON/YAML, schema-validated) [exists: tactics]
 tests/unit/      Catch2 tests, mirrors libs/ by subdirectory                   [exists: sim-core, sim-tactics, sim-match, sim-replay, sim-analytics, sim-benchmark]
 tests/acceptance/ whole-match scenarios: stability, determinism, pinned hashes [exists: M0, P1, P2, shots]
