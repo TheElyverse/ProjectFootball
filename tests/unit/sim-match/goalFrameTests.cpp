@@ -224,6 +224,14 @@ TEST_CASE("A ball's crossing of the goal line is predicted from its flight", "[g
                                               BallPhysics{}, pitch(), GoalEnd::kMaxX);
   REQUIRE(flying.has_value());
   REQUIRE(flying.value_or(GoalLineCrossing{}).height > 0.5);
+
+  // On slow grass a ball is followed for as long as it rolls: this one takes
+  // more than eleven seconds over its ten meters.
+  const auto slow =
+      predictGoalLineCrossing(ballAt({.x = 50.0, .y = 20.0}, {.x = 1.45, .y = 0.0}),
+                              BallPhysics{.rollingDeceleration = 0.1}, pitch(), GoalEnd::kMaxX);
+  REQUIRE(slow.has_value());
+  REQUIRE_THAT(slow.value_or(GoalLineCrossing{}).y, WithinAbs(20.0, 1e-9));
 }
 
 TEST_CASE("A ball that never reaches the goal line crosses nowhere", "[goalFrame]") {

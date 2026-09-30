@@ -23,9 +23,11 @@ inline constexpr int kSearchIterations = 64;
 // are far smaller than the bar is thick.
 inline constexpr int kCrossbarSamples = 16;
 
-// How long a ball is followed to the goal line: no ball rolls or flies
-// longer.
+// How long a ball is followed to the goal line at first, and how often that
+// is doubled for one still on its way: ten seconds doubled twenty times is
+// longer than a season.
 inline constexpr double kCrossingHorizonSeconds = 10.0;
+inline constexpr int kMaxHorizonDoublings = 20;
 
 // A direction in space: along the pitch plane and up.
 struct Vec3 {
@@ -264,7 +266,12 @@ std::optional<GoalLineCrossing> predictGoalLineCrossing(const BallState& ball,
     return std::nullopt;
   }
   const double way = towardLine / (ball.velocity.x / speed);
-  const Flight flight{.ball = ball, .physics = physics, .seconds = kCrossingHorizonSeconds};
+  Flight flight{.ball = ball, .physics = physics, .seconds = kCrossingHorizonSeconds};
+  for (int step = 0; step < kMaxHorizonDoublings && flight.travelled(flight.seconds) < way &&
+                     !flight.after(flight.seconds).isAtRest();
+       ++step) {
+    flight.seconds *= 2.0;
+  }
   if (flight.travelled(flight.seconds) < way) {
     return std::nullopt;
   }
