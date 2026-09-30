@@ -17,6 +17,7 @@ using ElyverseFootball::SimMatch::BallState;
 using ElyverseFootball::SimMatch::findWoodworkHit;
 using ElyverseFootball::SimMatch::Goal;
 using ElyverseFootball::SimMatch::GoalEnd;
+using ElyverseFootball::SimMatch::GoalLineCrossing;
 using ElyverseFootball::SimMatch::kBallRadius;
 using ElyverseFootball::SimMatch::Pitch;
 using ElyverseFootball::SimMatch::predictGoalLineCrossing;
@@ -214,15 +215,15 @@ TEST_CASE("A ball's crossing of the goal line is predicted from its flight", "[g
       predictGoalLineCrossing(ballAt({.x = 50.0, .y = 18.0}, {.x = 20.0, .y = 10.0}), BallPhysics{},
                               pitch(), GoalEnd::kMaxX);
   REQUIRE(rolling.has_value());
-  REQUIRE_THAT(rolling.value_or({}).y, WithinAbs(23.0, 1e-9));
-  REQUIRE(rolling.value_or({}).height == 0.0);
+  REQUIRE_THAT(rolling.value_or(GoalLineCrossing{}).y, WithinAbs(23.0, 1e-9));
+  REQUIRE(rolling.value_or(GoalLineCrossing{}).height == 0.0);
 
   // In the air it is still above the ground when it gets there.
   const auto flying = predictGoalLineCrossing(ballAt({.x = 50.0, .y = 20.0}, {.x = 25.0, .y = 0.0},
                                                      {.height = 0.0, .verticalVelocity = 4.0}),
                                               BallPhysics{}, pitch(), GoalEnd::kMaxX);
   REQUIRE(flying.has_value());
-  REQUIRE(flying.value_or({}).height > 0.5);
+  REQUIRE(flying.value_or(GoalLineCrossing{}).height > 0.5);
 }
 
 TEST_CASE("A ball that never reaches the goal line crosses nowhere", "[goalFrame]") {

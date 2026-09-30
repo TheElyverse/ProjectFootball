@@ -65,6 +65,7 @@ using ElyverseFootball::SimMatch::ShotDeflected;
 using ElyverseFootball::SimMatch::ShotHitWoodwork;
 using ElyverseFootball::SimMatch::ShotIntent;
 using ElyverseFootball::SimMatch::ShotOutcome;
+using ElyverseFootball::SimMatch::ShotRecord;
 using ElyverseFootball::SimMatch::ShotResolved;
 using ElyverseFootball::SimMatch::TeamSide;
 using ElyverseFootball::SimMatch::TeamTactics;
@@ -233,7 +234,7 @@ TEST_CASE("A shot inside the frame is a goal", "[shotOutcome]") {
   REQUIRE(state.score() == Score{.home = 1, .away = 0});
   REQUIRE(state.lastGoal().has_value());
   REQUIRE(state.lastShot().has_value());
-  REQUIRE(state.lastShot().value_or({}).resolved);
+  REQUIRE(state.lastShot().value_or(ShotRecord{}).resolved);
   // The ball lies on the goal line where it went in: a state play restarts
   // from.
   REQUIRE(isOutOfPlay(state));
