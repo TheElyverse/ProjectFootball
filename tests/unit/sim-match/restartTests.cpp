@@ -3,6 +3,7 @@
 #include <cmath>
 #include <cstddef>
 #include <cstdint>
+#include <limits>
 #include <optional>
 #include <span>
 #include <utility>
@@ -57,10 +58,11 @@ namespace {
           .facing = {.x = 1.0, .y = 0.0}};
 }
 
-// Two scripted players a side on a 60 x 40 pitch, home 1 and 2 and away 3
-// and 4, standing at these positions.
-[[nodiscard]] MatchState sceneOf(const std::array<Vec2, 4>& positions, const BallState& ball) {
-  auto state = MatchState::create({.pitch = Pitch(60.0, 40.0),
+// Two scripted players a side, on a 60 x 40 pitch unless given another, home
+// 1 and 2 and away 3 and 4, standing at these positions.
+[[nodiscard]] MatchState sceneOf(const std::array<Vec2, 4>& positions, const BallState& ball,
+                                 const Pitch& pitch = Pitch(60.0, 40.0)) {
+  auto state = MatchState::create({.pitch = pitch,
                                    .players = {playerAt(1, TeamSide::kHome, positions[0]),
                                                playerAt(2, TeamSide::kHome, positions[1]),
                                                playerAt(3, TeamSide::kAway, positions[2]),
@@ -311,6 +313,29 @@ TEST_CASE("A scripted side goes back to its own half for a kickoff", "[restart]"
   REQUIRE(std::abs(ElyverseFootball::SimCore::distance(kickoff.positions.at(2), circle.center) -
                    circle.radiusMeters) < 1.0e-9);
   REQUIRE(kickoff.positions.at(3) == Vec2{.x = 30.0, .y = 5.0});
+}
+
+TEST_CASE("A kickoff lines up on the extreme pitches a Pitch accepts", "[restart]") {
+  for (const Pitch& pitch : {Pitch(0.001, 0.001), Pitch(std::numeric_limits<double>::max(),
+                                                        std::numeric_limits<double>::max())}) {
+    CAPTURE(pitch.lengthMeters());
+    // Everybody on the centre spot.
+    const Vec2 center = pitch.center();
+    const MatchState state =
+        sceneOf({{center, center, center, center}}, ballAt(center, std::nullopt), pitch);
+
+    const auto lineUp = lineUpForKickoff(state, TeamSide::kHome, BallPhysics{});
+    REQUIRE(lineUp.has_value());
+    const KickoffLineUp& kickoff = lineUp.value_or(KickoffLineUp{});
+    for (const Vec2 position : kickoff.positions) {
+      REQUIRE(std::isfinite(position.x));
+      REQUIRE(std::isfinite(position.y));
+      REQUIRE(pitch.contains(position));
+    }
+    // The opponents step back out of the centre circle.
+    REQUIRE(kickoff.positions.at(2).x > center.x);
+    REQUIRE(kickoff.positions.at(3).x > center.x);
+  }
 }
 
 TEST_CASE("A match starts from the kickoff a goal restarts it with", "[restart]") {

@@ -108,6 +108,8 @@ TEST_CASE("The goal-kickoff scenario scores and kicks off from the line-up", "[s
   const auto& state = simulation.state();
   REQUIRE(state.ball().position == state.pitch().center());
   REQUIRE(state.ball().owner == ElyverseFootball::SimCore::PlayerId(14));
+  // Pitch control from before the kickoff is gone until its next refresh.
+  REQUIRE_FALSE(state.pitchControl().has_value());
   for (const auto& player : state.players()) {
     CAPTURE(player.playerId.value());
     REQUIRE(

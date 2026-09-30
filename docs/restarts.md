@@ -70,13 +70,14 @@ kicking, ball)` says where everybody stands:
   of the side kicking off who is nearest to the centre spot in that formation —
   the striker of every preset — with ties going to the lower player index. He
   stands `carryDistance` behind the spot, in his own half, so the ball at his
-  feet lies on it.
+  feet lies on it; on a pitch shorter than that, on his goal line.
 
 **How they get there.** They are placed, in the one step that takes the
 kickoff: nobody walks back, and no tick is spent waiting for anybody. Both
 sides then start as at the beginning of a match — at rest, facing the goal they
 attack, without movement targets, pending actions, [memories](perception.md),
-desired regions, presses or chasers — so nothing of the play before the goal
+desired regions, presses, chasers or [pitch control](pitch-control.md), which
+its next refresh computes anew — so nothing of the play before the goal
 carries over the halfway line. **The match clock** runs on as through every
 other restart: a goal costs the step the ball lies in the goal and nothing
 more. There is no stoppage and no added time yet; when the match gets halves

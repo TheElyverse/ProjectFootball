@@ -58,7 +58,8 @@ struct KickoffLineUp {
 // the halfway line if he is beyond it. An opponent inside the centre circle
 // steps straight back onto it. The taker is the kicking side's player nearest
 // to the centre spot in that formation, ties to the lower player index; he
-// stands carryDistance behind the spot, so the ball at his feet lies on it.
+// stands carryDistance behind the spot, so the ball at his feet lies on it,
+// or on his goal line if the pitch is shorter than that.
 [[nodiscard]] std::optional<KickoffLineUp> lineUpForKickoff(const MatchState& state,
                                                             TeamSide kicking,
                                                             const BallPhysics& ball);

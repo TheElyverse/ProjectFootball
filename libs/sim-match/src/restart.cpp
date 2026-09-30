@@ -171,11 +171,14 @@ std::optional<KickoffLineUp> lineUpForKickoff(const MatchState& state, const Tea
     if (side == kicking || !circle.contains(position)) {
       continue;
     }
-    const double across = position.y - circle.center.y;
-    const double back = std::sqrt((circle.radiusMeters * circle.radiusMeters) - (across * across));
+    // As a share of the radius, so that no square overflows on a huge pitch.
+    const double across =
+        std::clamp((position.y - circle.center.y) / circle.radiusMeters, -1.0, 1.0);
+    const double back = circle.radiusMeters * std::sqrt((1.0 - across) * (1.0 + across));
     position.x = xAtDepth(side, depthOf(side, circle.center, pitch) - back, pitch);
   }
-  positions[*taker] = circle.center - (ball.carryDistance * kickoffFacing(kicking));
+  // On a pitch too short for that, he stands on his goal line instead.
+  positions[*taker] = pitch.clamp(circle.center - (ball.carryDistance * kickoffFacing(kicking)));
   return KickoffLineUp{.positions = std::move(positions), .takerIndex = *taker};
 }
 
@@ -226,6 +229,8 @@ MatchSystem makeRestartSystem(const RestartConfig& config, const BallPhysics& ba
               next.perception(index) = {};
               next.tactical(index) = {};
             }
+            // Pitch control from where they stood before would outlive them.
+            next.setPitchControl(std::nullopt);
             for (const TeamSide side : {TeamSide::kHome, TeamSide::kAway}) {
               next.setPress(side, std::nullopt);
               next.setChaser(side, std::nullopt);
