@@ -38,6 +38,7 @@ using ElyverseFootball::SimMatch::PossessionChanged;
 using ElyverseFootball::SimMatch::PressingEnded;
 using ElyverseFootball::SimMatch::PressingStarted;
 using ElyverseFootball::SimMatch::PressOutcome;
+using ElyverseFootball::SimMatch::ShotAttempted;
 using ElyverseFootball::SimMatch::TeamSide;
 
 namespace {
@@ -149,6 +150,23 @@ TEST_CASE("Passes count attempts, completions, length and progression", "[analyt
   REQUIRE(stats.away.progressivePasses == 1);
   REQUIRE(stats.away.completedPasses == 0);
   REQUIRE(stats.away.passCompletion == 0.0);
+}
+
+TEST_CASE("Shots count per side and are no passes", "[analytics]") {
+  const auto shot = [](const std::int64_t tick, const std::uint32_t shooter) -> MatchEvent {
+    return ShotAttempted{.tick = SimTick(tick),
+                         .shooter = PlayerId(shooter),
+                         .from = {.x = 50.0, .y = 20.0},
+                         .target = {.x = 60.0, .y = 20.0},
+                         .height = 0.5,
+                         .speed = 25.0,
+                         .distance = 10.0,
+                         .opening = 0.4};
+  };
+  const MatchStats stats = analyze({{shot(1, 1)}, {shot(5, 2)}, {shot(9, 3)}});
+  REQUIRE(stats.home.shots == 2);
+  REQUIRE(stats.away.shots == 1);
+  REQUIRE(stats.home.passes == 0);
 }
 
 TEST_CASE("A pass just short of the progressive distance is not progressive", "[analytics]") {

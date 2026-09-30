@@ -146,7 +146,7 @@ The tactic has one instruction per phase.
 | `blockWidth`        | `(0, 1]`  | width the outfield block spans: horizontal compactness      |
 | `ballShift`         | `[0, 1]`  | how far the block follows the ball, 0 holds, 1 centres on it |
 | `pressingIntensity` | `[0, 1]`  | how eagerly and with how many players the team presses      |
-| `passingRisk`       | `[0, 1]`  | how much risk the player on the ball accepts going forward  |
+| `passingRisk`       | `[0, 1]`  | how much risk the player on the ball accepts going forward, with a pass or a [shot](shot-decisions.md) |
 | `runFrequency`      | `[0, 1]`  | how often players run into space instead of holding position |
 
 `lineHeight + blockLength` must not exceed 1: such a block would reach past the

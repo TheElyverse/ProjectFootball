@@ -17,6 +17,7 @@ add_library(sim-match STATIC
         src/restart.cpp
         src/pursuit.cpp
         src/passCandidates.cpp
+        src/shotCandidates.cpp
                 src/choicePolicy.cpp
         src/passDecision.cpp
         src/matchEvents.cpp

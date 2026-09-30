@@ -68,9 +68,11 @@ class TriggerCheck {
                                     config_->heavyTouchSpeed;
   }
 
+  // A shot since the last pass means the ball received was not that pass.
   [[nodiscard]] bool backPass() const {
     const auto& pass = state_->lastPass();
-    if (!recentReception() || !pass) {
+    const auto& shot = state_->lastShot();
+    if (!recentReception() || !pass || (shot && shot->tick > pass->tick)) {
       return false;
     }
     const auto passer = findPlayerIndex(*state_, pass->passer);

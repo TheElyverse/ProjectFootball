@@ -23,8 +23,9 @@ using ElyverseFootball::SimCore::PlayerId;
 using ElyverseFootball::SimCore::RandomNumberGenerator;
 using ElyverseFootball::SimCore::SimTick;
 using ElyverseFootball::SimCore::Vec2;
-using ElyverseFootball::SimMatch::choosePass;
+using ElyverseFootball::SimMatch::chooseOnBall;
 using ElyverseFootball::SimMatch::DecisionConfig;
+using ElyverseFootball::SimMatch::DecisionOutcome;
 using ElyverseFootball::SimMatch::GiveBallCommand;
 using ElyverseFootball::SimMatch::hashMatchState;
 using ElyverseFootball::SimMatch::makePassDecisionSystem;
@@ -34,12 +35,17 @@ using ElyverseFootball::SimMatch::MatchSetup;
 using ElyverseFootball::SimMatch::MatchSimulation;
 using ElyverseFootball::SimMatch::MatchState;
 using ElyverseFootball::SimMatch::MatchStateSpec;
+using ElyverseFootball::SimMatch::OnBallChoice;
 using ElyverseFootball::SimMatch::PassCandidate;
 using ElyverseFootball::SimMatch::PassCandidateRules;
 using ElyverseFootball::SimMatch::PassRejection;
 using ElyverseFootball::SimMatch::PassScoringConfig;
 using ElyverseFootball::SimMatch::Pitch;
 using ElyverseFootball::SimMatch::PlayerMatchState;
+using ElyverseFootball::SimMatch::ShotCandidate;
+using ElyverseFootball::SimMatch::ShotRejection;
+using ElyverseFootball::SimMatch::ShotScoringConfig;
+using ElyverseFootball::SimMatch::shotScoringForRisk;
 using ElyverseFootball::SimMatch::startMatch;
 using ElyverseFootball::SimMatch::TeamSide;
 
@@ -59,6 +65,14 @@ template <typename Function>
                                    const PassRejection rejection = PassRejection::kValid) {
   PassCandidate candidate;
   candidate.receiver = receiver;
+  candidate.utility = utility;
+  candidate.rejection = rejection;
+  return candidate;
+}
+
+[[nodiscard]] ShotCandidate shotOption(const double utility,
+                                       const ShotRejection rejection = ShotRejection::kValid) {
+  ShotCandidate candidate;
   candidate.utility = utility;
   candidate.rejection = rejection;
   return candidate;
@@ -84,7 +98,9 @@ TEST_CASE("Without a valid candidate nothing is chosen and nothing drawn", "[pas
   const std::vector candidates{option(PlayerId(2), 1.0, PassRejection::kTooFar),
                                option(PlayerId(3), 0.5, PassRejection::kUnlikely)};
 
-  REQUIRE_FALSE(choosePass(candidates, 0.15, random).has_value());
+  const std::vector shots{shotOption(2.0, ShotRejection::kTooNarrow)};
+
+  REQUIRE_FALSE(chooseOnBall(candidates, shots, 0.15, random).has_value());
   REQUIRE(random.nextU64() == RandomNumberGenerator(3).nextU64());
 }
 
@@ -97,9 +113,11 @@ TEST_CASE("The softmax prefers better options without always taking them", "[pas
   constexpr int kDraws = 4000;
   for (std::uint64_t seed = 0; seed < kDraws; ++seed) {
     RandomNumberGenerator random(seed);
-    const auto chosen = choosePass(candidates, 0.15, random);
+    const auto chosen = chooseOnBall(candidates, {}, 0.15, random);
     REQUIRE(chosen.has_value());
-    ++counts.at(chosen.value_or(2));
+    REQUIRE(chosen.value_or(OnBallChoice{}).outcome == DecisionOutcome::kPassed);
+    ++counts.at(
+        chosen.value_or(OnBallChoice{.outcome = DecisionOutcome::kPassed, .index = 2}).index);
   }
 
   const double first = static_cast<double>(counts.at(0)) / kDraws;
@@ -113,8 +131,60 @@ TEST_CASE("A low temperature picks the best option", "[passDecision]") {
   const std::vector candidates{option(PlayerId(2), 1.0), option(PlayerId(3), 0.9)};
   for (std::uint64_t seed = 0; seed < 500; ++seed) {
     RandomNumberGenerator random(seed);
-    REQUIRE(choosePass(candidates, 0.005, random) == std::optional<std::size_t>(0));
+    REQUIRE(chooseOnBall(candidates, {}, 0.005, random) ==
+            OnBallChoice{.outcome = DecisionOutcome::kPassed, .index = 0});
   }
+}
+
+TEST_CASE("The best shot competes with the passes in one softmax", "[passDecision]") {
+  // Two passes and a shot of equal utility: each is chosen a third of the
+  // time. The second shot, a worse zone of the goal, never competes.
+  const std::vector candidates{option(PlayerId(2), 1.0), option(PlayerId(3), 1.0)};
+  const std::vector shots{shotOption(1.0), shotOption(0.99)};
+  int shotsTaken = 0;
+  constexpr int kDraws = 3000;
+  for (std::uint64_t seed = 0; seed < kDraws; ++seed) {
+    RandomNumberGenerator random(seed);
+    const auto chosen = chooseOnBall(candidates, shots, 0.15, random);
+    REQUIRE(chosen.has_value());
+    const OnBallChoice choice = chosen.value_or(OnBallChoice{});
+    if (choice.outcome == DecisionOutcome::kShot) {
+      REQUIRE(choice.index == 0);
+      ++shotsTaken;
+    }
+    // One draw per choice, shot or pass.
+    RandomNumberGenerator reference(seed);
+    (void)reference.nextU64();
+    REQUIRE(random.nextU64() == reference.nextU64());
+  }
+
+  const double share = static_cast<double>(shotsTaken) / kDraws;
+  CAPTURE(share);
+  REQUIRE(share > 0.30);
+  REQUIRE(share < 0.37);
+}
+
+TEST_CASE("A shot is chosen when nothing else is on", "[passDecision]") {
+  RandomNumberGenerator random(5);
+  const std::vector candidates{option(PlayerId(2), 1.0, PassRejection::kUnlikely)};
+  const std::vector shots{shotOption(0.2)};
+
+  REQUIRE(chooseOnBall(candidates, shots, 0.15, random) ==
+          OnBallChoice{.outcome = DecisionOutcome::kShot, .index = 0});
+}
+
+TEST_CASE("A bolder tactic values goals more and fears losing the ball less", "[passDecision]") {
+  const ShotScoringConfig scoring;
+  REQUIRE(shotScoringForRisk(scoring, 0.5) == scoring);
+
+  const ShotScoringConfig bold = shotScoringForRisk(scoring, 0.9);
+  REQUIRE(bold.goalWeight > scoring.goalWeight);
+  REQUIRE(bold.lossWeight < scoring.lossWeight);
+  REQUIRE(bold.minGoalChance < scoring.minGoalChance);
+  const ShotScoringConfig careful = shotScoringForRisk(scoring, 0.1);
+  REQUIRE(careful.goalWeight < scoring.goalWeight);
+  REQUIRE(careful.lossWeight > scoring.lossWeight);
+  REQUIRE(careful.minGoalChance > scoring.minGoalChance);
 }
 
 TEST_CASE("The decision system rejects invalid scoring", "[passDecision]") {

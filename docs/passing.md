@@ -10,8 +10,8 @@ system executes passes.
 
 `PassIntent` is the *what*: the passer, the target position, the speed the ball
 should leave the foot with, and optionally the intended receiver. It sits in
-`MatchState::pendingPass()` until the ball system plays it; every state created
-from a spec starts without one.
+the passer's `MatchState::pendingAction()` until the ball system plays it;
+every state created from a spec starts without one.
 
 Two things create an intent:
 
@@ -84,7 +84,8 @@ errors and factor, a speed error that could reach 1 under full pressure
 
 All passes are ground passes: the ball leaves the foot on the grass, without
 vertical velocity or spin, however much of a third dimension the
-[ball model](ball-movement.md) now has. There is no chip, lofted pass or shot, and the
+[ball model](ball-movement.md) now has. There is no chip or lofted pass — a [shot](shot-decisions.md) is, for now,
+struck like a ground pass — and the
 error does not yet depend on the passer's technique, pressure or body shape — the
 capabilities that will shape it arrive with the player model. Who gets the ball
 afterwards is decided by [reception](reception.md).

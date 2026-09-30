@@ -19,7 +19,7 @@ validation leaves no file behind.
 ```json
 {
     "schemaVersion": 5,
-  "coreVersion": "0.20.0",
+  "coreVersion": "0.21.0",
   "createdAt": "2026-09-24T10:00:00Z",
   "seed": "18446744073709551615",
   "gameTime": 300,
@@ -69,6 +69,31 @@ validation leaves no file behind.
         "progressionWeight": 0.8,
         "pressureWeight": 0.3,
                 "riskWeight": 0.3
+      },
+      "shooting": {
+        "minConfidence": 0.3,
+        "maxShotDistance": 25.0,
+        "minOpening": 0.1,
+        "zoneColumns": 7,
+        "zoneRows": 5,
+        "shotSpeed": 25.0,
+        "keeperDiveReach": 2.0,
+        "keeperJumpReach": 2.6,
+        "keeperDiveSeconds": 0.5,
+        "blockReach": 1.8,
+        "blockMarginSeconds": 0.15,
+        "saveMarginSeconds": 0.4,
+        "spreadAtZero": 0.2,
+        "spreadPerMeter": 0.04,
+        "pressureRadius": 3.0,
+        "pressureSpread": 1.0,
+        "frameMargin": 0.1,
+        "reboundShare": 0.3,
+        "maxBlockRisk": 0.7,
+        "minGoalChance": 0.05,
+        "goalWeight": 2.5,
+        "secondBallWeight": 0.5,
+        "lossWeight": 1.0
       }
     },
         "phases": { "intervalTicks": 10, "transitionSeconds": 4.0, "hysteresisMeters": 3.0 },
@@ -152,7 +177,7 @@ validation leaves no file behind.
         "side": "home",
         "position": { "x": 3.0, "y": 20.0 },
         "velocity": { "x": 0.0, "y": 0.0 },
-        "attributes": { "maxSpeed": 7.5, "acceleration": 4.0 },
+        "attributes": { "maxSpeed": 7.5, "acceleration": 4.0, "shotAccuracy": 0.5 },
         "target": null,
         "facing": { "x": 1.0, "y": 0.0 }
       }
@@ -208,7 +233,7 @@ Positions are meters and velocities meters per second, as in the
 its third dimension, in meters and meters per second, and `spin` is top- or
 backspin in radians per second ([ball movement](ball-movement.md)). A player's `target` is `null` when he has none,
 the ball's `owner` is `null` while it is free, and its `lastTouch` is `null` or
-`{ "playerId": 7, "tick": 120 }`. The pending pass is not recorded: every
+`{ "playerId": 7, "tick": 120 }`. No pending action is recorded: every
 initial state has none. `tactics` holds, for each side, the tactic as a complete
 [tactic file](tactic-format.md) document under `tactic` next to its
 `contentHash` (`tacticHash.hpp`, 16 hexadecimal digits), or `null` for a

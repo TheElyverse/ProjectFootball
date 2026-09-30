@@ -163,12 +163,14 @@ void apply(const GiveBallCommand& command, const MatchState& state, const SimCor
   writer.setBallLastTouch(BallTouch{.playerId = command.playerId, .tick = tick});
 }
 
-void apply(const PassCommand& command, const MatchState& /*state*/, const SimCore::SimTick /*tick*/,
+void apply(const PassCommand& command, const MatchState& state, const SimCore::SimTick /*tick*/,
            MatchStateWriter& writer, std::vector<MatchEvent>& /*events*/) {
-  writer.setPendingPass(PassIntent{.passer = command.playerId,
-                                   .target = command.target,
-                                   .speed = command.speed,
-                                   .receiver = command.receiver});
+  // validate() has checked the player.
+  const std::size_t passer = findPlayerIndex(state, command.playerId).value_or(0);
+  writer.setPendingAction(passer, PassIntent{.passer = command.playerId,
+                                             .target = command.target,
+                                             .speed = command.speed,
+                                             .receiver = command.receiver});
 }
 
 void apply(const ChangeTacticCommand& command, const MatchState& /*state*/,

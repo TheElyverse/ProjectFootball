@@ -58,7 +58,8 @@ using SimMatch::TeamSide;
   json["position"] = vec2Json(player.position);
   json["velocity"] = vec2Json(player.velocity);
   json["attributes"] = {{"maxSpeed", player.attributes.maxSpeed},
-                        {"acceleration", player.attributes.acceleration}};
+                        {"acceleration", player.attributes.acceleration},
+                        {"shotAccuracy", player.attributes.shotAccuracy}};
   json["target"] = player.target ? vec2Json(*player.target) : Json(nullptr);
   json["facing"] = vec2Json(player.facing);
   return json;
@@ -114,6 +115,7 @@ using SimMatch::TeamSide;
 
 [[nodiscard]] Json decisionsJson(const SimMatch::DecisionConfig& decisions) {
   const SimMatch::PassScoringConfig& scoring = decisions.scoring;
+  const SimMatch::ShotScoringConfig& shooting = decisions.shooting;
   return {{"intervalTicks", decisions.intervalTicks},
           {"minHoldSeconds", decisions.minHoldSeconds},
           {"temperature", decisions.temperature},
@@ -127,7 +129,31 @@ using SimMatch::TeamSide;
             {"completionWeight", scoring.completionWeight},
             {"progressionWeight", scoring.progressionWeight},
             {"pressureWeight", scoring.pressureWeight},
-            {"riskWeight", scoring.riskWeight}}}};
+            {"riskWeight", scoring.riskWeight}}},
+          {"shooting",
+           {{"minConfidence", shooting.minConfidence},
+            {"maxShotDistance", shooting.maxShotDistance},
+            {"minOpening", shooting.minOpening},
+            {"zoneColumns", shooting.zoneColumns},
+            {"zoneRows", shooting.zoneRows},
+            {"shotSpeed", shooting.shotSpeed},
+            {"keeperDiveReach", shooting.keeperDiveReach},
+            {"keeperJumpReach", shooting.keeperJumpReach},
+            {"keeperDiveSeconds", shooting.keeperDiveSeconds},
+            {"blockReach", shooting.blockReach},
+            {"blockMarginSeconds", shooting.blockMarginSeconds},
+            {"saveMarginSeconds", shooting.saveMarginSeconds},
+            {"spreadAtZero", shooting.spreadAtZero},
+            {"spreadPerMeter", shooting.spreadPerMeter},
+            {"pressureRadius", shooting.pressureRadius},
+            {"pressureSpread", shooting.pressureSpread},
+            {"frameMargin", shooting.frameMargin},
+            {"reboundShare", shooting.reboundShare},
+            {"maxBlockRisk", shooting.maxBlockRisk},
+            {"minGoalChance", shooting.minGoalChance},
+            {"goalWeight", shooting.goalWeight},
+            {"secondBallWeight", shooting.secondBallWeight},
+            {"lossWeight", shooting.lossWeight}}}};
 }
 
 [[nodiscard]] Json positioningJson(const SimMatch::PositioningConfig& positioning) {
@@ -441,7 +467,8 @@ constexpr std::int64_t kMaxTick = std::int64_t{1} << 53;
           .position = readVec2(field.member("position")),
           .velocity = readVec2(field.member("velocity")),
           .attributes = {.maxSpeed = attributes.member("maxSpeed").number(),
-                         .acceleration = attributes.member("acceleration").number()},
+                         .acceleration = attributes.member("acceleration").number(),
+                         .shotAccuracy = attributes.member("shotAccuracy").number()},
           .target = target.isNull() ? std::nullopt : std::optional(readVec2(target)),
           .facing = readVec2(field.member("facing"))};
 }
@@ -557,6 +584,7 @@ constexpr std::int64_t kMaxTick = std::int64_t{1} << 53;
 
 [[nodiscard]] SimMatch::DecisionConfig readDecisions(const Field& field) {
   const Field scoring = field.member("scoring");
+  const Field shooting = field.member("shooting");
   return {
       .intervalTicks = static_cast<int>(field.member("intervalTicks").integerIn(1, 100000)),
       .minHoldSeconds = field.member("minHoldSeconds").number(),
@@ -570,7 +598,32 @@ constexpr std::int64_t kMaxTick = std::int64_t{1} << 53;
                   .completionWeight = scoring.member("completionWeight").number(),
                   .progressionWeight = scoring.member("progressionWeight").number(),
                   .pressureWeight = scoring.member("pressureWeight").number(),
-                  .riskWeight = scoring.member("riskWeight").number()}};
+                  .riskWeight = scoring.member("riskWeight").number()},
+      .shooting = {.minConfidence = shooting.member("minConfidence").number(),
+                   .maxShotDistance = shooting.member("maxShotDistance").number(),
+                   .minOpening = shooting.member("minOpening").number(),
+                   .zoneColumns = static_cast<int>(
+                       shooting.member("zoneColumns").integerIn(0, SimMatch::kMaxShotZones)),
+                   .zoneRows = static_cast<int>(
+                       shooting.member("zoneRows").integerIn(0, SimMatch::kMaxShotZones)),
+                   .shotSpeed = shooting.member("shotSpeed").number(),
+                   .keeperDiveReach = shooting.member("keeperDiveReach").number(),
+                   .keeperJumpReach = shooting.member("keeperJumpReach").number(),
+                   .keeperDiveSeconds = shooting.member("keeperDiveSeconds").number(),
+                   .blockReach = shooting.member("blockReach").number(),
+                   .blockMarginSeconds = shooting.member("blockMarginSeconds").number(),
+                   .saveMarginSeconds = shooting.member("saveMarginSeconds").number(),
+                   .spreadAtZero = shooting.member("spreadAtZero").number(),
+                   .spreadPerMeter = shooting.member("spreadPerMeter").number(),
+                   .pressureRadius = shooting.member("pressureRadius").number(),
+                   .pressureSpread = shooting.member("pressureSpread").number(),
+                   .frameMargin = shooting.member("frameMargin").number(),
+                   .reboundShare = shooting.member("reboundShare").number(),
+                   .maxBlockRisk = shooting.member("maxBlockRisk").number(),
+                   .minGoalChance = shooting.member("minGoalChance").number(),
+                   .goalWeight = shooting.member("goalWeight").number(),
+                   .secondBallWeight = shooting.member("secondBallWeight").number(),
+                   .lossWeight = shooting.member("lossWeight").number()}};
 }
 
 [[nodiscard]] SimMatch::PhaseConfig readPhases(const Field& field) {

@@ -108,8 +108,8 @@ abridged example with illustrative values:
 ```json
 {
     "format": "elyverse-debug-frames",
-  "version": 3,
-  "coreVersion": "0.20.0",
+  "version": 4,
+  "coreVersion": "0.21.0",
   "scenario": "m0-acceptance",
   "seed": "42",
   "ticksPerSecond": 30,
@@ -197,14 +197,16 @@ abridged example with illustrative values:
   `passAttempted`, `pressingStarted`, `pitchControlSampled`, ... -- with their
   fields; sides and phases are spelled `home`,
   `buildUp`, ... as in [tactics](tactics.md). The viewer shows an event type it
-  does not know by its name. A decision's `outcome` is `passed` or
-  `noValidOption`, `chosen` indexes `candidates`, and `rejection` is `valid` or
+  does not know by its name. A decision's `outcome` is `passed`, `shot` or
+  `noValidOption`, `chosen` indexes `candidates` (null for a shot), and `rejection` is `valid` or
   the reason a candidate cannot be played.
 
 A change that breaks existing readers raises `version`; the viewer rejects
 versions it does not know. Version 2 added `zones`, `pitchControl` and the
 teams' `tactic`, `instruction` and `press`. Version 3 added the ball's `height`,
-`verticalVelocity` and `spin` ([ball movement](ball-movement.md)).
+`verticalVelocity` and `spin` ([ball movement](ball-movement.md)). Version 4 added
+the decision outcome `shot` and the `shotAttempted` event
+([shot decisions](shot-decisions.md)).
 
 ## Development
 

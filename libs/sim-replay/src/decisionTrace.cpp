@@ -10,6 +10,7 @@
 #include "observation.hpp"
 #include "passCandidates.hpp"
 #include "perception.hpp"
+#include "shotCandidates.hpp"
 #include "tacticalState.hpp"
 
 namespace ElyverseFootball::SimReplay {
@@ -57,22 +58,59 @@ using SimMatch::MatchEvent;
   return text;
 }
 
+// Why he did not shoot: that the best shot lost the choice, or why even the
+// best zone of the goal was not on. Empty if he had no shot to consider.
+[[nodiscard]] std::string shotNote(const DecisionDiagnostic& decision) {
+  if (decision.shots.empty()) {
+    return {};
+  }
+  const SimMatch::ShotCandidate& best = decision.shots.front();
+  if (best.isValid()) {
+    return std::format("; best shot (utility {:.2f}) not chosen", best.utility);
+  }
+  const bool scored = best.rejection != SimMatch::ShotRejection::kTooFar &&
+                      best.rejection != SimMatch::ShotRejection::kGoalUnseen &&
+                      best.rejection != SimMatch::ShotRejection::kTooNarrow;
+  return scored ? std::format("; no shot: {} (goal chance {:.2f})",
+                              SimMatch::shotRejectionName(best.rejection), best.goalChance)
+                : std::format("; no shot: {}", SimMatch::shotRejectionName(best.rejection));
+}
+
+[[nodiscard]] std::string shotLine(const DecisionDiagnostic& decision, const std::size_t chosen,
+                                   const std::string& line, const std::string& context) {
+  const SimMatch::ShotCandidate& shot = decision.shots.at(chosen);
+  const SimMatch::ShotContributions parts = SimMatch::shotContributions(shot, decision.shotScoring);
+  return line + std::format(
+                    "shoots at ({:.1f}, {:.1f}) {:.2f} m high (utility {:.2f}: goal {} "
+                    "secondBall {} possession {}; goal chance {:.2f}, save {:.2f}, block "
+                    "{:.2f}; {}) because {}",
+                    shot.target.x, shot.target.y, shot.height, shot.utility,
+                    signedNumber(parts.goal), signedNumber(parts.secondBall),
+                    signedNumber(parts.possession), shot.goalChance, shot.saveRisk, shot.blockRisk,
+                    context, SimMatch::dominantShotContribution(parts));
+}
+
 [[nodiscard]] std::string passLine(const PassDecisionTrace& trace) {
   const DecisionDiagnostic& decision = trace.decision;
   std::string line = std::format("t={} #{} ", decision.tick.value(), decision.player.value());
   const std::string context = std::format("{} options, {} observed", decision.candidates.size(),
                                           decision.observations.size());
+  if (decision.outcome == SimMatch::DecisionOutcome::kShot && decision.chosen &&
+      *decision.chosen < decision.shots.size()) {
+    return shotLine(decision, *decision.chosen, line, context);
+  }
   if (!decision.chosen || *decision.chosen >= decision.candidates.size()) {
-    return line + std::format("keeps the ball: no valid option ({})", context);
+    return line +
+           std::format("keeps the ball: no valid option ({}{})", context, shotNote(decision));
   }
   const SimMatch::PassCandidate& pass = decision.candidates.at(*decision.chosen);
   const SimMatch::PassContributions parts = SimMatch::passContributions(pass, decision.scoring);
   line += std::format(
       "passes to #{} (utility {:.2f}: completion {} progression {} pressure {} risk {}; "
-      "estimated risk {:.2f}; {}) because {}",
+      "estimated risk {:.2f}; {}{}) because {}",
       pass.receiver.value(), pass.utility, signedNumber(parts.completion),
       signedNumber(parts.progression), signedNumber(parts.pressure), signedNumber(parts.risk),
-      pass.interceptionRisk, context, SimMatch::dominantContribution(parts));
+      pass.interceptionRisk, context, shotNote(decision), SimMatch::dominantContribution(parts));
   return line + outcomeText(trace.outcome);
 }
 

@@ -257,6 +257,17 @@ void addEventFields(Json& json, const SimMatch::RestartTaken& event) {
   json["position"] = vec2Json(event.position);
 }
 
+void addEventFields(Json& json, const SimMatch::ShotAttempted& event) {
+  json["type"] = "shotAttempted";
+  json["shooter"] = event.shooter.value();
+  json["from"] = vec2Json(event.from);
+  json["target"] = vec2Json(event.target);
+  json["height"] = rounded(event.height);
+  json["speed"] = rounded(event.speed);
+  json["distance"] = rounded(event.distance);
+  json["opening"] = rounded(event.opening);
+}
+
 [[nodiscard]] Json eventJson(const SimMatch::MatchEvent& event) {
   Json json;
   // The step's tick, one before the frame's: the event happened during the
@@ -288,6 +299,8 @@ void addEventFields(Json& json, const SimMatch::RestartTaken& event) {
       return "passed";
     case SimMatch::DecisionOutcome::kNoValidOption:
       return "noValidOption";
+    case SimMatch::DecisionOutcome::kShot:
+      return "shot";
   }
   return "unknown";
 }
@@ -297,7 +310,9 @@ void addEventFields(Json& json, const SimMatch::RestartTaken& event) {
   json["tick"] = decision.tick.value();
   json["player"] = decision.player.value();
   json["outcome"] = outcomeName(decision.outcome);
-  json["chosen"] = decision.chosen ? Json(*decision.chosen) : Json(nullptr);
+  // An index into the pass candidates; the frames do not list shots yet.
+  const bool passed = decision.outcome == SimMatch::DecisionOutcome::kPassed;
+  json["chosen"] = decision.chosen && passed ? Json(*decision.chosen) : Json(nullptr);
   json["candidates"] = Json::array();
   for (const SimMatch::PassCandidate& candidate : decision.candidates) {
     json["candidates"].push_back(candidateJson(candidate));

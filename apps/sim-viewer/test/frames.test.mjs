@@ -4,6 +4,7 @@ import { test } from "node:test";
 import {
   depthToX,
   describeEvent,
+  describeOutcome,
   frameSeconds,
   isLoggedEvent,
   latestActionDecision,
@@ -50,6 +51,12 @@ test("latestDecision finds the decision at or before a frame", () => {
   assert.equal(latestDecision(recording, 1, 1)?.frameIndex, 1);
   assert.equal(latestDecision(recording, 2, 1)?.frameIndex, 1);
   assert.equal(latestDecision(recording, 2, 2), undefined);
+});
+
+test("describeOutcome names every decision outcome", () => {
+  assert.equal(describeOutcome("passed"), "passed");
+  assert.equal(describeOutcome("shot"), "shot");
+  assert.equal(describeOutcome("noValidOption"), "no valid option");
 });
 
 test("latestActionDecision finds a decision without the ball", () => {

@@ -123,7 +123,11 @@ TEST_CASE("M0: an extended run never produces an invalid state", "[acceptance][m
     for (const PlayerMatchState& player : state.players()) {
       REQUIRE(player.velocity.lengthSquared() <=
               player.attributes.maxSpeed * player.attributes.maxSpeed * (1.0 + 1e-12));
-      REQUIRE(pitch.contains(player.target.value_or(player.position)));
+      // A player may stop behind a line he chased the ball to: positions off
+      // the pitch are football (docs/match-loop.md), targets off it are not.
+      if (player.target) {
+        REQUIRE(pitch.contains(*player.target));
+      }
     }
   }
   REQUIRE_FALSE(simulation.hasFailed());
@@ -169,6 +173,10 @@ TEST_CASE("M0: the final state hash is pinned", "[acceptance][m0]") {
   // of which must bump the core version and update this value deliberately.
   // Re-pinned for the ball's third dimension: the scenario plays out tick for
   // tick as before -- nothing lifts the ball off the grass -- and only the
-  // hash grew by the ball's height, vertical velocity and spin.
-  REQUIRE(record().checkpoints.back().stateHash == 0x8817ab00b913ce94ULL);
+  // hash grew by the ball's height, vertical velocity and spin. Re-pinned
+  // again when the pending pass became a pending action per player, when
+  // players gained a shot accuracy, and when players began to shoot: the M0
+  // players now shoot at a goal in front of them -- and when shots were no
+  // longer held to the hardest pass's speed.
+  REQUIRE(record().checkpoints.back().stateHash == 0x53dcc6e45992d1f5ULL);
 }

@@ -96,6 +96,18 @@ void addFields(StableHasher& hasher, const RestartTaken& event) noexcept {
   hasher.addDouble(event.position.y);
 }
 
+void addFields(StableHasher& hasher, const ShotAttempted& event) noexcept {
+  hasher.addU64(event.shooter.value());
+  hasher.addDouble(event.from.x);
+  hasher.addDouble(event.from.y);
+  hasher.addDouble(event.target.x);
+  hasher.addDouble(event.target.y);
+  hasher.addDouble(event.height);
+  hasher.addDouble(event.speed);
+  hasher.addDouble(event.distance);
+  hasher.addDouble(event.opening);
+}
+
 }  // namespace
 
 std::string_view eventName(const MatchEvent& event) {
@@ -133,6 +145,9 @@ std::string_view eventName(const MatchEvent& event) {
     }
     std::string_view operator()(const RestartTaken& /*event*/) const noexcept {
       return "restart taken";
+    }
+    std::string_view operator()(const ShotAttempted& /*event*/) const noexcept {
+      return "shot attempted";
     }
   };
   return std::visit(Names{}, event);

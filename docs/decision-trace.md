@@ -20,19 +20,26 @@ nothing: the playback verifies every checkpoint as usual.
 decision of the match is traced. A trace line reads
 
 ```text
-t=18 #1 passes to #2 (utility 0.42: completion +0.36 progression +0.26 pressure -0.00 risk -0.19; estimated risk 0.64; 1 options, 9 observed) because completion -> intercepted by #8 at t=70: decision
+t=18 #1 passes to #2 (utility 0.42: completion +0.36 progression +0.26 pressure -0.00 risk -0.19; estimated risk 0.64; 1 options, 9 observed; no shot: goal unseen) because completion -> intercepted by #8 at t=70: decision
+t=40 #7 shoots at (60.0, 21.2) 0.43 m high (utility 1.62: goal +1.60 secondBall +0.04 possession -0.02; goal chance 0.64, save 0.21, block 0.03; 3 options, 11 observed) because goal
 t=66 #4 pressCarrier #14 (utility 0.97: responsibility +0.60 region -0.47 space +0.19 lane +0.00 urgency +0.68 effort -0.03; 5 options) because urgency
 t=81 #5 blockLane #12 (assigned by the team press)
 ```
 
 - **Observations**: how many entities the player remembered when he decided.
-- **Candidates**: how many options he had, and the chosen one's utility split
+- **Candidates**: how many passes he had, and the chosen option's utility split
   into its weighted parts — `passContributions()` for a pass
-  ([pass candidates](pass-candidates.md)), `ActionScores` for an action without
+  ([pass candidates](pass-candidates.md)), `shotContributions()` for a shot
+  with its aim and its goal, save and block chances
+  ([shot decisions](shot-decisions.md)), `ActionScores` for an action without
   the ball ([off-ball movement](off-ball-movement.md)).
+- **No shot**: when he did not shoot, why: the best shot lost the choice, or
+  even the best zone of the goal was not on — `too far`, `goal unseen`,
+  `too narrow`, `blocked`, `unlikely` or `not worth it`, with its goal chance
+  where it was scored.
 - **Reason**: the part with the largest absolute weight (`dominantContribution()`,
-  `dominantScore()`).
-- **Outcome** of a pass: `received`, `intercepted`, `recovered by the passer`,
+  `dominantShotContribution()`, `dominantScore()`).
+- **Outcome** of a pass (a shot's outcome comes with shot execution): `received`, `intercepted`, `recovered by the passer`,
   `not played` (he lost the ball first) or `pending` at the end of the trace.
 
 ## Why a pass failed

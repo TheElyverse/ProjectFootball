@@ -37,7 +37,7 @@ export function fixture() {
   });
   return {
     format: "elyverse-debug-frames",
-        version: 3,
+        version: 4,
     coreVersion: "0.7.0",
     scenario: "test",
     seed: "42",

@@ -2,6 +2,7 @@
 
 #include <cstddef>
 #include <optional>
+#include <variant>
 
 #include "stableHash.hpp"
 #include "tacticHash.hpp"
@@ -33,6 +34,7 @@ void addPlayer(StableHasher& hasher, const PlayerMatchState& player) noexcept {
   addVec2(hasher, player.velocity);
   hasher.addDouble(player.attributes.maxSpeed);
   hasher.addDouble(player.attributes.acceleration);
+  hasher.addDouble(player.attributes.shotAccuracy);
   addOptionalVec2(hasher, player.target);
   addVec2(hasher, player.facing);
 }
@@ -111,6 +113,23 @@ void addPress(StableHasher& hasher, const std::optional<TeamPress>& press) noexc
   }
 }
 
+void addPendingAction(StableHasher& hasher, const PendingAction& action) noexcept {
+  hasher.addU64(action.index());
+  if (const auto* pass = std::get_if<PassIntent>(&action)) {
+    hasher.addU64(pass->passer.value());
+    addVec2(hasher, pass->target);
+    hasher.addDouble(pass->speed);
+    hasher.addBool(pass->receiver.has_value());
+    hasher.addU64(pass->receiver.value_or(SimCore::PlayerId::invalid()).value());
+  }
+  if (const auto* shot = std::get_if<ShotIntent>(&action)) {
+    hasher.addU64(shot->shooter.value());
+    addVec2(hasher, shot->target);
+    hasher.addDouble(shot->height);
+    hasher.addDouble(shot->speed);
+  }
+}
+
 }  // namespace
 
 std::uint64_t hashMatchState(const MatchState& state) noexcept {
@@ -142,14 +161,12 @@ std::uint64_t hashMatchState(const MatchState& state) noexcept {
       addObservation(hasher, observation);
     }
   }
-  const auto& pass = state.pendingPass();
-  hasher.addBool(pass.has_value());
-  if (pass) {
-    hasher.addU64(pass->passer.value());
-    addVec2(hasher, pass->target);
-    hasher.addDouble(pass->speed);
-    hasher.addBool(pass->receiver.has_value());
-    hasher.addU64(pass->receiver.value_or(SimCore::PlayerId::invalid()).value());
+  for (std::size_t index = 0; index < state.players().size(); ++index) {
+    const std::optional<PendingAction>& action = state.pendingAction(index);
+    hasher.addBool(action.has_value());
+    if (action) {
+      addPendingAction(hasher, *action);
+    }
   }
   const auto& lastPass = state.lastPass();
   hasher.addBool(lastPass.has_value());
@@ -159,6 +176,13 @@ std::uint64_t hashMatchState(const MatchState& state) noexcept {
     hasher.addI64(lastPass->tick.value());
     hasher.addBool(lastPass->receiver.has_value());
     hasher.addU64(lastPass->receiver.value_or(SimCore::PlayerId::invalid()).value());
+  }
+  const auto& lastShot = state.lastShot();
+  hasher.addBool(lastShot.has_value());
+  if (lastShot) {
+    hasher.addU64(lastShot->shooter.value());
+    addVec2(hasher, lastShot->from);
+    hasher.addI64(lastShot->tick.value());
   }
   const auto& reception = state.lastReception();
   hasher.addBool(reception.has_value());

@@ -6,6 +6,7 @@
 #include <expected>
 #include <limits>
 #include <map>
+#include <optional>
 #include <stdexcept>
 #include <string>
 #include <utility>
@@ -32,6 +33,7 @@ using ElyverseFootball::SimMatch::MatchStateWriter;
 using ElyverseFootball::SimMatch::MatchStepContext;
 using ElyverseFootball::SimMatch::MatchStepError;
 using ElyverseFootball::SimMatch::MatchSystem;
+using ElyverseFootball::SimMatch::PassIntent;
 using ElyverseFootball::SimMatch::Pitch;
 using ElyverseFootball::SimMatch::PlayerMatchState;
 
@@ -447,6 +449,21 @@ TEST_CASE("A system cannot address a player past the end of the squad", "[matchS
   });
 
   REQUIRE_THROWS_AS(stepExpectingThrow(simulation), std::out_of_range);
+}
+
+TEST_CASE("A player waits only for his own action", "[matchSimulation]") {
+  MatchSimulation simulation = simulationOf({
+      {.name = "foreign pass",
+       .update =
+           [](const MatchStepContext&, const MatchState& current, MatchStateWriter& next) {
+             next.setPendingAction(1, PassIntent{.passer = current.players()[0].playerId,
+                                                 .target = Vec2{},
+                                                 .speed = 10.0,
+                                                 .receiver = std::nullopt});
+           }},
+  });
+
+  REQUIRE_THROWS_AS(stepExpectingThrow(simulation), std::invalid_argument);
 }
 
 TEST_CASE("MatchSimulation rejects an invalid configuration", "[matchSimulation]") {

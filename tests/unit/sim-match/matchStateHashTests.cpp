@@ -1,4 +1,5 @@
 #include <catch2/catch_test_macros.hpp>
+#include <cstddef>
 #include <cstdint>
 #include <functional>
 #include <string>
@@ -27,8 +28,11 @@ using ElyverseFootball::SimMatch::MatchStepContext;
 using ElyverseFootball::SimMatch::MatchSystem;
 using ElyverseFootball::SimMatch::Observation;
 using ElyverseFootball::SimMatch::ObservedEntity;
+using ElyverseFootball::SimMatch::PassIntent;
 using ElyverseFootball::SimMatch::Pitch;
 using ElyverseFootball::SimMatch::PlayerMatchState;
+using ElyverseFootball::SimMatch::ShotIntent;
+using ElyverseFootball::SimMatch::ShotRecord;
 using ElyverseFootball::SimMatch::TeamSide;
 
 namespace {
@@ -62,8 +66,10 @@ TEST_CASE("The kickoff hash is pinned", "[matchStateHash]") {
   // each of those invalidates recorded replays, so update it deliberately.
   // Re-pinned when the ball gained its height, vertical velocity and spin:
   // the kickoff ball lies still on the grass as it always has, but the hash
-  // covers three numbers more.
-  REQUIRE(hashOf(kickoffSpec()) == 0xed951bd81d2d0b7eULL);
+  // covers three numbers more. Re-pinned again when the pending pass became
+  // a pending action per player, when players gained a shot accuracy and
+  // when the state gained its last shot: the hash covers what they add.
+  REQUIRE(hashOf(kickoffSpec()) == 0x4c1cc273e8aecb20ULL);
 }
 
 // Guards against a field that is added to the state but forgotten here.
@@ -83,6 +89,7 @@ TEST_CASE("Every field of the state changes the hash", "[matchStateHash]") {
       {"player velocity", [](auto& spec) { spec.players.at(5).velocity.y = 1.0; }},
       {"max speed", [](auto& spec) { spec.players.at(2).attributes.maxSpeed = 8.0; }},
       {"acceleration", [](auto& spec) { spec.players.at(2).attributes.acceleration = 3.0; }},
+      {"shot accuracy", [](auto& spec) { spec.players.at(2).attributes.shotAccuracy = 0.9; }},
       {"target", [](auto& spec) { spec.players.at(9).target = Vec2{}; }},
       {"facing", [](auto& spec) { spec.players.at(4).facing = Vec2{.x = 0.0, .y = 1.0}; }},
       {"ball position", [](auto& spec) { spec.ball.position.y = 1.0; }},
@@ -140,6 +147,83 @@ TEST_CASE("Perception memories are part of the hash", "[matchStateHash]") {
   REQUIRE(hashAfter(seenBall) != hashAfter(older));
   REQUIRE(hashAfter(seenBall) != hashAfter(seenPlayer));
   REQUIRE(hashAfter(seenBall) == hashAfter(seenBall));
+}
+
+// Guards the pending actions and the last shot, which only a writer sets.
+TEST_CASE("Pending actions and the last shot are part of the hash", "[matchStateHash]") {
+  const auto kickoff = makeSevenASideKickoff(Pitch(60.0, 40.0));
+  REQUIRE(kickoff.has_value());
+  const auto idOf = [&kickoff](const std::size_t index) {
+    return kickoff->players()[index].playerId;
+  };
+  const auto hashAfter = [&kickoff](std::function<void(MatchStateWriter&)> write) {
+    MatchSimulation simulation(
+        {.initialState = *kickoff,
+         .seed = 1,
+         .ticksPerSecond = 30,
+         .systems = {MatchSystem{
+             .name = "write",
+             .update = [write = std::move(write)](const MatchStepContext&, const MatchState&,
+                                                  MatchStateWriter& next) { write(next); }}},
+         .commands = {}});
+    REQUIRE(simulation.step().has_value());
+    return hashMatchState(simulation.state());
+  };
+  const auto pass = [](const std::size_t index, const PassIntent& intent) {
+    return [index, intent](MatchStateWriter& next) { next.setPendingAction(index, intent); };
+  };
+  const auto shot = [](const std::size_t index, const ShotIntent& intent) {
+    return [index, intent](MatchStateWriter& next) { next.setPendingAction(index, intent); };
+  };
+  const auto lastShot = [](const ShotRecord& record) {
+    return [record](MatchStateWriter& next) { next.setLastShot(record); };
+  };
+  const PassIntent aPass{
+      .passer = idOf(2), .target = {.x = 30.0, .y = 20.0}, .speed = 10.0, .receiver = idOf(5)};
+  const ShotIntent aShot{
+      .shooter = idOf(2), .target = {.x = 60.0, .y = 20.0}, .height = 1.0, .speed = 25.0};
+  const ShotRecord aRecord{.shooter = idOf(2), .from = {.x = 40.0, .y = 20.0}, .tick = SimTick(5)};
+  const auto changed = [](auto value, auto change) {
+    change(value);
+    return value;
+  };
+
+  const std::vector<std::pair<std::string, std::uint64_t>> hashes{
+      {"nothing", hashAfter([](MatchStateWriter&) {})},
+      {"pass", hashAfter(pass(2, aPass))},
+      {"pass in another slot",
+       hashAfter(pass(3, changed(aPass, [&](PassIntent& intent) { intent.passer = idOf(3); })))},
+      {"pass target",
+       hashAfter(pass(2, changed(aPass, [](PassIntent& intent) { intent.target.y = 21.0; })))},
+      {"pass speed",
+       hashAfter(pass(2, changed(aPass, [](PassIntent& intent) { intent.speed = 11.0; })))},
+      {"pass receiver",
+       hashAfter(pass(2, changed(aPass, [&](PassIntent& intent) { intent.receiver = idOf(6); })))},
+      {"pass into space",
+       hashAfter(pass(2, changed(aPass, [](PassIntent& intent) { intent.receiver.reset(); })))},
+      {"shot", hashAfter(shot(2, aShot))},
+      {"shot in another slot",
+       hashAfter(shot(3, changed(aShot, [&](ShotIntent& intent) { intent.shooter = idOf(3); })))},
+      {"shot target",
+       hashAfter(shot(2, changed(aShot, [](ShotIntent& intent) { intent.target.y = 21.0; })))},
+      {"shot height",
+       hashAfter(shot(2, changed(aShot, [](ShotIntent& intent) { intent.height = 2.0; })))},
+      {"shot speed",
+       hashAfter(shot(2, changed(aShot, [](ShotIntent& intent) { intent.speed = 24.0; })))},
+      {"last shot", hashAfter(lastShot(aRecord))},
+      {"last shot shooter", hashAfter(lastShot(changed(
+                                aRecord, [&](ShotRecord& record) { record.shooter = idOf(3); })))},
+      {"last shot from",
+       hashAfter(lastShot(changed(aRecord, [](ShotRecord& record) { record.from.x = 41.0; })))},
+      {"last shot tick",
+       hashAfter(lastShot(changed(aRecord, [](ShotRecord& record) { record.tick = SimTick(6); })))},
+  };
+  for (std::size_t first = 0; first < hashes.size(); ++first) {
+    for (std::size_t second = 0; second < first; ++second) {
+      CAPTURE(hashes.at(first).first, hashes.at(second).first);
+      REQUIRE(hashes.at(first).second != hashes.at(second).second);
+    }
+  }
 }
 
 TEST_CASE("Tactics are part of the hash", "[matchStateHash]") {

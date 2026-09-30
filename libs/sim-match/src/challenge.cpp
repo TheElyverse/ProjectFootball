@@ -75,7 +75,7 @@ MatchSystem makeChallengeSystem(const ChallengeConfig& config) {
               }
               next.setBallOwner(player.playerId);
               next.setBallLastTouch(BallTouch{.playerId = player.playerId, .tick = context.tick()});
-              next.setPendingPass(std::nullopt);
+              next.setPendingAction(*carrierIndex, std::nullopt);
               context.record(BallWon{.tick = context.tick(),
                                      .winner = player.playerId,
                                      .loser = carrier.playerId,

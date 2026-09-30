@@ -101,8 +101,12 @@ reproduce, and the styles must separate where their identities promise:
 | `regainsAttackingThird` | pressing above possession and counter   |
 | `ppda`                  | possession and counter above pressing — pressing allows the fewest passes per defensive action |
 
-These hold for base seeds 1, 2 and 3 of the reduced run. The test is
-registered for Release builds only; in Debug it would take minutes.
+These hold for base seeds 1, 2 and 3 of the reduced run. Every side of every
+pairing must also shoot between 1 and 40 times per six-minute match on
+average — a guardrail against a change that stops the shooting or turns the
+sandbox into a shooting gallery, set from the first measurement of 2 to 27
+([shot decisions](shot-decisions.md)). The test is registered for Release
+builds only; in Debug it would take minutes.
 
 **The full run** is twenty 90-minute matches per pairing, the command above.
 Its results at the time of writing (core 0.18.0) are in

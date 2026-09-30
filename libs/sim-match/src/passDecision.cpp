@@ -21,6 +21,7 @@ void validate(const DecisionConfig& config) {
     throw std::invalid_argument("pass decision: invalid configuration");
   }
   validate(config.scoring);
+  validate(config.shooting);
 }
 
 // How long the owner has had the ball: since his last touch, which is when
@@ -35,18 +36,30 @@ void validate(const DecisionConfig& config) {
 
 }  // namespace
 
-std::optional<std::size_t> choosePass(const std::span<const PassCandidate> candidates,
-                                      const double temperature,
-                                      SimCore::RandomNumberGenerator& random) {
+std::optional<OnBallChoice> chooseOnBall(const std::span<const PassCandidate> passes,
+                                         const std::span<const ShotCandidate> shots,
+                                         const double temperature,
+                                         SimCore::RandomNumberGenerator& random) {
   // Valid candidates come first, the best of them at the front.
   std::vector<double> utilities;
-  for (const PassCandidate& candidate : candidates) {
-    if (!candidate.isValid()) {
+  for (const PassCandidate& pass : passes) {
+    if (!pass.isValid()) {
       break;
     }
-    utilities.push_back(candidate.utility);
+    utilities.push_back(pass.utility);
   }
-  return chooseByUtility(utilities, temperature, random);
+  const std::size_t passCount = utilities.size();
+  if (!shots.empty() && shots.front().isValid()) {
+    utilities.push_back(shots.front().utility);
+  }
+  const auto chosen = chooseByUtility(utilities, temperature, random);
+  if (!chosen) {
+    return std::nullopt;
+  }
+  if (*chosen < passCount) {
+    return OnBallChoice{.outcome = DecisionOutcome::kPassed, .index = *chosen};
+  }
+  return OnBallChoice{.outcome = DecisionOutcome::kShot, .index = 0};
 }
 
 PassScoringConfig scoringForRisk(const PassScoringConfig& scoring,
@@ -58,63 +71,90 @@ PassScoringConfig scoringForRisk(const PassScoringConfig& scoring,
   return adjusted;
 }
 
+ShotScoringConfig shotScoringForRisk(const ShotScoringConfig& scoring,
+                                     const double passingRisk) noexcept {
+  ShotScoringConfig adjusted = scoring;
+  adjusted.goalWeight = scoring.goalWeight * (0.5 + passingRisk);
+  adjusted.lossWeight = scoring.lossWeight * (1.5 - passingRisk);
+  adjusted.minGoalChance = std::min(1.0, scoring.minGoalChance * (1.3 - (0.6 * passingRisk)));
+  return adjusted;
+}
+
 MatchSystem makePassDecisionSystem(const DecisionConfig& config, const PassCandidateRules& rules) {
   validate(config);
   PassCandidateRules scored = rules;
   scored.scoring = config.scoring;
-  return {
-      .name = std::string(kPassDecisionSystemName),
-      .update =
-          [config, scored](const MatchStepContext& context, const MatchState& current,
-                           MatchStateWriter& next) {
-            const BallState& ball = current.ball();
-            if (!ball.owner || current.pendingPass()) {
-              return;
-            }
-            if (heldSeconds(ball, context.tick(), context.secondsPerTick()) <
-                config.minHoldSeconds) {
-              return;
-            }
-            const auto carrier = findPlayerIndex(current, *ball.owner);
-            if (!carrier) {
-              return;
-            }
-            PassCandidateRules carrierRules = scored;
-            const TeamSide side = current.players()[*carrier].side;
-            const auto& tactic = current.tactics().of(side);
-            const auto& phase = current.phase(side);
-            if (tactic && phase) {
-              carrierRules.scoring =
-                  scoringForRisk(scored.scoring, tactic->instruction(phase->phase).passingRisk);
-            }
-            const std::vector<PassCandidate> candidates = generatePassCandidates(
-                current, *carrier, context.tick(), context.secondsPerTick(), carrierRules);
-            const auto chosen =
-                choosePass(candidates, config.temperature,
-                           context.random(SimCore::RandomNumberGeneratorDomain::kAi));
-            // Built only on request, and after the choice: diagnostics can
-            // neither change the decision nor draw a number.
-            if (context.collectsDiagnostics(*ball.owner)) {
-              context.diagnose(DecisionDiagnostic{
-                  .tick = context.tick(),
-                  .player = *ball.owner,
-                  .observations = current.perception(*carrier).observations,
-                  .candidates = candidates,
-                  .outcome = chosen ? DecisionOutcome::kPassed : DecisionOutcome::kNoValidOption,
-                  .chosen = chosen,
-                  .scoring = carrierRules.scoring});
-            }
-            if (!chosen) {
-              return;
-            }
-            const PassCandidate& pass = candidates[*chosen];
-            next.setPendingPass(PassIntent{.passer = *ball.owner,
-                                           .target = pass.target,
-                                           .speed = pass.speed,
-                                           .receiver = pass.receiver});
-          },
-      .intervalTicks = config.intervalTicks,
-      .phaseTicks = 0};
+  const ShotCandidateRules shooting{.scoring = config.shooting,
+                                    .ball = rules.ball,
+                                    .perception = rules.perception,
+                                    .reception = rules.reception};
+  return {.name = std::string(kPassDecisionSystemName),
+          .update =
+              [config, scored, shooting](const MatchStepContext& context, const MatchState& current,
+                                         MatchStateWriter& next) {
+                const BallState& ball = current.ball();
+                if (!ball.owner) {
+                  return;
+                }
+                const auto carrier = findPlayerIndex(current, *ball.owner);
+                if (!carrier || current.pendingAction(*carrier)) {
+                  return;
+                }
+                if (heldSeconds(ball, context.tick(), context.secondsPerTick()) <
+                    config.minHoldSeconds) {
+                  return;
+                }
+                PassCandidateRules carrierRules = scored;
+                ShotCandidateRules shooterRules = shooting;
+                const TeamSide side = current.players()[*carrier].side;
+                const auto& tactic = current.tactics().of(side);
+                const auto& phase = current.phase(side);
+                if (tactic && phase) {
+                  const double risk = tactic->instruction(phase->phase).passingRisk;
+                  carrierRules.scoring = scoringForRisk(scored.scoring, risk);
+                  shooterRules.scoring = shotScoringForRisk(shooting.scoring, risk);
+                }
+                const std::vector<PassCandidate> candidates = generatePassCandidates(
+                    current, *carrier, context.tick(), context.secondsPerTick(), carrierRules);
+                const std::vector<ShotCandidate> shots = generateShotCandidates(
+                    current, *carrier, context.tick(), context.secondsPerTick(), shooterRules);
+                const auto chosen =
+                    chooseOnBall(candidates, shots, config.temperature,
+                                 context.random(SimCore::RandomNumberGeneratorDomain::kAi));
+                // Built only on request, and after the choice: diagnostics can
+                // neither change the decision nor draw a number.
+                if (context.collectsDiagnostics(*ball.owner)) {
+                  context.diagnose(DecisionDiagnostic{
+                      .tick = context.tick(),
+                      .player = *ball.owner,
+                      .observations = current.perception(*carrier).observations,
+                      .candidates = candidates,
+                      .shots = shots,
+                      .outcome = chosen ? chosen->outcome : DecisionOutcome::kNoValidOption,
+                      .chosen = chosen ? std::optional(chosen->index) : std::nullopt,
+                      .scoring = carrierRules.scoring,
+                      .shotScoring = shooterRules.scoring});
+                }
+                if (!chosen) {
+                  return;
+                }
+                if (chosen->outcome == DecisionOutcome::kShot) {
+                  const ShotCandidate& shot = shots[chosen->index];
+                  next.setPendingAction(*carrier,
+                                        ShotIntent{.shooter = *ball.owner,
+                                                   .target = shot.target,
+                                                   .height = shot.height,
+                                                   .speed = shooterRules.scoring.shotSpeed});
+                  return;
+                }
+                const PassCandidate& pass = candidates[chosen->index];
+                next.setPendingAction(*carrier, PassIntent{.passer = *ball.owner,
+                                                           .target = pass.target,
+                                                           .speed = pass.speed,
+                                                           .receiver = pass.receiver});
+              },
+          .intervalTicks = config.intervalTicks,
+          .phaseTicks = 0};
 }
 
 }  // namespace ElyverseFootball::SimMatch

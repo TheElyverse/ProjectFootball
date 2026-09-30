@@ -101,7 +101,7 @@ field should have exactly one system that writes it.
 
 **Write only what a match changes.** `MatchStateWriter` can set player and ball
 positions and velocities, player targets and facings, perception memories, the
-ball's owner and last touch, and the pending pass, and nothing else.
+ball's owner and last touch, and the players' pending actions, and nothing else.
 Squad, ids, sides, attributes, player order and the pitch have no setter, so a
 system cannot break those invariants. Players
 are addressed by their index in `MatchState::players()`.
@@ -144,10 +144,10 @@ perception, passing, reception, pursuit, decisions, phases, pitch control, posit
 | 4     | team pressing   | 5 Hz       | presses of sides with a tactic |
 | 5     | tactical movement | 5 Hz     | movement targets, desired regions and actions -- off-ball and defensive -- of players of sides with a tactic |
 | 6     | ball pursuit    | 10 Hz      | movement targets of the chasers, the chasers |
-| 7     | pass decision   | 5 Hz       | pending pass                   |
-| 8     | ball challenge  | 10 Hz      | ball owner and last touch after a won challenge, players' last challenge; clears the pending pass |
+| 7     | pass decision   | 5 Hz       | the carrier's pending pass or shot ([shot decisions](shot-decisions.md)) |
+| 8     | ball challenge  | 10 Hz      | ball owner and last touch after a won challenge, players' last challenge; clears the loser's pending pass or shot |
 | 9     | player movement | every tick | player positions, velocities, facings |
-| 10    | ball movement   | every tick | ball position, velocity, owner, last touch; clears the pending pass |
+| 10    | ball movement   | every tick | ball position, velocity, owner, last touch, last pass and shot; plays the owner's pending pass or shot and clears every other |
 | 11    | restart         | every tick | ball owner, position, velocity and last touch after the ball went out; only with `restarts.enabled` ([restarts](restarts.md)) |
 
 `MatchSetup` is everything such a match starts from: initial state, config, seed

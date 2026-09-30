@@ -3,7 +3,7 @@
 // change a match.
 
 export const FRAMES_FORMAT = "elyverse-debug-frames";
-export const FRAMES_VERSION = 3;
+export const FRAMES_VERSION = 4;
 
 // [x, y] in meters; x along the pitch length, y across it.
 export type Vec2 = readonly [number, number];
@@ -212,8 +212,8 @@ export interface Decision {
   // The tick decided on: the step's, one before the frame's.
   readonly tick: number;
   readonly player: number;
-  readonly outcome: "passed" | "noValidOption";
-  // Index into candidates of the chosen pass.
+  readonly outcome: "passed" | "shot" | "noValidOption";
+  // Index into candidates of the chosen pass; null for a shot.
   readonly chosen: number | null;
   readonly candidates: readonly PassCandidate[];
   readonly observations: readonly Observation[];
@@ -367,6 +367,18 @@ export function depthToX(recording: Recording, side: TeamSide, depth: number): n
 // samples would drown out everything else.
 export function isLoggedEvent(event: MatchEvent): boolean {
   return event.type !== "pitchControlSampled";
+}
+
+// What a decision on the ball came to, for the side panel.
+export function describeOutcome(outcome: Decision["outcome"]): string {
+  switch (outcome) {
+    case "passed":
+      return "passed";
+    case "shot":
+      return "shot";
+    case "noValidOption":
+      return "no valid option";
+  }
 }
 
 // A one-line description of an event for the event log.

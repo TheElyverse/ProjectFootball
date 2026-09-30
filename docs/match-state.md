@@ -15,7 +15,7 @@ and ball physics are separate concerns.
 |--------------------|---------------------------------------------------------------------------------|
 | `MatchState`       | the `Pitch`, the players in order, the `BallState`, the squad size per side, every player's perception memory, and each side's tactic |
 | `PlayerMatchState` | `playerId`, `side`, `position`, `velocity`, `attributes`, `target`, `facing`    |
-| `PlayerAttributes` | `maxSpeed` (m/s) and `acceleration` (m/s²), fixed for the match                 |
+| `PlayerAttributes` | `maxSpeed` (m/s), `acceleration` (m/s²) and `shotAccuracy` (0 … 1), fixed for the match |
 | `BallState`        | `position`, `velocity`, `owner`, `lastTouch`                                    |
 | `TeamSide`         | `kHome` or `kAway`                                                              |
 
@@ -30,14 +30,17 @@ rules let teams switch ends.
 `target` is where the player is moving to. It is empty until a command assigns
 one, and without a target a player comes to a stop where he is; see
 [player movement](player-movement.md). `attributes` default to `kDefaultMaxSpeed` (7.5 m/s) and
-`kDefaultAcceleration` (4 m/s²); they describe the predefined test players of the
+`kDefaultAcceleration` (4 m/s²), and `shotAccuracy` to `kDefaultShotAccuracy`
+(0.5, an average finisher; see [shot decisions](shot-decisions.md)); they describe the predefined test players of the
 sandbox, not a generated player.
 
 The ball's `owner` is the player in control of it, empty while it is free, and
 `lastTouch` the last player to kick or take it; see [possession](possession.md).
-A state also holds the pass a player has decided on and not yet played,
-`pendingPass()`, empty in every state created from a spec; see
-[passing](passing.md).
+Every player has a slot for the action he has decided on and not yet done,
+`pendingAction(index)`, empty for every player of a state created from a spec.
+The action is a pass (see [passing](passing.md)) or a shot (see
+[shot decisions](shot-decisions.md)), and only the player on the ball decides
+one; `pendingPass()` finds the pass waiting to be played, if any.
 
 `facing` is the unit vector a player looks along; it decides what he can see. It
 is a vector rather than an angle so that no trigonometry, and none of its
@@ -61,8 +64,9 @@ state created from a spec and kept up to date by the tactical phase system; see
 player each side has sent after a free ball ([reception](reception.md)), and
 `tactical(playerIndex)` holds each player's tactical runtime state, such as his
 [desired region](desired-region.md), and `press(side)` the side's
-[press](pressing.md) in progress. `lastPass()` and `lastReception()` record the
-last pass kicked and the last free ball controlled. All are empty in a state
+[press](pressing.md) in progress. `lastPass()`, `lastShot()` and
+`lastReception()` record the last pass kicked, the last shot taken and the last
+free ball controlled. All are empty in a state
 created from a spec.
 
 Every player also has a perception memory, `perception(playerIndex)`: what he

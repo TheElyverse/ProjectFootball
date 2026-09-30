@@ -86,6 +86,10 @@ void MatchAnalyzer::observeStep(const std::span<const SimMatch::MatchEvent> even
       onPass(*pass);
     } else if (const auto* reception = std::get_if<SimMatch::PassReceived>(&event)) {
       onReception(*reception);
+    } else if (const auto* shot = std::get_if<SimMatch::ShotAttempted>(&event)) {
+      if (const auto side = sideOf(shot->shooter)) {
+        ++tally(*side).shots;
+      }
     } else if (const auto* intercepted = std::get_if<SimMatch::PassIntercepted>(&event)) {
       pendingPass_.reset();
       onDefensiveAction(intercepted->interceptor, intercepted->position);
@@ -158,6 +162,7 @@ TeamStats MatchAnalyzer::statsOf(const TeamSide side, const std::int64_t possess
       .meanPassMeters = ratio(counts.passMeters, counts.passes),
       .progressivePasses = counts.progressivePasses,
       .completedProgressivePasses = counts.completedProgressivePasses,
+      .shots = counts.shots,
       .turnovers = counts.turnovers,
       .regains = counts.regains,
       .regainsByThird = counts.regainsByThird,

@@ -45,12 +45,15 @@ TEST_CASE("Every metric of a side is named, in a fixed order", "[seriesSummary]"
   TeamStats stats;
   stats.passes = 12;
   stats.regainsByThird = {1, 2, 3};
+  stats.shots = 4;
   const auto metrics = metricsOf(stats);
-  REQUIRE(metrics.size() == 17);
+  REQUIRE(metrics.size() == 18);
   REQUIRE(metrics.at(0).name == "possessionShare");
   REQUIRE(metrics.at(1).value == 12.0);
   REQUIRE(metrics.at(3).name == "passCompletion");
   REQUIRE_FALSE(metrics.at(3).value.has_value());
   REQUIRE(metrics.at(11).name == "regainsAttackingThird");
   REQUIRE(metrics.at(11).value == 3.0);
+  REQUIRE(metrics.at(17).name == "shots");
+  REQUIRE(metrics.at(17).value == 4.0);
 }

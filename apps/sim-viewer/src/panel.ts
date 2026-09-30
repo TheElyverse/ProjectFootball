@@ -1,5 +1,6 @@
 import {
   describeEvent,
+  describeOutcome,
   frameSeconds,
   isLoggedEvent,
   latestActionDecision,
@@ -198,7 +199,7 @@ function selectionSection(
   nodes.push(
     element(
       "h3",
-      `Pass decision at tick ${decision.tick}: ${decision.outcome === "passed" ? "passed" : "no valid option"}`,
+      `Pass decision at tick ${decision.tick}: ${describeOutcome(decision.outcome)}`,
     ),
     table(
       ["to", "dist", "risk", "compl", "prog", "press", "utility", "status"],
