@@ -4,9 +4,12 @@
 #include <set>
 #include <string>
 #include <string_view>
+#include <variant>
 
+#include "matchEvents.hpp"
 #include "matchSetup.hpp"
 #include "matchState.hpp"
+#include "restartKind.hpp"
 #include "scenarios.hpp"
 #include "tactic.hpp"
 #include "tacticJson.hpp"
@@ -75,5 +78,39 @@ TEST_CASE("Any two tactic presets can face each other", "[scenarios]") {
         REQUIRE(simulation.step().has_value());
       }
     }
+  }
+}
+
+TEST_CASE("The goal-kickoff scenario scores and kicks off from the line-up", "[scenarios]") {
+  using ElyverseFootball::SimMatch::GoalScored;
+  using ElyverseFootball::SimMatch::MatchEvent;
+  using ElyverseFootball::SimMatch::RestartKind;
+  using ElyverseFootball::SimMatch::RestartTaken;
+  const ScenarioDefinition* scenario = findScenario("goal-kickoff");
+  REQUIRE(scenario != nullptr);
+  const auto setup = scenario->make(2);
+  REQUIRE(setup.has_value());
+  auto simulation = startMatch(*setup);
+  bool scored = false;
+  bool kickedOff = false;
+  while (!kickedOff && simulation.tick().value() < 150) {
+    REQUIRE(simulation.step().has_value());
+    for (const MatchEvent& event : simulation.events()) {
+      scored = scored || std::holds_alternative<GoalScored>(event);
+      const auto* restart = std::get_if<RestartTaken>(&event);
+      kickedOff = kickedOff || (restart != nullptr && restart->kind == RestartKind::kKickoff);
+    }
+  }
+  REQUIRE(scored);
+  REQUIRE(kickedOff);
+  // Away, which conceded, kicks off from the centre spot; everybody stands
+  // in his own half.
+  const auto& state = simulation.state();
+  REQUIRE(state.ball().position == state.pitch().center());
+  REQUIRE(state.ball().owner == ElyverseFootball::SimCore::PlayerId(14));
+  for (const auto& player : state.players()) {
+    CAPTURE(player.playerId.value());
+    REQUIRE(
+        (player.side == TeamSide::kHome ? player.position.x <= 30.0 : player.position.x >= 30.0));
   }
 }
