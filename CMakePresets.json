@@ -5,24 +5,28 @@
     {
       "name": "debug",
       "displayName": "Debug",
+      "generator": "Ninja",
       "binaryDir": "${sourceDir}/build/debug",
       "cacheVariables": { "CMAKE_BUILD_TYPE": "Debug" }
     },
     {
       "name": "relwithdebinfo",
       "displayName": "RelWithDebInfo",
+      "generator": "Ninja",
       "binaryDir": "${sourceDir}/build/relwithdebinfo",
       "cacheVariables": { "CMAKE_BUILD_TYPE": "RelWithDebInfo" }
     },
     {
       "name": "release",
       "displayName": "Release",
+      "generator": "Ninja",
       "binaryDir": "${sourceDir}/build/release",
       "cacheVariables": { "CMAKE_BUILD_TYPE": "Release" }
     },
     {
       "name": "sanitize",
       "displayName": "Debug + ASan/UBSan",
+      "generator": "Ninja",
       "binaryDir": "${sourceDir}/build/sanitize",
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Debug",
@@ -32,6 +36,7 @@
         {
       "name": "ci",
       "displayName": "CI (warnings as errors)",
+      "generator": "Ninja",
       "binaryDir": "${sourceDir}/build/ci",
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Debug",
@@ -41,6 +46,7 @@
     {
       "name": "ci-release",
       "displayName": "CI Release (warnings as errors), for the benchmarks",
+      "generator": "Ninja",
       "binaryDir": "${sourceDir}/build/ci-release",
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Release",
