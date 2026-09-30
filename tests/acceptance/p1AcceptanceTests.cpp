@@ -321,7 +321,9 @@ TEST_CASE("P1: the final hashes are pinned", "[acceptance][p1]") {
   // pending pass became a pending action per player, when players gained a
   // shot accuracy and when the state gained its last shot, with unchanged
   // event hashes: nobody in these scenarios shoots, and the state hash
-  // covers what the three add.
+  // covers what the three add. The same again with shot execution: players
+  // gained a technique and a strong and a weak foot, the state its score and
+  // its last goal, and the last reception whose pass it was.
   struct Pinned {
     std::string_view name;
     std::uint64_t stateHash;
@@ -329,13 +331,13 @@ TEST_CASE("P1: the final hashes are pinned", "[acceptance][p1]") {
   };
   const std::array<Pinned, 3> pinned{{
       {.name = "pass-chain",
-       .stateHash = 0x6bf19336aa1b27b5ULL,
+       .stateHash = 0xd753423e0ddc6a64ULL,
        .eventHash = 0x998519c3360aaabbULL},
       {.name = "intercepted-pass",
-       .stateHash = 0x6702ccfe8e6d99fdULL,
+       .stateHash = 0x7691f132775e5c11ULL,
        .eventHash = 0x22f2a2f2ddabf1e5ULL},
       {.name = "no-passing-option",
-       .stateHash = 0x41204785576d82ffULL,
+       .stateHash = 0xd59d9296e483799dULL,
        .eventHash = 0x4c3da4b4c5ecf1a7ULL},
   }};
   for (const Pinned& expected : pinned) {

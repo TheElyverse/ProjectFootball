@@ -71,6 +71,24 @@ struct BallClaim {
                                                      SimCore::SimTick now, double secondsPerTick,
                                                      const ReceptionConfig& config);
 
+// How far from him and how high a player gets to a ball.
+struct BallReach {
+  double radius = 0.0;  // m
+  double height = 0.0;  // m
+};
+
+// findBallClaim() for a ball outfield players do not take at their feet: a
+// goalkeeper still reaches it as the configuration says, everyone else as
+// `outfield` says -- a body in the way of a shot rather than a foot on the
+// ball (docs/shooting.md). What the first player to reach it does with it is
+// the caller's to decide.
+[[nodiscard]] std::optional<BallClaim> findBallContact(const MatchState& state,
+                                                       const BallState& ball, const BallStep& moved,
+                                                       const BallPhysics& physics,
+                                                       SimCore::SimTick now, double secondsPerTick,
+                                                       const ReceptionConfig& config,
+                                                       const BallReach& outfield);
+
 // Throws std::invalid_argument unless every value is finite and not
 // negative.
 void validate(const ReceptionConfig& config);

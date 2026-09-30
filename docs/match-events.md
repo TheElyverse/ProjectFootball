@@ -27,9 +27,16 @@ Every event carries the `tick` of its step and the players involved:
 | `PressingStarted`    | `side`, `carrier`, `trigger`, `assignments`                  | a side starts a [coordinated press](pressing.md); `trigger` is empty for a press of the pressing phase |
 | `PressingEnded`      | `side`, `outcome`                                            | the press ends: `ballRegained`, `passedOut` or `carrierEscaped` |
 | `PitchControlSampled` | `homeShare`, `ball`                                         | the [pitch control](pitch-control.md) grid is updated: home's share of the pitch and the ball's position, a regular sample for [analytics](match-analytics.md) |
-| `RestartTaken`       | `kind`, `player`, `position`                                 | play [restarts](restarts.md) after the ball went out: `throwIn`, `goalKick` or `corner`, to `player`; `position` is where the ball left the pitch. `PossessionChanged` follows |
+| `RestartTaken`       | `kind`, `player`, `position`                                 | play [restarts](restarts.md) after the ball went out or into a goal: `throwIn`, `goalKick`, `corner` or `kickoff`, to `player`; `position` is where the ball left the pitch, the centre spot for a kickoff. `PossessionChanged` follows |
 | `TacticChanged`      | `side`, `tactic`, `contentHash`                              | a [tactic change command](match-loop.md#tactic-changes) applies; `tactic` is the new tactic's name |
-| `ShotAttempted`      | `shooter`, `from`, `target`, `height`, `speed`, `distance`, `opening` | a [shot](shot-decisions.md) leaves the shooter's foot toward the aimed point and height; `distance` and `opening` are to and of the goal. `PossessionChanged` follows |
+| `ShotAttempted`      | `shooter`, `from`, `target`, `height`, `struckAt`, `struckHeight`, `speed`, `distance`, `opening` | a [shot](shot-decisions.md) leaves the shooter's foot toward the aimed point and height; `struckAt` and `struckHeight` are the point and height it really left for, off by his [execution](shooting.md) error; `distance` and `opening` are to and of the goal. `PossessionChanged` follows |
+| `ShotDeflected`      | `shooter`, `shotTick`, `player`, `position`, `height`, `blocked` | a shot comes off an outfield player and flies on; `blocked` if it lost most of its speed |
+| `ShotHitWoodwork`    | `shooter`, `shotTick`, `part`, `position`, `height`          | a shot rebounds from `postAtMinY`, `postAtMaxY` or the `crossbar` |
+| `ShotResolved`       | `shooter`, `shotTick`, `outcome`                             | a shot has become what it will be, once per shot: `goal`, `saved`, `offTarget` or `blocked` |
+| `GoalScored`         | `side`, `scorer`, `assist`, `ownGoal`, `score`               | the ball crosses a goal line inside the frame: a goal for `side`, by `scorer` — empty for a ball nobody touched —, with the `score` it makes |
+
+The shot events name their shot by its `shooter` and `shotTick`, the tick of its
+`ShotAttempted`; see [shooting](shooting.md) for what decides each of them.
 
 `speed` is the speed the ball left the foot with, execution error included. A
 pass shows up as
@@ -41,10 +48,10 @@ PassAttempted(t, passer)  PossessionChanged(t, passer → none)
 
 **Classification.** When a player takes a free ball, the ball's last touch
 decides what it was. A ball becomes free by a pass or a shot, so a last touch
-that was not the last shot (`MatchState::lastShot()`) means the ball was
-passed: a teammate of the passer received it, an opponent intercepted it.
-Without a last touch, after a shot, or when the passer takes his own ball back,
-the ball was loose.
+that was neither the last shot (`MatchState::lastShot()`) nor a deflection of
+it means the ball was passed: a teammate of the passer received it, an opponent
+intercepted it. Without a last touch, after a shot, or when the passer takes his
+own ball back, the ball was loose.
 
 Events are part of the match: the same setup produces the same events in the
 same order. `addEvent()` feeds an event into a `StableHasher` — its type, tick

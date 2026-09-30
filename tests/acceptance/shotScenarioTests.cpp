@@ -1,7 +1,8 @@
 // The shot scenarios (docs/shot-decisions.md): player 1's first decision on
 // the ball, over many seeds, shoots at a clear chance, passes from a hopeless
 // angle, and mostly passes past a defender in the way. A shot blocked as it is
-// struck is a loose ball, not an intercepted pass.
+// struck is a loose ball, not an intercepted pass, and a clear chance is
+// mostly scored (docs/shooting.md).
 
 #include <algorithm>
 #include <catch2/catch_test_macros.hpp>
@@ -30,7 +31,10 @@ using ElyverseFootball::SimMatch::PassIntercepted;
 using ElyverseFootball::SimMatch::PassReceived;
 using ElyverseFootball::SimMatch::ShotAttempted;
 using ElyverseFootball::SimMatch::ShotCandidate;
+using ElyverseFootball::SimMatch::ShotHitWoodwork;
+using ElyverseFootball::SimMatch::ShotOutcome;
 using ElyverseFootball::SimMatch::ShotRejection;
+using ElyverseFootball::SimMatch::ShotResolved;
 using ElyverseFootball::SimMatch::startMatch;
 
 namespace {
@@ -158,4 +162,48 @@ TEST_CASE("Shots: a shot blocked as it is struck is a loose ball", "[acceptance]
   // The keeper or the defender in the way takes some shots the tick they are
   // struck.
   REQUIRE(blocked > 0);
+}
+
+TEST_CASE("Shots: a clear chance is mostly scored", "[acceptance][shots]") {
+  const auto* definition = findScenario("clear-chance");
+  REQUIRE(definition != nullptr);
+  int shots = 0;
+  int goals = 0;
+  int onTarget = 0;
+  int woodwork = 0;
+  for (std::uint64_t seed = 1; seed <= kSeeds; ++seed) {
+    auto setup = definition->make(seed);
+    REQUIRE(setup.has_value());
+    MatchSimulation simulation = startMatch(*setup);
+    // Player 1's first shot, until it has become what it will be.
+    std::optional<ShotOutcome> outcome;
+    bool hit = false;
+    for (int tick = 0; tick < 5 * kTicks && !outcome; ++tick) {
+      REQUIRE(simulation.step().has_value());
+      for (const auto& event : simulation.events()) {
+        hit = hit || std::holds_alternative<ShotHitWoodwork>(event);
+        if (const auto* resolved = std::get_if<ShotResolved>(&event)) {
+          outcome = resolved->outcome;
+        }
+      }
+    }
+    if (!outcome) {
+      continue;
+    }
+    ++shots;
+    woodwork += hit ? 1 : 0;
+    goals += outcome == ShotOutcome::kGoal ? 1 : 0;
+    onTarget += outcome == ShotOutcome::kGoal || outcome == ShotOutcome::kSaved ? 1 : 0;
+    // A goal is a goal on the scoreboard, and nothing else is.
+    REQUIRE((simulation.state().score().home == 1) == (outcome == ShotOutcome::kGoal));
+    REQUIRE(simulation.state().score().away == 0);
+  }
+  CAPTURE(shots, goals, onTarget, woodwork);
+  REQUIRE(shots >= 90);
+  // Eight meters out with only the keeper to beat: an average finisher scores
+  // most of them, and execution makes him miss some. At the time of writing
+  // he scores 72 of 100 and hits the woodwork with 42.
+  REQUIRE(goals >= 55);
+  REQUIRE(goals <= 90);
+  REQUIRE(onTarget >= goals);
 }

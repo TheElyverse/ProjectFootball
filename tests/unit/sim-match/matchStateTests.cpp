@@ -375,6 +375,61 @@ TEST_CASE("MatchState::create accepts a shot accuracy in [0, 1] only", "[matchSt
   }
 }
 
+TEST_CASE("MatchState::create accepts a shot technique and a weak foot in [0, 1] only",
+          "[matchState]") {
+  const double value = GENERATE(0.0, 1.0, -0.01, 1.01, std::numeric_limits<double>::quiet_NaN());
+  const bool technique = GENERATE(true, false);
+  CAPTURE(value, technique);
+  MatchStateSpec spec = validSpec();
+  (technique ? spec.players.at(5).attributes.shotTechnique
+             : spec.players.at(5).attributes.weakFootAccuracy) = value;
+
+  const auto state = MatchState::create(spec);
+
+  if (value >= 0.0 && value <= 1.0) {
+    REQUIRE(state.has_value());
+  } else {
+    REQUIRE_FALSE(state.has_value());
+    REQUIRE(codesOf(state.error()) == std::vector{MatchStateErrorCode::kInvalidPlayerAttributes});
+    REQUIRE(mentions(state.error().front().message,
+                     technique ? "shot technique" : "weak foot accuracy"));
+  }
+}
+
+TEST_CASE("MatchState::create rejects a strong foot that is neither", "[matchState]") {
+  MatchStateSpec spec = validSpec();
+  spec.players.at(5).attributes.strongFoot = static_cast<ElyverseFootball::SimMatch::Foot>(7);
+
+  const auto state = MatchState::create(spec);
+
+  REQUIRE_FALSE(state.has_value());
+  REQUIRE(codesOf(state.error()) == std::vector{MatchStateErrorCode::kInvalidPlayerAttributes});
+  REQUIRE(mentions(state.error().front().message, "strong foot"));
+}
+
+TEST_CASE("A state starts at the score of its spec, without a last goal", "[matchState]") {
+  MatchStateSpec spec = validSpec();
+  REQUIRE(MatchState::create(spec).value().score() == ElyverseFootball::SimMatch::Score{});
+
+  spec.score = {.home = 2, .away = 1};
+  const auto state = MatchState::create(spec);
+  REQUIRE(state.has_value());
+  REQUIRE(state.value().score().home == 2);
+  REQUIRE(state.value().score().of(TeamSide::kAway) == 1);
+  REQUIRE_FALSE(state.value().lastGoal().has_value());
+}
+
+TEST_CASE("MatchState::create rejects a negative score", "[matchState]") {
+  MatchStateSpec spec = validSpec();
+  spec.score = {.home = 0, .away = -1};
+
+  const auto state = MatchState::create(spec);
+
+  REQUIRE_FALSE(state.has_value());
+  REQUIRE(codesOf(state.error()) == std::vector{MatchStateErrorCode::kInvalidScore});
+  REQUIRE(mentions(state.error().front().message, "0:-1"));
+}
+
 TEST_CASE("MatchState::create rejects a non-finite target", "[matchState]") {
   MatchStateSpec spec = validSpec();
   spec.players.at(10).target = Vec2{.x = std::numeric_limits<double>::quiet_NaN(), .y = 3.0};

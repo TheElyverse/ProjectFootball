@@ -7,6 +7,7 @@
 #include <tuple>
 
 #include "playerMovement.hpp"
+#include "zones.hpp"
 
 namespace ElyverseFootball::SimMatch {
 namespace {
@@ -28,6 +29,49 @@ using SimCore::Vec2;
   const double sinceTouch =
       static_cast<double>(now.value() - ball.lastTouch->tick.value()) * secondsPerTick;
   return sinceTouch >= config.reclaimDelaySeconds;
+}
+
+// The first player to reach the ball, each as far and as high as reachOf says
+// of his index. The earliest contact wins; equal contact times go to the
+// player who comes closer, and then to the lower id.
+template <typename ReachOf>
+[[nodiscard]] std::optional<BallClaim> firstToReach(
+    const MatchState& state, const BallState& ball, const BallStep& moved,
+    const BallPhysics& physics, const SimCore::SimTick now, const double secondsPerTick,
+    const ReceptionConfig& config, const ReachOf& reachOf) {
+  std::optional<BallClaim> best;
+  for (std::size_t index = 0; const PlayerMatchState& player : state.players()) {
+    const std::size_t playerIndex = index++;
+    if (!mayClaim(player, ball, now, secondsPerTick, config)) {
+      continue;
+    }
+    const BallReach reach = reachOf(playerIndex);
+    const PlayerKinematics stepped = stepPlayerMovement(player, secondsPerTick);
+    const auto contact = findContact(player.position, stepped.position, ball.position,
+                                     moved.ball.position, reach.radius);
+    if (!contact) {
+      continue;
+    }
+    // Out of reach: the ball passes over his head rather than to his feet.
+    // Asked of the flight at the moment of contact rather than interpolated
+    // between the ends of the tick, which describe neither a ball that bounces
+    // on the way nor one the line stops and puts down flat. The contact is a
+    // fraction of the path the ball really travelled, so it is that span --
+    // not the whole tick -- that turns it into a moment.
+    if (ballHeightAfter(ball, physics, contact->contactFraction * moved.seconds) > reach.height) {
+      continue;
+    }
+    const BallClaim claim{
+        .playerIndex = playerIndex, .playerId = player.playerId, .contact = *contact};
+    const auto order = [](const BallClaim& candidate) {
+      return std::tuple(candidate.contact.contactFraction, candidate.contact.closestDistance,
+                        candidate.playerId);
+    };
+    if (!best || order(claim) < order(*best)) {
+      best = claim;
+    }
+  }
+  return best;
 }
 
 }  // namespace
@@ -64,39 +108,20 @@ std::optional<BallClaim> findBallClaim(const MatchState& state, const BallState&
                                        const BallStep& moved, const BallPhysics& physics,
                                        const SimCore::SimTick now, const double secondsPerTick,
                                        const ReceptionConfig& config) {
-  std::optional<BallClaim> best;
-  for (std::size_t index = 0; const PlayerMatchState& player : state.players()) {
-    const std::size_t playerIndex = index++;
-    if (!mayClaim(player, ball, now, secondsPerTick, config)) {
-      continue;
-    }
-    const PlayerKinematics stepped = stepPlayerMovement(player, secondsPerTick);
-    const auto contact = findContact(player.position, stepped.position, ball.position,
-                                     moved.ball.position, config.controlRadius);
-    if (!contact) {
-      continue;
-    }
-    // Out of reach: the ball passes over his head rather than to his feet.
-    // Asked of the flight at the moment of contact rather than interpolated
-    // between the ends of the tick, which describe neither a ball that bounces
-    // on the way nor one the line stops and puts down flat. The contact is a
-    // fraction of the path the ball really travelled, so it is that span --
-    // not the whole tick -- that turns it into a moment.
-    if (ballHeightAfter(ball, physics, contact->contactFraction * moved.seconds) >
-        config.controlHeight) {
-      continue;
-    }
-    const BallClaim claim{
-        .playerIndex = playerIndex, .playerId = player.playerId, .contact = *contact};
-    const auto order = [](const BallClaim& candidate) {
-      return std::tuple(candidate.contact.contactFraction, candidate.contact.closestDistance,
-                        candidate.playerId);
-    };
-    if (!best || order(claim) < order(*best)) {
-      best = claim;
-    }
-  }
-  return best;
+  const BallReach feet{.radius = config.controlRadius, .height = config.controlHeight};
+  return firstToReach(state, ball, moved, physics, now, secondsPerTick, config,
+                      [&feet](std::size_t /*playerIndex*/) { return feet; });
+}
+
+std::optional<BallClaim> findBallContact(const MatchState& state, const BallState& ball,
+                                         const BallStep& moved, const BallPhysics& physics,
+                                         const SimCore::SimTick now, const double secondsPerTick,
+                                         const ReceptionConfig& config, const BallReach& outfield) {
+  const BallReach feet{.radius = config.controlRadius, .height = config.controlHeight};
+  return firstToReach(state, ball, moved, physics, now, secondsPerTick, config,
+                      [&](const std::size_t playerIndex) {
+                        return isGoalkeeper(state, playerIndex) ? feet : outfield;
+                      });
 }
 
 void validate(const ReceptionConfig& config) {

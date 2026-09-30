@@ -14,11 +14,11 @@ default is `replay.json` in the working directory, and `--play` plays one back. 
 before the terminal interface opens, so a run rejected by argument or terminal
 validation leaves no file behind.
 
-## Schema version 5
+## Schema version 6
 
 ```json
 {
-    "schemaVersion": 5,
+    "schemaVersion": 6,
   "coreVersion": "0.21.0",
   "createdAt": "2026-09-24T10:00:00Z",
   "seed": "18446744073709551615",
@@ -166,7 +166,31 @@ validation leaves no file behind.
             "phaseIntensity": 0.5,
       "maxPressSeconds": 4.0
     },
-    "restarts": { "enabled": false }
+    "restarts": { "enabled": false },
+    "shooting": {
+      "spreadAtZero": 0.2,
+      "spreadPerMeter": 0.04,
+      "speedError": 0.05,
+      "maxLaunchSlope": 1.0,
+      "topspin": 30.0,
+      "spinError": 15.0,
+      "pressureErrorFactor": 1.0,
+      "balanceErrorFactor": 1.0,
+      "weakFootErrorFactor": 1.0,
+      "unsettledErrorFactor": 1.0,
+      "weakFootSide": 0.3,
+      "unsettledSeconds": 1.0,
+      "unsettledBallSpeed": 20.0,
+      "deflectionSpeed": 10.0,
+      "blockRadius": 0.5,
+      "blockReach": 1.8,
+      "minDeflectedSpeed": 0.1,
+      "maxDeflectedSpeed": 0.9,
+      "blockedBelow": 0.5,
+      "deflectionSpread": 1.0,
+      "deflectionLift": 3.0
+    },
+    "woodwork": { "radius": 0.06, "restitution": 0.5 }
   },
   "initialState": {
     "pitch": { "length": 60.0, "width": 40.0 },
@@ -177,7 +201,14 @@ validation leaves no file behind.
         "side": "home",
         "position": { "x": 3.0, "y": 20.0 },
         "velocity": { "x": 0.0, "y": 0.0 },
-        "attributes": { "maxSpeed": 7.5, "acceleration": 4.0, "shotAccuracy": 0.5 },
+        "attributes": {
+          "maxSpeed": 7.5,
+          "acceleration": 4.0,
+          "shotAccuracy": 0.5,
+          "shotTechnique": 0.5,
+          "strongFoot": "right",
+          "weakFootAccuracy": 0.5
+        },
         "target": null,
         "facing": { "x": 1.0, "y": 0.0 }
       }
@@ -191,6 +222,7 @@ validation leaves no file behind.
             "owner": null,
       "lastTouch": null
     },
+    "score": { "home": 0, "away": 0 },
         "tactics": {
       "home": {
         "contentHash": "d1f008d25b46aabf",
@@ -217,7 +249,7 @@ player and the whole tactic.
 
 | Field           | JSON type | Meaning                                                       |
 |-----------------|-----------|---------------------------------------------------------------|
-| `schemaVersion` | number    | Version of this format. Currently `5`.                        |
+| `schemaVersion` | number    | Version of this format. Currently `6`.                        |
 | `coreVersion`   | string    | The `sim-core` version that recorded the match.               |
 | `createdAt`     | string    | Creation time in UTC, `%Y-%m-%dT%H:%M:%SZ`. Metadata only.    |
 | `seed`          | string    | Unsigned 64-bit master seed, in decimal.                      |
@@ -233,7 +265,9 @@ Positions are meters and velocities meters per second, as in the
 its third dimension, in meters and meters per second, and `spin` is top- or
 backspin in radians per second ([ball movement](ball-movement.md)). A player's `target` is `null` when he has none,
 the ball's `owner` is `null` while it is free, and its `lastTouch` is `null` or
-`{ "playerId": 7, "tick": 120 }`. No pending action is recorded: every
+`{ "playerId": 7, "tick": 120 }`. A player's `strongFoot` is `"left"` or
+`"right"`, and `score` is the goals the match starts at, never negative
+([shooting](shooting.md)). No pending action is recorded: every
 initial state has none. `tactics` holds, for each side, the tactic as a complete
 [tactic file](tactic-format.md) document under `tactic` next to its
 `contentHash` (`tacticHash.hpp`, 16 hexadecimal digits), or `null` for a
@@ -309,7 +343,7 @@ number`.
 |-----------------------------|------------------------------------------------------------------------|
 | `kIoError`                  | the file cannot be read or written                                     |
 | `kMalformed`                | not JSON, a missing or mistyped field, commands out of order           |
-| `kUnsupportedSchemaVersion` | a `schemaVersion` other than 4                                         |
+| `kUnsupportedSchemaVersion` | a `schemaVersion` other than 6                                         |
 | `kIncompatibleCoreVersion`  | recorded with another `coreVersion`                                    |
 | `kInvalidSetup`             | an invalid initial state, command or checkpoint list                   |
 | `kSimulationFailed`         | a step of the playback failed                                          |

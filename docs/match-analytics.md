@@ -42,7 +42,7 @@ frame: from its own goal line toward the one it attacks.
 | `passes`, `completedPasses`, `passCompletion` | `PassAttempted`, `PassReceived` | attempts, receptions by a teammate, and their ratio |
 | `meanPassMeters` | `PassAttempted` | mean distance from `from` to `target` |
 | `progressivePasses`, `completedProgressivePasses` | `PassAttempted`, `PassReceived` | passes whose target is at least `progressiveMeters` (10 m) deeper than their origin, and those received |
-| `shots` | `ShotAttempted` | shots taken ([shot decisions](shot-decisions.md)); what became of them comes with shot execution |
+| `shots` | `ShotAttempted` | shots taken ([shot decisions](shot-decisions.md)); what became of them is in the [shooting](shooting.md) events, which the statistics do not read yet |
 | `turnovers`, `regains` | `PossessionChanged` | the ball's owner changes from one side to the other; the first owner of the match is neither |
 | `regainsByThird` | `PassIntercepted`, `BallWon`, `LooseBallRecovered` | regains by the third of their position; a regain without such an event in its step, a command giving the ball away for instance, is counted in `regains` only |
 | `pressures`, `pressuresRegained` | `PressingStarted`, `PressingEnded` | coordinated presses and those that ended with `ballRegained` |
@@ -88,4 +88,4 @@ order, so the same events always give the same bytes, on every platform.
 ## What this is not
 
 No goals, shot outcomes, expected goals or player ratings yet: shots are
-counted, but nothing becomes of them. Pressures are team presses, not every individual pressing action.
+counted, but not what became of them. Pressures are team presses, not every individual pressing action.

@@ -5,14 +5,17 @@
 
 namespace ElyverseFootball::SimMatch {
 
-// How play restarts after the ball went out (docs/restarts.md).
+// How play restarts after the ball went out or into a goal
+// (docs/restarts.md).
 enum class RestartKind : std::uint8_t {
   kThrowIn,
   kGoalKick,
   kCorner,
+  kKickoff,
 };
 
-// "throwIn", "goalKick", "corner"; "unknown" outside the enumerators.
+// "throwIn", "goalKick", "corner", "kickoff"; "unknown" outside the
+// enumerators.
 [[nodiscard]] std::string_view restartKindName(RestartKind kind) noexcept;
 
 // Simplified restarts (docs/restarts.md): opt-in, so matches without them

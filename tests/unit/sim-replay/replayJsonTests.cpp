@@ -66,19 +66,19 @@ TEST_CASE("Documents that are not JSON objects are rejected", "[replayJson]") {
 }
 
 TEST_CASE("Other schema versions are rejected with the version found", "[replayJson]") {
-  requireRejected(validJsonWith("\"schemaVersion\": 5", "\"schemaVersion\": 1"),
+  requireRejected(validJsonWith("\"schemaVersion\": 6", "\"schemaVersion\": 1"),
                   ReplayErrorCode::kUnsupportedSchemaVersion,
                   "schema version 1 holds replay metadata only");
   // Older playable versions name the way to a current file.
-  for (const char* version : {"2", "3", "4"}) {
+  for (const char* version : {"2", "3", "4", "5"}) {
     requireRejected(
-        validJsonWith("\"schemaVersion\": 5", std::string("\"schemaVersion\": ") + version),
+        validJsonWith("\"schemaVersion\": 6", std::string("\"schemaVersion\": ") + version),
         ReplayErrorCode::kUnsupportedSchemaVersion,
         std::string("schema version ") + version +
-            " is no longer supported, expected 5; record the scenario again");
+            " is no longer supported, expected 6; record the scenario again");
   }
-  requireRejected(validJsonWith("\"schemaVersion\": 5", "\"schemaVersion\": 6"),
-                  ReplayErrorCode::kUnsupportedSchemaVersion, "unsupported schema version 6");
+  requireRejected(validJsonWith("\"schemaVersion\": 6", "\"schemaVersion\": 7"),
+                  ReplayErrorCode::kUnsupportedSchemaVersion, "unsupported schema version 7");
 }
 
 TEST_CASE("A replay from another core version is rejected", "[replayJson]") {
@@ -122,6 +122,45 @@ TEST_CASE("The ball's owner is read from the initial state", "[replayJson]") {
 
   requireRejected(validJsonWith(R"("owner": null)", R"("owner": 99)"),
                   ReplayErrorCode::kInvalidSetup, "the ball belongs to player 99");
+}
+
+TEST_CASE("How a player shoots is read from the initial state", "[replayJson]") {
+  using ElyverseFootball::SimMatch::Foot;
+  const auto changed =
+      parseReplayJson(validJsonWith(R"("strongFoot": "right")", R"("strongFoot": "left")"));
+  REQUIRE(changed.has_value());
+  REQUIRE(changed->setup.initialState.players()[0].attributes.strongFoot == Foot::kLeft);
+  REQUIRE(changed->setup.initialState.players()[1].attributes.strongFoot == Foot::kRight);
+
+  const auto skilled =
+      parseReplayJson(validJsonWith("\"shotTechnique\": 0.5", "\"shotTechnique\": 0.75"));
+  REQUIRE(skilled.has_value());
+  REQUIRE(skilled->setup.initialState.players()[0].attributes.shotTechnique == 0.75);
+  const auto twoFooted =
+      parseReplayJson(validJsonWith("\"weakFootAccuracy\": 0.5", "\"weakFootAccuracy\": 1.0"));
+  REQUIRE(twoFooted.has_value());
+  REQUIRE(twoFooted->setup.initialState.players()[0].attributes.weakFootAccuracy == 1.0);
+
+  requireRejected(validJsonWith(R"("strongFoot": "right")", R"("strongFoot": "both")"), kMalformed,
+                  R"(initialState.players[0].attributes.strongFoot: expected "left" or "right")");
+  requireRejected(validJsonWith("\"shotTechnique\": 0.5", "\"shotTechnique\": 1.5"),
+                  ReplayErrorCode::kInvalidSetup, "shot technique 1.5");
+}
+
+TEST_CASE("The score is read from the initial state", "[replayJson]") {
+  const auto level = parseReplayJson(validJson());
+  REQUIRE(level.has_value());
+  REQUIRE(level->setup.initialState.score() == ElyverseFootball::SimMatch::Score{});
+
+  const auto behind = parseReplayJson(validJsonWith("\"away\": 0", "\"away\": 2"));
+  REQUIRE(behind.has_value());
+  REQUIRE(behind->setup.initialState.score().home == 0);
+  REQUIRE(behind->setup.initialState.score().away == 2);
+
+  requireRejected(validJsonWith("\"away\": 0", "\"away\": -1"), kMalformed,
+                  "initialState.score.away: expected an integer from 0");
+  requireRejected(validJsonWith("\"score\"", "\"scores\""), kMalformed,
+                  "initialState.score: missing");
 }
 
 TEST_CASE("Commands must state their execution order explicitly", "[replayJson]") {

@@ -18,6 +18,7 @@ using ElyverseFootball::SimCore::PlayerId;
 using ElyverseFootball::SimCore::SimTick;
 using ElyverseFootball::SimCore::Vec2;
 using ElyverseFootball::SimMatch::BallTouch;
+using ElyverseFootball::SimMatch::GoalRecord;
 using ElyverseFootball::SimMatch::hashMatchState;
 using ElyverseFootball::SimMatch::makeSevenASideKickoff;
 using ElyverseFootball::SimMatch::MatchSimulation;
@@ -68,8 +69,10 @@ TEST_CASE("The kickoff hash is pinned", "[matchStateHash]") {
   // the kickoff ball lies still on the grass as it always has, but the hash
   // covers three numbers more. Re-pinned again when the pending pass became
   // a pending action per player, when players gained a shot accuracy and
-  // when the state gained its last shot: the hash covers what they add.
-  REQUIRE(hashOf(kickoffSpec()) == 0x4c1cc273e8aecb20ULL);
+  // when the state gained its last shot: the hash covers what they add. And
+  // again with shot execution: players gained a technique and a strong and a
+  // weak foot, the state its score and its last goal.
+  REQUIRE(hashOf(kickoffSpec()) == 0x3e9c225dffb5984aULL);
 }
 
 // Guards against a field that is added to the state but forgotten here.
@@ -90,6 +93,15 @@ TEST_CASE("Every field of the state changes the hash", "[matchStateHash]") {
       {"max speed", [](auto& spec) { spec.players.at(2).attributes.maxSpeed = 8.0; }},
       {"acceleration", [](auto& spec) { spec.players.at(2).attributes.acceleration = 3.0; }},
       {"shot accuracy", [](auto& spec) { spec.players.at(2).attributes.shotAccuracy = 0.9; }},
+      {"shot technique", [](auto& spec) { spec.players.at(2).attributes.shotTechnique = 0.9; }},
+      {"strong foot",
+       [](auto& spec) {
+         spec.players.at(2).attributes.strongFoot = ElyverseFootball::SimMatch::Foot::kLeft;
+       }},
+      {"weak foot accuracy",
+       [](auto& spec) { spec.players.at(2).attributes.weakFootAccuracy = 0.9; }},
+      {"score home", [](auto& spec) { spec.score.home = 1; }},
+      {"score away", [](auto& spec) { spec.score.away = 1; }},
       {"target", [](auto& spec) { spec.players.at(9).target = Vec2{}; }},
       {"facing", [](auto& spec) { spec.players.at(4).facing = Vec2{.x = 0.0, .y = 1.0}; }},
       {"ball position", [](auto& spec) { spec.ball.position.y = 1.0; }},
@@ -183,6 +195,10 @@ TEST_CASE("Pending actions and the last shot are part of the hash", "[matchState
   const ShotIntent aShot{
       .shooter = idOf(2), .target = {.x = 60.0, .y = 20.0}, .height = 1.0, .speed = 25.0};
   const ShotRecord aRecord{.shooter = idOf(2), .from = {.x = 40.0, .y = 20.0}, .tick = SimTick(5)};
+  const auto goal = [](const GoalRecord& record) {
+    return [record](MatchStateWriter& next) { next.addGoal(record); };
+  };
+  const GoalRecord aGoal{.side = TeamSide::kHome, .scorer = idOf(2), .tick = SimTick(9)};
   const auto changed = [](auto value, auto change) {
     change(value);
     return value;
@@ -217,6 +233,29 @@ TEST_CASE("Pending actions and the last shot are part of the hash", "[matchState
        hashAfter(lastShot(changed(aRecord, [](ShotRecord& record) { record.from.x = 41.0; })))},
       {"last shot tick",
        hashAfter(lastShot(changed(aRecord, [](ShotRecord& record) { record.tick = SimTick(6); })))},
+      {"last shot deflection", hashAfter(lastShot(changed(aRecord,
+                                                          [&](ShotRecord& record) {
+                                                            record.deflection =
+                                                                BallTouch{.playerId = idOf(9),
+                                                                          .tick = SimTick(7)};
+                                                          })))},
+      {"last shot deflection by another",
+       hashAfter(lastShot(changed(aRecord,
+                                  [&](ShotRecord& record) {
+                                    record.deflection =
+                                        BallTouch{.playerId = idOf(10), .tick = SimTick(7)};
+                                  })))},
+      {"last shot resolved",
+       hashAfter(lastShot(changed(aRecord, [](ShotRecord& record) { record.resolved = true; })))},
+      {"goal", hashAfter(goal(aGoal))},
+      {"goal for the other side",
+       hashAfter(goal(changed(aGoal, [](GoalRecord& record) { record.side = TeamSide::kAway; })))},
+      {"goal scorer",
+       hashAfter(goal(changed(aGoal, [&](GoalRecord& record) { record.scorer = idOf(3); })))},
+      {"goal without a scorer",
+       hashAfter(goal(changed(aGoal, [](GoalRecord& record) { record.scorer.reset(); })))},
+      {"goal tick",
+       hashAfter(goal(changed(aGoal, [](GoalRecord& record) { record.tick = SimTick(10); })))},
   };
   for (std::size_t first = 0; first < hashes.size(); ++first) {
     for (std::size_t second = 0; second < first; ++second) {

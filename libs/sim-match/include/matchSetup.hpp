@@ -6,6 +6,7 @@
 #include "ballMovement.hpp"
 #include "challenge.hpp"
 #include "desiredRegion.hpp"
+#include "goalFrame.hpp"
 #include "matchCommand.hpp"
 #include "matchSimulation.hpp"
 #include "matchState.hpp"
@@ -17,6 +18,7 @@
 #include "pursuit.hpp"
 #include "reception.hpp"
 #include "restart.hpp"
+#include "shooting.hpp"
 #include "tacticalMovement.hpp"
 #include "tacticalPhases.hpp"
 #include "teamPressing.hpp"
@@ -42,6 +44,8 @@ struct MatchConfig {
   ChallengeConfig challenge;
   PressingConfig pressing;
   RestartConfig restarts;
+  ShotConfig shooting;
+  WoodworkConfig woodwork;
 
   friend bool operator==(const MatchConfig&, const MatchConfig&) = default;
 };

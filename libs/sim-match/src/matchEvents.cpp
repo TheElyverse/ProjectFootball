@@ -103,12 +103,63 @@ void addFields(StableHasher& hasher, const ShotAttempted& event) noexcept {
   hasher.addDouble(event.target.x);
   hasher.addDouble(event.target.y);
   hasher.addDouble(event.height);
+  hasher.addDouble(event.struckAt.x);
+  hasher.addDouble(event.struckAt.y);
+  hasher.addDouble(event.struckHeight);
   hasher.addDouble(event.speed);
   hasher.addDouble(event.distance);
   hasher.addDouble(event.opening);
 }
 
+void addFields(StableHasher& hasher, const ShotDeflected& event) noexcept {
+  hasher.addU64(event.shooter.value());
+  hasher.addI64(event.shotTick.value());
+  hasher.addU64(event.player.value());
+  hasher.addDouble(event.position.x);
+  hasher.addDouble(event.position.y);
+  hasher.addDouble(event.height);
+  hasher.addBool(event.blocked);
+}
+
+void addFields(StableHasher& hasher, const ShotHitWoodwork& event) noexcept {
+  hasher.addU64(event.shooter.value());
+  hasher.addI64(event.shotTick.value());
+  hasher.addU64(static_cast<std::uint64_t>(event.part));
+  hasher.addDouble(event.position.x);
+  hasher.addDouble(event.position.y);
+  hasher.addDouble(event.height);
+}
+
+void addFields(StableHasher& hasher, const ShotResolved& event) noexcept {
+  hasher.addU64(event.shooter.value());
+  hasher.addI64(event.shotTick.value());
+  hasher.addU64(static_cast<std::uint64_t>(event.outcome));
+}
+
+void addFields(StableHasher& hasher, const GoalScored& event) noexcept {
+  hasher.addU64(static_cast<std::uint64_t>(event.side));
+  addPlayer(hasher, event.scorer);
+  addPlayer(hasher, event.assist);
+  hasher.addBool(event.ownGoal);
+  hasher.addI64(event.score.home);
+  hasher.addI64(event.score.away);
+}
+
 }  // namespace
+
+std::string_view shotOutcomeName(const ShotOutcome outcome) noexcept {
+  switch (outcome) {
+    case ShotOutcome::kGoal:
+      return "goal";
+    case ShotOutcome::kSaved:
+      return "saved";
+    case ShotOutcome::kOffTarget:
+      return "offTarget";
+    case ShotOutcome::kBlocked:
+      return "blocked";
+  }
+  return "unknown";
+}
 
 std::string_view eventName(const MatchEvent& event) {
   struct Names {
@@ -148,6 +199,18 @@ std::string_view eventName(const MatchEvent& event) {
     }
     std::string_view operator()(const ShotAttempted& /*event*/) const noexcept {
       return "shot attempted";
+    }
+    std::string_view operator()(const ShotDeflected& /*event*/) const noexcept {
+      return "shot deflected";
+    }
+    std::string_view operator()(const ShotHitWoodwork& /*event*/) const noexcept {
+      return "shot hit woodwork";
+    }
+    std::string_view operator()(const ShotResolved& /*event*/) const noexcept {
+      return "shot resolved";
+    }
+    std::string_view operator()(const GoalScored& /*event*/) const noexcept {
+      return "goal scored";
     }
   };
   return std::visit(Names{}, event);

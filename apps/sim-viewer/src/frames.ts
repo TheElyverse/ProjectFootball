@@ -3,7 +3,7 @@
 // change a match.
 
 export const FRAMES_FORMAT = "elyverse-debug-frames";
-export const FRAMES_VERSION = 4;
+export const FRAMES_VERSION = 5;
 
 // [x, y] in meters; x along the pitch length, y across it.
 export type Vec2 = readonly [number, number];

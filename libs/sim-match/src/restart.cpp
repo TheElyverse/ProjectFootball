@@ -30,10 +30,11 @@ namespace {
   return state.players()[*index].side;
 }
 
-// The side's player nearest to the ball, ties to the lower index; for a goal
+// The side's player nearest to a point, ties to the lower index; for a goal
 // kick its goalkeeper first.
 [[nodiscard]] std::optional<std::size_t> takerOf(const MatchState& state, const TeamSide side,
-                                                 const bool goalkeeperFirst) {
+                                                 const bool goalkeeperFirst,
+                                                 const SimCore::Vec2 point) {
   std::optional<std::size_t> nearest;
   double nearestDistance = std::numeric_limits<double>::infinity();
   for (std::size_t index = 0; index < state.players().size(); ++index) {
@@ -44,7 +45,7 @@ namespace {
     if (goalkeeperFirst && isGoalkeeper(state, index)) {
       return index;
     }
-    const double distance = SimCore::distance(player.position, state.ball().position);
+    const double distance = SimCore::distance(player.position, point);
     if (distance < nearestDistance) {
       nearest = index;
       nearestDistance = distance;
@@ -63,6 +64,8 @@ std::string_view restartKindName(const RestartKind kind) noexcept {
       return "goalKick";
     case RestartKind::kCorner:
       return "corner";
+    case RestartKind::kKickoff:
+      return "kickoff";
   }
   return "unknown";
 }
@@ -85,6 +88,14 @@ std::optional<RestartPlan> planRestart(const MatchState& state) {
   }
   const BallState& ball = state.ball();
   const Pitch& pitch = state.pitch();
+  // A goal nobody has touched the ball since: the side that conceded it kicks
+  // off.
+  if (const auto& goal = state.lastGoal();
+      goal && (!ball.lastTouch || goal->tick >= ball.lastTouch->tick)) {
+    const auto taker = takerOf(state, otherSide(goal->side), false, pitch.center());
+    return taker ? std::optional(RestartPlan{.kind = RestartKind::kKickoff, .playerIndex = *taker})
+                 : std::nullopt;
+  }
   const std::optional<TeamSide> touched = lastTouchSide(state);
   const bool overGoalLine = ball.position.x == 0.0 || ball.position.x == pitch.lengthMeters();
   if (!overGoalLine) {
@@ -92,7 +103,7 @@ std::optional<RestartPlan> planRestart(const MatchState& state) {
     const TeamSide halfOwner =
         ball.position.x < pitch.lengthMeters() / 2.0 ? TeamSide::kHome : TeamSide::kAway;
     const TeamSide thrower = touched ? otherSide(*touched) : halfOwner;
-    const auto taker = takerOf(state, thrower, false);
+    const auto taker = takerOf(state, thrower, false, ball.position);
     return taker ? std::optional(RestartPlan{.kind = RestartKind::kThrowIn, .playerIndex = *taker})
                  : std::nullopt;
   }
@@ -100,7 +111,7 @@ std::optional<RestartPlan> planRestart(const MatchState& state) {
   const TeamSide defender = ball.position.x == 0.0 ? TeamSide::kHome : TeamSide::kAway;
   const bool corner = touched == defender;
   const TeamSide restarter = corner ? otherSide(defender) : defender;
-  const auto taker = takerOf(state, restarter, !corner);
+  const auto taker = takerOf(state, restarter, !corner, ball.position);
   if (!taker) {
     return std::nullopt;
   }
@@ -125,7 +136,9 @@ MatchSystem makeRestartSystem(const RestartConfig& config, const BallPhysics& ba
             context.record(RestartTaken{.tick = context.tick(),
                                         .kind = plan->kind,
                                         .player = taker.playerId,
-                                        .position = current.ball().position});
+                                        .position = plan->kind == RestartKind::kKickoff
+                                                        ? current.pitch().center()
+                                                        : current.ball().position});
             context.record(PossessionChanged{
                 .tick = context.tick(), .previousOwner = std::nullopt, .newOwner = taker.playerId});
             next.setBallOwner(taker.playerId);

@@ -15,7 +15,7 @@ and ball physics are separate concerns.
 |--------------------|---------------------------------------------------------------------------------|
 | `MatchState`       | the `Pitch`, the players in order, the `BallState`, the squad size per side, every player's perception memory, and each side's tactic |
 | `PlayerMatchState` | `playerId`, `side`, `position`, `velocity`, `attributes`, `target`, `facing`    |
-| `PlayerAttributes` | `maxSpeed` (m/s), `acceleration` (m/s²) and `shotAccuracy` (0 … 1), fixed for the match |
+| `PlayerAttributes` | `maxSpeed` (m/s), `acceleration` (m/s²), `shotAccuracy`, `shotTechnique` and `weakFootAccuracy` (0 … 1) and `strongFoot`, fixed for the match |
 | `BallState`        | `position`, `velocity`, `owner`, `lastTouch`                                    |
 | `TeamSide`         | `kHome` or `kAway`                                                              |
 
@@ -31,8 +31,10 @@ rules let teams switch ends.
 one, and without a target a player comes to a stop where he is; see
 [player movement](player-movement.md). `attributes` default to `kDefaultMaxSpeed` (7.5 m/s) and
 `kDefaultAcceleration` (4 m/s²), and `shotAccuracy` to `kDefaultShotAccuracy`
-(0.5, an average finisher; see [shot decisions](shot-decisions.md)); they describe the predefined test players of the
-sandbox, not a generated player.
+(0.5, an average finisher; see [shot decisions](shot-decisions.md)). How he
+strikes a shot is `shotTechnique` and `weakFootAccuracy`, both 0.5 by default,
+and his `strongFoot`, the right ([shooting](shooting.md)). They describe the
+predefined test players of the sandbox, not a generated player.
 
 The ball's `owner` is the player in control of it, empty while it is free, and
 `lastTouch` the last player to kick or take it; see [possession](possession.md).
@@ -65,9 +67,15 @@ player each side has sent after a free ball ([reception](reception.md)), and
 `tactical(playerIndex)` holds each player's tactical runtime state, such as his
 [desired region](desired-region.md), and `press(side)` the side's
 [press](pressing.md) in progress. `lastPass()`, `lastShot()` and
-`lastReception()` record the last pass kicked, the last shot taken and the last
-free ball controlled. All are empty in a state
-created from a spec.
+`lastReception()` record the last pass kicked, the last shot taken — with the
+player it last came off and whether its outcome is recorded — and the last
+free ball controlled — with the teammate whose pass it was, if any —, and
+`lastGoal()` the last goal scored. All are empty in a
+state created from a spec.
+
+`score()` is the goals both sides have scored. A spec states the score a match
+starts at, 0:0 by default and never negative (`kInvalidScore`); the
+[ball system](shooting.md#goals) counts from there.
 
 Every player also has a perception memory, `perception(playerIndex)`: what he
 believes about the ball and the other players (see [perception](perception.md)).

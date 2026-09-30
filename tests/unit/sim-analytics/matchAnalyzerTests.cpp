@@ -159,6 +159,8 @@ TEST_CASE("Shots count per side and are no passes", "[analytics]") {
                          .from = {.x = 50.0, .y = 20.0},
                          .target = {.x = 60.0, .y = 20.0},
                          .height = 0.5,
+                         .struckAt = {.x = 60.0, .y = 20.2},
+                         .struckHeight = 0.6,
                          .speed = 25.0,
                          .distance = 10.0,
                          .opening = 0.4};

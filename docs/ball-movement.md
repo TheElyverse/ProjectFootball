@@ -156,8 +156,11 @@ happens to a ball that leaves the pitch is for the systems to decide.
 A ball that crosses a touchline or goal line stops on the line at the crossing
 point, on the ground, at rest and without spin, in the air as on the grass: the
 ball is out of play and waits there. This is the documented stand-in until a
-rules system decides on throw-ins, goal kicks, corners and goals; the opt-in
+rules system decides on throw-ins, goal kicks and corners; the opt-in
 [restart](restarts.md) system gives such a ball to the side due to restart. A
+ball that crossed a goal line between the posts and under the crossbar is a
+goal, and before it gets there the posts and the crossbar can turn it away
+([shooting](shooting.md)). A
 ball rolling along a line, or resting on it, is on the pitch
 (`Pitch::contains()` includes the edges) and keeps rolling.
 
@@ -184,10 +187,10 @@ like any other invalid state.
 
 ## What this is not
 
-Nothing kicks the ball off the ground yet: every pass is a ground pass, and it
-leaves the foot without height, vertical velocity or spin; until shot execution
-exists, a [shot](shot-decisions.md) is struck along the ground as well. Shots, crosses and
-lofted passes are what will fill the third dimension; headers and aerial duels
+Only a [shot](shooting.md) lifts the ball off the ground: every pass is a
+ground pass, and it leaves the foot without height, vertical velocity or spin.
+Crosses and lofted passes are what else will fill the third dimension; headers
+and aerial duels
 decide who wins a high ball, and until they exist a ball above
 `controlHeight` simply runs through (see [reception](reception.md)).
 
@@ -195,5 +198,5 @@ The flight has no sidespin and so no curve: a Magnus force needs a sine and a
 cosine that are bit-identical on every platform, and `sim-core` has no such
 trigonometry yet. Players perceive the ball's position on the pitch, not its
 height. There is no air resistance while the ball rolls, no collision between
-ball and player, nothing for it to hit but the grass -- posts and crossbar wait
-for the goals -- and no wind.
+ball and player but a shot coming off a body, nothing else for it to hit but
+the grass and the goal frame, and no wind.

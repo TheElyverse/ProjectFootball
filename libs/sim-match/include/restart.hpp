@@ -29,8 +29,10 @@ struct RestartPlan {
 };
 
 // The restart for a ball out of play, empty while it is in play or when the
-// side due to restart has no player. Over a touchline: a throw-in for the
-// side that did not touch the ball last. Over a goal line: a corner if the
+// side due to restart has no player. After a goal -- the state's last goal,
+// if nobody has touched the ball since: a kickoff for the side that conceded
+// it, by its player nearest to the centre spot. Over a touchline: a throw-in
+// for the side that did not touch the ball last. Over a goal line: a corner if the
 // side defending that line touched it last, a goal kick otherwise. The ball
 // goes to the side's player nearest to it -- for a goal kick, its goalkeeper
 // if it has one. Ties go to the lower player index; no random number is
@@ -40,7 +42,8 @@ struct RestartPlan {
 inline constexpr std::string_view kRestartSystemName = "restart";
 
 // Every tick while enabled: if the ball is out of play, gives it to the
-// player planRestart() names, at his feet, and records RestartTaken and
+// player planRestart() names, at his feet, and records RestartTaken -- at the
+// centre spot for a kickoff, otherwise where the ball left the pitch -- and
 // PossessionChanged. The player is not moved: a restart only settles who
 // plays on. Disabled, it does nothing.
 // ball places the ball at the taker's feet.

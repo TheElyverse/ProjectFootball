@@ -13,6 +13,7 @@
 #include "laneReach.hpp"
 #include "passCandidates.hpp"
 #include "pitch.hpp"
+#include "shooting.hpp"
 #include "spatialQueries.hpp"
 #include "zones.hpp"
 
@@ -22,14 +23,6 @@ namespace {
 using LaneReach::Lane;
 using LaneReach::Remembered;
 using SimCore::Vec2;
-
-// How much wider than an average finisher's a shooter's spread is: a
-// pinpoint one (accuracy 1) spreads a tenth as much, an average one (0.5)
-// exactly as much, a wild one (0) almost twice.
-[[nodiscard]] double accuracyFactor(const double accuracy) noexcept {
-  constexpr double kPinpoint = 0.1;
-  return kPinpoint + (2.0 * (1.0 - kPinpoint) * (1.0 - accuracy));
-}
 
 // The share of a triangular spread of half-width `spread` around `aim` that
 // falls below `value`: the distribution function of the triangle, built from
@@ -345,7 +338,7 @@ std::vector<ShotCandidate> generateShotCandidates(const MatchState& state,
   const double opening = goalOpening(from, goal);
   const double spread = (scoring.spreadAtZero + (scoring.spreadPerMeter * distance)) *
                         (1.0 + (scoring.pressureSpread * pressure)) *
-                        accuracyFactor(shooter.attributes.shotAccuracy);
+                        skillErrorFactor(shooter.attributes.shotAccuracy);
 
   std::vector<ShotCandidate> candidates;
   candidates.reserve(columns * rows);

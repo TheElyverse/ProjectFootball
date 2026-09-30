@@ -98,13 +98,18 @@ reproduce, and the styles must separate where their identities promise:
 | Metric                  | Separation                              |
 |-------------------------|-----------------------------------------|
 | `regains`               | pressing above possession and counter   |
-| `regainsAttackingThird` | pressing above possession and counter   |
+| `regainsAttackingThird` | pressing above counter                  |
 | `ppda`                  | possession and counter above pressing — pressing allows the fewest passes per defensive action |
 
-These hold for base seeds 1, 2 and 3 of the reduced run. Every side of every
+These hold for base seeds 1, 2 and 3 of the reduced run. Pressing also regained
+the ball in the attacking third more often than possession while a shot that
+went in was a goal kick to win back in front of the goal; since it is a
+[goal](shooting.md) and a kickoff, six matches separate the two with seeds 2 and
+3 but not with seed 1, and the test no longer asks for it. Every side of every
 pairing must also shoot between 1 and 40 times per six-minute match on
 average — a guardrail against a change that stops the shooting or turns the
-sandbox into a shooting gallery, set from the first measurement of 2 to 27
+sandbox into a shooting gallery, set from the first measurement of 2 to 27,
+which goals have brought down to 3 to 13
 ([shot decisions](shot-decisions.md)). The test is registered for Release
 builds only; in Debug it would take minutes.
 
