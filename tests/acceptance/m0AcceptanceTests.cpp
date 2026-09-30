@@ -178,6 +178,7 @@ TEST_CASE("M0: the final state hash is pinned", "[acceptance][m0]") {
   // players gained a shot accuracy, and when players began to shoot: the M0
   // players now shoot at a goal in front of them -- and when shots were no
   // longer held to the hardest pass's speed. And again with shot execution:
-  // their shots now fly, hit the frame, come off defenders and score.
-  REQUIRE(record().checkpoints.back().stateHash == 0x3463603b1f5532a9ULL);
+  // their shots now fly, hit the frame, come off defenders and score, and
+  // the last reception remembers whose pass it was.
+  REQUIRE(record().checkpoints.back().stateHash == 0xcdeed3772ab5caa1ULL);
 }

@@ -134,7 +134,9 @@ a **goal** — for shots, passes and deflections alike:
   an **own goal** if he plays for the other side — and nobody for a ball no
   player had touched.
 - The **assist** goes to the teammate whose pass the scorer last received, if
-  that is how he came by the ball.
+  that is how he came by the ball: `lastReception()` remembers whose pass a
+  controlled ball was. A loose ball or an interception earns none, whoever the
+  last pass was meant for.
 - `GoalScored` records all of it with the score it makes.
 
 With [restarts](restarts.md) enabled, the side that conceded kicks off.

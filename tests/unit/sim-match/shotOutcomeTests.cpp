@@ -51,6 +51,7 @@ using ElyverseFootball::SimMatch::MatchSystem;
 using ElyverseFootball::SimMatch::PassConfig;
 using ElyverseFootball::SimMatch::PassIntercepted;
 using ElyverseFootball::SimMatch::PassReceived;
+using ElyverseFootball::SimMatch::PassRecord;
 using ElyverseFootball::SimMatch::Pitch;
 using ElyverseFootball::SimMatch::PlayerMatchState;
 using ElyverseFootball::SimMatch::PossessionChanged;
@@ -556,10 +557,8 @@ TEST_CASE("A ball nobody touched scores for the side attacking that goal", "[sho
   REQUIRE(eventsOf<GoalScored>(play(simulation, 30)).empty());
 }
 
-TEST_CASE("The teammate whose pass the scorer received has the assist", "[shotOutcome]") {
-  Chance chance;
-  chance.teammate = {.x = 40.0, .y = 20.0};
-  // Home 2 passes to home 1, who receives it and then shoots.
+// Home 1 shoots as soon as he has gained control of a free ball.
+[[nodiscard]] std::vector<MatchSystem> shootOnReception(const Chance& chance) {
   std::vector<MatchSystem> systems{{.name = "shot decision",
                                     .update = [](const MatchStepContext& /*context*/,
                                                  const MatchState& state, MatchStateWriter& next) {
@@ -569,23 +568,68 @@ TEST_CASE("The teammate whose pass the scorer received has the assist", "[shotOu
                                       }
                                     }}};
   std::ranges::move(ballSystems(chance), std::back_inserter(systems));
+  return systems;
+}
+
+TEST_CASE("The teammate whose pass the scorer received has the assist", "[shotOutcome]") {
+  Chance chance;
+  chance.teammate = {.x = 40.0, .y = 20.0};
+  // Home 2 passes to home 1, or into the space he stands in; he receives it
+  // and then shoots.
+  for (const std::optional<PlayerId> receiver :
+       {std::optional(PlayerId(1)), std::optional<PlayerId>()}) {
+    CAPTURE(receiver.has_value());
+    MatchSimulation simulation(
+        {.initialState = chanceState(chance, {.position = {.x = 40.5, .y = 20.0},
+                                              .velocity = {},
+                                              .owner = PlayerId(2),
+                                              .lastTouch = std::nullopt}),
+         .seed = 1,
+         .ticksPerSecond = 30,
+         .systems = shootOnReception(chance),
+         .commands = {{.tick = SimTick(0),
+                       .command = ElyverseFootball::SimMatch::PassCommand{.playerId = PlayerId(2),
+                                                                          .target = kShooter,
+                                                                          .speed = 12.0,
+                                                                          .receiver = receiver}}}});
+    const auto goals = eventsOf<GoalScored>(play(simulation, 90));
+
+    REQUIRE(goals.size() == 1);
+    REQUIRE(goals.front().scorer == PlayerId(1));
+    REQUIRE(goals.front().assist == PlayerId(2));
+  }
+}
+
+TEST_CASE("A loose ball the scorer recovered earns no assist", "[shotOutcome]") {
+  // The last pass was home 2's, for home 1 -- but the ball home 1 takes and
+  // scores with is one nobody played.
+  std::vector<MatchSystem> systems{
+      {.name = "last pass",
+       .update = [](const MatchStepContext& context, const MatchState& /*state*/,
+                    MatchStateWriter& next) {
+         if (context.tick() == SimTick(0)) {
+           next.setLastPass(PassRecord{.passer = PlayerId(2),
+                                       .from = {.x = 40.5, .y = 20.0},
+                                       .tick = SimTick(0),
+                                       .receiver = PlayerId(1)});
+         }
+       }}};
+  const Chance chance;
+  std::ranges::move(shootOnReception(chance), std::back_inserter(systems));
   MatchSimulation simulation(
-      {.initialState = chanceState(chance, {.position = {.x = 40.5, .y = 20.0},
-                                            .velocity = {},
-                                            .owner = PlayerId(2),
+      {.initialState = chanceState(chance, {.position = {.x = 45.0, .y = 20.0},
+                                            .velocity = {.x = 10.0, .y = 0.0},
+                                            .owner = std::nullopt,
                                             .lastTouch = std::nullopt}),
        .seed = 1,
        .ticksPerSecond = 30,
        .systems = std::move(systems),
-       .commands = {
-           {.tick = SimTick(0),
-            .command = ElyverseFootball::SimMatch::PassCommand{.playerId = PlayerId(2),
-                                                               .target = kShooter,
-                                                               .speed = 12.0,
-                                                               .receiver = PlayerId(1)}}}});
-  const auto goals = eventsOf<GoalScored>(play(simulation, 90));
+       .commands = {}});
+  const auto events = play(simulation, 90);
+  const auto goals = eventsOf<GoalScored>(events);
 
+  REQUIRE(eventsOf<LooseBallRecovered>(events).size() == 1);
   REQUIRE(goals.size() == 1);
   REQUIRE(goals.front().scorer == PlayerId(1));
-  REQUIRE(goals.front().assist == PlayerId(2));
+  REQUIRE_FALSE(goals.front().assist.has_value());
 }

@@ -279,11 +279,13 @@ struct ShotRecord {
 };
 
 // The last time a player gained control of a free ball: who, when, and how
-// fast the ball was coming -- a hard ball is hard to control.
+// fast the ball was coming -- a hard ball is hard to control. passer is the
+// teammate whose pass it was, and nobody for a ball intercepted or loose.
 struct ReceptionRecord {
   SimCore::PlayerId player;
   SimCore::SimTick tick;
   double ballSpeed = 0.0;
+  std::optional<SimCore::PlayerId> passer = std::nullopt;
 
   friend bool operator==(const ReceptionRecord&, const ReceptionRecord&) = default;
 };

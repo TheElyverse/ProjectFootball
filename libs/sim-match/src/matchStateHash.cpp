@@ -199,6 +199,10 @@ std::uint64_t hashMatchState(const MatchState& state) noexcept {
     hasher.addU64(reception->player.value());
     hasher.addI64(reception->tick.value());
     hasher.addDouble(reception->ballSpeed);
+    hasher.addBool(reception->passer.has_value());
+    if (reception->passer) {
+      hasher.addU64(reception->passer->value());
+    }
   }
   hasher.addI64(state.score().home);
   hasher.addI64(state.score().away);

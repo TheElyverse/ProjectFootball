@@ -69,7 +69,8 @@ player each side has sent after a free ball ([reception](reception.md)), and
 [press](pressing.md) in progress. `lastPass()`, `lastShot()` and
 `lastReception()` record the last pass kicked, the last shot taken — with the
 player it last came off and whether its outcome is recorded — and the last
-free ball controlled, and `lastGoal()` the last goal scored. All are empty in a
+free ball controlled — with the teammate whose pass it was, if any —, and
+`lastGoal()` the last goal scored. All are empty in a
 state created from a spec.
 
 `score()` is the goals both sides have scored. A spec states the score a match

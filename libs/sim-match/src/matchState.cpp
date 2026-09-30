@@ -449,6 +449,9 @@ void MatchStateWriter::setLastPass(const std::optional<PassRecord> pass) {
 void MatchStateWriter::setLastReception(const std::optional<ReceptionRecord> reception) {
   if (reception) {
     requirePlayer(reception->player, "a receiver");
+    if (reception->passer) {
+      requirePlayer(*reception->passer, "a passer");
+    }
   }
   state_->lastReception_ = reception;
 }

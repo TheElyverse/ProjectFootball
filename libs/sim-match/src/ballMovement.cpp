@@ -200,14 +200,8 @@ void resolveShot(const ShotRecord& shot, const ShotOutcome outcome, const MatchS
 // The teammate whose pass the scorer received last, if that is how he came by
 // the ball.
 [[nodiscard]] std::optional<PlayerId> assistOf(const MatchState& state, const PlayerId scorer) {
-  const auto& pass = state.lastPass();
   const auto& reception = state.lastReception();
-  const bool received = pass && reception && pass->receiver == scorer &&
-                        reception->player == scorer && reception->tick >= pass->tick;
-  if (!received || pass->passer == scorer || sideOf(state, pass->passer) != sideOf(state, scorer)) {
-    return std::nullopt;
-  }
-  return pass->passer;
+  return reception && reception->player == scorer ? reception->passer : std::nullopt;
 }
 
 // Counts the goal of a ball that crossed this end's goal line inside the
@@ -336,13 +330,18 @@ void takeBall(const FreeBall& free, const BallClaim& claim, const BallRules& rul
   const BallState& ball = free.ball;
   next.setBallOwner(claim.playerId);
   next.setBallLastTouch(BallTouch{.playerId = claim.playerId, .tick = context.tick()});
-  next.setLastReception(ReceptionRecord{
-      .player = claim.playerId, .tick = context.tick(), .ballSpeed = ball.velocity.length()});
   carryBy(current.players()[claim.playerIndex], rules, context, current, next);
   const Vec2 contactPosition =
       ball.position + ((free.step.ball.position - ball.position) * claim.contact.contactFraction);
-  context.record(
-      controlEvent(current, ball, next.lastShot(), claim, contactPosition, context.tick()));
+  const MatchEvent event =
+      controlEvent(current, ball, next.lastShot(), claim, contactPosition, context.tick());
+  const auto* received = std::get_if<PassReceived>(&event);
+  next.setLastReception(ReceptionRecord{
+      .player = claim.playerId,
+      .tick = context.tick(),
+      .ballSpeed = ball.velocity.length(),
+      .passer = received != nullptr ? std::optional(received->passer) : std::nullopt});
+  context.record(event);
   context.record(PossessionChanged{
       .tick = context.tick(), .previousOwner = std::nullopt, .newOwner = claim.playerId});
   if (free.shot) {
