@@ -14,9 +14,10 @@ in `sim-match` (`scenarios.hpp`), and `sim-cli --scenario <name>` runs one.
 | `intercepted-pass` | home player 1's only option is a risky pass past away player 8 |
 | `no-passing-option` | home player 1 on the ball, every teammate behind him out of sight |
 | `clear-chance` | home player 1 eight meters out, only the keeper to beat ([shot decisions](shot-decisions.md)) |
+| `goal-kickoff` | the clear chance with tactics and restarts, the kickoff after the goal ([restarts](restarts.md#the-kickoff)) |
 | `hopeless-angle` | home player 1 on the goal line wide of the post, a teammate free |
 | `blocked-lane` | home player 1 twelve meters out, a defender in the way, a teammate free |
-| `tactic-match` | the reference tactic against itself, home's forward kicks off      |
+| `tactic-match` | the reference tactic against itself, lined up for home's kickoff   |
 | `transition-3v2` | home wins the ball in midfield, three attackers against two defenders ([golden](golden-scenarios.md)) |
 | `isolated-winger` | home plays out to an isolated winger, away presses on the trigger |
 | `touchline-trap` | away's receiver faces his own goal at the touchline, home presses four players |
@@ -139,6 +140,18 @@ and home's other players wait in their own half.
   meters in front of him, square in the way; his teammate 2 stands free to his
   left.
 
+- **`goal-kickoff`**: the clear chance with a [kickoff](restarts.md#the-kickoff)
+  after it. Both sides play the reference tactic — home's with its slots in
+  the order its players stand, so player 1 is the striker and player 7 the
+  keeper — and restarts are on. With seeds 2 to 5 and 8, player 1 scores
+  within the first second; in the next step both sides stand in their
+  formations in their own halves and away's striker, player 14, has the ball
+  on the centre spot:
+
+  ```sh
+  ./build/debug/apps/sim-cli/sim-cli --scenario goal-kickoff --seed 2 --ticks 300 --frames-out frames.json
+  ```
+
 `tests/acceptance/shotScenarioTests.cpp` looks at player 1's first decision in
 each of 100 seeds: at the clear chance he shoots at least 90 times, from the
 hopeless angle every shot is `too narrow` and he always passes, and past the
@@ -149,9 +162,12 @@ its end: the first shot is a goal in 55 to 90 of the seeds
 
 ## The tactic match
 
-`tactic-match` is the fixture two tactics play on: the seven-a-side kickoff
-fixture with a tactic on each side, the standard configuration, and
-`GiveBall` to home's forward (player 7) at tick 0. `makeTacticMatch()` builds it
+`tactic-match` is the fixture two tactics play on: the players of the
+seven-a-side kickoff fixture with a tactic on each side, lined up for a
+[kickoff](restarts.md#the-kickoff) by home — each side in its tactic's base
+shape in its own half, the ball on the centre spot — the standard
+configuration, and `GiveBall` to home's taker, the striker (player 7) of every
+preset, at tick 0. `makeTacticMatch()` builds it
 for any two tactics that fit seven a side; the catalog entry uses the reference
 tactic on both sides. The CLI swaps in tactic files:
 

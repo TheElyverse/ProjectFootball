@@ -139,7 +139,9 @@ a **goal** — for shots, passes and deflections alike:
   last pass was meant for.
 - `GoalScored` records all of it with the score it makes.
 
-With [restarts](restarts.md) enabled, the side that conceded kicks off.
+With [restarts](restarts.md) enabled, the side that conceded kicks off from
+the centre spot, with both sides [lined up](restarts.md#the-kickoff) in their
+own halves.
 Otherwise the ball stays on the line, as every ball that leaves the pitch does.
 
 ## Outcomes
@@ -240,5 +242,4 @@ not block on purpose — a body in the way is a body in the way — and nobody
 heads a ball. The shot decision still judges a shot by a straight line and a
 point-sized ball; it does not know the flight or the thickness of the frame.
 There is no curl, no chip and no choice of how to strike the ball. A goal
-counts and is kicked off, but nobody lines up for the kickoff and no match
-ends with a result yet.
+counts and is kicked off, but no match ends with a result yet.

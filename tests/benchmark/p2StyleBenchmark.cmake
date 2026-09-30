@@ -36,7 +36,8 @@ endif()
 # Pressing's regains in the attacking third over possession's are not among
 # them any more: since a shot that goes in is a goal and a kickoff rather than
 # a goal kick to win back in front of the goal, six matches no longer separate
-# the two with every seed.
+# the two with every seed -- not with seed 2 since both sides line up for the
+# kickoff (docs/restarts.md).
 set(expected
         "regains:pressing:possession" "regains:pressing:counter"
         "regainsAttackingThird:pressing:counter"
@@ -61,7 +62,8 @@ endforeach()
 # How often the sides shoot (docs/shot-decisions.md): every side of every
 # pairing shoots, and none shoots at every chance. The band is set from the
 # first measurement -- 2 to 27 shots a side in six minutes, 3 to 13 since goals
-# restart play from the centre -- with room either way; it guards against a change that stops the shooting or makes a
+# restart play from the centre, 1 to 9 since both sides line up for that
+# kickoff -- with room above; it guards against a change that stops the shooting or makes a
 # shooting gallery of the sandbox, not against balancing.
 set(minShots 1)
 set(maxShots 40)

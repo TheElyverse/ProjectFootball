@@ -17,6 +17,7 @@
 #include "matchState.hpp"
 #include "pitch.hpp"
 #include "referenceTactic.hpp"
+#include "restart.hpp"
 #include "simTime.hpp"
 #include "tactic.hpp"
 #include "vec2.hpp"
@@ -256,22 +257,45 @@ constexpr std::array<Placement, 6> kHomeBehind{{{.x = 20.0, .y = 8.0, .facingX =
 
 // Player 1, eight meters out in front of the goal, has only the keeper to
 // beat, standing on his line.
+constexpr Side kClearChanceHome{{{.x = 51.5, .y = 20.0, .facingX = 1.0},
+                                 kHomeBehind[0],
+                                 kHomeBehind[1],
+                                 kHomeBehind[2],
+                                 kHomeBehind[3],
+                                 kHomeBehind[4],
+                                 kHomeBehind[5]}};
+constexpr Side kClearChanceAway{{{.x = 59.5, .y = 20.0, .facingX = -1.0},
+                                 {.x = 30.0, .y = 8.0, .facingX = -1.0},
+                                 {.x = 30.0, .y = 32.0, .facingX = -1.0},
+                                 {.x = 25.0, .y = 14.0, .facingX = -1.0},
+                                 {.x = 25.0, .y = 26.0, .facingX = -1.0},
+                                 {.x = 20.0, .y = 20.0, .facingX = -1.0},
+                                 {.x = 35.0, .y = 20.0, .facingX = -1.0}}};
+
 [[nodiscard]] std::expected<MatchSetup, std::string> clearChance(const std::uint64_t seed) {
-  constexpr Side kHome{{{.x = 51.5, .y = 20.0, .facingX = 1.0},
-                        kHomeBehind[0],
-                        kHomeBehind[1],
-                        kHomeBehind[2],
-                        kHomeBehind[3],
-                        kHomeBehind[4],
-                        kHomeBehind[5]}};
-  constexpr Side kAway{{{.x = 59.5, .y = 20.0, .facingX = -1.0},
-                        {.x = 30.0, .y = 8.0, .facingX = -1.0},
-                        {.x = 30.0, .y = 32.0, .facingX = -1.0},
-                        {.x = 25.0, .y = 14.0, .facingX = -1.0},
-                        {.x = 25.0, .y = 26.0, .facingX = -1.0},
-                        {.x = 20.0, .y = 20.0, .facingX = -1.0},
-                        {.x = 35.0, .y = 20.0, .facingX = -1.0}}};
-  return againstKeeper(seed, kHome, kAway);
+  return againstKeeper(seed, kClearChanceHome, kClearChanceAway);
+}
+
+// The clear chance with a tactic on both sides and restarts on, to watch the
+// kickoff after the goal: home plays the reference tactic with its slots in
+// the order its players stand -- striker, wingers, holding midfielder, centre
+// backs, goalkeeper -- so player 1 is its striker and player 7 its keeper.
+[[nodiscard]] std::expected<MatchSetup, std::string> goalKickoff(const std::uint64_t seed) {
+  SimTactics::TacticSpec spec = SimTactics::referenceTacticSpec();
+  const std::vector<SimTactics::TacticSlot> slots = spec.slots;
+  spec.name = "reference, striker first";
+  spec.slots = {slots[6], slots[4], slots[5], slots[3], slots[1], slots[2], slots[0]};
+  auto home = SimTactics::Tactic::create(std::move(spec));
+  auto away = SimTactics::Tactic::create(SimTactics::referenceTacticSpec());
+  if (!home || !away) {
+    return std::unexpected("invalid goal-kickoff tactic");
+  }
+  auto setup = placed(seed, kClearChanceHome, kClearChanceAway,
+                      {.home = *std::move(home), .away = *std::move(away)});
+  if (setup) {
+    setup->config.restarts.enabled = true;
+  }
+  return setup;
 }
 
 // Player 1 has run on to the goal line, six meters wide of the post, and looks
@@ -343,6 +367,10 @@ constexpr std::array kScenarios{
     ScenarioDefinition{.name = "clear-chance",
                        .description = "home player 1 eight meters out, only the keeper to beat",
                        .make = &clearChance},
+    ScenarioDefinition{.name = "goal-kickoff",
+                       .description = "the clear chance with tactics and restarts, the kickoff "
+                                      "after the goal",
+                       .make = &goalKickoff},
     ScenarioDefinition{.name = "hopeless-angle",
                        .description = "home player 1 on the goal line wide of the post, a "
                                       "teammate free",
@@ -383,17 +411,34 @@ std::span<const ScenarioDefinition> scenarios() noexcept {
 
 std::expected<MatchSetup, std::string> makeTacticMatch(TeamTactics tactics,
                                                        const std::uint64_t seed) {
-  // Home's forward, the last home player of the fixture, takes the kickoff.
-  constexpr SimCore::PlayerId kKickoffTaker{7};
-  auto state = makeSevenASideKickoff(Pitch(kPitchLength, kPitchWidth), {}, std::move(tactics));
+  auto fixture = makeSevenASideKickoff(Pitch(kPitchLength, kPitchWidth), {}, std::move(tactics));
+  if (!fixture) {
+    return std::unexpected("invalid tactic match: " + fixture.error().front().message);
+  }
+  // Home kicks off, from the same line-up as after a goal (docs/restarts.md).
+  const MatchConfig config;
+  const auto lineUp = lineUpForKickoff(*fixture, TeamSide::kHome, config.ball);
+  if (!lineUp) {
+    return std::unexpected("invalid tactic match: nobody to kick off");
+  }
+  std::vector<PlayerMatchState> players(fixture->players().begin(), fixture->players().end());
+  for (std::size_t index = 0; index < players.size(); ++index) {
+    players[index].position = lineUp->positions[index];
+  }
+  const SimCore::PlayerId taker = players[lineUp->takerIndex].playerId;
+  auto state = MatchState::create({.pitch = fixture->pitch(),
+                                   .players = std::move(players),
+                                   .ball = fixture->ball(),
+                                   .playersPerSide = fixture->playersPerSide()},
+                                  fixture->tactics());
   if (!state) {
     return std::unexpected("invalid tactic match: " + state.error().front().message);
   }
-  return MatchSetup{.initialState = *std::move(state),
-                    .config = {},
-                    .seed = seed,
-                    .commands = {{.tick = SimCore::SimTick(0),
-                                  .command = GiveBallCommand{.playerId = kKickoffTaker}}}};
+  return MatchSetup{
+      .initialState = *std::move(state),
+      .config = config,
+      .seed = seed,
+      .commands = {{.tick = SimCore::SimTick(0), .command = GiveBallCommand{.playerId = taker}}}};
 }
 
 const ScenarioDefinition* findScenario(const std::string_view name) noexcept {
