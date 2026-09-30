@@ -61,6 +61,8 @@
 | Tests            | Catch2 oder GoogleTest                    | Entscheidung per Spike; beide geeignet.                        |
 | Persistence      | SQLite                                    | Relationale, transaktionale Savegame-Basis.                    |
 | Data Definitions | JSON/YAML → validierte interne Strukturen | Menschenlesbare Design-Daten; Schema-Validierung erforderlich. |
+| World Packages   | SQLite, Quellen als CSV/JSON              | Lade- und Austauschformat der Startwelt; siehe Abschnitt 14.3. |
+| World Editor     | TypeScript + Electron                     | Eigenständiger Desktop-Client ohne Unreal; siehe Abschnitt 14.4. |
 | Version Control  | Git + Git LFS                             | LFS nur für binäre Unreal-Assets.                              |
 | CI               | GitHub Actions / vergleichbare Runner     | Core auf Linux/Windows; Unreal Build mindestens Windows.       |
 
@@ -89,12 +91,13 @@ Adapters
 | sim-player    | Capabilities, Match-/World-State, Development         | sim-core                       |
 | sim-tactics   | Principles, Phases, Responsibilities, spatial targets | sim-core, sim-player contracts |
 | sim-match     | Pitch, Ball, Perception, Decisions, Actions, rules    | sim-core/player/tactics        |
-| sim-world     | Calendar, clubs, competitions, economy, careers       | sim-core/player                |
+| sim-world     | Calendar, clubs, competitions, economy, careers, infrastructure, fan base, sponsors | sim-core/player |
 | sim-ai        | Club planning, coach decisions, staff behavior        | domain contracts               |
 | sim-analytics | Events, metrics, explanations                         | read-only domain events        |
 | app           | Commands, Queries, orchestration, permissions         | all domain modules             |
 | persistence   | SQLite mapping, migrations, snapshots                 | app/domain DTOs                |
 | ue-adapter    | State stream, input mapping, presentation DTOs        | app public API                 |
+| world-editor  | World packages bearbeiten, CSV import/export          | world package schema           |
 
 ### 2.2 Dependency Rule
 
@@ -118,10 +121,12 @@ project-football/
 │ ├─ sim-cli/
 │ ├─ sim-benchmark/
 │ ├─ sim-replay/
+│ ├─ world-editor/
 │ └─ unreal-game/
 ├─ data/
 │ ├─ schemas/
 │ ├─ tactics/
+│ ├─ world/
 │ ├─ competitions/
 │ └─ fixtures/
 ├─ tests/
@@ -261,6 +266,19 @@ Movement/Physics ca. 20–30 Hz, Ball 30–60 Hz, Perception 5–10 Hz, Decision
 
 Mindestens Position, 3D velocity, spin und contact state. Erste Version pragmatisch: Gravitation, Luft-/Bodenwiderstand, Bounce, Reibung. Deterministische Core-Physik priorisieren; Unreal darf visuell interpolieren, aber nicht das Ergebnis neu bestimmen.
 
+### 6.8 Crowd Atmosphere
+
+```text
+CrowdContext { attendance; capacity; fanMood; architectureFactor; }
+→ atmosphere(t) = f(CrowdContext, match events)
+→ Confidence / Composure / Focus pro Spieler
+```
+
+- `sim-world` berechnet den `CrowdContext` vor dem Anpfiff (siehe Abschnitt 10.5). Er ist Teil des `InitialSnapshot`; `sim-match` kennt weder Fanbasis noch Gebäude.
+- `sim-match` leitet die Stimmung aus `CrowdContext` und Spielverlauf ab. Sie wirkt ausschließlich auf die mentalen Zustände; wie stark, bestimmt die Personality des Spielers. Es gibt keinen Faktor auf Utility, Ausführung oder Ergebnis.
+- Reason Codes weisen den Anteil der Stimmung an einem mentalen Zustand aus (siehe Abschnitt 15.2).
+- Voraussetzung sind die mentalen Match-Zustände aus dem Player Layer (P4).
+
 ## 7. Taktiksystem
 
 ### 7.1 Datenmodell
@@ -359,10 +377,50 @@ World Simulation verarbeitet geplante Ereignisse, Kalender und periodische Syste
 - ClubStrategy und StaffPhilosophy modifizieren Prioritäten.
 - Finanzmodell liefert harte Constraints.
 - KI speichert Reason Codes, damit Transfers nachvollziehbar sind.
+- Infrastruktur und Sponsoren sind Teil derselben Planung: Bauprojekte konkurrieren mit dem Transferbudget, und die KI sendet dieselben Commands wie der User (siehe Abschnitte 10.4 und 10.6).
 
 ### 10.3 Simulation Resolution
 
 Ein Scheduler entscheidet je Wettbewerb / Relevanz über Simulationslevel. Übergänge zwischen Levels benötigen konsistente statistische Outputs und dürfen keine offensichtlichen Exploits erzeugen.
+
+### 10.4 Club Infrastructure
+
+```text
+Building { buildingId; type; level; state: Planned | UnderConstruction | Operational; }
+ConstructionProject { building; cost; durationMonths; financing: Cash | Loan; outage; }
+Loan { principal; interestRate; termMonths; }
+```
+
+- Der Gebäudekatalog ist Daten (`data/`), nicht Code: Typ, Ausbaustufen, Kosten, Bauzeit, Betriebskosten und Wirkung. Start mit etwa zwölf Typen in den Gruppen Stadion, Trainingscampus und Umfeld.
+- Jede Wirkung greift an einer bestehenden Stelle an: Trainingsplätze am Training Session Contract (9.1), Medizin/Reha an Fitness und Verletzungen (9.3), Akademie am Spielergenerator (8.4), Analyseabteilung an confidence und freshness des Observation Model (8.3), Stadion und Umfeld an Auslastung und Einnahmen (10.5).
+- Während der Bauzeit ist die betroffene Anlage ganz oder teilweise außer Betrieb. Gebäude verfallen nicht.
+- Finanzierung aus Guthaben oder Kredit. Das Finanzmodell erzwingt die Verschuldungsgrenzen des Vorstands als harte Constraints. Insolvenz und Lizenzierung folgen später.
+- Standorteigenschaften (Anbindung, Lage) gehören zum Club-Stammdatensatz und sind nicht baubar.
+- P5 kennt davon nur Stadionkapazität und Spieltagseinnahmen als einfache Größen; der Katalog folgt in P7b.
+
+### 10.5 Fan Base und Attendance
+
+```text
+FanBase { size; loyalty; mood; }
+attendance = f(FanBase, opponentAppeal, ticketPrice, comfort, access, capacity)
+```
+
+- Die Fanbasis verändert sich mit niedriger Frequenz aus Ergebnissen und Ereignissen.
+- Attendance bestimmt Spieltagseinnahmen und den `CrowdContext` für das Match (siehe Abschnitt 6.8).
+- Ticketpreise setzt der Bereich Commercial per Command.
+- Fangruppen mit eigenen Forderungen folgen später.
+
+### 10.6 Sponsor Market
+
+```text
+Sponsor { sponsorId; budget; region; industry; goals[]; }
+SponsorContract { slot: Shirt | Kit | NamingRights | AdPackage; term; fixedFee; bonuses[]; exitClauses[]; }
+```
+
+- Sponsoren werden generiert und nutzen einen eigenen RNG-Stream. Sie bieten nach Attraktivität, Reichweite und Region des Clubs.
+- Die Verhandlung nutzt denselben Mechanismus wie Spielerverträge; es gibt keine zweite Verhandlungslogik.
+- Die Zahl der `AdPackage`-Slots ergibt sich aus dem Stadionausbau (siehe Abschnitt 10.4).
+- P5 kennt nur eine feste Sponsoreneinnahme pro Club; der Markt folgt in P7b.
 
 ## 11. Delegation & Application Layer
 
@@ -387,6 +445,12 @@ Manuelle und delegierte Ausführung verwenden dieselben Commands. Beispiel Recru
 - Priorität, Deadline, Impact und empfohlenes Default-Verhalten speichern.
 - „Advance“ blockiert nur bei konfigurierten kritischen Items.
 - Dismiss / delegate / snooze nur, wenn fachlich sinnvoll.
+
+### 11.4 Infrastructure und Commercial
+
+- Beide Bereiche gehören einem `CommercialDirectorAgent` oder dem User.
+- Infrastructure: Der Agent sendet `ProposeConstructionProject`. Jedes Vorhaben erzeugt ein Item in der Action Queue; erst `ApproveConstructionProject` des Freigebenden startet den Bau. Freigebender ist der User, bei KI-Clubs der Vorstand. Eine Policy kann diese Eskalation nicht abschalten.
+- Commercial: Sponsorenverträge, Werbeflächen und Ticketpreise laufen über Policies und lassen sich vollständig delegieren. Die Kompetenz des Agenten bestimmt die Qualität der Abschlüsse.
 
 ## 12. Unreal Integration und Match Presentation
 
@@ -414,6 +478,10 @@ Unreal liest Frames und interpoliert. Animationen visualisieren Absicht und Erge
 ### 12.3 Entwicklung vor 3D
 
 Vor dem ersten hochwertigen 3D-Spieltag soll ein 2D-Debug-Viewer existieren. Er zeigt Spieler, Ball, Vision Cones, Pitch Control, Zielregionen, Pressing Links und Decision Scores.
+
+### 12.4 Club Grounds
+
+Das 3D-Vereinsgelände (P10) ist eine weitere Presentation über dem Gebäudezustand aus Abschnitt 10.4. Unreal liest Buildings und Construction Projects als View Models und sendet dieselben Commands wie die 2D-Oberfläche. Die begehbare Managerfigur ist reine Navigation: Das Betreten eines Gebäudes öffnet die zugehörige Ansicht. Der Core kennt weder Figur noch Kamera.
 
 ## 13. UI-Architektur
 
@@ -443,6 +511,25 @@ Für die konkrete UE-UI-Technologie sollte ein früher Spike UMG/CommonUI gegen 
 ### 14.2 Migrationen
 
 Jede persistente Schemaänderung erhält eine vorwärtsgerichtete Migration und einen Test mit repräsentativen Savegames. Savegame-Kompatibilität wird als Produktfeature behandelt, nicht als spätere Aufräumarbeit.
+
+### 14.3 World Packages
+
+Ein World Package ist eine SQLite-Datei mit der Startwelt: Ligen, Clubs, Standorte, Startgebäude, Sponsoren, optional fest vorgegebene Spieler, Bilder als BLOB.
+
+- Das Paket trägt `schemaVersion` und unterliegt denselben Migrationsregeln wie Savegames.
+- Das Paket ist Teil des Initialzustands einer Karriere. Beim Karrierestart wird es in das Savegame übernommen; spätere Änderungen am Paket wirken nicht auf laufende Spielstände.
+- Fest vorgegebene Spieler behalten ihre Werte; der Generator (8.4) füllt nur die Lücken.
+- Die eigene, fiktive Standardwelt liegt als Text (CSV/JSON) unter `data/world/` und wird per Kommandozeile zum Paket gebaut, damit Änderungen in Git lesbar bleiben.
+- Derselbe Weg dient als CSV-Import und -Export für Editor, Skripte und KI-Werkzeuge. Ein Validator prüft Pakete per Kommandozeile; Editor und Core verwenden dieselben Regeln.
+- Reale Daten aus einem internen Import dienen nur Kalibrierung und Tests. Sie liegen außerhalb des Repository und gelangen in kein Release.
+
+### 14.4 World Editor
+
+Der World Editor ist eine TypeScript-Web-App unter `apps/world-editor`, mit Electron als Desktop-Client verpackt. Er ist ein Adapter ohne Abhängigkeit zu Unreal und liest und schreibt ausschließlich World Packages.
+
+- Tabellenzentrierte Oberfläche für Massendaten: Mehrfachauswahl, Suchen und Ersetzen, Ausfüllen ganzer Spalten, CSV-Import und -Export.
+- Der Editor verändert keine Savegames. Eingriffe in laufende Spielstände würden den Replay Contract (5.3) unterlaufen.
+- Das Paketformat entsteht in P5, der Client in P9.
 
 ## 15. Analytics, Telemetrie und Debugging
 
@@ -495,6 +582,8 @@ Kleine deterministische Szenarien werden versioniert: 3v2 Umschalten, isolierter
 
 Statistische Tests verwenden Bandbreiten statt exakte Werte. Änderungen außerhalb definierter Konfidenzbereiche erzeugen CI-Warnung oder Fail, abhängig von Stabilität des Systems.
 
+Der Heimvorteil aus der Crowd Atmosphere (6.8) erhält eine eigene Bandbreite, kalibriert an realen Heimquoten. Er darf nicht zum Regler werden, der Ergebnisse jenseits dieser Bandbreite verschiebt.
+
 ## 17. Performance und Skalierung
 
 ### 17.1 Budgets
@@ -542,11 +631,15 @@ Statistische Tests verwenden Bandbreiten statt exakte Werte. Änderungen außerh
 | P2 – Tactical Sandbox      | off-ball, pitch control, pressing, 3 tactical identities                       | P1               |
 | P3 – 11v11 Baseline        | shots, GK, duels, rules baseline, full matches                                 | P2               |
 | P4 – Player Layer          | capabilities, observation, fitness, development skeleton, player generator     | P3               |
-| P5 – Mini League           | 4 clubs with generated squads, calendar, training, contracts, simple transfers | P4               |
+| P5 – Mini League           | 4 clubs with generated squads, calendar, training, contracts, simple transfers, simple matchday and sponsor income, world package format | P4 |
 | P6 – Delegation            | staff agents, policies, action queue, shared workflows                         | P5               |
 | P7 – Club AI               | squad planning, recruitment, coach adaptation                                  | P6               |
+| P7b – Club Economy         | buildings, construction projects, financing, fan base, attendance, crowd atmosphere, sponsor market, infrastructure proposals | P7 |
 | P8 – Unreal Vertical Slice | 3D presentation, core UI workflows, one polished matchday                      | P3–P7            |
-| P9 – Pre-Alpha World       | mehr Clubs/Ligen, youth generation, simulation levels, savegame hardening      | P8               |
+| P9 – Pre-Alpha World       | mehr Clubs/Ligen, youth generation, simulation levels, savegame hardening, world editor | P8      |
+| P10 – Club Grounds         | 3D-Vereinsgelände, begehbar; nach Early Access                                 | P7b, P9          |
+
+P7b und P10 sind ohne Umnummerierung eingefügt, damit bestehende Verweise auf P8 und P9 gültig bleiben. Der Vertical Slice (P8) hängt nicht von P7b ab.
 
 ### 19.1 Reihenfolge ist bewusst risk-driven
 
@@ -590,6 +683,9 @@ Die 3D-Produktion wird nach hinten verschoben, weil Matchverhalten, Delegation u
 | Savegames werden bei Änderungen unwartbar                | mittel     | Schema versioning + migrations + save corpus ab Mini League.                                    |
 | Unreal-Integration zieht Domain in UObjects              | mittel     | harte Adaptergrenze, keine UE includes im Core, Architekturtests.                               |
 | Zu früher Content-/3D-Fokus                              | hoch       | Milestone-Gates; Presentation erst nach Simulation-Proofs.                                      |
+| Club-Aufbau wird Verwaltungsarbeit                       | mittel     | Kleiner Katalog, jedes Gebäude mit Wirkung im Core, kein Verfall, Commercial voll delegierbar.  |
+| Heimvorteil wird zum versteckten Regler                  | mittel     | Wirkung nur über mentale Zustände, Reason Codes, eigene statistische Bandbreite.                |
+| Reale Daten gelangen ohne Lizenz in ein Release          | hoch       | Interner Import außerhalb des Repository; Standardwelt fiktiv; rechtliche Prüfung vor Release.  |
 
 ## 22. Definition of Done / Exit Criteria
 
@@ -627,3 +723,16 @@ Die 3D-Produktion wird nach hinten verschoben, weil Matchverhalten, Delegation u
 - Ein kompletter Matchday ist 3D sichtbar.
 - Taktikänderungen während des Spiels werden als Commands an den Core gesendet.
 - Performance- und Debug-Metriken sind eingebaut.
+
+### 22.6 Club Economy
+
+- Ein Bauprojekt durchläuft Antrag, Freigabe, Bauzeit mit Ausfall und Betrieb; KI-Clubs nutzen dieselben Commands.
+- Jedes Gebäude des Katalogs hat eine messbare Wirkung in der Simulation.
+- Auslastung reagiert auf Fanbasis, Gegner, Preis, Komfort und Anbindung.
+- Der Heimvorteil liegt in der dokumentierten statistischen Bandbreite und ist in den Reason Codes sichtbar.
+- Sponsorenverträge entstehen durch Verhandlung und lassen sich vollständig delegieren.
+
+### 22.7 Club Grounds
+
+- Das 3D-Gelände zeigt denselben Gebäudezustand wie die 2D-Oberfläche; der Core bleibt ohne UE-Abhängigkeit.
+- Jede Funktion ist ohne Betreten des Geländes erreichbar.
