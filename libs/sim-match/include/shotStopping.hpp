@@ -189,7 +189,8 @@ inline constexpr std::string_view kShotStoppingSystemName = "shot stopping";
 
 // How likely a keeper is to hold this ball: its ease -- how far its speed is
 // below catchableSpeed, times how far he is from full stretch -- with what it
-// lacks widened by skillErrorFactor() of his keeperHandling.
+// lacks widened by skillErrorFactor() of his keeperHandling. Never at
+// catchableSpeed or above, whatever his handling.
 [[nodiscard]] double catchChance(const BallState& ball, double stretch,
                                  const PlayerAttributes& keeper,
                                  const ShotStoppingConfig& config) noexcept;

@@ -41,6 +41,8 @@ using ElyverseFootball::SimCore::Vec2;
 using ElyverseFootball::SimMatch::BallPhysics;
 using ElyverseFootball::SimMatch::BallState;
 using ElyverseFootball::SimMatch::BallTouch;
+using ElyverseFootball::SimMatch::carriedBallPosition;
+using ElyverseFootball::SimMatch::catchChance;
 using ElyverseFootball::SimMatch::clampToReach;
 using ElyverseFootball::SimMatch::decideDive;
 using ElyverseFootball::SimMatch::Goal;
@@ -49,6 +51,7 @@ using ElyverseFootball::SimMatch::GoalScored;
 using ElyverseFootball::SimMatch::handsAt;
 using ElyverseFootball::SimMatch::isBusy;
 using ElyverseFootball::SimMatch::isDiving;
+using ElyverseFootball::SimMatch::kDefaultKeeperHandling;
 using ElyverseFootball::SimMatch::KeeperDive;
 using ElyverseFootball::SimMatch::LooseBallRecovered;
 using ElyverseFootball::SimMatch::makeBallMovementSystem;
@@ -162,6 +165,7 @@ struct Chance {
   Vec2 teammate = kFarAway;
   // A perfect reader by default, so a test knows where he goes.
   double anticipation = 1.0;
+  double handling = kDefaultKeeperHandling;
   ShotStoppingConfig saves;
   bool restarts = false;
   std::uint64_t seed = 1;
@@ -178,6 +182,7 @@ struct Chance {
   }
   players.push_back(playerAt(8, TeamSide::kAway, chance.keeper));
   players.back().attributes.keeperAnticipation = chance.anticipation;
+  players.back().attributes.keeperHandling = chance.handling;
   for (std::uint32_t id = 9; id <= 14; ++id) {
     players.push_back(playerAt(id, TeamSide::kAway, kFarAway));
   }
@@ -588,6 +593,36 @@ TEST_CASE("A save that keeps possession", "[shotStopping]") {
   REQUIRE(ElyverseFootball::SimCore::distance(simulation.state().ball().position, save.position) <
           1.0);
   REQUIRE_FALSE(diveOf(simulation).has_value());
+}
+
+TEST_CASE("A ball caught diving lies at the keeper's feet where he lands", "[shotStopping]") {
+  Chance chance;
+  chance.saves = safeHands();
+  chance.handling = 1.0;
+  // Low, 2 m to his left: he goes across for it.
+  MatchSimulation simulation =
+      shotMatch(chance, shotAt(goal().center + Vec2{.x = 0.0, .y = 2.2}, 0.2, 22.0));
+  for (int tick = 0; tick < 2 * kTicksPerSecond && simulation.state().ball().owner != PlayerId(8);
+       ++tick) {
+    REQUIRE(simulation.step().has_value());
+  }
+  REQUIRE(simulation.state().ball().owner == PlayerId(8));
+  const PlayerMatchState& keeper = simulation.state().players()[7];
+  REQUIRE(keeper.position.y > kKeeper.y + 1.0);
+  REQUIRE(simulation.state().ball().position ==
+          carriedBallPosition(keeper, BallPhysics{}, pitch()));
+}
+
+TEST_CASE("A ball at catchable speed is never held", "[shotStopping]") {
+  const ShotStoppingConfig config;
+  PlayerAttributes sure;
+  sure.keeperHandling = 1.0;
+  BallState ball;
+  ball.velocity = {.x = config.catchableSpeed, .y = 0.0};
+  REQUIRE(catchChance(ball, 0.0, sure, config) == 0.0);
+  ball.velocity = {.x = config.catchableSpeed / 2.0, .y = 0.0};
+  REQUIRE(catchChance(ball, 0.0, sure, config) > 0.9);
+  REQUIRE(catchChance(ball, 0.0, PlayerAttributes{}, config) == 0.5);
 }
 
 TEST_CASE("A parried shot rebounds into play and stays saved", "[shotStopping]") {

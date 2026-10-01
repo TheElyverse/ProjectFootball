@@ -8,6 +8,7 @@
 
 #include "randomDraws.hpp"
 #include "shooting.hpp"
+#include "stableMath.hpp"
 #include "teamFrame.hpp"
 #include "zones.hpp"
 
@@ -36,7 +37,7 @@ using SimCore::Vec2;
 }
 
 [[nodiscard]] double lengthOf(const PlanePoint point) noexcept {
-  return std::sqrt((point.across * point.across) + (point.up * point.up));
+  return SimCore::stableHypot(point.across, point.up);
 }
 
 [[nodiscard]] PlanePoint minus(const PlanePoint left, const PlanePoint right) noexcept {
@@ -340,7 +341,12 @@ double stretchOf(const double feet, const PlanePoint hands,
 
 double catchChance(const BallState& ball, const double stretch, const PlayerAttributes& keeper,
                    const ShotStoppingConfig& config) noexcept {
-  const double pace = 1.0 - std::min(1.0, ball.velocity.length() / config.catchableSpeed);
+  const double speed = ball.velocity.length();
+  // However sure his hands, a ball this fast he never holds.
+  if (speed >= config.catchableSpeed) {
+    return 0.0;
+  }
+  const double pace = 1.0 - (speed / config.catchableSpeed);
   const double ease = pace * (1.0 - stretch);
   return std::clamp(1.0 - ((1.0 - ease) * skillErrorFactor(keeper.keeperHandling)), 0.0, 1.0);
 }

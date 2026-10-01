@@ -134,7 +134,8 @@ he is if he has not reacted yet or left it.
 
   `skillErrorFactor()` is the shooters' ([shooting](shooting.md)): an average
   keeper holds a ball as often as it is easy, a keeper of handling 1 drops a
-  tenth as many. An average keeper holds a 25 m/s shot straight at him a
+  tenth as many. A ball at `catchableSpeed` or faster nobody holds, whatever
+  his handling. An average keeper holds a 25 m/s shot straight at him a
   little more than one time in three.
 - **Caught.** He has the ball, at his feet where his dive took him, like any
   player who gains control of a free ball, and he is up at once.

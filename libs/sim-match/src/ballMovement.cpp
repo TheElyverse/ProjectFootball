@@ -519,6 +519,12 @@ struct FacingKeeper {
               .playerId = player.playerId,
               .contact = {.contactFraction = share, .closestDistance = 0.0}},
              taker, rules, context, current, next);
+    // takeBall() carries the ball by its taker's next move, but the dive has
+    // already moved him: the ball lies at his feet where he is.
+    if (keeper.dived) {
+      next.setBallPosition(carriedBallPosition(taker, rules.physics, current.pitch()));
+      next.setBallVelocity(taker.velocity);
+    }
     return true;
   }
 
