@@ -13,7 +13,7 @@ namespace ElyverseFootball::SimTactics {
 // Every tactic file starts with this format name and version; see
 // docs/tactic-format.md.
 inline constexpr std::string_view kTacticFormat = "elyverse-tactic";
-inline constexpr int kTacticFormatVersion = 1;
+inline constexpr int kTacticFormatVersion = 2;
 
 enum class TacticFileErrorCode : std::uint8_t {
   kIoError,

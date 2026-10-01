@@ -146,7 +146,8 @@ down and how high it gets on the way, without stepping the match: the same
 bisection over the closed-form flight, bracketed by doubling a one-second
 horizon. It is empty for a ball already on the ground, and for a ball without
 gravity, which never comes down. Chasers use it through
-[reception](reception.md); a goalkeeper will use it directly.
+[reception](reception.md), the goalkeeper among them when he decides whether
+to come for a ball ([goalkeeper](goalkeeper.md)).
 
 The pitch boundary is not applied: this is the flight's own landing, and what
 happens to a ball that leaves the pitch is for the systems to decide.

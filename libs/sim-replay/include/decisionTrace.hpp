@@ -76,7 +76,14 @@ struct ActionDecisionTrace {
   friend bool operator==(const ActionDecisionTrace&, const ActionDecisionTrace&) = default;
 };
 
-using TraceEntry = std::variant<PassDecisionTrace, ActionDecisionTrace>;
+// A goalkeeper's call to come for a free ball or stay home.
+struct SweepDecisionTrace {
+  SimMatch::SweepDiagnostic decision;
+
+  friend bool operator==(const SweepDecisionTrace&, const SweepDecisionTrace&) = default;
+};
+
+using TraceEntry = std::variant<PassDecisionTrace, ActionDecisionTrace, SweepDecisionTrace>;
 
 // The limits of outcome attribution.
 struct TraceConfig {

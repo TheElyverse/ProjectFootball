@@ -127,14 +127,15 @@ class Scorer {
 
   // The support position with the most open lane from the carrier, counting
   // how far it takes the player from his region: on a ring around the
-  // carrier at supportDistance, or a step or two from his region's centre.
-  // A small shift that opens the lane beats a long run around the carrier.
-  [[nodiscard]] Vec2 supportPosition() const {
-    const Pitch& pitch = state().pitch();
+  // carrier at supportDistance, or a step or two from his region's centre,
+  // each kept inside `range`. A small shift that opens the lane beats a long
+  // run around the carrier.
+  [[nodiscard]] Vec2 supportPosition(const PitchRect& range) const {
     Vec2 best = region().center;
     double bestScore = -std::numeric_limits<double>::infinity();
     const auto consider = [&](const Vec2 point) {
-      const Vec2 candidate = pitch.clamp(point);
+      const Vec2 candidate{.x = std::clamp(point.x, range.min.x, range.max.x),
+                           .y = std::clamp(point.y, range.min.y, range.max.y)};
       const double detour =
           distanceBetween(candidate, region().center) / (2.0 * config().supportDistance);
       if (const double score = lane(candidate) - detour; score > bestScore) {
@@ -274,9 +275,12 @@ std::vector<ActionCandidate> generateOffBallCandidates(
   std::vector<ActionCandidate> candidates;
   candidates.push_back(scorer.score(ActionType::kHoldPosition, region.center,
                                     config.holdResponsibility, 0.0, std::nullopt));
-  candidates.push_back(scorer.score(ActionType::kSupportCarrier, scorer.supportPosition(),
-                                    scorer.weight(Responsibility::kSupportCarrier),
-                                    scorer.carrierPressure(), scorer.carrierId()));
+  candidates.push_back(
+      scorer.score(ActionType::kSupportCarrier,
+                   scorer.supportPosition(
+                       {.min = {}, .max = {.x = pitch.lengthMeters(), .y = pitch.widthMeters()}}),
+                   scorer.weight(Responsibility::kSupportCarrier), scorer.carrierPressure(),
+                   scorer.carrierId()));
   candidates.push_back(
       scorer.score(ActionType::kMoveIntoSpace, scorer.spacePosition(), 0.0, runs, std::nullopt));
   if (const auto line = scorer.believedLine()) {
@@ -298,6 +302,24 @@ std::vector<ActionCandidate> generateOffBallCandidates(
                    pitch.clamp({.x = player.position.x, .y = scorer.laneY(kHalfspaceCentre)}),
                    scorer.weight(Responsibility::kOccupyHalfspace), 0.0, std::nullopt));
   return candidates;
+}
+
+std::vector<ActionCandidate> generateKeeperSupportCandidates(
+    const MatchState& state, const std::size_t playerIndex, const DesiredRegion& region,
+    const SimCore::SimTick now, const double secondsPerTick, const OffBallConfig& config,
+    const PositioningConfig& positioning, const PerceptionConfig& perception) {
+  const Scorer scorer(state, playerIndex, region,
+                      {.now = now,
+                       .secondsPerTick = secondsPerTick,
+                       .config = &config,
+                       .positioning = &positioning,
+                       .perception = &perception});
+  const PitchRect area = state.pitch().penaltyArea(ownGoalEnd(state.players()[playerIndex].side));
+  return {scorer.score(ActionType::kHoldPosition, region.center, config.holdResponsibility, 0.0,
+                       std::nullopt),
+          scorer.score(ActionType::kSupportCarrier, scorer.supportPosition(area),
+                       scorer.weight(Responsibility::kSupportCarrier), scorer.carrierPressure(),
+                       scorer.carrierId())};
 }
 
 bool isActionDecisionDue(const MatchState& state, const std::size_t playerIndex,

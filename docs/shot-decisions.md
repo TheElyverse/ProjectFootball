@@ -198,8 +198,8 @@ his best shot from straight in front of the goal at a goal chance of about 0.67
 from 8 m, 0.41 from 12 m, 0.09 from 18 m and 0.06 from 22 m. In the six-minute
 style benchmark a side shoots 3 to 13 times, pressing the most: it wins the ball
 high up the pitch. That is more than real football, and about half of the shots
-go in — the sandbox has no keeper positioning, so keepers drift off their line,
-and no shot stopping — and the balance will be refined with them.
+go in — keepers take up their place ([goalkeeper](goalkeeper.md)) but do not
+stop shots yet — and the balance will be refined with shot stopping.
 
 ## Configuration
 
@@ -240,7 +240,7 @@ and no shot stopping — and the balance will be refined with them.
 The shooter judges a shot by a straight line from the ball to a point of the
 goal, slowing like a rolling ball, and the ball as a point: he knows neither the
 [flight](shooting.md) his strike really takes nor the thickness of the posts.
-Keepers do not position themselves. How well a player
+How well a player
 decides and how badly he misjudges his chances do not depend on him yet; every
 player chooses with the same temperature. He cannot turn toward the goal, carry
 the ball into a better position or hold it on purpose; those are the on-ball

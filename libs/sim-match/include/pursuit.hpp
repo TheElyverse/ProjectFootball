@@ -4,6 +4,7 @@
 #include <string_view>
 
 #include "ballMovement.hpp"
+#include "goalkeeper.hpp"
 #include "matchSimulation.hpp"
 #include "matchState.hpp"
 #include "pitch.hpp"
@@ -62,15 +63,29 @@ inline constexpr std::string_view kPursuitSystemName = "ball pursuit";
 // The reach comes from the reception configuration: a chaser runs to where he
 // can actually play the ball, not to a point it flies over.
 //
+// A goalkeeper who would be his side's chaser of a ball the opponent played
+// last decides first whether he comes (docs/goalkeeper.md): his
+// interception against the opponents' earliest, with the misjudgement he
+// draws from the kAi stream when he first judges that ball, by callSweep()
+// and his tactic's sweeping dial. He keeps the judgement in his tactical
+// state and reports it as a SweepDiagnostic when he first makes it or turns
+// back. A ball he stays home for he leaves; while he comes for one he judges
+// it again at every update. If he stays, his side's next earliest player
+// chases the ball.
+//
 // The chaser's target belongs to pursuit. A player who stops being the
 // chaser -- someone else is closer, or anyone controls the ball -- has his
 // target cleared and stops, rather than running on to where the ball was
 // going to be; the tactical systems give a player of a side with a tactic his
 // next target. Runs every config.intervalTicks ticks and writes movement
-// targets and chasers only. The ball is read directly, not through
-// perception. Throws std::invalid_argument for an interval below one tick, a
-// sample or horizon that is not positive and finite, or a horizon of more
-// than kMaxPursuitSamples samples.
+// targets, chasers and the goalkeepers' judgements only. The ball is read
+// directly, not through perception. Throws std::invalid_argument for an
+// interval below one tick, a sample or horizon that is not positive and
+// finite, a horizon of more than kMaxPursuitSamples samples, or an invalid
+// goalkeeper configuration.
+[[nodiscard]] MatchSystem makePursuitSystem(const BallPhysics& physics, const PursuitConfig& config,
+                                            const ReceptionConfig& reception,
+                                            const GoalkeeperConfig& goalkeeper);
 [[nodiscard]] MatchSystem makePursuitSystem(const BallPhysics& physics, const PursuitConfig& config,
                                             const ReceptionConfig& reception);
 [[nodiscard]] MatchSystem makePursuitSystem(const BallPhysics& physics,

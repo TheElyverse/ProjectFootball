@@ -11,11 +11,15 @@ std::vector<MatchSystem> makeMatchSystems(const MatchConfig& config) {
   systems.push_back(makePitchControlSystem(config.pitchControl));
   systems.push_back(
       makePressingSystem(config.pressing, config.perception, config.defensive.coverDistance));
-  systems.push_back(makeTacticalMovementSystem({.positioning = config.positioning,
-                                                .offBall = config.offBall,
-                                                .defensive = config.defensive,
-                                                .perception = config.perception}));
-  systems.push_back(makePursuitSystem(config.ball, config.pursuit, config.reception));
+  systems.push_back(
+      makeTacticalMovementSystem({.positioning = config.positioning,
+                                  .offBall = config.offBall,
+                                  .defensive = config.defensive,
+                                  .perception = config.perception,
+                                  .goalkeeper = config.goalkeeper,
+                                  .shotRange = config.decisions.shooting.maxShotDistance}));
+  systems.push_back(
+      makePursuitSystem(config.ball, config.pursuit, config.reception, config.goalkeeper));
   systems.push_back(makePassDecisionSystem(config.decisions, {.scoring = config.decisions.scoring,
                                                               .ball = config.ball,
                                                               .passing = config.passing,

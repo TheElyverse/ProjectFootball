@@ -10,6 +10,7 @@
 
 #include "actionCandidate.hpp"
 #include "goalFrame.hpp"
+#include "goalkeeper.hpp"
 #include "ids.hpp"
 #include "matchState.hpp"
 #include "observation.hpp"
@@ -317,6 +318,17 @@ struct ActionDiagnostic {
   bool assigned = false;
 
   friend bool operator==(const ActionDiagnostic&, const ActionDiagnostic&) = default;
+};
+
+// Why a goalkeeper came for a free ball the opponent played or stayed home
+// (docs/goalkeeper.md): reported when he first judges a ball and when he
+// turns back from it. Like DecisionDiagnostic, debug output only.
+struct SweepDiagnostic {
+  SimCore::SimTick tick;
+  SimCore::PlayerId player;
+  SweepCall call;
+
+  friend bool operator==(const SweepDiagnostic&, const SweepDiagnostic&) = default;
 };
 
 }  // namespace ElyverseFootball::SimMatch

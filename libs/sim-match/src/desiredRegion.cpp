@@ -36,11 +36,6 @@ void validate(const PositioningConfig& config) {
 
 namespace {
 
-// The goalkeeper's lateral range: he follows the ball across the goal, not
-// out to the wings.
-constexpr double kGoalkeeperFollow = 0.25;
-constexpr double kGoalkeeperRange = 0.15;  // of the pitch width, each way
-
 // Wing and halfspace centre lines, as fractions of the pitch width from the
 // touchline on a slot's side of the pitch (docs/zones.md).
 constexpr double kWingCentre = 0.1;
@@ -109,17 +104,17 @@ struct ShapeSpan {
   return *tactic;
 }
 
-[[nodiscard]] Vec2 goalkeeperTarget(const MatchState& state, const TeamSide side,
-                                    const SimTactics::TacticSlot& slot) noexcept {
-  const Pitch& pitch = state.pitch();
-  const double centre = pitch.widthMeters() / 2.0;
-  const double range = kGoalkeeperRange * pitch.widthMeters();
-  const double followed = centre + (kGoalkeeperFollow * (state.ball().position.y - centre));
-  return pitch.clamp({.x = xAtDepth(side, slot.position.depth * pitch.lengthMeters(), pitch),
-                      .y = std::clamp(followed, centre - range, centre + range)});
-}
-
 }  // namespace
+
+double defensiveLineDepth(const MatchState& state, const TeamSide side, const TacticalPhase phase) {
+  const SimTactics::PhaseInstruction& instruction = tacticOf(state, side).instruction(phase);
+  const double length = state.pitch().lengthMeters();
+  const double ballDepth = depthOf(side, state.ball().position, state.pitch());
+  const double blockLength = instruction.blockLength * length;
+  const double nominalCentre = (instruction.lineHeight * length) + (blockLength / 2.0);
+  const double centre = lerp(nominalCentre, ballDepth, kVerticalFollow * instruction.ballShift);
+  return std::clamp(centre - (blockLength / 2.0), 0.0, length - blockLength);
+}
 
 Vec2 tacticalTarget(const MatchState& state, const std::size_t playerIndex,
                     const TacticalPhase phase) {
@@ -129,7 +124,7 @@ Vec2 tacticalTarget(const MatchState& state, const std::size_t playerIndex,
   const std::size_t slotNumber = slotIndex(state, playerIndex);
   const SimTactics::TacticSlot& slot = tactic.slots()[slotNumber];
   if (guardsGoal(slot)) {
-    return goalkeeperTarget(state, side, slot);
+    throw std::invalid_argument("desired region: the goalkeeper keeps goal by goalkeeperTarget()");
   }
 
   const Pitch& pitch = state.pitch();
@@ -143,9 +138,7 @@ Vec2 tacticalTarget(const MatchState& state, const std::size_t playerIndex,
   // ball, never past either goal line.
   const ShapeSpan span = outfieldSpan(tactic);
   const double blockLength = instruction.blockLength * length;
-  const double nominalCentre = (instruction.lineHeight * length) + (blockLength / 2.0);
-  const double centre = lerp(nominalCentre, ballDepth, kVerticalFollow * instruction.ballShift);
-  const double line = std::clamp(centre - (blockLength / 2.0), 0.0, length - blockLength);
+  const double line = defensiveLineDepth(state, side, phase);
   double depth = line + (fraction(slot.position.depth, span.minDepth, span.maxDepth) * blockLength);
 
   // Across: the block's width, centred between the pitch centre and the ball.

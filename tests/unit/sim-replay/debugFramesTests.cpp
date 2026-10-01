@@ -243,8 +243,11 @@ TEST_CASE("Frames show team shapes, regions, assignments and action decisions", 
   const auto& centreBack = last.at("players").at(1);
   CHECK(centreBack.at("region").at("center").size() == 2);
   CHECK(centreBack.at("action").at("type").is_string());
-  // The goalkeeper holds his region and decides nothing.
-  CHECK(last.at("players").at(0).at("action").is_null());
+  // With his side on the ball the goalkeeper only holds his region or
+  // supports the carrier; without it he decides nothing.
+  const std::string keeperAction = last.at("players").at(0).at("action").at("type");
+  CHECK((keeperAction == "holdPosition" || keeperAction == "supportCarrier"));
+  CHECK(last.at("players").at(7).at("action").is_null());
 
   bool decided = false;
   for (const auto& frame : json.at("frames")) {

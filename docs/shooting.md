@@ -107,8 +107,9 @@ A slower shot, and every other ball, is received as it always was
 ([reception](reception.md)).
 
 **The keeper.** Until the keeper stops shots his own way, he takes a shot like
-any ball: within his control radius and no higher than the control height.
-What he does not reach at his feet beats him.
+any ball: in his penalty area within his hands' reach (1.2 m, up to 2.2 m
+high, [goalkeeper](goalkeeper.md)), outside it at his feet. What he does not
+reach beats him.
 
 **The frame.** Posts and crossbar are round bars of `radius` (0.06 m): the
 posts stand on the goal line at the posts of the

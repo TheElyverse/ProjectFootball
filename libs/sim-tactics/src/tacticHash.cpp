@@ -38,6 +38,7 @@ void addPrinciples(StableHasher& hasher, const TeamPrinciples& principles) noexc
   addHashedDouble(hasher, weights.pressure);
   addHashedDouble(hasher, weights.occupancy);
   addHashedDouble(hasher, weights.transitionRisk);
+  addHashedDouble(hasher, principles.goalkeeper.sweeping);
 }
 
 }  // namespace

@@ -323,7 +323,9 @@ TEST_CASE("P1: the final hashes are pinned", "[acceptance][p1]") {
   // event hashes: nobody in these scenarios shoots, and the state hash
   // covers what the three add. The same again with shot execution: players
   // gained a technique and a strong and a weak foot, the state its score and
-  // its last goal, and the last reception whose pass it was.
+  // its last goal, and the last reception whose pass it was. And again when
+  // players gained a keeper's positioning and anticipation, with unchanged
+  // event hashes: these sides are scripted and have no goalkeeper.
   struct Pinned {
     std::string_view name;
     std::uint64_t stateHash;
@@ -331,13 +333,13 @@ TEST_CASE("P1: the final hashes are pinned", "[acceptance][p1]") {
   };
   const std::array<Pinned, 3> pinned{{
       {.name = "pass-chain",
-       .stateHash = 0xd753423e0ddc6a64ULL,
+       .stateHash = 0x81b9e68a04cd4ac4ULL,
        .eventHash = 0x998519c3360aaabbULL},
       {.name = "intercepted-pass",
-       .stateHash = 0x7691f132775e5c11ULL,
+       .stateHash = 0x707434577859c769ULL,
        .eventHash = 0x22f2a2f2ddabf1e5ULL},
       {.name = "no-passing-option",
-       .stateHash = 0xd59d9296e483799dULL,
+       .stateHash = 0xe7c043bfc54db655ULL,
        .eventHash = 0x4c3da4b4c5ecf1a7ULL},
   }};
   for (const Pinned& expected : pinned) {

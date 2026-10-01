@@ -56,6 +56,9 @@ using ElyverseFootball::SimTactics::TacticalPhase;
 namespace {
 
 constexpr std::uint64_t kSeeds = 20;
+// Where regains happen varies so much from match to match that twenty
+// minutes leave the comparison to chance.
+constexpr std::uint64_t kRegainSeeds = 60;
 
 [[nodiscard]] Tactic preset(const std::string& name) {
   auto tactic = loadTactic(std::filesystem::path(PF_DATA_DIR) / "tactics" / (name + ".json"));
@@ -74,7 +77,7 @@ struct RegainTally {
 
 [[nodiscard]] RegainTally homeRegains(const std::string& home) {
   RegainTally tally;
-  for (std::uint64_t seed = 1; seed <= kSeeds; ++seed) {
+  for (std::uint64_t seed = 1; seed <= kRegainSeeds; ++seed) {
     auto setup = makeTacticMatch({.home = preset(home), .away = preset("reference")}, seed);
     REQUIRE(setup.has_value());
     MatchSimulation simulation = startMatch(*setup);
@@ -187,8 +190,8 @@ TEST_CASE("P2: the pressing tactic wins the ball back more often and higher up",
   const RegainTally pressing = homeRegains("pressing");
   const RegainTally counter = homeRegains("counter");
   CAPTURE(pressing.regains, pressing.highRegains, counter.regains, counter.highRegains);
-  // Twenty minutes each; at the time of writing 108 regains, 62 of them in
-  // the opponent's half, against 67 and 32.
+  // Sixty minutes each; at the time of writing 440 regains, 273 of them in
+  // the opponent's half, against 220 and 151.
   REQUIRE(pressing.regains > counter.regains);
   REQUIRE(pressing.highRegains > counter.highRegains * 3 / 2);
 }

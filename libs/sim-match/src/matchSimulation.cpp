@@ -212,6 +212,12 @@ void MatchStepContext::diagnose(ActionDiagnostic diagnostic) const {
   }
 }
 
+void MatchStepContext::diagnose(SweepDiagnostic diagnostic) const {
+  if (collectsDiagnostics(diagnostic.player)) {
+    diagnostics_.sweeps->push_back(diagnostic);
+  }
+}
+
 MatchSimulation::MatchSimulation(MatchSimulationSpec spec)
     : systems_(validatedSystems(std::move(spec.systems))),
       clock_(SimCore::SimClock::withTicksPerSecond(spec.ticksPerSecond)),
@@ -281,6 +287,7 @@ std::expected<SimCore::SimTick, MatchStepError> MatchSimulation::step() {
   stepEvents_.clear();
   stepDiagnostics_.clear();
   stepActionDiagnostics_.clear();
+  stepSweepDiagnostics_.clear();
   const MatchState& current = applyDueCommands();
   // Copy-assigning a state of the same squad reuses next_'s storage.
   next_ = current;
@@ -291,6 +298,7 @@ std::expected<SimCore::SimTick, MatchStepError> MatchSimulation::step() {
       collectDiagnostics_ && diagnosticsFilter_.includesTick(clock_.tick())
           ? MatchStepContext::Diagnostics{.decisions = &stepDiagnostics_,
                                           .actions = &stepActionDiagnostics_,
+                                          .sweeps = &stepSweepDiagnostics_,
                                           .filter = &diagnosticsFilter_}
           : MatchStepContext::Diagnostics{});
   for (const MatchSystem& system : systems_) {
@@ -323,6 +331,7 @@ std::expected<SimCore::SimTick, MatchStepError> MatchSimulation::step() {
   std::swap(events_, stepEvents_);
   std::swap(diagnostics_, stepDiagnostics_);
   std::swap(actionDiagnostics_, stepActionDiagnostics_);
+  std::swap(sweepDiagnostics_, stepSweepDiagnostics_);
   return tick;
 }
 

@@ -127,6 +127,14 @@ bool isGoalkeeper(const MatchState& state, const std::size_t playerIndex) {
                                                 SimTactics::Responsibility::kGuardGoal) > 0.0;
 }
 
+bool keepsGoal(const MatchState& state, const std::size_t playerIndex) {
+  const PlayerMatchState& player = state.players()[playerIndex];
+  if (state.tactics().of(player.side)) {
+    return isGoalkeeper(state, playerIndex);
+  }
+  return depthOf(player.side, player.position, state.pitch()) < kKeeperDepth;
+}
+
 std::optional<TeamShape> measureTeamShape(const MatchState& state, const TeamSide side) {
   std::vector<double> depths;
   TeamShape shape;

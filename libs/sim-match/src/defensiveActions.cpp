@@ -9,6 +9,7 @@
 #include "pressingActions.hpp"
 #include "responsibility.hpp"
 #include "teamFrame.hpp"
+#include "zones.hpp"
 
 namespace ElyverseFootball::SimMatch {
 namespace {
@@ -17,10 +18,6 @@ using ActionGeometry::directionTo;
 using ActionGeometry::distanceBetween;
 using SimCore::Vec2;
 using SimTactics::Responsibility;
-
-// An opponent this close to his own goal line is his goalkeeper, whom nobody
-// marks.
-constexpr double kKeeperDepth = 8.0;  // m
 
 // The distance from the ball beyond which an opponent adds no threat.
 constexpr double kThreatDistance = 30.0;  // m
@@ -87,9 +84,9 @@ class DefensiveScorer {
     return (0.5 * nearGoal) + (0.5 * nearBall);
   }
 
-  // Whether an opponent is his side's goalkeeper, by where he stands.
+  // Whether an opponent is his side's goalkeeper (keepsGoal()).
   [[nodiscard]] bool isKeeper(const RememberedPlayer& opponent) const {
-    return depthOf(opponentOf(player().side), opponent.position, state_->pitch()) < kKeeperDepth;
+    return keepsGoal(*state_, opponent.index);
   }
 
   // An opponent's speed toward the own goal, 0 if he runs away from it.

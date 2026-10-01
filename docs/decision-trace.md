@@ -24,6 +24,7 @@ t=18 #1 passes to #2 (utility 0.42: completion +0.36 progression +0.26 pressure 
 t=40 #7 shoots at (60.0, 21.2) 0.43 m high (utility 1.62: goal +1.60 secondBall +0.04 possession -0.02; goal chance 0.64, save 0.21, block 0.03; 3 options, 11 observed) because goal
 t=66 #4 pressCarrier #14 (utility 0.97: responsibility +0.60 region -0.47 space +0.19 lane +0.00 urgency +0.68 effort -0.03; 5 options) because urgency
 t=81 #5 blockLane #12 (assigned by the team press)
+t=3 #8 sweeps (reaches the ball in 2.20 s, the first attacker in 4.20 s; misjudged by +0.00 s, needs +0.15 s)
 ```
 
 - **Observations**: how many entities the player remembered when he decided.
@@ -32,7 +33,10 @@ t=81 #5 blockLane #12 (assigned by the team press)
   ([pass candidates](pass-candidates.md)), `shotContributions()` for a shot
   with its aim and its goal, save and block chances
   ([shot decisions](shot-decisions.md)), `ActionScores` for an action without
-  the ball ([off-ball movement](off-ball-movement.md)).
+  the ball ([off-ball movement](off-ball-movement.md)). A goalkeeper's call to
+  come for a ball (`sweeps`) or not (`stays home`) gives both arrivals, his
+  misjudgement and the head start he needed instead
+  ([goalkeeper](goalkeeper.md)).
 - **No shot**: when he did not shoot, why: the best shot lost the choice, or
   even the best zone of the goal was not on — `too far`, `goal unseen`,
   `too narrow`, `blocked`, `unlikely` or `not worth it`, with its goal chance

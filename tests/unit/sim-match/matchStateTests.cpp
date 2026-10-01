@@ -396,6 +396,27 @@ TEST_CASE("MatchState::create accepts a shot technique and a weak foot in [0, 1]
   }
 }
 
+TEST_CASE("MatchState::create accepts a keeper's positioning and anticipation in [0, 1] only",
+          "[matchState]") {
+  const double value = GENERATE(0.0, 1.0, -0.01, 1.01, std::numeric_limits<double>::quiet_NaN());
+  const bool positioning = GENERATE(true, false);
+  CAPTURE(value, positioning);
+  MatchStateSpec spec = validSpec();
+  (positioning ? spec.players.at(0).attributes.keeperPositioning
+               : spec.players.at(0).attributes.keeperAnticipation) = value;
+
+  const auto state = MatchState::create(spec);
+
+  if (value >= 0.0 && value <= 1.0) {
+    REQUIRE(state.has_value());
+  } else {
+    REQUIRE_FALSE(state.has_value());
+    REQUIRE(codesOf(state.error()) == std::vector{MatchStateErrorCode::kInvalidPlayerAttributes});
+    REQUIRE(mentions(state.error().front().message,
+                     positioning ? "keeper positioning" : "keeper anticipation"));
+  }
+}
+
 TEST_CASE("MatchState::create rejects a strong foot that is neither", "[matchState]") {
   MatchStateSpec spec = validSpec();
   spec.players.at(5).attributes.strongFoot = static_cast<ElyverseFootball::SimMatch::Foot>(7);

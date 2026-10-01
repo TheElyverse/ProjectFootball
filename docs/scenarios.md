@@ -17,6 +17,9 @@ in `sim-match` (`scenarios.hpp`), and `sim-cli --scenario <name>` runs one.
 | `goal-kickoff` | the clear chance with tactics and restarts, the kickoff after the goal ([restarts](restarts.md#the-kickoff)) |
 | `hopeless-angle` | home player 1 on the goal line wide of the post, a teammate free |
 | `blocked-lane` | home player 1 twelve meters out, a defender in the way, a teammate free |
+| `keeper-arc` | home player 1 carries the ball across in front of away's goal, the keeper moves with it ([goalkeeper](goalkeeper.md)) |
+| `keeper-sweep-claim` | a through ball in behind away's line, the keeper first to it |
+| `keeper-sweep-leave` | a through ball in behind away's line, home's striker first to it |
 | `tactic-match` | the reference tactic against itself, lined up for home's kickoff   |
 | `transition-3v2` | home wins the ball in midfield, three attackers against two defenders ([golden](golden-scenarios.md)) |
 | `isolated-winger` | home plays out to an isolated winger, away presses on the trigger |
@@ -25,7 +28,7 @@ in `sim-match` (`scenarios.hpp`), and `sim-cli --scenario <name>` runs one.
 | `run-behind-line` | home's striker level with away's defensive line, space behind it |
 
 All scenarios use the 60 × 40 m example pitch and the default `MatchConfig`
-(30 Hz). `sim-cli --list-scenarios` prints the catalog.
+(30 Hz) unless their section below says otherwise. `sim-cli --list-scenarios` prints the catalog.
 
 ## The M0 acceptance scenario
 
@@ -159,6 +162,32 @@ blocked lane he passes more often than he shoots, with the middle of the goal
 at least half blocked in at least 90 seeds. The clear chance is also followed to
 its end: the first shot is a goal in 55 to 90 of the seeds
 ([shooting](shooting.md)).
+
+## The goalkeeper scenarios
+
+Away plays the reference tactic, so away player 8 keeps goal; home plays
+without a tactic. They show the [goalkeeper](goalkeeper.md)'s own model:
+
+- **`keeper-arc`**: home player 1 starts on the touchline 27 m in front of
+  away's goal with the ball and carries it to the other touchline, beyond the
+  25 m a shot is considered from. To keep the ball the only thing that moves
+  the keeper, the scenario's configuration has the carrier hold the ball for a
+  minute (`decisions.minHoldSeconds`) and away's outfield players neither
+  press, mark nor track (`defensive.pressRadius`, `markRadius` and
+  `trackRadius` of 0.1 m).
+- **`keeper-sweep-claim`**: home player 1 on the halfway line plays a through
+  ball at tick 1 between away's centre backs to 12 m in front of away's goal;
+  home's striker 2 starts wide and far from it.
+- **`keeper-sweep-leave`**: the same ball with home's striker standing on its
+  way, 15 m in front of the goal.
+
+In the two sweep scenarios away's keeper judges perfectly
+(`keeperAnticipation` 1), so whether he comes is his model's call, not a
+misjudgement. `tests/acceptance/goalkeeperScenarioTests.cpp` checks each over
+ten seeds: in the arc the keeper stands off his line, on the ball's side of the
+goal, and once the ball has stopped within 0.75 m of the bisector of his goal's
+angle; in the claim his first call is to come and he is first to the ball; in
+the leave he stays home, stays in his area and the striker has the ball.
 
 ## The tactic match
 

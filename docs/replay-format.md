@@ -14,12 +14,12 @@ default is `replay.json` in the working directory, and `--play` plays one back. 
 before the terminal interface opens, so a run rejected by argument or terminal
 validation leaves no file behind.
 
-## Schema version 6
+## Schema version 7
 
 ```json
 {
-    "schemaVersion": 6,
-  "coreVersion": "0.22.0",
+    "schemaVersion": 7,
+  "coreVersion": "0.23.0",
   "createdAt": "2026-09-24T10:00:00Z",
   "seed": "18446744073709551615",
   "gameTime": 300,
@@ -52,7 +52,13 @@ validation leaves no file behind.
       "pressureRadius": 3.0,
       "pressureErrorFactor": 1.0
     },
-    "reception": { "controlRadius": 1.0, "reclaimDelaySeconds": 0.3, "controlHeight": 1.0 },
+    "reception": {
+      "controlRadius": 1.0,
+      "reclaimDelaySeconds": 0.3,
+      "controlHeight": 1.0,
+      "handsRadius": 1.2,
+      "handsHeight": 2.2
+    },
         "pursuit": { "intervalTicks": 3, "sampleSeconds": 0.1, "horizonSeconds": 8.0 },
     "decisions": {
       "intervalTicks": 6,
@@ -190,7 +196,18 @@ validation leaves no file behind.
       "deflectionSpread": 1.0,
       "deflectionLift": 3.0
     },
-    "woodwork": { "radius": 0.06, "restitution": 0.5 }
+    "woodwork": { "radius": 0.06, "restitution": 0.5 },
+    "goalkeeper": {
+      "lineDepth": 1.5,
+      "highDepthShare": 0.5,
+      "possessionDepthShare": 0.5,
+      "positionErrorAlong": 1.5,
+      "positionErrorAcross": 0.6,
+      "cautiousMargin": 0.5,
+      "boldMargin": -0.2,
+      "sweepHysteresis": 0.1,
+      "misjudgement": 0.8
+    }
   },
   "initialState": {
     "pitch": { "length": 60.0, "width": 40.0 },
@@ -207,7 +224,9 @@ validation leaves no file behind.
           "shotAccuracy": 0.5,
           "shotTechnique": 0.5,
           "strongFoot": "right",
-          "weakFootAccuracy": 0.5
+          "weakFootAccuracy": 0.5,
+          "keeperPositioning": 0.5,
+          "keeperAnticipation": 0.5
         },
         "target": null,
         "facing": { "x": 1.0, "y": 0.0 }
@@ -225,8 +244,8 @@ validation leaves no file behind.
     "score": { "home": 0, "away": 0 },
         "tactics": {
       "home": {
-        "contentHash": "d1f008d25b46aabf",
-        "tactic": { "format": "elyverse-tactic", "version": 1, "name": "reference" }
+        "contentHash": "4e5eb51dbc31c06a",
+        "tactic": { "format": "elyverse-tactic", "version": 2, "name": "reference" }
       },
       "away": null
     }
@@ -249,7 +268,7 @@ player and the whole tactic.
 
 | Field           | JSON type | Meaning                                                       |
 |-----------------|-----------|---------------------------------------------------------------|
-| `schemaVersion` | number    | Version of this format. Currently `6`.                        |
+| `schemaVersion` | number    | Version of this format. Currently `7`.                        |
 | `coreVersion`   | string    | The `sim-core` version that recorded the match.               |
 | `createdAt`     | string    | Creation time in UTC, `%Y-%m-%dT%H:%M:%SZ`. Metadata only.    |
 | `seed`          | string    | Unsigned 64-bit master seed, in decimal.                      |
@@ -343,7 +362,7 @@ number`.
 |-----------------------------|------------------------------------------------------------------------|
 | `kIoError`                  | the file cannot be read or written                                     |
 | `kMalformed`                | not JSON, a missing or mistyped field, commands out of order           |
-| `kUnsupportedSchemaVersion` | a `schemaVersion` other than 6                                         |
+| `kUnsupportedSchemaVersion` | a `schemaVersion` other than 7                                         |
 | `kIncompatibleCoreVersion`  | recorded with another `coreVersion`                                    |
 | `kInvalidSetup`             | an invalid initial state, command or checkpoint list                   |
 | `kSimulationFailed`         | a step of the playback failed                                          |
@@ -412,3 +431,5 @@ recorded replays without changing the file format, and surfaces as a new
 | 3       | Checkpoints add `eventHash`. Version 2 files are rejected; record the scenario again with the same seed to get a version 3 file of the same match. |
 | 4       | Tactics carry their `contentHash` next to the tactic, `changeTactic` commands, and `checkpointIntervalTicks`. Versions 2 and 3 are rejected with a message to record the scenario again with the same seed. |
 | 5       | The ball gains `height`, `verticalVelocity` and `spin`, the ball configuration its flight and bounce constants, and reception its `controlHeight`. Versions 2 to 4 are rejected with a message to record the scenario again with the same seed. |
+| 6       | Players gain `shotTechnique`, `strongFoot` and `weakFootAccuracy`, the state its score and last goal, and the configuration its `shooting` and `woodwork` blocks ([shooting](shooting.md)). Versions 2 to 5 are rejected with a message to record the scenario again with the same seed. |
+| 7       | Players gain `keeperPositioning` and `keeperAnticipation`, reception its `handsRadius` and `handsHeight`, and the configuration its `goalkeeper` block ([goalkeeper](goalkeeper.md)); tactics are files of tactic format version 2. Versions 2 to 6 are rejected with a message to record the scenario again with the same seed. |

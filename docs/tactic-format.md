@@ -5,12 +5,12 @@ tactical identity can be tuned without recompiling. The `sim-tactics` library
 reads and writes them (`tacticJson.hpp`); the model they describe is in
 [tactics.md](tactics.md).
 
-## Version 1
+## Version 2
 
 ```json
 {
   "format": "elyverse-tactic",
-  "version": 1,
+  "version": 2,
   "name": "reference",
   "description": "A neutral 1-2-1-3 for tests and hand-built fixtures.",
   "slots": [
@@ -32,7 +32,8 @@ reads and writes them (`tacticJson.hpp`); the model they describe is in
       "pressure": 0.5,
       "occupancy": 0.5,
       "transitionRisk": 0.5
-    }
+    },
+    "goalkeeper": { "sweeping": 0.5 }
   },
   "phases": {
     "buildUp": {
@@ -54,14 +55,14 @@ seven phases.
 | Field              | Type   | Meaning                                                     |
 |--------------------|--------|-------------------------------------------------------------|
 | `format`           | string | always `"elyverse-tactic"`                                   |
-| `version`          | integer| the format version, 1                                        |
+| `version`          | integer| the format version, 2                                        |
 | `name`             | string | the tactic's name; a file is named after it (`<name>.json`)  |
 | `description`      | string | optional; what the tactic is for and which parameters express it |
 | `slots`            | array  | seven slots, in line-up order                                |
 | `slots[].position` | object | `depth` and `width`, fractions of the pitch                  |
 | `slots[].role`     | string | a role preset, expanded into its responsibilities on load    |
 | `slots[].responsibilities` | array | `{ "responsibility", "weight" }` entries          |
-| `principles`       | object | `pressingLine`, `pressingTriggers`, `positioning` weights    |
+| `principles`       | object | `pressingLine`, `pressingTriggers`, `positioning` weights, `goalkeeper.sweeping` |
 | `phases`           | object | one instruction per phase, keyed by phase name               |
 
 Every field is required except `description`. A slot has either `role` or
@@ -81,7 +82,7 @@ rules. They reject:
 |-----------------------|----------------------------------------------------------------|
 | `kIoError`            | the file cannot be read                                        |
 | `kMalformed`          | not JSON, another `format`, a missing, mistyped or unknown field, an unknown name |
-| `kUnsupportedVersion` | a `version` other than 1                                        |
+| `kUnsupportedVersion` | a `version` other than 2                                        |
 | `kInvalidTactic`      | the tactic breaks a rule of the model; every broken rule is listed |
 
 Every message names the file and the offending field:
@@ -111,6 +112,7 @@ need a new version; a new required one does.
 | Version | Change          |
 |---------|-----------------|
 | 1       | Initial format. |
+| 2       | Adds the required `principles.goalkeeper.sweeping` ([goalkeeper](goalkeeper.md)). |
 
 ## Files
 

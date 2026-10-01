@@ -204,11 +204,12 @@ TEST_CASE("Players near the ball decide more often", "[offBall]") {
     REQUIRE(midfielder.at(index).value() - midfielder.at(index - 1).value() == 6);
   }
   // The centre back decides every 18 ticks while far from the ball, every 6
-  // once he comes within 20 m of it.
+  // once he comes within 20 m of it -- at the first evaluation that finds
+  // him there, 12 ticks after a decision from afar.
   bool far = false;
   for (std::size_t index = 1; index < back.size(); ++index) {
     const auto gap = back.at(index).value() - back.at(index - 1).value();
-    REQUIRE((gap == 6 || gap == 18));
+    REQUIRE((gap == 6 || gap == 12 || gap == 18));
     far = far || gap == 18;
   }
   REQUIRE(far);

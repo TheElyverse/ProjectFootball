@@ -83,6 +83,9 @@ TEST_CASE("The three tactical identities differ where their intent says", "[tact
   REQUIRE(counter.principles().pressingTriggers.empty());
   REQUIRE(pressing.instruction(TacticalPhase::kPressing).pressingIntensity >
           possession.instruction(TacticalPhase::kPressing).pressingIntensity);
+  // Behind a high line the keeper sweeps; behind a deep block he stays home.
+  REQUIRE(pressing.principles().goalkeeper.sweeping > possession.principles().goalkeeper.sweeping);
+  REQUIRE(possession.principles().goalkeeper.sweeping > counter.principles().goalkeeper.sweeping);
 
   // Counter defends deepest and goes vertical after a regain.
   REQUIRE(counter.instruction(TacticalPhase::kDefensiveBlock).lineHeight <

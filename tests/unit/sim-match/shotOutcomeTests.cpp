@@ -481,7 +481,7 @@ TEST_CASE("A shot the keeper takes on its way past the goal was off target", "[s
   REQUIRE(simulation.state().ball().owner == PlayerId(8));
 }
 
-TEST_CASE("A shot over the keeper's reach beats him", "[shotOutcome]") {
+TEST_CASE("In his penalty area the keeper takes a high shot with his hands", "[shotOutcome]") {
   Chance chance;
   chance.keeper = {.x = 59.0, .y = 20.0};
   // Above what he takes at his feet, and under the crossbar.
@@ -489,6 +489,19 @@ TEST_CASE("A shot over the keeper's reach beats him", "[shotOutcome]") {
   const auto events = play(simulation, 30);
 
   REQUIRE(goal().heightMeters > 1.2);
+  REQUIRE(ReceptionConfig{}.controlHeight < 1.2);
+  REQUIRE(outcomeOf(events) == ShotOutcome::kSaved);
+  REQUIRE(simulation.state().ball().owner == PlayerId(8));
+}
+
+TEST_CASE("A shot beyond the keeper's hands beats him", "[shotOutcome]") {
+  Chance chance;
+  chance.keeper = {.x = 59.0, .y = 20.0};
+  // Inside the post, passing him about 1.7 m away: out of his hands' reach.
+  MatchSimulation simulation =
+      shotMatch(chance, shotAt(goal().postAtMaxY() - Vec2{.x = 0.0, .y = 0.25}, 1.2));
+  const auto events = play(simulation, 30);
+
   REQUIRE(outcomeOf(events) == ShotOutcome::kGoal);
 }
 

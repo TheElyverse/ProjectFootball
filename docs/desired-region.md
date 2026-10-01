@@ -34,9 +34,11 @@ ball and his responsibilities:
      tenths in),
    - `holdRestDefence`, while the team has the ball: the
      [rest-defence](zones.md) depth band, 5 to 20 m behind the ball.
-4. **The goalkeeper** (`guardGoal`) stands at his slot's base depth and follows
-   the ball a quarter of the way across, within 15 % of the width of the
-   centre.
+4. **The goalkeeper** (`guardGoal`) has a target of his own,
+   `goalkeeperTarget()`: on the bisector of his goal's angle as seen from the
+   ball, as deep as the ball and his defensive line make it, and he runs
+   straight to it without the costs below ([goalkeeper](goalkeeper.md)).
+   `tacticalTarget()` rejects him.
 
 For example, in progression with the ball on the centre spot of the 60 × 40 m
 pitch, the reference tactic's block is 27 m long (0.45) and 34 m wide (0.85);

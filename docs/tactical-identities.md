@@ -47,11 +47,12 @@ setup.
 `tests/acceptance/tacticalIdentityTests.cpp` checks what makes each style
 recognisable, over fixed seeds:
 
-- **Pressing wins the ball back higher.** Over twenty one-minute tactic
+- **Pressing wins the ball back higher.** Over sixty one-minute tactic
   matches against the reference tactic, pressing regains the ball more often
   than counter and at least one and a half times as often in the opponent's
-  half (at the time of writing 108 regains, 62 of them high, against 67 and
-  32).
+  half (at the time of writing 440 regains, 273 of them high, against 220 and
+  151). Twenty matches were too few: with the goalkeeper's own model they
+  fell below the ratio by chance while sixty kept it.
 - **Counter plays forward after a regain.** A hand-placed moment: home's
   holding midfielder has just won the ball in midfield, the striker is ahead
   of him with a defender near the lane, the centre backs behind him are free.

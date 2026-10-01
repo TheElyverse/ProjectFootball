@@ -57,6 +57,7 @@ using ElyverseFootball::SimReplay::PassResult;
 using ElyverseFootball::SimReplay::PlaybackObserver;
 using ElyverseFootball::SimReplay::playReplay;
 using ElyverseFootball::SimReplay::recordMatch;
+using ElyverseFootball::SimReplay::SweepDecisionTrace;
 using ElyverseFootball::SimReplay::TraceConfig;
 using ElyverseFootball::SimReplay::TraceEntry;
 using ElyverseFootball::SimReplay::TruePositions;
@@ -243,6 +244,25 @@ TEST_CASE("A decision without a shot says why the goal was not on", "[decisionTr
   REQUIRE(traced().contains("; no shot: not worth it (goal chance 0.12))"));
   decision.shots.front().rejection = ShotRejection::kGoalUnseen;
   REQUIRE(traced().contains("; no shot: goal unseen)"));
+}
+
+TEST_CASE("A goalkeeper's call to come for a ball is traced with both arrivals",
+          "[decisionTrace]") {
+  const auto entries =
+      traceOf("keeper-sweep-claim",
+              {.players = {PlayerId(8)}, .from = std::nullopt, .to = std::nullopt}, 60);
+  std::vector<TraceEntry> sweeps;
+  for (const TraceEntry& entry : entries) {
+    if (std::holds_alternative<SweepDecisionTrace>(entry)) {
+      sweeps.push_back(entry);
+    }
+  }
+  REQUIRE(sweeps.size() == 1);
+  const std::string text = formatTrace(sweeps);
+  CAPTURE(text);
+  REQUIRE(text.starts_with("t=3 #8 sweeps (reaches the ball in "));
+  REQUIRE(text.contains(" s, the first attacker in "));
+  REQUIRE(text.ends_with("; misjudged by +0.00 s, needs +0.15 s)\n"));
 }
 
 TEST_CASE("A pass challenged away the step it is decided is traced as not played",

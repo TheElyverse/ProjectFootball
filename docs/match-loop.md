@@ -142,8 +142,8 @@ perception, passing, reception, pursuit, decisions, phases, pitch control, posit
 | 2     | tactical phase  | 3 Hz       | team possession, phases of sides with a tactic |
 | 3     | pitch control   | 3 Hz       | the pitch-control grid         |
 | 4     | team pressing   | 5 Hz       | presses of sides with a tactic |
-| 5     | tactical movement | 5 Hz     | movement targets, desired regions and actions -- off-ball and defensive -- of players of sides with a tactic |
-| 6     | ball pursuit    | 10 Hz      | movement targets of the chasers, the chasers |
+| 5     | tactical movement | 5 Hz     | movement targets, desired regions and actions -- off-ball and defensive -- of players of sides with a tactic, the goalkeepers' places ([goalkeeper](goalkeeper.md)) |
+| 6     | ball pursuit    | 10 Hz      | movement targets of the chasers, the chasers, the goalkeepers' judgements of a ball they could come for |
 | 7     | pass decision   | 5 Hz       | the carrier's pending pass or shot ([shot decisions](shot-decisions.md)) |
 | 8     | ball challenge  | 10 Hz      | ball owner and last touch after a won challenge, players' last challenge; clears the loser's pending pass or shot |
 | 9     | player movement | every tick | player positions, velocities, facings |

@@ -62,7 +62,9 @@ using SimMatch::TeamSide;
                         {"shotAccuracy", player.attributes.shotAccuracy},
                         {"shotTechnique", player.attributes.shotTechnique},
                         {"strongFoot", SimMatch::footName(player.attributes.strongFoot)},
-                        {"weakFootAccuracy", player.attributes.weakFootAccuracy}};
+                        {"weakFootAccuracy", player.attributes.weakFootAccuracy},
+                        {"keeperPositioning", player.attributes.keeperPositioning},
+                        {"keeperAnticipation", player.attributes.keeperAnticipation}};
   json["target"] = player.target ? vec2Json(*player.target) : Json(nullptr);
   json["facing"] = vec2Json(player.facing);
   return json;
@@ -275,7 +277,9 @@ using SimMatch::TeamSide;
           {"reception",
            {{"controlRadius", config.reception.controlRadius},
             {"reclaimDelaySeconds", config.reception.reclaimDelaySeconds},
-            {"controlHeight", config.reception.controlHeight}}},
+            {"controlHeight", config.reception.controlHeight},
+            {"handsRadius", config.reception.handsRadius},
+            {"handsHeight", config.reception.handsHeight}}},
           {"pursuit",
            {{"intervalTicks", config.pursuit.intervalTicks},
             {"sampleSeconds", config.pursuit.sampleSeconds},
@@ -302,7 +306,17 @@ using SimMatch::TeamSide;
           {"restarts", {{"enabled", config.restarts.enabled}}},
           {"shooting", shootingJson(config.shooting)},
           {"woodwork",
-           {{"radius", config.woodwork.radius}, {"restitution", config.woodwork.restitution}}}};
+           {{"radius", config.woodwork.radius}, {"restitution", config.woodwork.restitution}}},
+          {"goalkeeper",
+           {{"lineDepth", config.goalkeeper.lineDepth},
+            {"highDepthShare", config.goalkeeper.highDepthShare},
+            {"possessionDepthShare", config.goalkeeper.possessionDepthShare},
+            {"positionErrorAlong", config.goalkeeper.positionErrorAlong},
+            {"positionErrorAcross", config.goalkeeper.positionErrorAcross},
+            {"cautiousMargin", config.goalkeeper.cautiousMargin},
+            {"boldMargin", config.goalkeeper.boldMargin},
+            {"sweepHysteresis", config.goalkeeper.sweepHysteresis},
+            {"misjudgement", config.goalkeeper.misjudgement}}}};
 }
 
 void addCommandFields(Json& json, const MovePlayerCommand& command) {
@@ -515,7 +529,9 @@ constexpr std::int64_t kMaxGoals = 1'000'000;
                          .shotAccuracy = attributes.member("shotAccuracy").number(),
                          .shotTechnique = attributes.member("shotTechnique").number(),
                          .strongFoot = readFoot(attributes.member("strongFoot")),
-                         .weakFootAccuracy = attributes.member("weakFootAccuracy").number()},
+                         .weakFootAccuracy = attributes.member("weakFootAccuracy").number(),
+                         .keeperPositioning = attributes.member("keeperPositioning").number(),
+                         .keeperAnticipation = attributes.member("keeperAnticipation").number()},
           .target = target.isNull() ? std::nullopt : std::optional(readVec2(target)),
           .facing = readVec2(field.member("facing"))};
 }
@@ -798,33 +814,48 @@ constexpr std::int64_t kMaxGoals = 1'000'000;
           .deflectionLift = number("deflectionLift")};
 }
 
+[[nodiscard]] SimMatch::GoalkeeperConfig readGoalkeeper(const Field& field) {
+  const auto number = [&field](const char* name) { return field.member(name).number(); };
+  return {.lineDepth = number("lineDepth"),
+          .highDepthShare = number("highDepthShare"),
+          .possessionDepthShare = number("possessionDepthShare"),
+          .positionErrorAlong = number("positionErrorAlong"),
+          .positionErrorAcross = number("positionErrorAcross"),
+          .cautiousMargin = number("cautiousMargin"),
+          .boldMargin = number("boldMargin"),
+          .sweepHysteresis = number("sweepHysteresis"),
+          .misjudgement = number("misjudgement")};
+}
+
 [[nodiscard]] MatchConfig readConfig(const Field& field) {
-  return {
-      .ticksPerSecond = static_cast<int>(field.member("ticksPerSecond").integerIn(1, 100000)),
-      .ball = readBall(field.member("ball")),
-      .perception = readPerception(field.member("perception")),
-      .passing = readPassing(field.member("passing")),
-      .reception = {.controlRadius = field.member("reception").member("controlRadius").number(),
-                    .reclaimDelaySeconds =
-                        field.member("reception").member("reclaimDelaySeconds").number(),
-                    .controlHeight = field.member("reception").member("controlHeight").number()},
-      .pursuit = readPursuit(field.member("pursuit")),
-      .decisions = readDecisions(field.member("decisions")),
-      .phases = readPhases(field.member("phases")),
-      .pitchControl =
-          {.intervalTicks = static_cast<int>(
-               field.member("pitchControl").member("intervalTicks").integerIn(1, 100000)),
-           .cellSize = field.member("pitchControl").member("cellSize").number(),
-           .controlSeconds = field.member("pitchControl").member("controlSeconds").number()},
-      .positioning = readPositioning(field.member("positioning")),
-      .offBall = readOffBall(field.member("offBall")),
-      .defensive = readDefensive(field.member("defensive")),
-      .challenge = readChallenge(field.member("challenge")),
-      .pressing = readPressing(field.member("pressing")),
-      .restarts = {.enabled = field.member("restarts").member("enabled").boolean()},
-      .shooting = readShooting(field.member("shooting")),
-      .woodwork = {.radius = field.member("woodwork").member("radius").number(),
-                   .restitution = field.member("woodwork").member("restitution").number()}};
+  return {.ticksPerSecond = static_cast<int>(field.member("ticksPerSecond").integerIn(1, 100000)),
+          .ball = readBall(field.member("ball")),
+          .perception = readPerception(field.member("perception")),
+          .passing = readPassing(field.member("passing")),
+          .reception = {.controlRadius = field.member("reception").member("controlRadius").number(),
+                        .reclaimDelaySeconds =
+                            field.member("reception").member("reclaimDelaySeconds").number(),
+                        .controlHeight = field.member("reception").member("controlHeight").number(),
+                        .handsRadius = field.member("reception").member("handsRadius").number(),
+                        .handsHeight = field.member("reception").member("handsHeight").number()},
+          .pursuit = readPursuit(field.member("pursuit")),
+          .decisions = readDecisions(field.member("decisions")),
+          .phases = readPhases(field.member("phases")),
+          .pitchControl =
+              {.intervalTicks = static_cast<int>(
+                   field.member("pitchControl").member("intervalTicks").integerIn(1, 100000)),
+               .cellSize = field.member("pitchControl").member("cellSize").number(),
+               .controlSeconds = field.member("pitchControl").member("controlSeconds").number()},
+          .positioning = readPositioning(field.member("positioning")),
+          .offBall = readOffBall(field.member("offBall")),
+          .defensive = readDefensive(field.member("defensive")),
+          .challenge = readChallenge(field.member("challenge")),
+          .pressing = readPressing(field.member("pressing")),
+          .restarts = {.enabled = field.member("restarts").member("enabled").boolean()},
+          .shooting = readShooting(field.member("shooting")),
+          .woodwork = {.radius = field.member("woodwork").member("radius").number(),
+                       .restitution = field.member("woodwork").member("restitution").number()},
+          .goalkeeper = readGoalkeeper(field.member("goalkeeper"))};
 }
 
 [[nodiscard]] MatchCommand readCommand(const Field& field) {

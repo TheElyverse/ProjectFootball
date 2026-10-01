@@ -80,6 +80,13 @@ An `ActionDiagnostic` explains one decision of a player without the ball (see
 the index of the `chosen` one. `MatchSimulation::actionDiagnostics()` holds those
 of the last step.
 
+A `SweepDiagnostic` explains a goalkeeper's call to come for a ball the
+opponent played or to stay home (see [goalkeeper](goalkeeper.md)): the `tick`,
+the `player` and the `call` -- his and the first attacker's seconds to the
+ball, his misjudgement, the threshold he judged it by and whether he comes. One
+is reported when he first judges a ball and one when he turns back;
+`MatchSimulation::sweepDiagnostics()` holds those of the last step.
+
 Diagnostics are off by default. `MatchSimulation::setCollectDiagnostics(true)`
 turns them on; `diagnostics()` then holds the diagnostics of the last step.
 `setDiagnosticsFilter()` narrows them to some `players` and a tick range

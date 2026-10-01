@@ -11,6 +11,7 @@
 #include <optional>
 #include <stdexcept>
 #include <string>
+#include <utility>
 #include <variant>
 #include <vector>
 
@@ -38,15 +39,19 @@ using ElyverseFootball::SimMatch::TeamSide;
 namespace {
 
 constexpr int kSeeds = 20;
+// The pressing trap compares rates of a few tenths, which twenty seeds
+// cannot tell apart from chance.
+constexpr int kTrapSeeds = 100;
 
 using Builder = std::function<std::expected<MatchSetup, std::string>(std::uint64_t)>;
 
 // Runs the scenario of every seed for `ticks` ticks with diagnostics on and
 // counts the seeds for which `happened` returns true in some step.
 [[nodiscard]] int seedsWhere(const Builder& build, const std::int64_t ticks,
-                             const std::function<bool(const MatchSimulation&)>& happened) {
+                             const std::function<bool(const MatchSimulation&)>& happened,
+                             const int seeds = kSeeds) {
   int count = 0;
-  for (std::uint64_t seed = 1; seed <= static_cast<std::uint64_t>(kSeeds); ++seed) {
+  for (std::uint64_t seed = 1; std::cmp_less_equal(seed, seeds); ++seed) {
     const auto setup = build(seed);
     REQUIRE(setup.has_value());
     MatchSimulation simulation = ElyverseFootball::SimMatch::startMatch(*setup);
@@ -124,7 +129,8 @@ namespace {
         const auto* ended = eventOf<PressingEnded>(simulation);
         return ended != nullptr && ended->side == TeamSide::kHome &&
                ended->outcome == PressOutcome::kBallRegained;
-      });
+      },
+      kTrapSeeds);
 }
 
 // Seeds in which the trigger, not home's phase, starts the press: home's
@@ -142,7 +148,8 @@ namespace {
         return started != nullptr && started->side == TeamSide::kHome &&
                started->trigger ==
                    ElyverseFootball::SimTactics::PressingTrigger::kReceiverFacingOwnGoal;
-      });
+      },
+      kTrapSeeds);
 }
 
 }  // namespace
@@ -156,13 +163,13 @@ TEST_CASE("Golden: a coordinated press at the touchline traps the receiver",
   const int triggered = trapTriggered(TrapSpot::kTouchline);
   CAPTURE(coordinated, lone, centre, triggered);
   // The receiver facing his own goal is what starts the press, in every seed.
-  REQUIRE(triggered == kSeeds);
-  // At the time of writing 13, 2 and 0 of 20.
-  REQUIRE(coordinated >= 10);
+  REQUIRE(triggered == kTrapSeeds);
+  // At the time of writing 44, 18 and 6 of 100.
+  REQUIRE(coordinated >= 35);
   // Uncoordinated: one presser leaves the carrier's lanes open.
-  REQUIRE(coordinated >= lone + 6);
+  REQUIRE(coordinated >= lone + 15);
   // The touchline is half the trap: in the centre the carrier escapes.
-  REQUIRE(coordinated >= centre + 6);
+  REQUIRE(coordinated >= centre + 25);
 }
 
 TEST_CASE("Golden: the striker runs in behind the line and is tracked",

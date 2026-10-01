@@ -60,7 +60,10 @@ moves.
 `nearBallRadius` (20 m) of the ball every `nearIntervalTicks` (6), farther away
 every `farIntervalTicks` (18) -- five and five-thirds times a second at 30 Hz.
 When his team loses the ball he decides again at once, then as a
-[defender](defensive-shape.md). The goalkeeper decides nothing.
+[defender](defensive-shape.md). The goalkeeper decides only with his team on
+the ball, between holding his region and supporting the carrier from inside his
+own penalty area (`generateKeeperSupportCandidates()`,
+[goalkeeper](goalkeeper.md)).
 
 **Diagnostics.** Every decision is reported as an `ActionDiagnostic`: all
 candidates with their weighted parts and utility, and the index of the chosen

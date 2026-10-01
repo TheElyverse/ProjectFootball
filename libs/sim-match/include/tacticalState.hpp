@@ -85,6 +85,20 @@ struct PlayerAction {
   friend bool operator==(const PlayerAction&, const PlayerAction&) = default;
 };
 
+// A goalkeeper's judgement of a free ball the opponent played
+// (docs/goalkeeper.md): which ball -- the player and tick of its last touch
+// -- how far he misjudges his head start on it, and whether he decided to
+// come for it. He draws his misjudgement of each ball once and keeps it while
+// he follows that ball.
+struct SweepJudgement {
+  SimCore::PlayerId touchedBy;
+  SimCore::SimTick touchedAt;
+  double misjudgement = 0.0;
+  bool coming = false;
+
+  friend bool operator==(const SweepJudgement&, const SweepJudgement&) = default;
+};
+
 // A player's tactical runtime state, kept in the match state because
 // systems keep nothing between ticks. Empty for a player of a scripted side.
 struct PlayerTacticalState {
@@ -92,6 +106,8 @@ struct PlayerTacticalState {
   std::optional<PlayerAction> action;
   // When he last challenged the carrier for the ball (docs/pressing.md).
   std::optional<SimCore::SimTick> lastChallenge;
+  // A goalkeeper's judgement of the last free ball he could come for.
+  std::optional<SweepJudgement> sweep;
 
   friend bool operator==(const PlayerTacticalState&, const PlayerTacticalState&) = default;
 };

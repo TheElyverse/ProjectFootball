@@ -179,6 +179,8 @@ TEST_CASE("M0: the final state hash is pinned", "[acceptance][m0]") {
   // players now shoot at a goal in front of them -- and when shots were no
   // longer held to the hardest pass's speed. And again with shot execution:
   // their shots now fly, hit the frame, come off defenders and score, and
-  // the last reception remembers whose pass it was.
-  REQUIRE(record().checkpoints.back().stateHash == 0xcdeed3772ab5caa1ULL);
+  // the last reception remembers whose pass it was. And again with the
+  // goalkeeper's own model: he keeps goal on the angle's bisector, takes a
+  // ball in his area with his hands and decides whether to come for one.
+  REQUIRE(record().checkpoints.back().stateHash == 0x247b8cad190f8eb9ULL);
 }
