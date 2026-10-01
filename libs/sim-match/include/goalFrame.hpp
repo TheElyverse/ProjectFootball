@@ -61,6 +61,19 @@ struct WoodworkHit {
                                                          const WoodworkConfig& config,
                                                          double seconds) noexcept;
 
+// When a free ball has travelled this far along the ground if nothing stops
+// it, and the ball at that moment. It follows ballAfter(), which knows no
+// pitch boundary. Empty for a ball that stops short; the ball itself for a
+// distance that is not positive.
+struct BallPassage {
+  double seconds = 0.0;
+  BallState ball;
+};
+
+[[nodiscard]] std::optional<BallPassage> predictBallPassage(const BallState& ball,
+                                                            const BallPhysics& physics,
+                                                            double meters) noexcept;
+
 // Where a free ball crosses a goal line if nothing stops it: the pitch y and
 // the height it crosses at.
 struct GoalLineCrossing {

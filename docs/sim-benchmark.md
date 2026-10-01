@@ -108,11 +108,12 @@ went in was a goal kick to win back in front of the goal; since it is a
 every seed — with seeds 2 and 3 but not 1 at first, with seeds 1 and 3 but not 2
 since both sides [line up](restarts.md#the-kickoff) for the kickoff — and the
 test does not ask for it. Every side of every
-pairing must also shoot between 1 and 40 times per six-minute match on
+pairing must also shoot between 0.5 and 40 times per six-minute match on
 average — a guardrail against a change that stops the shooting or turns the
 sandbox into a shooting gallery, set from the first measurement of 2 to 27,
-which goals have brought down to 3 to 13 and the kickoff line-up to 1 to 9
-([shot decisions](shot-decisions.md)). The test is registered for Release
+which goals have brought down to 3 to 13, the kickoff line-up to 1 to 9 and
+the keeper's [shot stopping](shot-stopping.md) to 0.67 to 11.67, possession
+against counter's deep block the fewest ([shot decisions](shot-decisions.md)). The test is registered for Release
 builds only; in Debug it would take minutes.
 
 **The full run** is twenty 90-minute matches per pairing, the command above.

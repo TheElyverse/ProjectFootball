@@ -15,7 +15,7 @@ and ball physics are separate concerns.
 |--------------------|---------------------------------------------------------------------------------|
 | `MatchState`       | the `Pitch`, the players in order, the `BallState`, the squad size per side, every player's perception memory, and each side's tactic |
 | `PlayerMatchState` | `playerId`, `side`, `position`, `velocity`, `attributes`, `target`, `facing`    |
-| `PlayerAttributes` | `maxSpeed` (m/s), `acceleration` (m/s²), `shotAccuracy`, `shotTechnique`, `weakFootAccuracy`, `keeperPositioning` and `keeperAnticipation` (0 … 1) and `strongFoot`, fixed for the match |
+| `PlayerAttributes` | `maxSpeed` (m/s), `acceleration` (m/s²), `shotAccuracy`, `shotTechnique`, `weakFootAccuracy`, `keeperPositioning`, `keeperAnticipation`, `keeperReflexes` and `keeperHandling` (0 … 1) and `strongFoot`, fixed for the match |
 | `BallState`        | `position`, `velocity`, `owner`, `lastTouch`                                    |
 | `TeamSide`         | `kHome` or `kAway`                                                              |
 
@@ -36,7 +36,10 @@ strikes a shot is `shotTechnique` and `weakFootAccuracy`, both 0.5 by default,
 and his `strongFoot`, the right ([shooting](shooting.md)). How exactly a
 goalkeeper takes up his place and how well he judges a ball played in behind
 are `keeperPositioning` and `keeperAnticipation`, both 0.5 by default
-([goalkeeper](goalkeeper.md)); only a goalkeeper uses them. They describe the
+([goalkeeper](goalkeeper.md)); how quickly he reacts to a shot and how surely
+he holds one are `keeperReflexes` and `keeperHandling`, both 0.5 by default,
+and his anticipation is also how well he reads where a shot passes him
+([shot stopping](shot-stopping.md)). Only a goalkeeper uses them. They describe the
 predefined test players of the sandbox, not a generated player.
 
 The ball's `owner` is the player in control of it, empty while it is free, and
@@ -68,10 +71,12 @@ state created from a spec and kept up to date by the tactical phase system; see
 [pitch-control](pitch-control.md) grid between refreshes, `chaser(side)` names the
 player each side has sent after a free ball ([reception](reception.md)), and
 `tactical(playerIndex)` holds each player's tactical runtime state, such as his
-[desired region](desired-region.md), and `press(side)` the side's
+[desired region](desired-region.md) or a goalkeeper's
+[dive](shot-stopping.md), and `press(side)` the side's
 [press](pressing.md) in progress. `lastPass()`, `lastShot()` and
 `lastReception()` record the last pass kicked, the last shot taken — with the
-player it last came off and whether its outcome is recorded — and the last
+player it last came off, whether its outcome is recorded, and the keeper's
+parry ([shot stopping](shot-stopping.md)) — and the last
 free ball controlled — with the teammate whose pass it was, if any —, and
 `lastGoal()` the last goal scored. All are empty in a
 state created from a spec.

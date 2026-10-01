@@ -152,6 +152,8 @@ void appendAttributeErrors(const std::size_t index, const PlayerMatchState& play
   appendShareError(attributes.weakFootAccuracy, "weak foot accuracy");
   appendShareError(attributes.keeperPositioning, "keeper positioning");
   appendShareError(attributes.keeperAnticipation, "keeper anticipation");
+  appendShareError(attributes.keeperReflexes, "keeper reflexes");
+  appendShareError(attributes.keeperHandling, "keeper handling");
   if (attributes.strongFoot != Foot::kLeft && attributes.strongFoot != Foot::kRight) {
     errors.push_back({.code = MatchStateErrorCode::kInvalidPlayerAttributes,
                       .message = describePlayer(index, player) +
@@ -425,6 +427,9 @@ void MatchStateWriter::setLastShot(const std::optional<ShotRecord> shot) {
     requirePlayer(shot->shooter, "a shooter");
     if (shot->deflection) {
       requirePlayer(shot->deflection->playerId, "a deflector");
+    }
+    if (shot->parry) {
+      requirePlayer(shot->parry->playerId, "a parrying keeper");
     }
   }
   state_->lastShot_ = shot;

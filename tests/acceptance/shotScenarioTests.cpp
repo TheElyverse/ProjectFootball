@@ -202,7 +202,7 @@ TEST_CASE("Shots: a clear chance is mostly scored", "[acceptance][shots]") {
   REQUIRE(shots >= 90);
   // Eight meters out with only the keeper to beat: an average finisher scores
   // most of them, and execution makes him miss some. At the time of writing
-  // he scores 72 of 100 and hits the woodwork with 42.
+  // he scores 72 of 100 and hits the woodwork with 48.
   REQUIRE(goals >= 55);
   REQUIRE(goals <= 90);
   REQUIRE(onTarget >= goals);

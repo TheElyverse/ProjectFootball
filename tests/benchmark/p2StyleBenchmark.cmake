@@ -63,9 +63,11 @@ endforeach()
 # pairing shoots, and none shoots at every chance. The band is set from the
 # first measurement -- 2 to 27 shots a side in six minutes, 3 to 13 since goals
 # restart play from the centre, 1 to 9 since both sides line up for that
-# kickoff -- with room above; it guards against a change that stops the shooting or makes a
+# kickoff, 0.67 to 11.67 since the keeper dives, holds or parries shots and
+# picks up slow balls (possession against counter's deep block) -- with room
+# above; it guards against a change that stops the shooting or makes a
 # shooting gallery of the sandbox, not against balancing.
-set(minShots 1)
+set(minShots 0.5)
 set(maxShots 40)
 math(EXPR lastPairing "${pairings} - 1")
 foreach(index RANGE ${lastPairing})

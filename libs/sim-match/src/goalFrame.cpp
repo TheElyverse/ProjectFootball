@@ -256,6 +256,24 @@ std::optional<WoodworkHit> findWoodworkHit(const BallState& ball, const BallPhys
   return first;
 }
 
+std::optional<BallPassage> predictBallPassage(const BallState& ball, const BallPhysics& physics,
+                                              const double meters) noexcept {
+  if (meters <= 0.0) {
+    return BallPassage{.seconds = 0.0, .ball = ball};
+  }
+  Flight flight{.ball = ball, .physics = physics, .seconds = kCrossingHorizonSeconds};
+  for (int step = 0; step < kMaxHorizonDoublings && flight.travelled(flight.seconds) < meters &&
+                     !flight.after(flight.seconds).isAtRest();
+       ++step) {
+    flight.seconds *= 2.0;
+  }
+  if (flight.travelled(flight.seconds) < meters) {
+    return std::nullopt;
+  }
+  const double seconds = flight.secondsToTravel(meters);
+  return BallPassage{.seconds = seconds, .ball = flight.after(seconds)};
+}
+
 std::optional<GoalLineCrossing> predictGoalLineCrossing(const BallState& ball,
                                                         const BallPhysics& physics,
                                                         const Pitch& pitch,
@@ -265,18 +283,11 @@ std::optional<GoalLineCrossing> predictGoalLineCrossing(const BallState& ball,
   if (speed <= 0.0 || towardLine * ball.velocity.x <= 0.0) {
     return std::nullopt;
   }
-  const double way = towardLine / (ball.velocity.x / speed);
-  Flight flight{.ball = ball, .physics = physics, .seconds = kCrossingHorizonSeconds};
-  for (int step = 0; step < kMaxHorizonDoublings && flight.travelled(flight.seconds) < way &&
-                     !flight.after(flight.seconds).isAtRest();
-       ++step) {
-    flight.seconds *= 2.0;
-  }
-  if (flight.travelled(flight.seconds) < way) {
+  const auto crossing = predictBallPassage(ball, physics, towardLine / (ball.velocity.x / speed));
+  if (!crossing) {
     return std::nullopt;
   }
-  const BallState crossing = flight.after(flight.secondsToTravel(way));
-  return GoalLineCrossing{.y = crossing.position.y, .height = crossing.height};
+  return GoalLineCrossing{.y = crossing->ball.position.y, .height = crossing->ball.height};
 }
 
 }  // namespace ElyverseFootball::SimMatch

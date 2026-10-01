@@ -289,6 +289,16 @@ void addEventFields(Json& json, const SimMatch::ShotHitWoodwork& event) {
   json["height"] = rounded(event.height);
 }
 
+void addEventFields(Json& json, const SimMatch::SaveAttempted& event) {
+  json["type"] = "saveAttempted";
+  json["keeper"] = event.keeper.value();
+  json["shooter"] = event.shooter.value();
+  json["shotTick"] = event.shotTick.value();
+  json["result"] = SimMatch::saveResultName(event.result);
+  json["position"] = vec2Json(event.position);
+  json["height"] = rounded(event.height);
+}
+
 void addEventFields(Json& json, const SimMatch::ShotResolved& event) {
   json["type"] = "shotResolved";
   json["shooter"] = event.shooter.value();

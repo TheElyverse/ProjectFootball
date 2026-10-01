@@ -24,6 +24,7 @@
 #include "referenceTactic.hpp"
 #include "restart.hpp"
 #include "shooting.hpp"
+#include "shotStopping.hpp"
 #include "simTime.hpp"
 #include "tactic.hpp"
 #include "vec2.hpp"
@@ -69,6 +70,7 @@ using ElyverseFootball::SimMatch::ShotIntent;
 using ElyverseFootball::SimMatch::ShotOutcome;
 using ElyverseFootball::SimMatch::ShotRecord;
 using ElyverseFootball::SimMatch::ShotResolved;
+using ElyverseFootball::SimMatch::ShotStoppingConfig;
 using ElyverseFootball::SimMatch::TeamSide;
 using ElyverseFootball::SimMatch::TeamTactics;
 using ElyverseFootball::SimMatch::WoodworkConfig;
@@ -84,6 +86,13 @@ constexpr Vec2 kFarAway{.x = 3.0, .y = 3.0};
 
 [[nodiscard]] Goal goal() {
   return Pitch(60.0, 40.0).goal(GoalEnd::kMaxX);
+}
+
+// A keeper who holds every ball he touches.
+[[nodiscard]] ShotStoppingConfig safeHands() {
+  ShotStoppingConfig config;
+  config.catchableSpeed = 1e9;
+  return config;
 }
 
 // Execution without error, so a test can predict the ball exactly.
@@ -114,6 +123,7 @@ struct Chance {
   Vec2 defender = kFarAway;
   Vec2 teammate = kFarAway;
   ShotConfig shooting = exact();
+  ShotStoppingConfig saves;
   bool restarts = false;
   std::uint64_t seed = 1;
 };
@@ -149,7 +159,7 @@ struct Chance {
   std::vector<MatchSystem> systems{
       makePlayerMovementSystem(),
       makeBallMovementSystem(BallPhysics{}, PassConfig{}, ReceptionConfig{}, restarts,
-                             chance.shooting, WoodworkConfig{})};
+                             chance.shooting, WoodworkConfig{}, chance.saves)};
   if (chance.restarts) {
     systems.push_back(makeRestartSystem(restarts, BallPhysics{}));
   }
@@ -460,6 +470,7 @@ TEST_CASE("A slow shot is taken at the feet like any ball", "[shotOutcome]") {
 TEST_CASE("The keeper takes a shot at him and saves it", "[shotOutcome]") {
   Chance chance;
   chance.keeper = {.x = 59.0, .y = 20.0};
+  chance.saves = safeHands();
   MatchSimulation simulation = shotMatch(chance, shotAt(goal().center, 0.3));
   const auto events = play(simulation, 30);
 
@@ -474,6 +485,7 @@ TEST_CASE("A shot the keeper takes on its way past the goal was off target", "[s
   Chance chance;
   const Vec2 wide = goal().postAtMaxY() + Vec2{.x = 0.0, .y = 1.0};
   chance.keeper = wide - Vec2{.x = 1.0, .y = 0.0};
+  chance.saves = safeHands();
   MatchSimulation simulation = shotMatch(chance, shotAt(wide, 0.3));
   const auto events = play(simulation, 30);
 
@@ -481,10 +493,11 @@ TEST_CASE("A shot the keeper takes on its way past the goal was off target", "[s
   REQUIRE(simulation.state().ball().owner == PlayerId(8));
 }
 
-TEST_CASE("In his penalty area the keeper takes a high shot with his hands", "[shotOutcome]") {
+TEST_CASE("The keeper holds a high shot at him", "[shotOutcome]") {
   Chance chance;
   chance.keeper = {.x = 59.0, .y = 20.0};
-  // Above what he takes at his feet, and under the crossbar.
+  chance.saves = safeHands();
+  // Above what an outfield player takes at his feet, and under the crossbar.
   MatchSimulation simulation = shotMatch(chance, shotAt(goal().center, 1.2));
   const auto events = play(simulation, 30);
 
@@ -497,7 +510,8 @@ TEST_CASE("In his penalty area the keeper takes a high shot with his hands", "[s
 TEST_CASE("A shot beyond the keeper's hands beats him", "[shotOutcome]") {
   Chance chance;
   chance.keeper = {.x = 59.0, .y = 20.0};
-  // Inside the post, passing him about 1.7 m away: out of his hands' reach.
+  // Inside the post, passing him about 1.7 m away: out of reach of a keeper
+  // who has had no time to react.
   MatchSimulation simulation =
       shotMatch(chance, shotAt(goal().postAtMaxY() - Vec2{.x = 0.0, .y = 0.25}, 1.2));
   const auto events = play(simulation, 30);

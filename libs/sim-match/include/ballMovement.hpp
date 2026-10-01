@@ -24,6 +24,7 @@ inline constexpr std::string_view kBallMovementSystemName = "ball movement";
 struct PassConfig;
 struct ReceptionConfig;
 struct ShotConfig;
+struct ShotStoppingConfig;
 struct WoodworkConfig;
 
 // Moves the ball one tick, every tick:
@@ -49,7 +50,12 @@ struct WoodworkConfig;
 //      plays on, so a player standing on it does not receive or intercept it
 //      first. On its way the ball rebounds from a post or a crossbar it hits
 //      (findWoodworkHit()), and a shot still fast comes off an outfield
-//      player in its way instead of being taken by him (deflectShot()).
+//      player in its way instead of being taken by him (deflectShot()). The
+//      goalkeeper facing a shot (facingKeeper()) does not take it like any
+//      ball: where it passes his plane he meets it with his dive, or standing
+//      set before he has reacted, and holds it, parries it or lets it past.
+//      A keeper standing set is down for a moment after it passed him, and
+//      one who holds it is up at once (docs/shot-stopping.md).
 //   4. A ball that leaves the pitch over a goal line, between the posts and
 //      under the crossbar, is a goal: the score goes up and GoalScored is
 //      recorded. A shot gets its one ShotResolved when the ball goes in, a
@@ -57,7 +63,9 @@ struct WoodworkConfig;
 //
 // Writes the ball's position, velocity, height, vertical velocity, spin, owner
 // and last touch, the last pass, shot and reception, the score and the last
-// goal, and clears the pending actions.
+// goal, a goalkeeper's dive in his tactical state and the position and
+// velocity of one who holds the ball from a dive, and clears the pending
+// actions.
 // Throws std::invalid_argument for an invalid
 // configuration. The shorter overloads use the default configuration for what they omit.
 //
@@ -65,6 +73,10 @@ struct WoodworkConfig;
 // makeMatchSystems() does: a controlled ball follows the carrier's move as the
 // movement system makes it, and without that system the ball would end the
 // tick where the carrier would have gone.
+[[nodiscard]] MatchSystem makeBallMovementSystem(
+    const BallPhysics& physics, const PassConfig& passing, const ReceptionConfig& reception,
+    const RestartConfig& restarts, const ShotConfig& shooting, const WoodworkConfig& woodwork,
+    const ShotStoppingConfig& saves);
 [[nodiscard]] MatchSystem makeBallMovementSystem(
     const BallPhysics& physics, const PassConfig& passing, const ReceptionConfig& reception,
     const RestartConfig& restarts, const ShotConfig& shooting, const WoodworkConfig& woodwork);

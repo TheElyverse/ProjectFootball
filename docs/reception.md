@@ -34,7 +34,10 @@ player against the ball:
   the passer's foot.
 - **Not a fast shot.** A [shot](shooting.md) still fast comes off an outfield
   player in its way instead of being taken by him; `findBallContact()` looks
-  for that body with its own reach. The keeper takes a shot like any ball.
+  for that body with its own reach. The keeper of the goal a shot attacks does
+  not compete for it at all: he meets it with his dive where it passes him,
+  and while he is busy with a dive or down after it he takes no ball
+  ([shot stopping](shot-stopping.md)).
 - **The keeper's hands.** A goalkeeper who stands in his own penalty area, with
   the ball in it, at the start of the tick reaches it with his hands: within
   `handsRadius` (1.2 m) and up to `handsHeight` (2.2 m) instead of the feet's
@@ -79,7 +82,8 @@ it, ten times a second:
    decides whether he comes: his head start on the opponents' earliest player,
    misjudged as his anticipation allows, against his tactic's sweeping dial. If
    he stays, his side's next earliest player chases it
-   ([goalkeeper](goalkeeper.md)).
+   ([goalkeeper](goalkeeper.md)). A keeper busy with a dive chases nothing
+   ([shot stopping](shot-stopping.md)).
 4. **Handing over.** A chaser's target belongs to pursuit. A player who stops
    being the chaser -- a teammate reaches the ball earlier, or anyone controls
    it -- has his target cleared and stops where he is, instead of running on to

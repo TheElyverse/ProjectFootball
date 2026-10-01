@@ -40,8 +40,28 @@ void addPlayer(StableHasher& hasher, const PlayerMatchState& player) noexcept {
   hasher.addDouble(player.attributes.weakFootAccuracy);
   hasher.addDouble(player.attributes.keeperPositioning);
   hasher.addDouble(player.attributes.keeperAnticipation);
+  hasher.addDouble(player.attributes.keeperReflexes);
+  hasher.addDouble(player.attributes.keeperHandling);
   addOptionalVec2(hasher, player.target);
   addVec2(hasher, player.facing);
+}
+
+void addShot(StableHasher& hasher, const ShotRecord& shot) noexcept {
+  hasher.addU64(shot.shooter.value());
+  addVec2(hasher, shot.from);
+  hasher.addI64(shot.tick.value());
+  hasher.addBool(shot.deflection.has_value());
+  if (shot.deflection) {
+    hasher.addU64(shot.deflection->playerId.value());
+    hasher.addI64(shot.deflection->tick.value());
+  }
+  hasher.addBool(shot.resolved);
+  hasher.addBool(shot.parry.has_value());
+  if (shot.parry) {
+    hasher.addU64(shot.parry->playerId.value());
+    hasher.addI64(shot.parry->tick.value());
+  }
+  hasher.addBool(shot.saved);
 }
 
 void addObservation(StableHasher& hasher, const Observation& observation) noexcept {
@@ -104,6 +124,20 @@ void addTactical(StableHasher& hasher, const PlayerTacticalState& tactical) noex
     hasher.addI64(tactical.sweep->touchedAt.value());
     hasher.addDouble(tactical.sweep->misjudgement);
     hasher.addBool(tactical.sweep->coming);
+  }
+  hasher.addBool(tactical.dive.has_value());
+  if (const auto& dive = tactical.dive) {
+    hasher.addU64(dive->touchedBy.value());
+    hasher.addI64(dive->touchedAt.value());
+    hasher.addI64(dive->tick.value());
+    addVec2(hasher, dive->origin);
+    addVec2(hasher, dive->normal);
+    hasher.addDouble(dive->feet);
+    hasher.addDouble(dive->target.across);
+    hasher.addDouble(dive->target.up);
+    hasher.addDouble(dive->runSeconds);
+    hasher.addDouble(dive->landSeconds);
+    hasher.addDouble(dive->recoverySeconds);
   }
 }
 
@@ -192,15 +226,7 @@ std::uint64_t hashMatchState(const MatchState& state) noexcept {
   const auto& lastShot = state.lastShot();
   hasher.addBool(lastShot.has_value());
   if (lastShot) {
-    hasher.addU64(lastShot->shooter.value());
-    addVec2(hasher, lastShot->from);
-    hasher.addI64(lastShot->tick.value());
-    hasher.addBool(lastShot->deflection.has_value());
-    if (lastShot->deflection) {
-      hasher.addU64(lastShot->deflection->playerId.value());
-      hasher.addI64(lastShot->deflection->tick.value());
-    }
-    hasher.addBool(lastShot->resolved);
+    addShot(hasher, *lastShot);
   }
   const auto& reception = state.lastReception();
   hasher.addBool(reception.has_value());

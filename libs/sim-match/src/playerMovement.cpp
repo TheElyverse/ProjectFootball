@@ -3,7 +3,10 @@
 #include <algorithm>
 #include <cmath>
 #include <cstddef>
+#include <optional>
 #include <string>
+
+#include "shotStopping.hpp"
 
 namespace ElyverseFootball::SimMatch {
 namespace {
@@ -85,11 +88,49 @@ Vec2 facingAfterMove(const PlayerMatchState& player, const PlayerKinematics& mov
   return player.facing;
 }
 
-MatchSystem makePlayerMovementSystem() {
+namespace {
+
+// A keeper busy with a dive at the start of the step is where it takes him by
+// its end, whatever his target: running, flying or down. Empty for anyone
+// else.
+[[nodiscard]] std::optional<PlayerKinematics> diveMove(const PlayerMatchState& player,
+                                                       const KeeperDive& dive,
+                                                       const MatchStepContext& context,
+                                                       const ShotStoppingConfig& saves) {
+  const double secondsPerTick = context.secondsPerTick();
+  const double since =
+      static_cast<double>(context.tick().value() - dive.tick.value()) * secondsPerTick;
+  if (!isBusy(dive, since)) {
+    return std::nullopt;
+  }
+  const Vec2 position =
+      bodyAt(dive, std::min(since + secondsPerTick, dive.landSeconds), player.attributes, saves);
+  Vec2 velocity = (position - player.position) * (1.0 / secondsPerTick);
+  // A dive is quicker than his run; what the state keeps as his velocity is
+  // what his legs allow.
+  if (const double speed = velocity.length(); speed > player.attributes.maxSpeed) {
+    velocity = velocity * (player.attributes.maxSpeed / speed);
+  }
+  return PlayerKinematics{.position = position, .velocity = velocity};
+}
+
+}  // namespace
+
+MatchSystem makePlayerMovementSystem(const ShotStoppingConfig& saves) {
+  validate(saves);
   return {.name = std::string(kPlayerMovementSystemName),
-          .update = [](const MatchStepContext& context, const MatchState& current,
-                       MatchStateWriter& next) {
+          .update = [saves](const MatchStepContext& context, const MatchState& current,
+                            MatchStateWriter& next) {
             for (std::size_t index = 0; const PlayerMatchState& player : current.players()) {
+              // A dive decided this very step counts.
+              if (const auto& dive = next.tactical(index).dive) {
+                if (const auto dived = diveMove(player, *dive, context, saves)) {
+                  next.setPlayerPosition(index, dived->position);
+                  next.setPlayerVelocity(index, dived->velocity);
+                  ++index;
+                  continue;
+                }
+              }
               const PlayerKinematics moved = stepPlayerMovement(player, context.secondsPerTick());
               next.setPlayerPosition(index, moved.position);
               next.setPlayerVelocity(index, moved.velocity);
@@ -97,6 +138,10 @@ MatchSystem makePlayerMovementSystem() {
               ++index;
             }
           }};
+}
+
+MatchSystem makePlayerMovementSystem() {
+  return makePlayerMovementSystem(ShotStoppingConfig{});
 }
 
 }  // namespace ElyverseFootball::SimMatch

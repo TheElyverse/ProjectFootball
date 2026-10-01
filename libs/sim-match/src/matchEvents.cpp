@@ -145,7 +145,31 @@ void addFields(StableHasher& hasher, const GoalScored& event) noexcept {
   hasher.addI64(event.score.away);
 }
 
+void addFields(StableHasher& hasher, const SaveAttempted& event) noexcept {
+  hasher.addU64(event.keeper.value());
+  hasher.addU64(event.shooter.value());
+  hasher.addI64(event.shotTick.value());
+  hasher.addU64(static_cast<std::uint64_t>(event.result));
+  hasher.addDouble(event.position.x);
+  hasher.addDouble(event.position.y);
+  hasher.addDouble(event.height);
+}
+
 }  // namespace
+
+std::string_view saveResultName(const SaveResult result) noexcept {
+  switch (result) {
+    case SaveResult::kCaught:
+      return "caught";
+    case SaveResult::kParriedIntoPlay:
+      return "parriedIntoPlay";
+    case SaveResult::kParriedBehind:
+      return "parriedBehind";
+    case SaveResult::kOutOfReach:
+      return "outOfReach";
+  }
+  return "unknown";
+}
 
 std::string_view shotOutcomeName(const ShotOutcome outcome) noexcept {
   switch (outcome) {
@@ -211,6 +235,9 @@ std::string_view eventName(const MatchEvent& event) {
     }
     std::string_view operator()(const GoalScored& /*event*/) const noexcept {
       return "goal scored";
+    }
+    std::string_view operator()(const SaveAttempted& /*event*/) const noexcept {
+      return "save attempted";
     }
   };
   return std::visit(Names{}, event);

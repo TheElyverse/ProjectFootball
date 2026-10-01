@@ -99,6 +99,41 @@ struct SweepJudgement {
   friend bool operator==(const SweepJudgement&, const SweepJudgement&) = default;
 };
 
+// A point in a goalkeeper's plane, the upright plane through where he stood
+// when he went, square to the ball's way: how far across it, positive to the
+// left of the ball's way, and how high above the ground
+// (docs/shot-stopping.md).
+struct PlanePoint {
+  double across = 0.0;  // m
+  double up = 0.0;      // m
+
+  friend bool operator==(const PlanePoint&, const PlanePoint&) = default;
+};
+
+// A goalkeeper's answer to one flight of a shot, decided once he has reacted
+// to it: against the touch that sent the ball on its way -- the strike or a
+// deflection, by player and tick --, in which tick he went, and the plane he
+// stood in, as the point it passes through and the ball's way along the
+// ground as a unit vector. He runs across it to `feet`, which takes him
+// runSeconds, then sends his hands to `target`, measured from his feet there.
+// landSeconds after he went the ball reaches him, and he is down for
+// recoverySeconds more. All seconds count from the start of `tick`. A keeper
+// who leaves the ball neither runs nor dives, and is never down.
+struct KeeperDive {
+  SimCore::PlayerId touchedBy;
+  SimCore::SimTick touchedAt;
+  SimCore::SimTick tick;
+  SimCore::Vec2 origin;
+  SimCore::Vec2 normal;
+  double feet = 0.0;  // m
+  PlanePoint target;
+  double runSeconds = 0.0;
+  double landSeconds = 0.0;
+  double recoverySeconds = 0.0;
+
+  friend bool operator==(const KeeperDive&, const KeeperDive&) = default;
+};
+
 // A player's tactical runtime state, kept in the match state because
 // systems keep nothing between ticks. Empty for a player of a scripted side.
 struct PlayerTacticalState {
@@ -108,6 +143,8 @@ struct PlayerTacticalState {
   std::optional<SimCore::SimTick> lastChallenge;
   // A goalkeeper's judgement of the last free ball he could come for.
   std::optional<SweepJudgement> sweep;
+  // A goalkeeper's answer to the last shot he faced, until he is up again.
+  std::optional<KeeperDive> dive;
 
   friend bool operator==(const PlayerTacticalState&, const PlayerTacticalState&) = default;
 };

@@ -14,12 +14,12 @@ default is `replay.json` in the working directory, and `--play` plays one back. 
 before the terminal interface opens, so a run rejected by argument or terminal
 validation leaves no file behind.
 
-## Schema version 7
+## Schema version 8
 
 ```json
 {
-    "schemaVersion": 7,
-  "coreVersion": "0.23.0",
+    "schemaVersion": 8,
+  "coreVersion": "0.24.0",
   "createdAt": "2026-09-24T10:00:00Z",
   "seed": "18446744073709551615",
   "gameTime": 300,
@@ -207,6 +207,28 @@ validation leaves no file behind.
       "boldMargin": -0.2,
       "sweepHysteresis": 0.1,
       "misjudgement": 0.8
+    },
+    "shotStopping": {
+      "slowestReaction": 0.3,
+      "quickestReaction": 0.1,
+      "readError": 0.8,
+      "readyHeight": 1.4,
+      "diveReach": 2.8,
+      "jumpReach": 2.5,
+      "diveSpeed": 6.0,
+      "bodyReach": 0.5,
+      "catchableSpeed": 40.0,
+      "minParrySpeed": 0.2,
+      "maxParrySpeed": 0.5,
+      "parryTilt": 1.5,
+      "parrySpread": 0.5,
+      "carelessTryMargin": 1.5,
+      "carefulTryMargin": 0.5,
+      "wideMargin": 0.5,
+      "diveBelowSpeed": 8.0,
+      "standingRecovery": 0.3,
+      "stretchRecovery": 1.0,
+      "reflexRecoveryShare": 0.3333333333333333
     }
   },
   "initialState": {
@@ -226,7 +248,9 @@ validation leaves no file behind.
           "strongFoot": "right",
           "weakFootAccuracy": 0.5,
           "keeperPositioning": 0.5,
-          "keeperAnticipation": 0.5
+          "keeperAnticipation": 0.5,
+          "keeperReflexes": 0.5,
+          "keeperHandling": 0.5
         },
         "target": null,
         "facing": { "x": 1.0, "y": 0.0 }
@@ -268,7 +292,7 @@ player and the whole tactic.
 
 | Field           | JSON type | Meaning                                                       |
 |-----------------|-----------|---------------------------------------------------------------|
-| `schemaVersion` | number    | Version of this format. Currently `7`.                        |
+| `schemaVersion` | number    | Version of this format. Currently `8`.                        |
 | `coreVersion`   | string    | The `sim-core` version that recorded the match.               |
 | `createdAt`     | string    | Creation time in UTC, `%Y-%m-%dT%H:%M:%SZ`. Metadata only.    |
 | `seed`          | string    | Unsigned 64-bit master seed, in decimal.                      |
@@ -433,3 +457,4 @@ recorded replays without changing the file format, and surfaces as a new
 | 5       | The ball gains `height`, `verticalVelocity` and `spin`, the ball configuration its flight and bounce constants, and reception its `controlHeight`. Versions 2 to 4 are rejected with a message to record the scenario again with the same seed. |
 | 6       | Players gain `shotTechnique`, `strongFoot` and `weakFootAccuracy`, the state its score and last goal, and the configuration its `shooting` and `woodwork` blocks ([shooting](shooting.md)). Versions 2 to 5 are rejected with a message to record the scenario again with the same seed. |
 | 7       | Players gain `keeperPositioning` and `keeperAnticipation`, reception its `handsRadius` and `handsHeight`, and the configuration its `goalkeeper` block ([goalkeeper](goalkeeper.md)); tactics are files of tactic format version 2. Versions 2 to 6 are rejected with a message to record the scenario again with the same seed. |
+| 8       | Players gain `keeperReflexes` and `keeperHandling`, and the configuration its `shotStopping` block ([shot stopping](shot-stopping.md)). Versions 2 to 7 are rejected with a message to record the scenario again with the same seed. |
