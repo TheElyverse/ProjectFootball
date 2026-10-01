@@ -24,6 +24,10 @@ struct ReceptionConfig {
   // are their own systems, and until they exist a high ball simply runs
   // through.
   double controlHeight = 1.0;  // m
+  // A goalkeeper in his own penalty area takes a ball there with his hands:
+  // this far from him and this high (docs/goalkeeper.md).
+  double handsRadius = 1.2;  // m
+  double handsHeight = 2.2;  // m
 
   friend bool operator==(const ReceptionConfig&, const ReceptionConfig&) = default;
 };
@@ -58,8 +62,10 @@ struct BallClaim {
 // within
 // reclaimDelaySeconds of it. The earliest contact wins; equal contact times
 // go to the player who comes closer, and then to the lower id. A contact above
-// controlHeight does not count: the ball flies over the player. Empty if no
-// one reaches the ball.
+// controlHeight does not count: the ball flies over the player. A goalkeeper
+// who stands in his own penalty area, with the ball in it, at the start of
+// the tick reaches it with his hands instead: within handsRadius and up to
+// handsHeight. Empty if no one reaches the ball.
 //
 // The height at the moment of contact is asked of the flight itself
 // (ballHeightAfter()), which is why `physics` is needed: neither end of the
@@ -78,7 +84,7 @@ struct BallReach {
 };
 
 // findBallClaim() for a ball outfield players do not take at their feet: a
-// goalkeeper still reaches it as the configuration says, everyone else as
+// goalkeeper still reaches it as findBallClaim() says, everyone else as
 // `outfield` says -- a body in the way of a shot rather than a foot on the
 // ball (docs/shooting.md). What the first player to reach it does with it is
 // the caller's to decide.

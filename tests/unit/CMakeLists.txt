@@ -45,6 +45,7 @@ add_executable(sim-match-tests
         sim-match/pitchControlTests.cpp
         sim-match/zonesTests.cpp
         sim-match/desiredRegionTests.cpp
+        sim-match/goalkeeperTests.cpp
         sim-match/offBallActionsTests.cpp
         sim-match/defensiveShapeTests.cpp
         sim-match/pressingActionsTests.cpp

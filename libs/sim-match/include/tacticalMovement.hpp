@@ -4,6 +4,7 @@
 
 #include "defensiveActions.hpp"
 #include "desiredRegion.hpp"
+#include "goalkeeper.hpp"
 #include "matchSimulation.hpp"
 #include "offBallActions.hpp"
 #include "perception.hpp"
@@ -16,6 +17,10 @@ struct TacticalMovementRules {
   OffBallConfig offBall;
   DefensiveConfig defensive;
   PerceptionConfig perception;
+  GoalkeeperConfig goalkeeper;
+  // How far from the goal a shot is still considered: the shot decision's
+  // maxShotDistance, which the goalkeeper judges a threat by.
+  double shotRange = 0.0;  // m
 };
 
 inline constexpr std::string_view kTacticalMovementSystemName = "tactical movement";
@@ -25,7 +30,8 @@ inline constexpr std::string_view kTacticalMovementSystemName = "tactical moveme
 // docs/off-ball-movement.md, docs/defensive-shape.md). Each player but the
 // one on the ball and the side's chaser:
 //
-//   1. gets a new desired region (chooseDesiredRegion());
+//   1. gets a new desired region (chooseDesiredRegion(); the goalkeeper's is
+//      goalkeeperRegion(), with draws from the kExecution stream);
 //   2. with a role in his side's press (MatchState::press()), takes that
 //      role's action -- the team assigned it, he does not choose;
 //      otherwise, unless he is the goalkeeper, decides an action when one is due

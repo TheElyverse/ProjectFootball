@@ -25,10 +25,6 @@ using SimCore::SimTick;
 using SimCore::Vec2;
 using SimTactics::PressingTrigger;
 
-// An opponent this close to his own goal line is his goalkeeper, no option
-// to press or block.
-constexpr double kKeeperDepth = 8.0;  // m
-
 [[nodiscard]] double secondsSince(const SimTick earlier, const SimTick now,
                                   const double secondsPerTick) noexcept {
   return static_cast<double>(now.value() - earlier.value()) * secondsPerTick;
@@ -132,16 +128,6 @@ class TriggerCheck {
     return std::nullopt;
   }
   return pass->receiver;
-}
-
-// The role-based isGoalkeeper() for a side with a tactic; a scripted side
-// has no role to read, so it falls back to the positional heuristic.
-[[nodiscard]] bool isOpponentKeeper(const MatchState& state, const std::size_t playerIndex) {
-  const PlayerMatchState& player = state.players()[playerIndex];
-  if (state.tactics().of(player.side)) {
-    return isGoalkeeper(state, playerIndex);
-  }
-  return depthOf(player.side, player.position, state.pitch()) < kKeeperDepth;
 }
 
 // Everything spotting a trigger needs besides the defender and the trigger.
@@ -264,7 +250,7 @@ std::vector<PressAssignment> assignPressRoles(const MatchState& state, const Tea
       if (!isGoalkeeper(state, index)) {
         free.push_back(index);
       }
-    } else if (index != *carrierIndex && !isOpponentKeeper(state, index)) {
+    } else if (index != *carrierIndex && !keepsGoal(state, index)) {
       options.push_back(index);
     }
   }

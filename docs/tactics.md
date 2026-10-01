@@ -17,7 +17,8 @@ Tactic
 ├─ principles                    what holds in every phase
 │   ├─ pressingLine
 │   ├─ pressingTriggers[]
-│   └─ positioning { targetDistance, spacing, pressure, occupancy, transitionRisk }
+│   ├─ positioning { targetDistance, spacing, pressure, occupancy, transitionRisk }
+│   └─ goalkeeper { sweeping }
 └─ phases[phase]                 one PhaseInstruction per tactical phase
     └─ lineHeight, blockLength, blockWidth, ballShift,
        pressingIntensity, passingRisk, runFrequency
@@ -116,6 +117,7 @@ knows which preset a slot came from, and a new role needs no new code.
 | `pressingLine`     | `[0, 1]`   | how far up the pitch, from the own goal line, the ball must be before a team without it is in the pressing phase |
 | `pressingTriggers` | list       | the situations that start a press, each at most once      |
 | `positioning.*`    | `[0, 10]`  | weights of the positioning cost components               |
+| `goalkeeper.sweeping` | `[0, 1]` | how readily the keeper comes off his line for a ball played in behind ([goalkeeper](goalkeeper.md)) |
 
 Pressing triggers (GDD section 8.7): `poorFirstTouch`, `backPass`,
 `receiverFacingOwnGoal`, `isolatedReceiver`, `slowPass`.

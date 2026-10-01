@@ -35,6 +35,11 @@ player against the ball:
 - **Not a fast shot.** A [shot](shooting.md) still fast comes off an outfield
   player in its way instead of being taken by him; `findBallContact()` looks
   for that body with its own reach. The keeper takes a shot like any ball.
+- **The keeper's hands.** A goalkeeper who stands in his own penalty area, with
+  the ball in it, at the start of the tick reaches it with his hands: within
+  `handsRadius` (1.2 m) and up to `handsHeight` (2.2 m) instead of the feet's
+  `controlRadius` and `controlHeight`. Outside his area he has his feet like
+  everyone else ([goalkeeper](goalkeeper.md)).
 - **Competing claims.** The earliest contact in the tick wins. At the same
   moment the player who comes closer wins, and at the same distance the lower
   player id: deterministic whatever the order of players in the state.
@@ -70,6 +75,11 @@ it, ten times a second:
    and his movement target the interception point, overriding any target a
    command gave him. Everyone else keeps his target.
 3. **The passer does not chase his own pass** while the ball still moves.
+   **A goalkeeper** who would chase a ball the opponent played last first
+   decides whether he comes: his head start on the opponents' earliest player,
+   misjudged as his anticipation allows, against his tactic's sweeping dial. If
+   he stays, his side's next earliest player chases it
+   ([goalkeeper](goalkeeper.md)).
 4. **Handing over.** A chaser's target belongs to pursuit. A player who stops
    being the chaser -- a teammate reaches the ball earlier, or anyone controls
    it -- has his target cleared and stops where he is, instead of running on to

@@ -5,15 +5,13 @@
 #include <limits>
 #include <stdexcept>
 
+#include "randomDraws.hpp"
+
 namespace ElyverseFootball::SimMatch {
 namespace {
 
+using RandomDraws::symmetricUniform;
 using SimCore::Vec2;
-
-// A uniform draw in [-1, 1).
-[[nodiscard]] double symmetricUniform(SimCore::RandomNumberGenerator& random) noexcept {
-  return (2.0 * random.nextUniform()) - 1.0;
-}
 
 [[nodiscard]] bool isFinite(const double value) noexcept {
   return std::abs(value) <= std::numeric_limits<double>::max();

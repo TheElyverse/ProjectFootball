@@ -15,7 +15,7 @@ and ball physics are separate concerns.
 |--------------------|---------------------------------------------------------------------------------|
 | `MatchState`       | the `Pitch`, the players in order, the `BallState`, the squad size per side, every player's perception memory, and each side's tactic |
 | `PlayerMatchState` | `playerId`, `side`, `position`, `velocity`, `attributes`, `target`, `facing`    |
-| `PlayerAttributes` | `maxSpeed` (m/s), `acceleration` (m/s²), `shotAccuracy`, `shotTechnique` and `weakFootAccuracy` (0 … 1) and `strongFoot`, fixed for the match |
+| `PlayerAttributes` | `maxSpeed` (m/s), `acceleration` (m/s²), `shotAccuracy`, `shotTechnique`, `weakFootAccuracy`, `keeperPositioning` and `keeperAnticipation` (0 … 1) and `strongFoot`, fixed for the match |
 | `BallState`        | `position`, `velocity`, `owner`, `lastTouch`                                    |
 | `TeamSide`         | `kHome` or `kAway`                                                              |
 
@@ -33,7 +33,10 @@ one, and without a target a player comes to a stop where he is; see
 `kDefaultAcceleration` (4 m/s²), and `shotAccuracy` to `kDefaultShotAccuracy`
 (0.5, an average finisher; see [shot decisions](shot-decisions.md)). How he
 strikes a shot is `shotTechnique` and `weakFootAccuracy`, both 0.5 by default,
-and his `strongFoot`, the right ([shooting](shooting.md)). They describe the
+and his `strongFoot`, the right ([shooting](shooting.md)). How exactly a
+goalkeeper takes up his place and how well he judges a ball played in behind
+are `keeperPositioning` and `keeperAnticipation`, both 0.5 by default
+([goalkeeper](goalkeeper.md)); only a goalkeeper uses them. They describe the
 predefined test players of the sandbox, not a generated player.
 
 The ball's `owner` is the player in control of it, empty while it is free, and

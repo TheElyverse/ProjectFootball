@@ -48,10 +48,16 @@ namespace {
           .withBall = withBall};
 }
 
-// The candidates of a player with or without the ball.
+// The candidates of a player with or without the ball. A goalkeeper only
+// decides with it.
 [[nodiscard]] std::vector<ActionCandidate> candidatesFor(
     const MatchStepContext& context, const MatchState& current, const std::size_t index,
     const DesiredRegion& region, const TacticalMovementRules& rules, const bool withBall) {
+  if (isGoalkeeper(current, index)) {
+    return generateKeeperSupportCandidates(current, index, region, context.tick(),
+                                           context.secondsPerTick(), rules.offBall,
+                                           rules.positioning, rules.perception);
+  }
   if (withBall) {
     return generateOffBallCandidates(current, index, region, context.tick(),
                                      context.secondsPerTick(), rules.offBall, rules.positioning,
@@ -141,12 +147,46 @@ namespace {
                       .withBall = false};
 }
 
+// The player's desired region in the phase: the goalkeeper's own, drawing his
+// placing error from the kExecution stream, everyone else's by the costs.
+[[nodiscard]] DesiredRegion desiredRegionOf(const MatchStepContext& context,
+                                            const MatchState& current, const std::size_t index,
+                                            const SimTactics::TacticalPhase phase,
+                                            const TacticalMovementRules& rules) {
+  if (isGoalkeeper(current, index)) {
+    return goalkeeperRegion(current, index, phase, rules.goalkeeper, rules.shotRange,
+                            context.random(SimCore::RandomNumberGeneratorDomain::kExecution));
+  }
+  return chooseDesiredRegion(current, index, phase, context.tick(), context.secondsPerTick(),
+                             rules.positioning, rules.perception);
+}
+
+// Decides the player's action when one is due and keeps it otherwise. The
+// goalkeeper has none without the ball: he keeps goal, and pursuit decides
+// whether he comes for it.
+void updateAction(const MatchStepContext& context, const MatchState& current,
+                  const std::size_t index, const DesiredRegion& region,
+                  const TacticalMovementRules& rules, PlayerTacticalState& tactical) {
+  // Not possession().team: it only updates when the phase system next runs,
+  // so it can still name the losing side right after a turnover the ball
+  // itself already shows.
+  const bool withBall = teamOnTheBall(current) == current.players()[index].side;
+  if (!withBall && isGoalkeeper(current, index)) {
+    tactical.action.reset();
+  } else if (isActionDecisionDue(current, index, context.tick(), rules.offBall)) {
+    const auto candidates = candidatesFor(context, current, index, region, rules, withBall);
+    const double temperature = withBall ? rules.offBall.temperature : rules.defensive.temperature;
+    tactical.action = decide(context, current, index, candidates, temperature, withBall);
+  }
+}
+
 }  // namespace
 
 MatchSystem makeTacticalMovementSystem(const TacticalMovementRules& rules) {
   validate(rules.positioning);
   validate(rules.offBall);
   validate(rules.defensive);
+  validate(rules.goalkeeper);
   return {.name = std::string(kTacticalMovementSystemName),
           .update =
               [rules](const MatchStepContext& context, const MatchState& current,
@@ -159,28 +199,16 @@ MatchSystem makeTacticalMovementSystem(const TacticalMovementRules& rules) {
                   if (!phase || onTheBall || chasing) {
                     continue;
                   }
-                  const DesiredRegion region = chooseDesiredRegion(
-                      current, index, phase->phase, context.tick(), context.secondsPerTick(),
-                      rules.positioning, rules.perception);
+                  const DesiredRegion region =
+                      desiredRegionOf(context, current, index, phase->phase, rules);
                   PlayerTacticalState& tactical = next.tactical(index);
                   tactical.region = region;
                   SimCore::Vec2 target = region.center;
                   if (const auto assigned = pressRoleAction(context, current, index, rules)) {
                     tactical.action = assigned;
                     target = assigned->target;
-                  } else if (!isGoalkeeper(current, index)) {
-                    // Not possession().team: it only updates when the phase
-                    // system next runs, so it can still name the losing side
-                    // right after a turnover the ball itself already shows.
-                    const bool withBall = teamOnTheBall(current) == player.side;
-                    if (isActionDecisionDue(current, index, context.tick(), rules.offBall)) {
-                      const auto candidates =
-                          candidatesFor(context, current, index, region, rules, withBall);
-                      const double temperature =
-                          withBall ? rules.offBall.temperature : rules.defensive.temperature;
-                      tactical.action =
-                          decide(context, current, index, candidates, temperature, withBall);
-                    }
+                  } else {
+                    updateAction(context, current, index, region, rules, tactical);
                     if (tactical.action && tactical.action->type != ActionType::kHoldPosition) {
                       target = tactical.action->target;
                     }

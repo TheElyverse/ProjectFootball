@@ -71,8 +71,10 @@ TEST_CASE("The kickoff hash is pinned", "[matchStateHash]") {
   // a pending action per player, when players gained a shot accuracy and
   // when the state gained its last shot: the hash covers what they add. And
   // again with shot execution: players gained a technique and a strong and a
-  // weak foot, the state its score and its last goal.
-  REQUIRE(hashOf(kickoffSpec()) == 0x3e9c225dffb5984aULL);
+  // weak foot, the state its score and its last goal. And again when players
+  // gained a keeper's positioning and anticipation and the tactics a
+  // goalkeeper's sweeping dial.
+  REQUIRE(hashOf(kickoffSpec()) == 0x120dce64d696017aULL);
 }
 
 // Guards against a field that is added to the state but forgotten here.
@@ -100,6 +102,10 @@ TEST_CASE("Every field of the state changes the hash", "[matchStateHash]") {
        }},
       {"weak foot accuracy",
        [](auto& spec) { spec.players.at(2).attributes.weakFootAccuracy = 0.9; }},
+      {"keeper positioning",
+       [](auto& spec) { spec.players.at(0).attributes.keeperPositioning = 0.9; }},
+      {"keeper anticipation",
+       [](auto& spec) { spec.players.at(0).attributes.keeperAnticipation = 0.9; }},
       {"score home", [](auto& spec) { spec.score.home = 1; }},
       {"score away", [](auto& spec) { spec.score.away = 1; }},
       {"target", [](auto& spec) { spec.players.at(9).target = Vec2{}; }},

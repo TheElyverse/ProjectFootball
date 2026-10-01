@@ -118,8 +118,8 @@ TEST_CASE("The tactical target scales the slot into the phase's block", "[desire
   const Vec2 centreBack = tacticalTarget(state, 1, TacticalPhase::kProgression);
   REQUIRE_THAT(centreBack.x, WithinAbs(20.1, 1e-9));
   REQUIRE_THAT(centreBack.y, WithinAbs(20.0 - (((0.18 / 0.76) - 0.5) * -34.0), 1e-9));
-  // The goalkeeper stays near his goal.
-  REQUIRE(tacticalTarget(state, 0, TacticalPhase::kProgression) == Vec2{.x = 2.4, .y = 20.0});
+  // The goalkeeper keeps goal by his own model (goalkeeperTests.cpp).
+  REQUIRE_THROWS_AS(tacticalTarget(state, 0, TacticalPhase::kProgression), std::invalid_argument);
   // Away is the mirror image.
   const Vec2 awayCentreBack = tacticalTarget(state, 8, TacticalPhase::kProgression);
   REQUIRE_THAT(awayCentreBack.x, WithinAbs(60.0 - 20.1, 1e-9));
@@ -298,8 +298,12 @@ TEST_CASE("Tactical movement is deterministic", "[desiredRegion]") {
 
 TEST_CASE("Tactical movement rejects an invalid configuration", "[desiredRegion]") {
   const auto withPositioning = [](const PositioningConfig& positioning) {
-    return makeTacticalMovementSystem(
-        {.positioning = positioning, .offBall = {}, .defensive = {}, .perception = {}});
+    return makeTacticalMovementSystem({.positioning = positioning,
+                                       .offBall = {},
+                                       .defensive = {},
+                                       .perception = {},
+                                       .goalkeeper = {},
+                                       .shotRange = 0.0});
   };
   PositioningConfig config;
   config.intervalTicks = 0;

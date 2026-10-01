@@ -45,9 +45,18 @@ struct PositioningConfig {
 // place in the base shape, scaled into the phase's block -- its line height,
 // length and width -- shifted with the ball, then pulled toward the lanes
 // and depths his responsibilities ask for (docs/desired-region.md). Always
-// on the pitch. Throws std::invalid_argument for a player of a scripted side.
+// on the pitch. Throws std::invalid_argument for a player of a scripted side
+// and for the goalkeeper, who keeps goal by goalkeeperTarget()
+// (goalkeeper.hpp) instead.
 [[nodiscard]] SimCore::Vec2 tacticalTarget(const MatchState& state, std::size_t playerIndex,
                                            SimTactics::TacticalPhase phase);
+
+// How far from the side's own goal line its defensive line stands in the
+// phase: where the phase's line height puts it, shifted with the ball by the
+// phase's ball shift, the whole block kept between the goal lines. Throws
+// std::invalid_argument for a scripted side.
+[[nodiscard]] double defensiveLineDepth(const MatchState& state, TeamSide side,
+                                        SimTactics::TacticalPhase phase);
 
 // What standing at candidate would cost the player at this index, with
 // target his tactical target, from his own memory of teammates and

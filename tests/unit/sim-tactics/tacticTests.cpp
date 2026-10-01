@@ -161,8 +161,9 @@ TEST_CASE("Principles are range-checked", "[tactic]") {
   spec.principles.pressingTriggers = {PressingTrigger::kSlowPass, PressingTrigger::kSlowPass,
                                       static_cast<PressingTrigger>(std::uint8_t{9})};
   spec.principles.positioning.occupancy = 11.0;
+  spec.principles.goalkeeper.sweeping = 1.5;
   const auto errors = errorsOf(spec);
-  REQUIRE(errors.size() == 4);
+  REQUIRE(errors.size() == 5);
   REQUIRE(errors[0].field == "principles.pressingLine");
   REQUIRE(errors[0].code == TacticErrorCode::kValueOutOfRange);
   REQUIRE(errors[1].code == TacticErrorCode::kDuplicatePressingTrigger);
@@ -170,6 +171,8 @@ TEST_CASE("Principles are range-checked", "[tactic]") {
   REQUIRE(errors[2].code == TacticErrorCode::kUnknownPressingTrigger);
   REQUIRE(errors[3].field == "principles.positioning.occupancy");
   REQUIRE(errors[3].message == "11 must lie in [0, 10]");
+  REQUIRE(errors[4].field == "principles.goalkeeper.sweeping");
+  REQUIRE(errors[4].message == "1.5 must lie in [0, 1]");
 }
 
 TEST_CASE("Phase instructions are range-checked", "[tactic]") {

@@ -92,6 +92,13 @@ struct TeamShape {
 // guardGoal in his side's tactic.
 [[nodiscard]] bool isGoalkeeper(const MatchState& state, std::size_t playerIndex);
 
+// How an opponent tells the goalkeeper, whom nobody marks, presses or blocks
+// a lane to: by isGoalkeeper() for a side with a tactic, wherever he stands;
+// a scripted side has no role to read, so there by standing within
+// kKeeperDepth of his own goal line.
+inline constexpr double kKeeperDepth = 8.0;  // m
+[[nodiscard]] bool keepsGoal(const MatchState& state, std::size_t playerIndex);
+
 // The space between the opponent's lines: from his defensive line to his
 // midfield line, across the width his outfield players span. Where a side
 // attacking him finds room to receive between the lines.

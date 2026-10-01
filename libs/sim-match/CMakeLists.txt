@@ -38,6 +38,7 @@ add_library(sim-match STATIC
                 src/teamPress.cpp
         src/teamPressing.cpp
         src/tacticalMovement.cpp
+        src/goalkeeper.cpp
 )
 add_library(ElyverseFootball::sim-match ALIAS sim-match)
 

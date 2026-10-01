@@ -7,6 +7,7 @@
 #include "challenge.hpp"
 #include "desiredRegion.hpp"
 #include "goalFrame.hpp"
+#include "goalkeeper.hpp"
 #include "matchCommand.hpp"
 #include "matchSimulation.hpp"
 #include "matchState.hpp"
@@ -46,6 +47,7 @@ struct MatchConfig {
   RestartConfig restarts;
   ShotConfig shooting;
   WoodworkConfig woodwork;
+  GoalkeeperConfig goalkeeper;
 
   friend bool operator==(const MatchConfig&, const MatchConfig&) = default;
 };

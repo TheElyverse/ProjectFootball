@@ -15,6 +15,7 @@
 #include "matchCommand.hpp"
 #include "matchSetup.hpp"
 #include "matchState.hpp"
+#include "passing.hpp"
 #include "pitch.hpp"
 #include "referenceTactic.hpp"
 #include "restart.hpp"
@@ -340,6 +341,107 @@ constexpr Side kClearChanceAway{{{.x = 59.5, .y = 20.0, .facingX = -1.0},
   return againstKeeper(seed, kHome, kAway);
 }
 
+// ---------------------------------------------------------------------------
+// Goalkeeper scenarios (docs/goalkeeper.md): away keeps goal with the
+// reference tactic, its keeper player 8 a perfect judge of a ball played in
+// behind, so whether he comes is the model's call and not a misjudgement.
+
+// The setup with away's keeper given a keeperAnticipation of 1.
+[[nodiscard]] std::expected<MatchSetup, std::string> withSureKeeper(
+    std::expected<MatchSetup, std::string> setup) {
+  if (!setup) {
+    return setup;
+  }
+  const MatchState& state = setup->initialState;
+  std::vector<PlayerMatchState> players(state.players().begin(), state.players().end());
+  players.at(kDefaultPlayersPerSide).attributes.keeperAnticipation = 1.0;
+  auto sure = MatchState::create({.pitch = state.pitch(),
+                                  .players = std::move(players),
+                                  .ball = state.ball(),
+                                  .playersPerSide = state.playersPerSide()},
+                                 state.tactics());
+  if (!sure) {
+    return std::unexpected("invalid keeper scenario: " + sure.error().front().message);
+  }
+  setup->initialState = *std::move(sure);
+  return setup;
+}
+
+// Home player 1 carries the ball across the pitch 27 m in front of away's
+// goal, out of shooting range, and keeps it all the way. Away's outfield
+// players neither press nor mark, so the keeper's position is all that moves
+// with the ball.
+[[nodiscard]] std::expected<MatchSetup, std::string> keeperArc(const std::uint64_t seed) {
+  constexpr Side kHome{{{.x = 33.0, .y = 4.0, .facingX = 1.0},
+                        kHomeBehind[0],
+                        kHomeBehind[1],
+                        kHomeBehind[2],
+                        kHomeBehind[3],
+                        kHomeBehind[4],
+                        kHomeBehind[5]}};
+  constexpr Side kAway{{{.x = 58.0, .y = 20.0, .facingX = -1.0},
+                        {.x = 48.0, .y = 12.0, .facingX = -1.0},
+                        {.x = 48.0, .y = 28.0, .facingX = -1.0},
+                        {.x = 44.0, .y = 20.0, .facingX = -1.0},
+                        {.x = 42.0, .y = 6.0, .facingX = -1.0},
+                        {.x = 42.0, .y = 34.0, .facingX = -1.0},
+                        {.x = 40.0, .y = 20.0, .facingX = -1.0}}};
+  auto setup = againstKeeper(seed, kHome, kAway);
+  if (setup) {
+    setup->config.decisions.minHoldSeconds = 60.0;
+    setup->config.defensive.pressRadius = 0.1;
+    setup->config.defensive.markRadius = 0.1;
+    setup->config.defensive.trackRadius = 0.1;
+    setup->commands.push_back({.tick = SimCore::SimTick(0),
+                               .command = MovePlayerCommand{.playerId = kFirstCarrier,
+                                                            .target = {.x = 33.0, .y = 36.0}}});
+  }
+  return setup;
+}
+
+// Home player 1 plays a through ball from the halfway line into the space in
+// front of away's penalty area, between away's centre backs. In the claim
+// home's striker 2 starts wide and far from it, so the keeper is first to
+// it; in the leave the striker is a few meters from where it goes.
+[[nodiscard]] std::expected<MatchSetup, std::string> throughBall(const std::uint64_t seed,
+                                                                 const Placement striker) {
+  const Side home{{{.x = 34.0, .y = 20.0, .facingX = 1.0},
+                   striker,
+                   kHomeBehind[1],
+                   kHomeBehind[2],
+                   kHomeBehind[3],
+                   kHomeBehind[4],
+                   kHomeBehind[5]}};
+  constexpr Side kAway{{{.x = 57.0, .y = 20.0, .facingX = -1.0},
+                        {.x = 38.0, .y = 6.0, .facingX = -1.0},
+                        {.x = 38.0, .y = 34.0, .facingX = -1.0},
+                        {.x = 30.0, .y = 32.0, .facingX = -1.0},
+                        {.x = 25.0, .y = 6.0, .facingX = -1.0},
+                        {.x = 25.0, .y = 34.0, .facingX = -1.0},
+                        {.x = 20.0, .y = 20.0, .facingX = -1.0}}};
+  auto setup = withSureKeeper(againstKeeper(seed, home, kAway));
+  if (setup) {
+    const SimCore::Vec2 start = setup->initialState.ball().position;
+    constexpr SimCore::Vec2 kTarget{.x = 48.0, .y = 20.0};
+    setup->commands.push_back(
+        {.tick = SimCore::SimTick(1),
+         .command = PassCommand{.playerId = kFirstCarrier,
+                                .target = kTarget,
+                                .speed = planPassSpeed(SimCore::distance(start, kTarget),
+                                                       setup->config.ball, setup->config.passing),
+                                .receiver = SimCore::PlayerId(2)}});
+  }
+  return setup;
+}
+
+[[nodiscard]] std::expected<MatchSetup, std::string> keeperSweepClaim(const std::uint64_t seed) {
+  return throughBall(seed, {.x = 36.0, .y = 36.0, .facingX = 1.0});
+}
+
+[[nodiscard]] std::expected<MatchSetup, std::string> keeperSweepLeave(const std::uint64_t seed) {
+  return throughBall(seed, {.x = 45.0, .y = 20.0, .facingX = 1.0});
+}
+
 constexpr std::array kScenarios{
     ScenarioDefinition{
         .name = "kickoff",
@@ -379,6 +481,18 @@ constexpr std::array kScenarios{
                        .description = "home player 1 twelve meters out, a defender in the way, a "
                                       "teammate free",
                        .make = &blockedLane},
+    ScenarioDefinition{.name = "keeper-arc",
+                       .description = "home player 1 carries the ball across in front of away's "
+                                      "goal, the keeper moves with it",
+                       .make = &keeperArc},
+    ScenarioDefinition{.name = "keeper-sweep-claim",
+                       .description = "a through ball in behind away's line, the keeper first to "
+                                      "it",
+                       .make = &keeperSweepClaim},
+    ScenarioDefinition{.name = "keeper-sweep-leave",
+                       .description = "a through ball in behind away's line, home's striker "
+                                      "first to it",
+                       .make = &keeperSweepLeave},
     ScenarioDefinition{.name = "tactic-match",
                        .description = "reference tactic against reference tactic, home kicks off",
                        .make = &tacticMatch},

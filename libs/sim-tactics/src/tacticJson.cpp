@@ -55,7 +55,8 @@ using Json = nlohmann::ordered_json;
             {"spacing", weights.spacing},
             {"pressure", weights.pressure},
             {"occupancy", weights.occupancy},
-            {"transitionRisk", weights.transitionRisk}}}};
+            {"transitionRisk", weights.transitionRisk}}},
+          {"goalkeeper", {{"sweeping", principles.goalkeeper.sweeping}}}};
 }
 
 // ---------------------------------------------------------------------------
@@ -197,10 +198,11 @@ template <typename Enum>
 }
 
 [[nodiscard]] TeamPrinciples readPrinciples(const Field& field) {
-  field.expectOnly({"pressingLine", "pressingTriggers", "positioning"});
+  field.expectOnly({"pressingLine", "pressingTriggers", "positioning", "goalkeeper"});
   TeamPrinciples principles{.pressingLine = field.member("pressingLine").number(),
                             .pressingTriggers = {},
-                            .positioning = {}};
+                            .positioning = {},
+                            .goalkeeper = {}};
   for (const Field& trigger : field.member("pressingTriggers").elements()) {
     principles.pressingTriggers.push_back(
         readName<PressingTrigger>(trigger, &parsePressingTrigger, "pressing trigger"));
@@ -212,6 +214,9 @@ template <typename Enum>
                             .pressure = weights.member("pressure").number(),
                             .occupancy = weights.member("occupancy").number(),
                             .transitionRisk = weights.member("transitionRisk").number()};
+  const Field goalkeeper = field.member("goalkeeper");
+  goalkeeper.expectOnly({"sweeping"});
+  principles.goalkeeper = {.sweeping = goalkeeper.member("sweeping").number()};
   return principles;
 }
 

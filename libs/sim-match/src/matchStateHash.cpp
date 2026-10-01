@@ -38,6 +38,8 @@ void addPlayer(StableHasher& hasher, const PlayerMatchState& player) noexcept {
   hasher.addDouble(player.attributes.shotTechnique);
   hasher.addU64(static_cast<std::uint64_t>(player.attributes.strongFoot));
   hasher.addDouble(player.attributes.weakFootAccuracy);
+  hasher.addDouble(player.attributes.keeperPositioning);
+  hasher.addDouble(player.attributes.keeperAnticipation);
   addOptionalVec2(hasher, player.target);
   addVec2(hasher, player.facing);
 }
@@ -96,6 +98,13 @@ void addTactical(StableHasher& hasher, const PlayerTacticalState& tactical) noex
   }
   hasher.addBool(tactical.lastChallenge.has_value());
   hasher.addI64(tactical.lastChallenge.value_or(SimCore::SimTick(0)).value());
+  hasher.addBool(tactical.sweep.has_value());
+  if (tactical.sweep) {
+    hasher.addU64(tactical.sweep->touchedBy.value());
+    hasher.addI64(tactical.sweep->touchedAt.value());
+    hasher.addDouble(tactical.sweep->misjudgement);
+    hasher.addBool(tactical.sweep->coming);
+  }
 }
 
 void addPress(StableHasher& hasher, const std::optional<TeamPress>& press) noexcept {

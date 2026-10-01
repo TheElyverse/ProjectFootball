@@ -62,6 +62,10 @@ inline constexpr double kDefaultAcceleration = 4.0;  // m/s²
 inline constexpr double kDefaultShotAccuracy = 0.5;
 inline constexpr double kDefaultShotTechnique = 0.5;
 inline constexpr double kDefaultWeakFootAccuracy = 0.5;
+// An average keeper's positioning and anticipation, on the scale of
+// keeperPositioning and keeperAnticipation.
+inline constexpr double kDefaultKeeperPositioning = 0.5;
+inline constexpr double kDefaultKeeperAnticipation = 0.5;
 
 // The foot a player strikes the ball with.
 enum class Foot : std::uint8_t {
@@ -80,6 +84,10 @@ enum class Foot : std::uint8_t {
 // shotTechnique, in [0, 1], is how cleanly he strikes the ball -- its pace,
 // its lift and its spin -- and weakFootAccuracy, in [0, 1], how much of his
 // shooting he keeps on the foot that is not his strongFoot (docs/shooting.md).
+// keeperPositioning, in [0, 1], is how exactly he takes up his place in goal,
+// and keeperAnticipation, in [0, 1], how well he judges whether he reaches a
+// ball played in behind first (docs/goalkeeper.md); only a goalkeeper uses
+// them.
 struct PlayerAttributes {
   double maxSpeed = kDefaultMaxSpeed;
   double acceleration = kDefaultAcceleration;
@@ -87,6 +95,8 @@ struct PlayerAttributes {
   double shotTechnique = kDefaultShotTechnique;
   Foot strongFoot = Foot::kRight;
   double weakFootAccuracy = kDefaultWeakFootAccuracy;
+  double keeperPositioning = kDefaultKeeperPositioning;
+  double keeperAnticipation = kDefaultKeeperAnticipation;
 
   friend bool operator==(const PlayerAttributes&, const PlayerAttributes&) = default;
 };

@@ -98,7 +98,7 @@ by where the players stand:
 2. from three joiners, the free player nearest the spot behind the presser
    covers him;
 3. the rest block the lanes to the carrier's nearest options (his teammates but
-   the goalkeeper), each option taken by the free player who stands nearest his
+   the goalkeeper, `keepsGoal()`), each option taken by the free player who stands nearest his
    blocking spot.
 
 The tactical movement gives each player his role's action instead of letting him

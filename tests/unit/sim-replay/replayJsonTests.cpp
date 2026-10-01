@@ -66,19 +66,19 @@ TEST_CASE("Documents that are not JSON objects are rejected", "[replayJson]") {
 }
 
 TEST_CASE("Other schema versions are rejected with the version found", "[replayJson]") {
-  requireRejected(validJsonWith("\"schemaVersion\": 6", "\"schemaVersion\": 1"),
+  requireRejected(validJsonWith("\"schemaVersion\": 7", "\"schemaVersion\": 1"),
                   ReplayErrorCode::kUnsupportedSchemaVersion,
                   "schema version 1 holds replay metadata only");
   // Older playable versions name the way to a current file.
-  for (const char* version : {"2", "3", "4", "5"}) {
+  for (const char* version : {"2", "3", "4", "5", "6"}) {
     requireRejected(
-        validJsonWith("\"schemaVersion\": 6", std::string("\"schemaVersion\": ") + version),
+        validJsonWith("\"schemaVersion\": 7", std::string("\"schemaVersion\": ") + version),
         ReplayErrorCode::kUnsupportedSchemaVersion,
         std::string("schema version ") + version +
-            " is no longer supported, expected 6; record the scenario again");
+            " is no longer supported, expected 7; record the scenario again");
   }
-  requireRejected(validJsonWith("\"schemaVersion\": 6", "\"schemaVersion\": 7"),
-                  ReplayErrorCode::kUnsupportedSchemaVersion, "unsupported schema version 7");
+  requireRejected(validJsonWith("\"schemaVersion\": 7", "\"schemaVersion\": 8"),
+                  ReplayErrorCode::kUnsupportedSchemaVersion, "unsupported schema version 8");
 }
 
 TEST_CASE("A replay from another core version is rejected", "[replayJson]") {
@@ -145,6 +145,19 @@ TEST_CASE("How a player shoots is read from the initial state", "[replayJson]") 
                   R"(initialState.players[0].attributes.strongFoot: expected "left" or "right")");
   requireRejected(validJsonWith("\"shotTechnique\": 0.5", "\"shotTechnique\": 1.5"),
                   ReplayErrorCode::kInvalidSetup, "shot technique 1.5");
+}
+
+TEST_CASE("How a keeper keeps goal is read from the initial state", "[replayJson]") {
+  const auto placed =
+      parseReplayJson(validJsonWith("\"keeperPositioning\": 0.5", "\"keeperPositioning\": 0.9"));
+  REQUIRE(placed.has_value());
+  REQUIRE(placed->setup.initialState.players()[0].attributes.keeperPositioning == 0.9);
+  const auto reading =
+      parseReplayJson(validJsonWith("\"keeperAnticipation\": 0.5", "\"keeperAnticipation\": 0.25"));
+  REQUIRE(reading.has_value());
+  REQUIRE(reading->setup.initialState.players()[0].attributes.keeperAnticipation == 0.25);
+  requireRejected(validJsonWith("\"keeperAnticipation\": 0.5", "\"keeperAnticipation\": -1.0"),
+                  ReplayErrorCode::kInvalidSetup, "keeper anticipation -1");
 }
 
 TEST_CASE("The score is read from the initial state", "[replayJson]") {
@@ -260,7 +273,7 @@ TEST_CASE("A tactic whose content does not match its hash is rejected", "[replay
   REQUIRE(replay.has_value());
   const std::string json = toReplayJson(*replay);
   // The reference tactic's pinned content hash (tacticHashTests.cpp).
-  REQUIRE(json.contains(R"("contentHash": "d1f008d25b46aabf")"));
+  REQUIRE(json.contains(R"("contentHash": "4e5eb51dbc31c06a")"));
 
   // An edited tactic no longer matches the hash recorded with it.
   std::string edited = json;

@@ -16,6 +16,11 @@ namespace ElyverseFootball::SimMatch {
   return side == TeamSide::kHome ? TeamSide::kAway : TeamSide::kHome;
 }
 
+// The end of the pitch whose goal the side defends.
+[[nodiscard]] constexpr GoalEnd ownGoalEnd(const TeamSide side) noexcept {
+  return side == TeamSide::kHome ? GoalEnd::kMinX : GoalEnd::kMaxX;
+}
+
 // How far a position is from the side's own goal line, along the pitch
 // length: x for home, length - x for away. 0 on the own goal line, the pitch
 // length on the opponent's.

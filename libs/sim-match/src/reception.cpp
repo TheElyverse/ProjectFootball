@@ -7,6 +7,7 @@
 #include <tuple>
 
 #include "playerMovement.hpp"
+#include "teamFrame.hpp"
 #include "zones.hpp"
 
 namespace ElyverseFootball::SimMatch {
@@ -74,6 +75,20 @@ template <typename ReachOf>
   return best;
 }
 
+// How far and how high the player at this index reaches the ball: with his
+// hands if he is the goalkeeper and he and the ball are in his own penalty
+// area, at his feet otherwise.
+[[nodiscard]] BallReach claimReach(const MatchState& state, const BallState& ball,
+                                   const std::size_t playerIndex, const ReceptionConfig& config) {
+  const PlayerMatchState& player = state.players()[playerIndex];
+  const GoalEnd end = ownGoalEnd(player.side);
+  const bool hands = isGoalkeeper(state, playerIndex) &&
+                     state.pitch().isInPenaltyArea(end, player.position) &&
+                     state.pitch().isInPenaltyArea(end, ball.position);
+  return hands ? BallReach{.radius = config.handsRadius, .height = config.handsHeight}
+               : BallReach{.radius = config.controlRadius, .height = config.controlHeight};
+}
+
 }  // namespace
 
 std::optional<Contact> findContact(const Vec2 playerFrom, const Vec2 playerTo, const Vec2 ballFrom,
@@ -108,26 +123,27 @@ std::optional<BallClaim> findBallClaim(const MatchState& state, const BallState&
                                        const BallStep& moved, const BallPhysics& physics,
                                        const SimCore::SimTick now, const double secondsPerTick,
                                        const ReceptionConfig& config) {
-  const BallReach feet{.radius = config.controlRadius, .height = config.controlHeight};
-  return firstToReach(state, ball, moved, physics, now, secondsPerTick, config,
-                      [&feet](std::size_t /*playerIndex*/) { return feet; });
+  return firstToReach(
+      state, ball, moved, physics, now, secondsPerTick, config,
+      [&](const std::size_t playerIndex) { return claimReach(state, ball, playerIndex, config); });
 }
 
 std::optional<BallClaim> findBallContact(const MatchState& state, const BallState& ball,
                                          const BallStep& moved, const BallPhysics& physics,
                                          const SimCore::SimTick now, const double secondsPerTick,
                                          const ReceptionConfig& config, const BallReach& outfield) {
-  const BallReach feet{.radius = config.controlRadius, .height = config.controlHeight};
-  return firstToReach(state, ball, moved, physics, now, secondsPerTick, config,
-                      [&](const std::size_t playerIndex) {
-                        return isGoalkeeper(state, playerIndex) ? feet : outfield;
-                      });
+  return firstToReach(
+      state, ball, moved, physics, now, secondsPerTick, config, [&](const std::size_t playerIndex) {
+        return isGoalkeeper(state, playerIndex) ? claimReach(state, ball, playerIndex, config)
+                                                : outfield;
+      });
 }
 
 void validate(const ReceptionConfig& config) {
   if (!isFiniteNonNegative(config.controlRadius) ||
       !isFiniteNonNegative(config.reclaimDelaySeconds) ||
-      !isFiniteNonNegative(config.controlHeight)) {
+      !isFiniteNonNegative(config.controlHeight) || !isFiniteNonNegative(config.handsRadius) ||
+      !isFiniteNonNegative(config.handsHeight)) {
     throw std::invalid_argument("reception: invalid configuration");
   }
 }

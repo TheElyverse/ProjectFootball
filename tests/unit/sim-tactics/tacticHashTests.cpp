@@ -62,6 +62,9 @@ TEST_CASE("Every part of a tactic changes its hash", "[tacticHash]") {
   SECTION("positioning weight") {
     spec.principles.positioning.transitionRisk = 0.6;
   }
+  SECTION("goalkeeper dial") {
+    spec.principles.goalkeeper.sweeping = 0.6;
+  }
   SECTION("phase instruction") {
     spec.phases.at(phaseIndex(TacticalPhase::kDefensiveTransition)).runFrequency = 0.31;
   }
@@ -71,5 +74,5 @@ TEST_CASE("Every part of a tactic changes its hash", "[tacticHash]") {
 TEST_CASE("The reference tactic hash is pinned", "[tacticHash]") {
   // Changes when the reference tactic or the hash layout changes; both must
   // be deliberate, since replays record tactic hashes.
-  REQUIRE(hashOf(referenceTacticSpec()) == 0xd1f008d25b46aabfULL);
+  REQUIRE(hashOf(referenceTacticSpec()) == 0x4e5eb51dbc31c06aULL);
 }

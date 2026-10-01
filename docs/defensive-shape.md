@@ -27,8 +27,10 @@ block. Two layers make the block:
 
 Opponents come from the defender's [memory](perception.md): **a run he has not
 seen is not tracked**, and he marks where he believes his man is. The opponent's
-goalkeeper -- an opponent within 8 m of his own goal line -- is nobody's man.
-The own goalkeeper holds his region and decides nothing.
+goalkeeper is nobody's man: the opponent whose slot guards the goal, wherever
+he stands, or for a scripted side an opponent within 8 m of his own goal line
+(`keepsGoal()`). The own goalkeeper decides nothing here: he keeps goal and
+comes for balls by his own model ([goalkeeper](goalkeeper.md)).
 
 ## Utility
 

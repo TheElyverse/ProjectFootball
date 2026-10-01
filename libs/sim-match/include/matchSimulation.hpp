@@ -79,6 +79,7 @@ class MatchStepContext {
   // collected, and drops it otherwise.
   void diagnose(DecisionDiagnostic diagnostic) const;
   void diagnose(ActionDiagnostic diagnostic) const;
+  void diagnose(SweepDiagnostic diagnostic) const;
 
  private:
   friend class MatchSimulation;
@@ -87,6 +88,7 @@ class MatchStepContext {
   struct Diagnostics {
     std::vector<DecisionDiagnostic>* decisions = nullptr;
     std::vector<ActionDiagnostic>* actions = nullptr;
+    std::vector<SweepDiagnostic>* sweeps = nullptr;
     const DiagnosticsFilter* filter = nullptr;
   };
 
@@ -229,6 +231,12 @@ class MatchSimulation {
     return actionDiagnostics_;
   }
 
+  // The goalkeepers' sweep diagnostics of the last successful step, if
+  // collected.
+  [[nodiscard]] std::span<const SweepDiagnostic> sweepDiagnostics() const noexcept {
+    return sweepDiagnostics_;
+  }
+
   [[nodiscard]] SimCore::SimTick tick() const noexcept { return clock_.tick(); }
   [[nodiscard]] double elapsedSeconds() const noexcept { return clock_.elapsedSeconds(); }
   [[nodiscard]] int ticksPerSecond() const noexcept { return clock_.ticksPerSecond(); }
@@ -267,9 +275,11 @@ class MatchSimulation {
   std::vector<MatchEvent> stepEvents_;
   std::vector<DecisionDiagnostic> stepDiagnostics_;
   std::vector<ActionDiagnostic> stepActionDiagnostics_;
+  std::vector<SweepDiagnostic> stepSweepDiagnostics_;
   std::vector<MatchEvent> events_;
   std::vector<DecisionDiagnostic> diagnostics_;
   std::vector<ActionDiagnostic> actionDiagnostics_;
+  std::vector<SweepDiagnostic> sweepDiagnostics_;
   bool collectDiagnostics_ = false;
   DiagnosticsFilter diagnosticsFilter_;
 };

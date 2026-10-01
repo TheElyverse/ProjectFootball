@@ -3,7 +3,7 @@
 namespace ElyverseFootball::SimCore {
 
 std::string_view coreVersion() noexcept {
-  return "0.22.0";
+  return "0.23.0";
 }
 
 }  // namespace ElyverseFootball::SimCore

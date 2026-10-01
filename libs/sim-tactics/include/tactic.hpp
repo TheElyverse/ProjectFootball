@@ -89,6 +89,16 @@ struct PositioningWeights {
   friend bool operator==(const PositioningWeights&, const PositioningWeights&) = default;
 };
 
+// How the goalkeeper plays (docs/goalkeeper.md). A dial in [0, 1].
+struct GoalkeeperPrinciples {
+  // How readily he comes off his line for a ball played in behind his
+  // defence, from 0 (only when he is clearly first to it) to 1 (even when an
+  // attacker is a little closer).
+  double sweeping = 0.5;
+
+  friend bool operator==(const GoalkeeperPrinciples&, const GoalkeeperPrinciples&) = default;
+};
+
 // What holds in every phase.
 struct TeamPrinciples {
   // How far up the pitch the ball must be, measured from the own goal line as
@@ -98,6 +108,7 @@ struct TeamPrinciples {
   // The situations that start a press; each at most once.
   std::vector<PressingTrigger> pressingTriggers;
   PositioningWeights positioning;
+  GoalkeeperPrinciples goalkeeper;
 
   friend bool operator==(const TeamPrinciples&, const TeamPrinciples&) = default;
 };

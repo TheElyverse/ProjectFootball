@@ -139,6 +139,20 @@ using SimMatch::MatchEvent;
                     SimMatch::dominantScore(scores));
 }
 
+[[nodiscard]] std::string sweepLine(const SweepDecisionTrace& trace) {
+  const SimMatch::SweepDiagnostic& decision = trace.decision;
+  const SimMatch::SweepCall& call = decision.call;
+  std::string line = std::format("t={} #{} {} (reaches the ball in {:.2f} s, ",
+                                 decision.tick.value(), decision.player.value(),
+                                 call.coming ? "sweeps" : "stays home", call.keeperSeconds);
+  if (!call.attackerSeconds) {
+    return line + "no attacker can)";
+  }
+  return line + std::format("the first attacker in {:.2f} s; misjudged by {} s, needs {} s)",
+                            *call.attackerSeconds, signedNumber(call.misjudgement),
+                            signedNumber(call.threshold));
+}
+
 }  // namespace
 
 std::string_view failureCauseName(const FailureCause cause) noexcept {
@@ -175,6 +189,9 @@ DecisionTracer::DecisionTracer(const SimMatch::MatchConfig& config, const TraceC
 void DecisionTracer::recordStep(const SimMatch::MatchSimulation& simulation) {
   for (const SimMatch::ActionDiagnostic& action : simulation.actionDiagnostics()) {
     entries_.emplace_back(ActionDecisionTrace{.decision = action});
+  }
+  for (const SimMatch::SweepDiagnostic& sweep : simulation.sweepDiagnostics()) {
+    entries_.emplace_back(SweepDecisionTrace{.decision = sweep});
   }
   // Diagnostics before events: the pass-decision system runs before the
   // challenge system in the standard pipeline, so a carrier can decide a
@@ -278,10 +295,13 @@ std::string formatTrace(const std::span<const TraceEntry> entries) {
   for (const TraceEntry& entry : entries) {
     text += std::visit(
         [](const auto& trace) {
-          if constexpr (std::is_same_v<std::decay_t<decltype(trace)>, PassDecisionTrace>) {
+          using Trace = std::decay_t<decltype(trace)>;
+          if constexpr (std::is_same_v<Trace, PassDecisionTrace>) {
             return passLine(trace);
-          } else {
+          } else if constexpr (std::is_same_v<Trace, ActionDecisionTrace>) {
             return actionLine(trace);
+          } else {
+            return sweepLine(trace);
           }
         },
         entry);

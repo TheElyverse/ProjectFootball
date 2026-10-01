@@ -5,22 +5,14 @@
 #include <limits>
 #include <stdexcept>
 
+#include "randomDraws.hpp"
+
 namespace ElyverseFootball::SimMatch {
 namespace {
 
+using RandomDraws::symmetricTriangular;
+using RandomDraws::symmetricUniform;
 using SimCore::Vec2;
-
-// A uniform draw in [-1, 1).
-[[nodiscard]] double symmetricUniform(SimCore::RandomNumberGenerator& random) noexcept {
-  return (2.0 * random.nextUniform()) - 1.0;
-}
-
-// A draw in (-1, 1) from the triangle around 0, the spread the shot decision
-// judges a shot by: the sum of two uniform draws.
-[[nodiscard]] double symmetricTriangular(SimCore::RandomNumberGenerator& random) noexcept {
-  const double first = random.nextUniform();
-  return first + random.nextUniform() - 1.0;
-}
 
 [[nodiscard]] bool isFiniteNonNegative(const double value) noexcept {
   return value >= 0.0 && value <= std::numeric_limits<double>::max();
