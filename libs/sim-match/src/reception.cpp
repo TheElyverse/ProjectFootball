@@ -7,6 +7,7 @@
 #include <tuple>
 
 #include "playerMovement.hpp"
+#include "shotStopping.hpp"
 #include "teamFrame.hpp"
 #include "zones.hpp"
 
@@ -32,18 +33,20 @@ using SimCore::Vec2;
   return sinceTouch >= config.reclaimDelaySeconds;
 }
 
-// The first player to reach the ball, each as far and as high as reachOf says
-// of his index. The earliest contact wins; equal contact times go to the
-// player who comes closer, and then to the lower id.
+// The first player but `excluded` to reach the ball, each as far and as high
+// as reachOf says of his index. The earliest contact wins; equal contact
+// times go to the player who comes closer, and then to the lower id.
 template <typename ReachOf>
 [[nodiscard]] std::optional<BallClaim> firstToReach(
     const MatchState& state, const BallState& ball, const BallStep& moved,
     const BallPhysics& physics, const SimCore::SimTick now, const double secondsPerTick,
-    const ReceptionConfig& config, const ReachOf& reachOf) {
+    const ReceptionConfig& config, const std::optional<std::size_t> excluded,
+    const ReachOf& reachOf) {
   std::optional<BallClaim> best;
   for (std::size_t index = 0; const PlayerMatchState& player : state.players()) {
     const std::size_t playerIndex = index++;
-    if (!mayClaim(player, ball, now, secondsPerTick, config)) {
+    if (playerIndex == excluded || !mayClaim(player, ball, now, secondsPerTick, config) ||
+        isDiving(state, playerIndex, now, secondsPerTick)) {
       continue;
     }
     const BallReach reach = reachOf(playerIndex);
@@ -122,21 +125,24 @@ std::optional<Contact> findContact(const Vec2 playerFrom, const Vec2 playerTo, c
 std::optional<BallClaim> findBallClaim(const MatchState& state, const BallState& ball,
                                        const BallStep& moved, const BallPhysics& physics,
                                        const SimCore::SimTick now, const double secondsPerTick,
-                                       const ReceptionConfig& config) {
+                                       const ReceptionConfig& config,
+                                       const std::optional<std::size_t> excluded) {
   return firstToReach(
-      state, ball, moved, physics, now, secondsPerTick, config,
+      state, ball, moved, physics, now, secondsPerTick, config, excluded,
       [&](const std::size_t playerIndex) { return claimReach(state, ball, playerIndex, config); });
 }
 
 std::optional<BallClaim> findBallContact(const MatchState& state, const BallState& ball,
                                          const BallStep& moved, const BallPhysics& physics,
                                          const SimCore::SimTick now, const double secondsPerTick,
-                                         const ReceptionConfig& config, const BallReach& outfield) {
-  return firstToReach(
-      state, ball, moved, physics, now, secondsPerTick, config, [&](const std::size_t playerIndex) {
-        return isGoalkeeper(state, playerIndex) ? claimReach(state, ball, playerIndex, config)
-                                                : outfield;
-      });
+                                         const ReceptionConfig& config, const BallReach& outfield,
+                                         const std::optional<std::size_t> excluded) {
+  return firstToReach(state, ball, moved, physics, now, secondsPerTick, config, excluded,
+                      [&](const std::size_t playerIndex) {
+                        return isGoalkeeper(state, playerIndex)
+                                   ? claimReach(state, ball, playerIndex, config)
+                                   : outfield;
+                      });
 }
 
 void validate(const ReceptionConfig& config) {

@@ -281,6 +281,13 @@ TEST_CASE("Every field of a shot's events is part of their hash", "[matchEvents]
                         .assist = PlayerId(2),
                         .ownGoal = false,
                         .score = {.home = 1, .away = 0}};
+  const SaveAttempted save{.tick = SimTick(7),
+                           .keeper = PlayerId(8),
+                           .shooter = PlayerId(1),
+                           .shotTick = SimTick(5),
+                           .result = SaveResult::kParriedIntoPlay,
+                           .position = {.x = 58.5, .y = 20.4},
+                           .height = 1.1};
 
   const std::vector<std::pair<std::string, MatchEvent>> events{
       {"attempted", attempted},
@@ -314,6 +321,14 @@ TEST_CASE("Every field of a shot's events is part of their hash", "[matchEvents]
       {"own goal", changed(goal, [](auto& event) { event.ownGoal = true; })},
       {"goal score home", changed(goal, [](auto& event) { event.score.home = 2; })},
       {"goal score away", changed(goal, [](auto& event) { event.score.away = 1; })},
+      {"save", save},
+      {"save keeper", changed(save, [](auto& event) { event.keeper = PlayerId(9); })},
+      {"save shooter", changed(save, [](auto& event) { event.shooter = PlayerId(2); })},
+      {"save shot", changed(save, [](auto& event) { event.shotTick = SimTick(4); })},
+      {"save result", changed(save, [](auto& event) { event.result = SaveResult::kCaught; })},
+      {"save position x", changed(save, [](auto& event) { event.position.x = 58.6; })},
+      {"save position y", changed(save, [](auto& event) { event.position.y = 20.5; })},
+      {"save height", changed(save, [](auto& event) { event.height = 1.2; })},
   };
   for (std::size_t first = 0; first < events.size(); ++first) {
     for (std::size_t second = 0; second < first; ++second) {
@@ -330,6 +345,12 @@ TEST_CASE("Every field of a shot's events is part of their hash", "[matchEvents]
   REQUIRE(shotOutcomeName(ShotOutcome::kSaved) == "saved");
   REQUIRE(shotOutcomeName(ShotOutcome::kOffTarget) == "offTarget");
   REQUIRE(shotOutcomeName(ShotOutcome::kBlocked) == "blocked");
+  REQUIRE(eventName(save) == "save attempted");
+  REQUIRE(saveResultName(SaveResult::kCaught) == "caught");
+  REQUIRE(saveResultName(SaveResult::kParriedIntoPlay) == "parriedIntoPlay");
+  REQUIRE(saveResultName(SaveResult::kParriedBehind) == "parriedBehind");
+  REQUIRE(saveResultName(SaveResult::kOutOfReach) == "outOfReach");
+  REQUIRE(saveResultName(static_cast<SaveResult>(9)) == "unknown");
 }
 
 TEST_CASE("Decision diagnostics explain every decision", "[matchEvents]") {

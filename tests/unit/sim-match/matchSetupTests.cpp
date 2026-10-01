@@ -13,6 +13,7 @@
 #include "perception.hpp"
 #include "playerMovement.hpp"
 #include "pursuit.hpp"
+#include "shotStopping.hpp"
 
 using ElyverseFootball::SimCore::PlayerId;
 using ElyverseFootball::SimCore::SimTick;
@@ -25,6 +26,7 @@ using ElyverseFootball::SimMatch::kPitchControlSystemName;
 using ElyverseFootball::SimMatch::kPlayerMovementSystemName;
 using ElyverseFootball::SimMatch::kPressingSystemName;
 using ElyverseFootball::SimMatch::kPursuitSystemName;
+using ElyverseFootball::SimMatch::kShotStoppingSystemName;
 using ElyverseFootball::SimMatch::kTacticalMovementSystemName;
 using ElyverseFootball::SimMatch::makeMatchSystems;
 using ElyverseFootball::SimMatch::makeSevenASideKickoff;
@@ -62,7 +64,7 @@ TEST_CASE("The standard systems run in their documented order", "[matchSetup]") 
                        std::string(kPitchControlSystemName), std::string(kPressingSystemName),
                        std::string(kTacticalMovementSystemName), std::string(kPursuitSystemName),
                        std::string(kPassDecisionSystemName), std::string(kChallengeSystemName),
-                       std::string(kPlayerMovementSystemName),
+                       std::string(kShotStoppingSystemName), std::string(kPlayerMovementSystemName),
                        std::string(kBallMovementSystemName)});
 }
 

@@ -106,10 +106,11 @@ speed was *blocked*; the rest of the tick it flies on from where it was hit.
 A slower shot, and every other ball, is received as it always was
 ([reception](reception.md)).
 
-**The keeper.** Until the keeper stops shots his own way, he takes a shot like
-any ball: in his penalty area within his hands' reach (1.2 m, up to 2.2 m
-high, [goalkeeper](goalkeeper.md)), outside it at his feet. What he does not
-reach beats him.
+**The keeper.** The keeper of the goal a shot attacks does not take it like
+any ball. He reacts, dives, and where the ball passes him he holds it, parries
+it or is beaten ([shot stopping](shot-stopping.md)). A ball he parries flies on
+like a deflected one, with him as its last touch; the shot stays open, and was
+`saved` if he parried it on its way in.
 
 **The frame.** Posts and crossbar are round bars of `radius` (0.06 m): the
 posts stand on the goal line at the posts of the
@@ -152,11 +153,11 @@ Every shot gets exactly one `ShotResolved`, at the first of these:
 | The ball                          | Outcome                                                           |
 |-----------------------------------|-------------------------------------------------------------------|
 | crosses a goal line in the frame  | `goal`                                                            |
-| leaves the pitch anywhere else    | `offTarget`, or `blocked` if it came off an outfield player       |
+| leaves the pitch anywhere else    | `offTarget`; `saved` if the keeper parried it on its way in; `blocked` if it came off an outfield player |
 | comes to rest                     | the same                                                          |
-| is taken by the opposing keeper   | `saved` if it was on its way into the goal, `offTarget` if on its way past; `blocked` if it had come off an outfield player |
-| is taken by an opposing outfield player | `blocked`                                                   |
-| is taken by the shooter's own side | `offTarget`, or `blocked` if it had come off an outfield player  |
+| is taken by the opposing keeper   | `saved` if it was on its way into the goal or he had parried it so before, `offTarget` if on its way past; `blocked` if it had come off an outfield player |
+| is taken by an opposing outfield player | `blocked`, or `saved` if the keeper had parried it on its way in |
+| is taken by the shooter's own side | `offTarget`, `saved` or `blocked` as when it leaves the pitch    |
 
 A shot **on target** is a `goal` or `saved`. Whether the keeper saved a shot is
 asked of the flight he interrupted: `predictGoalLineCrossing()` follows the
@@ -225,20 +226,22 @@ and `weakFootAccuracy`.
 arrives at the aimed point and height, every error stays within its bounds and
 follows its skill and its conditions —, `goalFrameTests.cpp` the rebounds off
 posts and crossbar, and `shotOutcomeTests.cpp` what becomes of a shot in the
-ball system: a goal, a post, the crossbar, a block, a deflected goal, a save, a
-wide shot, a shot that stops short, and that every shot has exactly one outcome.
+ball system: a goal, a post, the crossbar, a block, a deflected goal, a save by
+a keeper standing set, a wide shot, a shot that stops short, and that every
+shot has exactly one outcome.
 
 The `clear-chance` [scenario](scenarios.md) checks the whole of it over 100
 seeds: the first shot is a goal 55 to 90 times. At the time of writing an
-average finisher scores 72 of them and hits the woodwork with 42 — he aims
+average finisher scores 72 of them and hits the woodwork with 48 — he aims
 0.3 m inside the post with a spread of 0.5 m, and the decision that sends him
 there counts every ball inside the frame as on target, while a ball within
-17 cm of a post's axis hits it.
+17 cm of a post's axis hits it. From eight meters the ball is past the keeper
+before he has reacted.
 
 ## What this is not
 
-The keeper does not dive, react or parry: he takes what comes to his feet, and
-his positioning and shot stopping are their own systems. Outfield players do
+The keeper's positioning and his shot stopping are their own systems
+([goalkeeper](goalkeeper.md), [shot stopping](shot-stopping.md)). Outfield players do
 not block on purpose — a body in the way is a body in the way — and nobody
 heads a ball. The shot decision still judges a shot by a straight line and a
 point-sized ball; it does not know the flight or the thickness of the frame.

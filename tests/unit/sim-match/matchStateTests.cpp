@@ -396,14 +396,16 @@ TEST_CASE("MatchState::create accepts a shot technique and a weak foot in [0, 1]
   }
 }
 
-TEST_CASE("MatchState::create accepts a keeper's positioning and anticipation in [0, 1] only",
-          "[matchState]") {
+TEST_CASE("MatchState::create accepts a keeper's skills in [0, 1] only", "[matchState]") {
   const double value = GENERATE(0.0, 1.0, -0.01, 1.01, std::numeric_limits<double>::quiet_NaN());
-  const bool positioning = GENERATE(true, false);
-  CAPTURE(value, positioning);
+  const auto [skill, name] =
+      GENERATE(std::pair{&PlayerAttributes::keeperPositioning, "keeper positioning"},
+               std::pair{&PlayerAttributes::keeperAnticipation, "keeper anticipation"},
+               std::pair{&PlayerAttributes::keeperReflexes, "keeper reflexes"},
+               std::pair{&PlayerAttributes::keeperHandling, "keeper handling"});
+  CAPTURE(value, name);
   MatchStateSpec spec = validSpec();
-  (positioning ? spec.players.at(0).attributes.keeperPositioning
-               : spec.players.at(0).attributes.keeperAnticipation) = value;
+  spec.players.at(0).attributes.*skill = value;
 
   const auto state = MatchState::create(spec);
 
@@ -412,8 +414,7 @@ TEST_CASE("MatchState::create accepts a keeper's positioning and anticipation in
   } else {
     REQUIRE_FALSE(state.has_value());
     REQUIRE(codesOf(state.error()) == std::vector{MatchStateErrorCode::kInvalidPlayerAttributes});
-    REQUIRE(mentions(state.error().front().message,
-                     positioning ? "keeper positioning" : "keeper anticipation"));
+    REQUIRE(mentions(state.error().front().message, name));
   }
 }
 

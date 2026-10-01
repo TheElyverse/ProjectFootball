@@ -82,6 +82,8 @@ inline constexpr std::string_view kPursuitSystemName = "ball pursuit";
 // back. A ball he stays home for he leaves; while he comes for one he judges
 // it again at every update, and turns back for good once a teammate is his
 // side's chaser. If he stays, his side's next earliest player chases the ball.
+// A keeper busy with a dive (isDiving(), docs/shot-stopping.md) chases
+// nothing until he is up again.
 //
 // The chaser's target belongs to pursuit. A player who stops being the
 // chaser -- someone else is closer, or anyone controls the ball -- has his

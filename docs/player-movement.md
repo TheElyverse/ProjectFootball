@@ -3,7 +3,9 @@
 Players move toward targets assigned by commands. The movement model lives in
 `sim-match` (`playerMovement.hpp`) and plugs into the [match loop](match-loop.md)
 as the system `makePlayerMovementSystem()`, which runs every tick and writes
-player positions, velocities and facings.
+player positions, velocities and facings. A goalkeeper busy with a dive is the
+exception: the system puts him where his dive takes him, whatever his target
+([shot stopping](shot-stopping.md#his-body)).
 
 ## Targets
 

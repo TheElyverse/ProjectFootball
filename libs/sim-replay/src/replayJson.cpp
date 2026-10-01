@@ -64,7 +64,9 @@ using SimMatch::TeamSide;
                         {"strongFoot", SimMatch::footName(player.attributes.strongFoot)},
                         {"weakFootAccuracy", player.attributes.weakFootAccuracy},
                         {"keeperPositioning", player.attributes.keeperPositioning},
-                        {"keeperAnticipation", player.attributes.keeperAnticipation}};
+                        {"keeperAnticipation", player.attributes.keeperAnticipation},
+                        {"keeperReflexes", player.attributes.keeperReflexes},
+                        {"keeperHandling", player.attributes.keeperHandling}};
   json["target"] = player.target ? vec2Json(*player.target) : Json(nullptr);
   json["facing"] = vec2Json(player.facing);
   return json;
@@ -223,6 +225,29 @@ using SimMatch::TeamSide;
       {"maxPressSeconds", pressing.maxPressSeconds}};
 }
 
+[[nodiscard]] Json shotStoppingJson(const SimMatch::ShotStoppingConfig& saves) {
+  return {{"slowestReaction", saves.slowestReaction},
+          {"quickestReaction", saves.quickestReaction},
+          {"readError", saves.readError},
+          {"readyHeight", saves.readyHeight},
+          {"diveReach", saves.diveReach},
+          {"jumpReach", saves.jumpReach},
+          {"diveSpeed", saves.diveSpeed},
+          {"bodyReach", saves.bodyReach},
+          {"catchableSpeed", saves.catchableSpeed},
+          {"minParrySpeed", saves.minParrySpeed},
+          {"maxParrySpeed", saves.maxParrySpeed},
+          {"parryTilt", saves.parryTilt},
+          {"parrySpread", saves.parrySpread},
+          {"carelessTryMargin", saves.carelessTryMargin},
+          {"carefulTryMargin", saves.carefulTryMargin},
+          {"wideMargin", saves.wideMargin},
+          {"diveBelowSpeed", saves.diveBelowSpeed},
+          {"standingRecovery", saves.standingRecovery},
+          {"stretchRecovery", saves.stretchRecovery},
+          {"reflexRecoveryShare", saves.reflexRecoveryShare}};
+}
+
 [[nodiscard]] Json shootingJson(const SimMatch::ShotConfig& shooting) {
   return {{"spreadAtZero", shooting.spreadAtZero},
           {"spreadPerMeter", shooting.spreadPerMeter},
@@ -316,7 +341,8 @@ using SimMatch::TeamSide;
             {"cautiousMargin", config.goalkeeper.cautiousMargin},
             {"boldMargin", config.goalkeeper.boldMargin},
             {"sweepHysteresis", config.goalkeeper.sweepHysteresis},
-            {"misjudgement", config.goalkeeper.misjudgement}}}};
+            {"misjudgement", config.goalkeeper.misjudgement}}},
+          {"shotStopping", shotStoppingJson(config.shotStopping)}};
 }
 
 void addCommandFields(Json& json, const MovePlayerCommand& command) {
@@ -531,7 +557,9 @@ constexpr std::int64_t kMaxGoals = 1'000'000;
                          .strongFoot = readFoot(attributes.member("strongFoot")),
                          .weakFootAccuracy = attributes.member("weakFootAccuracy").number(),
                          .keeperPositioning = attributes.member("keeperPositioning").number(),
-                         .keeperAnticipation = attributes.member("keeperAnticipation").number()},
+                         .keeperAnticipation = attributes.member("keeperAnticipation").number(),
+                         .keeperReflexes = attributes.member("keeperReflexes").number(),
+                         .keeperHandling = attributes.member("keeperHandling").number()},
           .target = target.isNull() ? std::nullopt : std::optional(readVec2(target)),
           .facing = readVec2(field.member("facing"))};
 }
@@ -814,6 +842,30 @@ constexpr std::int64_t kMaxGoals = 1'000'000;
           .deflectionLift = number("deflectionLift")};
 }
 
+[[nodiscard]] SimMatch::ShotStoppingConfig readShotStopping(const Field& field) {
+  const auto number = [&field](const char* name) { return field.member(name).number(); };
+  return {.slowestReaction = number("slowestReaction"),
+          .quickestReaction = number("quickestReaction"),
+          .readError = number("readError"),
+          .readyHeight = number("readyHeight"),
+          .diveReach = number("diveReach"),
+          .jumpReach = number("jumpReach"),
+          .diveSpeed = number("diveSpeed"),
+          .bodyReach = number("bodyReach"),
+          .catchableSpeed = number("catchableSpeed"),
+          .minParrySpeed = number("minParrySpeed"),
+          .maxParrySpeed = number("maxParrySpeed"),
+          .parryTilt = number("parryTilt"),
+          .parrySpread = number("parrySpread"),
+          .carelessTryMargin = number("carelessTryMargin"),
+          .carefulTryMargin = number("carefulTryMargin"),
+          .wideMargin = number("wideMargin"),
+          .diveBelowSpeed = number("diveBelowSpeed"),
+          .standingRecovery = number("standingRecovery"),
+          .stretchRecovery = number("stretchRecovery"),
+          .reflexRecoveryShare = number("reflexRecoveryShare")};
+}
+
 [[nodiscard]] SimMatch::GoalkeeperConfig readGoalkeeper(const Field& field) {
   const auto number = [&field](const char* name) { return field.member(name).number(); };
   return {.lineDepth = number("lineDepth"),
@@ -855,7 +907,8 @@ constexpr std::int64_t kMaxGoals = 1'000'000;
           .shooting = readShooting(field.member("shooting")),
           .woodwork = {.radius = field.member("woodwork").member("radius").number(),
                        .restitution = field.member("woodwork").member("restitution").number()},
-          .goalkeeper = readGoalkeeper(field.member("goalkeeper"))};
+          .goalkeeper = readGoalkeeper(field.member("goalkeeper")),
+          .shotStopping = readShotStopping(field.member("shotStopping"))};
 }
 
 [[nodiscard]] MatchCommand readCommand(const Field& field) {

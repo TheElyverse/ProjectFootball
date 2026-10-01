@@ -182,5 +182,7 @@ TEST_CASE("M0: the final state hash is pinned", "[acceptance][m0]") {
   // the last reception remembers whose pass it was. And again with the
   // goalkeeper's own model: he keeps goal on the angle's bisector, takes a
   // ball in his area with his hands and decides whether to come for one.
-  REQUIRE(record().checkpoints.back().stateHash == 0x247b8cad190f8eb9ULL);
+  // And again with shot stopping: players gained a keeper's reflexes and
+  // handling, and the keeper reacts, dives and holds or parries a shot.
+  REQUIRE(record().checkpoints.back().stateHash == 0x028095361fcd4f41ULL);
 }

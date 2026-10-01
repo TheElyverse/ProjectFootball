@@ -41,9 +41,15 @@ inline constexpr double kFacingRunSpeed = 1.0;  // m/s
 
 inline constexpr std::string_view kPlayerMovementSystemName = "player movement";
 
+struct ShotStoppingConfig;
+
 // Moves every player one tick with stepPlayerMovement() and turns him with
-// facingAfterMove(). Writes player positions, velocities and facings, every
-// tick.
+// facingAfterMove() -- except a goalkeeper busy with a dive, whom it puts
+// where his dive takes him, under his hands (bodyAt(), docs/shot-stopping.md),
+// whatever his target, without turning him. Writes player positions,
+// velocities and facings, every tick. Throws std::invalid_argument for an
+// invalid configuration; the overload without one uses the default.
+[[nodiscard]] MatchSystem makePlayerMovementSystem(const ShotStoppingConfig& saves);
 [[nodiscard]] MatchSystem makePlayerMovementSystem();
 
 }  // namespace ElyverseFootball::SimMatch

@@ -20,6 +20,7 @@ using ElyverseFootball::SimCore::Vec2;
 using ElyverseFootball::SimMatch::BallTouch;
 using ElyverseFootball::SimMatch::GoalRecord;
 using ElyverseFootball::SimMatch::hashMatchState;
+using ElyverseFootball::SimMatch::KeeperDive;
 using ElyverseFootball::SimMatch::makeSevenASideKickoff;
 using ElyverseFootball::SimMatch::MatchSimulation;
 using ElyverseFootball::SimMatch::MatchState;
@@ -73,8 +74,10 @@ TEST_CASE("The kickoff hash is pinned", "[matchStateHash]") {
   // again with shot execution: players gained a technique and a strong and a
   // weak foot, the state its score and its last goal. And again when players
   // gained a keeper's positioning and anticipation and the tactics a
-  // goalkeeper's sweeping dial.
-  REQUIRE(hashOf(kickoffSpec()) == 0x120dce64d696017aULL);
+  // goalkeeper's sweeping dial. And again when players gained a keeper's
+  // reflexes and handling, the last shot the keeper's parry and the
+  // tactical state his dive.
+  REQUIRE(hashOf(kickoffSpec()) == 0x6cf5761d912783aaULL);
 }
 
 // Guards against a field that is added to the state but forgotten here.
@@ -106,6 +109,8 @@ TEST_CASE("Every field of the state changes the hash", "[matchStateHash]") {
        [](auto& spec) { spec.players.at(0).attributes.keeperPositioning = 0.9; }},
       {"keeper anticipation",
        [](auto& spec) { spec.players.at(0).attributes.keeperAnticipation = 0.9; }},
+      {"keeper reflexes", [](auto& spec) { spec.players.at(0).attributes.keeperReflexes = 0.9; }},
+      {"keeper handling", [](auto& spec) { spec.players.at(0).attributes.keeperHandling = 0.9; }},
       {"score home", [](auto& spec) { spec.score.home = 1; }},
       {"score away", [](auto& spec) { spec.score.away = 1; }},
       {"target", [](auto& spec) { spec.players.at(9).target = Vec2{}; }},
@@ -168,7 +173,8 @@ TEST_CASE("Perception memories are part of the hash", "[matchStateHash]") {
 }
 
 // Guards the pending actions and the last shot, which only a writer sets.
-TEST_CASE("Pending actions and the last shot are part of the hash", "[matchStateHash]") {
+TEST_CASE("Pending actions, the last shot and a keeper's dive are part of the hash",
+          "[matchStateHash]") {
   const auto kickoff = makeSevenASideKickoff(Pitch(60.0, 40.0));
   REQUIRE(kickoff.has_value());
   const auto idOf = [&kickoff](const std::size_t index) {
@@ -201,6 +207,19 @@ TEST_CASE("Pending actions and the last shot are part of the hash", "[matchState
   const ShotIntent aShot{
       .shooter = idOf(2), .target = {.x = 60.0, .y = 20.0}, .height = 1.0, .speed = 25.0};
   const ShotRecord aRecord{.shooter = idOf(2), .from = {.x = 40.0, .y = 20.0}, .tick = SimTick(5)};
+  const KeeperDive aDive{.touchedBy = idOf(2),
+                         .touchedAt = SimTick(5),
+                         .tick = SimTick(7),
+                         .origin = {.x = 58.5, .y = 20.0},
+                         .normal = {.x = 1.0, .y = 0.0},
+                         .feet = 0.5,
+                         .target = {.across = 0.5, .up = 1.0},
+                         .runSeconds = 0.3,
+                         .landSeconds = 0.8,
+                         .recoverySeconds = 0.4};
+  const auto dive = [](const KeeperDive& answer) {
+    return [answer](MatchStateWriter& next) { next.tactical(7).dive = answer; };
+  };
   const auto goal = [](const GoalRecord& record) {
     return [record](MatchStateWriter& next) { next.addGoal(record); };
   };
@@ -253,6 +272,22 @@ TEST_CASE("Pending actions and the last shot are part of the hash", "[matchState
                                   })))},
       {"last shot resolved",
        hashAfter(lastShot(changed(aRecord, [](ShotRecord& record) { record.resolved = true; })))},
+      {"keeper dive", hashAfter(dive(aDive))},
+      {"keeper dive target",
+       hashAfter(dive(changed(aDive, [](KeeperDive& answer) { answer.target.across = 1.0; })))},
+      {"keeper dive run",
+       hashAfter(dive(changed(aDive, [](KeeperDive& answer) { answer.feet = 1.0; })))},
+      {"keeper dive landing",
+       hashAfter(dive(changed(aDive, [](KeeperDive& answer) { answer.landSeconds = 0.9; })))},
+      {"keeper dive recovery",
+       hashAfter(dive(changed(aDive, [](KeeperDive& answer) { answer.recoverySeconds = 0.5; })))},
+      {"last shot parry", hashAfter(lastShot(changed(aRecord,
+                                                     [&](ShotRecord& record) {
+                                                       record.parry = BallTouch{.playerId = idOf(8),
+                                                                                .tick = SimTick(9)};
+                                                     })))},
+      {"last shot saved",
+       hashAfter(lastShot(changed(aRecord, [](ShotRecord& record) { record.saved = true; })))},
       {"goal", hashAfter(goal(aGoal))},
       {"goal for the other side",
        hashAfter(goal(changed(aGoal, [](GoalRecord& record) { record.side = TeamSide::kAway; })))},

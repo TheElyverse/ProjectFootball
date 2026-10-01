@@ -5,8 +5,8 @@ stand in goal (GDD section 8.8, implementation plan section 6.1, stage M4). The
 player whose tactic slot holds `guardGoal` (`isGoalkeeper()`) takes up his
 place in goal by its geometry, comes off his line for a ball played in behind
 his defence when he judges he is first to it, and takes a ball in his own
-penalty area with his hands. Stopping shots (#89) and what he does with the
-ball (#90) are their own systems. The model lives in `sim-match`
+penalty area with his hands. Stopping shots ([shot stopping](shot-stopping.md))
+and what he does with the ball (#90) are their own systems. The model lives in `sim-match`
 (`goalkeeper.hpp`); the tactical movement system places him, the pursuit
 system decides whether he comes, and reception gives him his hands.
 
@@ -119,7 +119,8 @@ A goalkeeper who stands in his own penalty area, with the ball in it, at the
 start of a tick reaches the ball with his hands: within `handsRadius` (1.2 m)
 of him and up to `handsHeight` (2.2 m), against the feet's `controlRadius` and
 `controlHeight` (1 m each) of everyone else (`ReceptionConfig`). That holds for
-passes, loose balls and shots alike. Outside his area he plays as an outfield
+passes and loose balls alike; a shot at his goal he meets with a dive instead
+([shot stopping](shot-stopping.md)). Outside his area he plays as an outfield
 player, with his feet. Once he has the ball he is an ordinary carrier: there is
 no ball held in the hands, no back-pass rule and no six-second rule yet.
 
@@ -171,8 +172,7 @@ threshold more than twice as often as one of 0.8, and one of 1 never does
 
 ## What this is not
 
-He does not dive, react to a shot or parry it: what is not within his hands
-beats him (#89). He does not hold the ball in his hands, throw, punt or kick it
+He does not hold the ball in his hands, throw, punt or kick it
 long; with the ball he chooses among passes and shots like any carrier, which
 has no dribbles or carries yet to rule out (#90). He does not command his area
 for crosses, organise his defence or come for high balls in the air beyond what

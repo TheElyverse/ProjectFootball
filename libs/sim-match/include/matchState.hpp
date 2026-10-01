@@ -62,10 +62,13 @@ inline constexpr double kDefaultAcceleration = 4.0;  // m/s²
 inline constexpr double kDefaultShotAccuracy = 0.5;
 inline constexpr double kDefaultShotTechnique = 0.5;
 inline constexpr double kDefaultWeakFootAccuracy = 0.5;
-// An average keeper's positioning and anticipation, on the scale of
-// keeperPositioning and keeperAnticipation.
+// An average keeper's positioning, anticipation, reflexes and handling, on the
+// scale of keeperPositioning, keeperAnticipation, keeperReflexes and
+// keeperHandling.
 inline constexpr double kDefaultKeeperPositioning = 0.5;
 inline constexpr double kDefaultKeeperAnticipation = 0.5;
+inline constexpr double kDefaultKeeperReflexes = 0.5;
+inline constexpr double kDefaultKeeperHandling = 0.5;
 
 // The foot a player strikes the ball with.
 enum class Foot : std::uint8_t {
@@ -86,8 +89,10 @@ enum class Foot : std::uint8_t {
 // shooting he keeps on the foot that is not his strongFoot (docs/shooting.md).
 // keeperPositioning, in [0, 1], is how exactly he takes up his place in goal,
 // and keeperAnticipation, in [0, 1], how well he judges whether he reaches a
-// ball played in behind first (docs/goalkeeper.md); only a goalkeeper uses
-// them.
+// ball played in behind first (docs/goalkeeper.md) and where a shot will pass
+// him; keeperReflexes, in [0, 1], how quickly he reacts to a shot, and
+// keeperHandling, in [0, 1], how surely he holds one he reaches
+// (docs/shot-stopping.md). Only a goalkeeper uses them.
 struct PlayerAttributes {
   double maxSpeed = kDefaultMaxSpeed;
   double acceleration = kDefaultAcceleration;
@@ -97,6 +102,8 @@ struct PlayerAttributes {
   double weakFootAccuracy = kDefaultWeakFootAccuracy;
   double keeperPositioning = kDefaultKeeperPositioning;
   double keeperAnticipation = kDefaultKeeperAnticipation;
+  double keeperReflexes = kDefaultKeeperReflexes;
+  double keeperHandling = kDefaultKeeperHandling;
 
   friend bool operator==(const PlayerAttributes&, const PlayerAttributes&) = default;
 };
@@ -273,17 +280,21 @@ struct PassRecord {
 };
 
 // The last shot taken in the match: who struck it, from where, and when. A
-// free ball whose last touch was a shot, or a deflection of one, is loose,
-// not a pass. deflection is the last outfield player the shot came off, and
-// resolved whether its outcome has been recorded: a shot stays open until the
-// ball crosses the goal line, a player controls it, it leaves the pitch or
-// comes to rest (docs/shooting.md).
+// free ball whose last touch was a shot, a deflection of one or the keeper's
+// parry is loose, not a pass. deflection is the last outfield player the shot
+// came off, and resolved whether its outcome has been recorded: a shot stays
+// open until the ball crosses the goal line, a player controls it, it leaves
+// the pitch or comes to rest (docs/shooting.md). parry is the keeper's last
+// touch of it, and saved whether he parried it on its way into his goal
+// (docs/shot-stopping.md).
 struct ShotRecord {
   SimCore::PlayerId shooter;
   SimCore::Vec2 from;
   SimCore::SimTick tick;
   std::optional<BallTouch> deflection = std::nullopt;
   bool resolved = false;
+  std::optional<BallTouch> parry = std::nullopt;
+  bool saved = false;
 
   friend bool operator==(const ShotRecord&, const ShotRecord&) = default;
 };

@@ -65,7 +65,10 @@ struct BallClaim {
 // controlHeight does not count: the ball flies over the player. A goalkeeper
 // who stands in his own penalty area, with the ball in it, at the start of
 // the tick reaches it with his hands instead: within handsRadius and up to
-// handsHeight. Empty if no one reaches the ball.
+// handsHeight. The player at `excluded`, if any, does not compete: the
+// goalkeeper facing a shot meets it his own way, and one busy with a dive
+// (isDiving()) takes no ball at all (docs/shot-stopping.md).
+// Empty if no one reaches the ball.
 //
 // The height at the moment of contact is asked of the flight itself
 // (ballHeightAfter()), which is why `physics` is needed: neither end of the
@@ -75,7 +78,8 @@ struct BallClaim {
                                                      const BallStep& moved,
                                                      const BallPhysics& physics,
                                                      SimCore::SimTick now, double secondsPerTick,
-                                                     const ReceptionConfig& config);
+                                                     const ReceptionConfig& config,
+                                                     std::optional<std::size_t> excluded = {});
 
 // How far from him and how high a player gets to a ball.
 struct BallReach {
@@ -93,7 +97,8 @@ struct BallReach {
                                                        const BallPhysics& physics,
                                                        SimCore::SimTick now, double secondsPerTick,
                                                        const ReceptionConfig& config,
-                                                       const BallReach& outfield);
+                                                       const BallReach& outfield,
+                                                       std::optional<std::size_t> excluded = {});
 
 // Throws std::invalid_argument unless every value is finite and not
 // negative.

@@ -10,6 +10,7 @@
 #include <vector>
 
 #include "desiredRegion.hpp"
+#include "shotStopping.hpp"
 #include "spatialQueries.hpp"
 #include "teamFrame.hpp"
 #include "zones.hpp"
@@ -82,11 +83,12 @@ std::optional<Interception> findInterception(const PlayerMatchState& player, con
 namespace {
 
 // Every player's interception of the free ball, by index; empty for one who
-// cannot reach it, and for the last player to touch it while it still moves.
+// cannot reach it, for the last player to touch it while it still moves, and
+// for a keeper busy with a dive.
 // The goalkeeper reaches with his hands in his own penalty area.
 [[nodiscard]] std::vector<std::optional<Interception>> findInterceptions(
     const MatchState& current, const BallPhysics& physics, const PursuitConfig& config,
-    const ReceptionConfig& reception) {
+    const ReceptionConfig& reception, const MatchStepContext& context) {
   const BallState& ball = current.ball();
   const bool moving = !ball.isAtRest();
   std::vector<std::optional<Interception>> interceptions;
@@ -94,13 +96,15 @@ namespace {
   for (std::size_t index = 0; index < current.players().size(); ++index) {
     const PlayerMatchState& player = current.players()[index];
     const bool justPassed = moving && ball.lastTouch && ball.lastTouch->playerId == player.playerId;
+    const bool down = isDiving(current, index, context.tick(), context.secondsPerTick());
     const auto hands = isGoalkeeper(current, index)
                            ? std::optional(HandsReach{.end = ownGoalEnd(player.side),
                                                       .height = reception.handsHeight})
                            : std::nullopt;
-    interceptions.push_back(justPassed ? std::nullopt
-                                       : findInterception(player, ball, physics, current.pitch(),
-                                                          config, reception.controlHeight, hands));
+    interceptions.push_back(justPassed || down
+                                ? std::nullopt
+                                : findInterception(player, ball, physics, current.pitch(), config,
+                                                   reception.controlHeight, hands));
   }
   return interceptions;
 }
@@ -235,7 +239,8 @@ MatchSystem makePursuitSystem(const BallPhysics& physics, const PursuitConfig& c
               }
               return;
             }
-            const auto interceptions = findInterceptions(current, physics, config, reception);
+            const auto interceptions =
+                findInterceptions(current, physics, config, reception, context);
             for (const TeamSide side : {TeamSide::kHome, TeamSide::kAway}) {
               auto chaser = findChaser(current, interceptions, side);
               if (chaser && isGoalkeeper(current, chaser->index) &&

@@ -34,9 +34,11 @@ Every event carries the `tick` of its step and the players involved:
 | `ShotHitWoodwork`    | `shooter`, `shotTick`, `part`, `position`, `height`          | a shot rebounds from `postAtMinY`, `postAtMaxY` or the `crossbar` |
 | `ShotResolved`       | `shooter`, `shotTick`, `outcome`                             | a shot has become what it will be, once per shot: `goal`, `saved`, `offTarget` or `blocked` |
 | `GoalScored`         | `side`, `scorer`, `assist`, `ownGoal`, `score`               | the ball crosses a goal line inside the frame: a goal for `side`, by `scorer` — empty for a ball nobody touched —, with the `score` it makes |
+| `SaveAttempted`      | `keeper`, `shooter`, `shotTick`, `result`, `position`, `height` | a shot passes the keeper of the goal it attacks and touches him, or was on its way in: `caught`, `parriedIntoPlay`, `parriedBehind` or `outOfReach` ([shot stopping](shot-stopping.md)) |
 
 The shot events name their shot by its `shooter` and `shotTick`, the tick of its
-`ShotAttempted`; see [shooting](shooting.md) for what decides each of them.
+`ShotAttempted`; see [shooting](shooting.md) and [shot stopping](shot-stopping.md)
+for what decides each of them.
 
 `speed` is the speed the ball left the foot with, execution error included. A
 pass shows up as
@@ -48,8 +50,8 @@ PassAttempted(t, passer)  PossessionChanged(t, passer → none)
 
 **Classification.** When a player takes a free ball, the ball's last touch
 decides what it was. A ball becomes free by a pass or a shot, so a last touch
-that was neither the last shot (`MatchState::lastShot()`) nor a deflection of
-it means the ball was passed: a teammate of the passer received it, an opponent
+that was neither the last shot (`MatchState::lastShot()`) nor a deflection or a
+keeper's parry of it means the ball was passed: a teammate of the passer received it, an opponent
 intercepted it. Without a last touch, after a shot, or when the passer takes his
 own ball back, the ball was loose.
 

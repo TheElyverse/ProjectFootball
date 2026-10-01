@@ -20,6 +20,7 @@
 #include "reception.hpp"
 #include "restart.hpp"
 #include "shooting.hpp"
+#include "shotStopping.hpp"
 #include "tacticalMovement.hpp"
 #include "tacticalPhases.hpp"
 #include "teamPressing.hpp"
@@ -48,6 +49,7 @@ struct MatchConfig {
   ShotConfig shooting;
   WoodworkConfig woodwork;
   GoalkeeperConfig goalkeeper;
+  ShotStoppingConfig shotStopping;
 
   friend bool operator==(const MatchConfig&, const MatchConfig&) = default;
 };
@@ -76,9 +78,10 @@ struct MatchSetup {
 //   6. ball pursuit     every pursuit.intervalTicks ticks
 //   7. pass decision    every decisions.intervalTicks ticks
 //   8. ball challenge   every challenge.intervalTicks ticks
-//   9. player movement  every tick
-//  10. ball movement    every tick
-//  11. restart          every tick, if restarts.enabled
+//   9. shot stopping    every tick
+//  10. player movement  every tick
+//  11. ball movement    every tick
+//  12. restart          every tick, if restarts.enabled
 //
 // Tactical movement runs before pursuit, so in a step where both write the
 // same player's target -- a new chaser -- pursuit's wins.

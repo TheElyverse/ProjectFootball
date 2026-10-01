@@ -254,12 +254,41 @@ struct GoalScored {
   friend bool operator==(const GoalScored&, const GoalScored&) = default;
 };
 
+// What a goalkeeper made of a shot that passed him: he caught it; he parried
+// it, back into play or -- by where it is heading -- behind his goal line;
+// or it was out of his reach.
+enum class SaveResult : std::uint8_t {
+  kCaught,
+  kParriedIntoPlay,
+  kParriedBehind,
+  kOutOfReach,
+};
+
+// "caught", "parriedIntoPlay", "parriedBehind", "outOfReach"; "unknown"
+// outside the enumerators.
+[[nodiscard]] std::string_view saveResultName(SaveResult result) noexcept;
+
+// A shot passed the keeper of the goal it attacked, at the ball's position and
+// height: recorded when he touched it, and when it was on its way into his
+// goal and he did not (docs/shot-stopping.md).
+struct SaveAttempted {
+  SimCore::SimTick tick;
+  SimCore::PlayerId keeper;
+  SimCore::PlayerId shooter;
+  SimCore::SimTick shotTick;
+  SaveResult result = SaveResult::kOutOfReach;
+  SimCore::Vec2 position;
+  double height = 0.0;
+
+  friend bool operator==(const SaveAttempted&, const SaveAttempted&) = default;
+};
+
 // New alternatives go last: an event's index is part of its hash.
 using MatchEvent =
     std::variant<PassAttempted, PassReceived, PassIntercepted, LooseBallRecovered,
                  PossessionChanged, PhaseChanged, BallWon, PressingStarted, PressingEnded,
                  TacticChanged, PitchControlSampled, RestartTaken, ShotAttempted, ShotDeflected,
-                 ShotHitWoodwork, ShotResolved, GoalScored>;
+                 ShotHitWoodwork, ShotResolved, GoalScored, SaveAttempted>;
 
 // "pass attempted", "pass received", ... for logs and diagnostics.
 [[nodiscard]] std::string_view eventName(const MatchEvent& event);
