@@ -54,8 +54,7 @@ guards the near post, not the corner flag.
 
 **Taking up his place.** `goalkeeperRegion()` is his desired region: the target
 as its tactical target and, as its centre, where he actually goes — the target
-off by a triangular draw along the line from his goal to the ball and one
-across it, spread by `positionErrorAlong` (1.5 m) and `positionErrorAcross`
+off by a triangular draw along his bisector and one across it, spread by `positionErrorAlong` (1.5 m) and `positionErrorAcross`
 (0.6 m) times `1 − keeperPositioning`. A keeper of positioning 1 stands exactly
 on his target, an average one (0.5) up to 0.75 m off it, and a poor one opens
 the near corner now and then. The draws come from the `kExecution` stream, four
@@ -75,11 +74,14 @@ he keeps goal, and the pursuit system decides whether he comes for a ball.
 
 The pursuit system sends one player per side after a free ball
 ([reception](reception.md)). When the goalkeeper would be his side's chaser of
-a ball the opponent played last, he first decides whether he comes:
+a ball the opponent played last, and his interception point lies behind his
+defensive line (`defensiveLineDepth()`), he first decides whether he comes; a
+ball he would take in front of his defence he chases like anyone:
 
 1. **Perceive.** His interception of the ball's predicted path and the
    opponents' earliest one, both from `findInterception()` — the same
-   anticipation every chaser uses.
+   anticipation every chaser uses, with his hands' reach (`handsHeight`) on
+   the part of the path inside his own penalty area.
 2. **Judge.** His head start is the attacker's seconds minus his own. He
    misjudges it by `drawMisjudgement()`: a triangular draw from the `kAi`
    stream spread by `misjudgement` (0.8 s) times `1 − keeperAnticipation`,
@@ -99,11 +101,12 @@ a ball the opponent played last, he first decides whether he comes:
 A ball he stays home for he leaves. While he comes for one he judges it again
 at every pursuit update, with the misjudgement he drew for it and the
 threshold lowered by `sweepHysteresis` (0.1 s), so he abandons a run that has
-become hopeless without running out and back. A ball his own side played last
-he comes for like any other chaser.
+become hopeless without running out and back. Once a teammate is earlier to
+the ball than he is, he turns back too and leaves the ball to him. A ball his
+own side played last he comes for like any other chaser.
 
-Each judgement and each turn back is reported as a `SweepDiagnostic` with both
-arrival times, the misjudgement and the threshold; the
+Each judgement and each turn back he calls himself is reported as a
+`SweepDiagnostic` with both arrival times, the misjudgement and the threshold; the
 [decision trace](decision-trace.md) prints it:
 
 ```text
@@ -137,7 +140,7 @@ part of `ReceptionConfig`.
 | `lineDepth`            | 1.5 m   | how far off his line he stands against a shot |
 | `highDepthShare`       | 0.5     | his depth far from the ball, as a share of his defensive line's |
 | `possessionDepthShare` | 0.5     | the share of that depth he keeps with his own side on the ball |
-| `positionErrorAlong`   | 1.5 m   | how far off his target a keeper of positioning 0 may stand along the line to the ball |
+| `positionErrorAlong`   | 1.5 m   | how far off his target a keeper of positioning 0 may stand along his bisector |
 | `positionErrorAcross`  | 0.6 m   | the same across it |
 | `cautiousMargin`       | 0.5 s   | the head start he needs at sweeping 0 |
 | `boldMargin`           | −0.2 s  | the head start he needs at sweeping 1 |

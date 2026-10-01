@@ -23,8 +23,8 @@ struct GoalkeeperConfig {
   // depth: behind his defenders to be played back to, never level with them.
   double possessionDepthShare = 0.5;
   // How far from his ideal place a keeper of keeperPositioning 0 may stand:
-  // along the line from his goal to the ball, and across it. The spread
-  // shrinks with his skill and is gone for a keeper of 1.
+  // along his bisector, and across it. The spread shrinks with his skill and
+  // is gone for a keeper of 1.
   double positionErrorAlong = 1.5;   // m
   double positionErrorAcross = 0.6;  // m
   // The head start on the first attacker he needs before he comes for a ball
@@ -64,9 +64,9 @@ void validate(const GoalkeeperConfig& config);
 
 // The goalkeeper's desired region: goalkeeperTarget() as its tactical target
 // and, as its centre, where he takes up his place -- the target off by a
-// triangular draw along the line from his goal to the ball and one across
-// it, each spread by its positionError times (1 - keeperPositioning). Two
-// draws from `random` per draw, four in all, whatever his skill.
+// triangular draw along his bisector and one across it, each spread by its
+// positionError times (1 - keeperPositioning). Two draws from `random` per
+// draw, four in all, whatever his skill.
 [[nodiscard]] DesiredRegion goalkeeperRegion(const MatchState& state, std::size_t playerIndex,
                                              SimTactics::TacticalPhase phase,
                                              const GoalkeeperConfig& config, double shotRange,

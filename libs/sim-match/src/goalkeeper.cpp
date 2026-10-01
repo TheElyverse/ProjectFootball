@@ -48,6 +48,26 @@ using SimCore::Vec2;
   return index && state.players()[*index].side != side;
 }
 
+// The bisector of the angle the posts of the side's goal make as seen from
+// the ball: where it meets the goal line and the way it runs into the pitch.
+struct Bisector {
+  Vec2 foot;
+  Vec2 direction;
+};
+
+// The bisector meets the goal line where it divides the goal in the ratio of
+// the ball's distances to the posts.
+[[nodiscard]] Bisector goalBisector(const TeamSide side, const Vec2 ball, const Pitch& pitch) {
+  const Goal goal = pitch.goal(ownGoalEnd(side));
+  const Vec2 low = goal.postAtMinY();
+  const Vec2 high = goal.postAtMaxY();
+  const double toLow = (ball - low).length();
+  const double toHigh = (ball - high).length();
+  const double split = toLow + toHigh > 0.0 ? toLow / (toLow + toHigh) : 0.5;
+  const Vec2 foot = low + ((high - low) * split);
+  return {.foot = foot, .direction = outward(ball - foot, intoPitch(side, pitch))};
+}
+
 }  // namespace
 
 void validate(const GoalkeeperConfig& config) {
@@ -72,15 +92,7 @@ Vec2 goalkeeperTarget(const MatchState& state, const std::size_t playerIndex,
   const Vec2 ball = state.ball().position;
   const Vec2 low = goal.postAtMinY();
   const Vec2 high = goal.postAtMaxY();
-
-  // The bisector of the angle the posts make as seen from the ball meets the
-  // goal line where it divides the goal in the ratio of the ball's distances
-  // to the posts.
-  const double toLow = (ball - low).length();
-  const double toHigh = (ball - high).length();
-  const double split = toLow + toHigh > 0.0 ? toLow / (toLow + toHigh) : 0.5;
-  const Vec2 foot = low + ((high - low) * split);
-  const Vec2 direction = outward(ball - foot, intoPitch(side, pitch));
+  const auto [foot, direction] = goalBisector(side, ball, pitch);
 
   // High while the ball is far, on the line against a shot.
   const double line = defensiveLineDepth(state, side, phase);
@@ -113,8 +125,7 @@ DesiredRegion goalkeeperRegion(const MatchState& state, const std::size_t player
   const PlayerMatchState& keeper = state.players()[playerIndex];
   const Pitch& pitch = state.pitch();
   const Vec2 target = goalkeeperTarget(state, playerIndex, phase, config, shotRange);
-  const Vec2 along = outward(state.ball().position - pitch.goal(ownGoalEnd(keeper.side)).center,
-                             intoPitch(keeper.side, pitch));
+  const Vec2 along = goalBisector(keeper.side, state.ball().position, pitch).direction;
   const Vec2 across{.x = -along.y, .y = along.x};
   const double spoil = 1.0 - keeper.attributes.keeperPositioning;
   const double alongError = symmetricTriangular(random) * config.positionErrorAlong * spoil;

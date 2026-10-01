@@ -15,6 +15,7 @@
 #include "kickoffScenario.hpp"
 #include "matchState.hpp"
 #include "pitch.hpp"
+#include "pursuit.hpp"
 #include "random.hpp"
 #include "reception.hpp"
 #include "referenceTactic.hpp"
@@ -33,14 +34,18 @@ using ElyverseFootball::SimMatch::callSweep;
 using ElyverseFootball::SimMatch::defensiveLineDepth;
 using ElyverseFootball::SimMatch::drawMisjudgement;
 using ElyverseFootball::SimMatch::findBallClaim;
+using ElyverseFootball::SimMatch::findInterception;
 using ElyverseFootball::SimMatch::GoalEnd;
 using ElyverseFootball::SimMatch::GoalkeeperConfig;
 using ElyverseFootball::SimMatch::goalkeeperRegion;
 using ElyverseFootball::SimMatch::goalkeeperTarget;
+using ElyverseFootball::SimMatch::HandsReach;
+using ElyverseFootball::SimMatch::Interception;
 using ElyverseFootball::SimMatch::makeSevenASideKickoff;
 using ElyverseFootball::SimMatch::MatchState;
 using ElyverseFootball::SimMatch::Pitch;
 using ElyverseFootball::SimMatch::PlayerMatchState;
+using ElyverseFootball::SimMatch::PursuitConfig;
 using ElyverseFootball::SimMatch::ReceptionConfig;
 using ElyverseFootball::SimMatch::sweepThreshold;
 using ElyverseFootball::SimMatch::validate;
@@ -184,8 +189,8 @@ TEST_CASE("A keeper takes up his place as exactly as his positioning allows", "[
       const double miss = (region.center - region.tacticalTarget).length();
       REQUIRE(miss <= std::hypot(config.positionErrorAlong, config.positionErrorAcross) + 1e-9);
       off = off || miss > 0.1;
-      // Across his line to the ball the miss is the smaller spread.
-      REQUIRE(distanceToLine(region.center, state.pitch().goal(GoalEnd::kMinX).center, ball) <=
+      // Across his bisector the miss is the smaller spread.
+      REQUIRE(distanceToLine(region.center, region.tacticalTarget, ball) <=
               config.positionErrorAcross + 1e-9);
     }
     REQUIRE(off);
@@ -282,6 +287,26 @@ TEST_CASE("In his penalty area the keeper takes the ball with his hands", "[goal
   REQUIRE(claimant({.x = 5.0, .y = 20.0}, {.x = 6.1, .y = 20.0}) == PlayerId(1));
   // Out of it, he is an outfield player.
   REQUIRE_FALSE(claimant({.x = 15.0, .y = 20.0}, {.x = 16.1, .y = 20.0}).has_value());
+}
+
+TEST_CASE("In his penalty area the keeper runs for a ball his hands reach", "[goalkeeper]") {
+  // A ball 1.5 m up crossing his area: above his feet, within his hands.
+  const MatchState state = scene({.x = 8.0, .y = 34.0});
+  BallState ball = state.ball();
+  ball.velocity = {.x = 0.0, .y = -8.0};
+  ball.height = 1.5;
+  const BallPhysics physics{.gravity = 0.0};
+  const PlayerMatchState& keeper = state.players()[kKeeper];
+  const ReceptionConfig reception;
+  const auto feet = findInterception(keeper, ball, physics, state.pitch(), PursuitConfig{},
+                                     reception.controlHeight);
+  const auto hands = findInterception(
+      keeper, ball, physics, state.pitch(), PursuitConfig{}, reception.controlHeight,
+      HandsReach{.end = GoalEnd::kMinX, .height = reception.handsHeight});
+  REQUIRE(feet.has_value());
+  REQUIRE(hands.has_value());
+  REQUIRE(state.pitch().isInPenaltyArea(GoalEnd::kMinX, hands.value_or(Interception{}).point));
+  REQUIRE(hands.value_or(Interception{}).seconds < feet.value_or(Interception{}).seconds);
 }
 
 TEST_CASE("Goalkeeper configurations are validated", "[goalkeeper]") {

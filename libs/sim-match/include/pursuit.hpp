@@ -32,6 +32,13 @@ struct PursuitConfig {
   friend bool operator==(const PursuitConfig&, const PursuitConfig&) = default;
 };
 
+// How high a goalkeeper reaches the ball with his hands, and the end whose
+// penalty area he may use them in.
+struct HandsReach {
+  GoalEnd end = GoalEnd::kMinX;
+  double height = 0.0;
+};
+
 // Where and when a player can reach a free ball.
 struct Interception {
   SimCore::Vec2 point;
@@ -43,13 +50,14 @@ struct Interception {
 // will in the match -- the player reaches no later than
 // the ball, by estimateArrivalSeconds(). A point where the ball is higher than
 // reachHeight is no interception: he cannot play it there, and a ball over his
-// head is chased to where it comes down. If he reaches none before the ball
-// stops
-// or before horizonSeconds, where the ball ends up and when he gets there.
-// Empty if he cannot reach that either.
+// head is chased to where it comes down. With hands, a point inside their
+// penalty area counts up to their height instead. If he reaches none before
+// the ball stops or before horizonSeconds, where the ball ends up and when he
+// gets there. Empty if he cannot reach that either.
 [[nodiscard]] std::optional<Interception> findInterception(
     const PlayerMatchState& player, const BallState& ball, const BallPhysics& physics,
-    const Pitch& pitch, const PursuitConfig& config, double reachHeight);
+    const Pitch& pitch, const PursuitConfig& config, double reachHeight,
+    const std::optional<HandsReach>& hands = std::nullopt);
 
 inline constexpr std::string_view kPursuitSystemName = "ball pursuit";
 
@@ -61,17 +69,19 @@ inline constexpr std::string_view kPursuitSystemName = "ball pursuit";
 // passed it.
 //
 // The reach comes from the reception configuration: a chaser runs to where he
-// can actually play the ball, not to a point it flies over.
+// can actually play the ball, not to a point it flies over -- a goalkeeper in
+// his own penalty area up to his hands' height.
 //
 // A goalkeeper who would be his side's chaser of a ball the opponent played
-// last decides first whether he comes (docs/goalkeeper.md): his
+// last, at a point behind his defensive line, decides first whether he comes
+// (docs/goalkeeper.md): his
 // interception against the opponents' earliest, with the misjudgement he
 // draws from the kAi stream when he first judges that ball, by callSweep()
 // and his tactic's sweeping dial. He keeps the judgement in his tactical
 // state and reports it as a SweepDiagnostic when he first makes it or turns
 // back. A ball he stays home for he leaves; while he comes for one he judges
-// it again at every update. If he stays, his side's next earliest player
-// chases the ball.
+// it again at every update, and turns back for good once a teammate is his
+// side's chaser. If he stays, his side's next earliest player chases the ball.
 //
 // The chaser's target belongs to pursuit. A player who stops being the
 // chaser -- someone else is closer, or anyone controls the ball -- has his
