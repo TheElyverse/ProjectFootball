@@ -71,7 +71,9 @@ apps/
   sim-viewer     TypeScript/Canvas debug viewer for sim-cli's frames (pnpm)    [exists]
   website        static landing page, HTML + Tailwind CSS v4 (pnpm)          [exists]
   sim-benchmark  series and style round robins of tactic matches, statistics [exists]
-  sim-replay, world-editor, unreal-game                                        [planned]
+  manager-ui     React/TS/Tailwind manager UI, shown in Unreal's WebBrowser (pnpm) [exists: UI spike]
+  unreal-game    UE 5.8 project: sim-core adapter, hosts manager-ui (docs/ui-spike.md) [exists: UI spike]
+  sim-replay, world-editor                                                     [planned]
 data/            schemas, tactics, competitions, fixtures (JSON/YAML, schema-validated) [exists: tactics]
 tests/unit/      Catch2 tests, mirrors libs/ by subdirectory                   [exists: sim-core, sim-tactics, sim-match, sim-replay, sim-analytics, sim-benchmark]
 tests/acceptance/ whole-match scenarios: stability, determinism, pinned hashes [exists: M0, P1, P2, shots, goalkeeper]
@@ -131,6 +133,15 @@ cd apps/sim-viewer && pnpm test
 Build and preview the static website (see `docs/website.md`):
 ```
 cd apps/website && pnpm install && pnpm run build && pnpm run serve
+```
+
+Develop the manager UI in a browser with mock data, or build it and the Unreal project (UE 5.8, editor closed;
+see `docs/ui-spike.md`):
+```
+cd apps/manager-ui && pnpm install && pnpm run dev
+cd apps/manager-ui && pnpm run build
+<engine>/Engine/Build/BatchFiles/Linux/Build.sh ElyverseFootballEditor Linux Development \
+  -Project=$PWD/apps/unreal-game/ElyverseFootball.uproject -WaitMutex
 ```
 
 Run only the acceptance scenarios (CI runs them in their own step):

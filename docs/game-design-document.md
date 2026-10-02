@@ -55,6 +55,8 @@ Project Football ist eine tiefe Fußballmanagement-Simulation mit drei gleichwer
 ### 1.3 Zielplattform und Zielgruppe
 
 - Primärplattform: PC. Desktop-first statt Mobile-first.
+- Zweite Zielplattform: Mobile (Tablet, Smartphone) mit eigenen, an Touch und kleinere Bildschirme angepassten Layouts derselben Manager-UI.
+- Konsolen sind nicht vorgesehen: Das dichte, tastaturorientierte Bedienkonzept trägt dort nicht.
 - Zielgruppe: Spieler, die tiefes Fußballmanagement wünschen, aber repetitive Mikroverwaltung ablehnen.
 - Sekundäre Zielgruppe: Taktik- und Datenfans, die verstehen möchten, warum ein Spiel funktioniert oder scheitert.
 - Singleplayer-first. Multiplayer bleibt architektonisch möglich, ist aber kein Pre-Production-Ziel.
