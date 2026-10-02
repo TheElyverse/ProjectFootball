@@ -1,0 +1,5 @@
+# Unreal code follows Epic's coding standard, not the repo's Google-based style,
+# and "*.generated.h" must stay the last include, so the repo-wide format check
+# leaves this project alone.
+DisableFormat: true
+SortIncludes: Never

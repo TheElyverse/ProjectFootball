@@ -133,6 +133,31 @@ jobs:
       - name: Build
         run: pnpm run build
 
+  # The manager UI (apps/manager-ui): type-check and Vite build of the page Unreal shows.
+  manager-ui:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/manager-ui
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: pnpm/action-setup@v4
+        with:
+          package_json_file: apps/manager-ui/package.json
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: apps/manager-ui/pnpm-lock.yaml
+
+      - name: Install
+        run: pnpm install --frozen-lockfile
+
+      - name: Build
+        run: pnpm run build
+
   format:
     runs-on: ubuntu-latest
     steps:

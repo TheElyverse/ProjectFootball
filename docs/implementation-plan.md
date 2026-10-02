@@ -496,7 +496,33 @@ UI konsumiert Query Models / View Models aus dem Application Layer. Widgets lese
 | Analytics       | immutable analysis snapshots / timeseries                 |
 | Delegation      | shared workflow state + policy editor                     |
 
-Für die konkrete UE-UI-Technologie sollte ein früher Spike UMG/CommonUI gegen Slate-Lastigkeit evaluieren. PC-Dichte, Tastaturfokus und Tabellenperformance sind Auswahlkriterien.
+### 13.1 UI-Technologie
+
+Entscheidung nach dem UI-Spike (`apps/unreal-game`, `apps/manager-ui`, siehe `docs/ui-spike.md`): Die Manager-UI ist eine Web-App (React, TypeScript, Tailwind CSS) unter `apps/manager-ui`. Unreal zeigt sie über sein WebBrowser-Modul (CEF) an und rendert nur 3D-Inhalte wie den Spieltag selbst. Zielplattformen sind PC und Mobile; Konsolen sind ausgeschlossen, weil das dichte, tastaturorientierte Bedienkonzept dort nicht trägt.
+
+| **Baustein**    | **Rolle**                                                                                                                                                         |
+| --------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| UI-Bridge       | Einzige Verbindung zwischen UI und Core: Queries liefern View Models als JSON, Commands gehen als JSON zurück. In Unreal ein per `BindUObject` gebundenes UObject (`window.ue.manager`). |
+| ue-adapter      | Kompiliert `sim-core` mit Unreals Toolchain und exportiert nur UE-freundliche DTOs und Funktionen.                                                                 |
+| UE-Host        | Ein `UGameInstanceSubsystem` legt einen einzigen Browser über den Viewport; er überlebt Kartenwechsel (Menü, Welt, Spieltag), Navigation passiert in der UI. Der allererste Splash beim Engine-Start bleibt Unreal-Sache (Splash-Bild, Startup Movies). |
+| PC              | WebBrowser-Modul mit CEF (Chromium 128 in UE 5.8), Bildrate pro Browser konfigurierbar (Standard von UE: 24 fps, Spike: 60 fps).                                  |
+| Mobile          | Dasselbe Modul nutzt dort die System-WebView (WKWebView, Android WebView).                                                                                        |
+| Entwicklung     | Die UI läuft ohne Unreal im Browser gegen Mock-Daten, mit Hot Reload; Unreal kann statt der gebauten Datei auch den Vite-Dev-Server laden.                         |
+
+Ergebnisse des Spikes (Linux, Editor/PIE, Kadertabelle mit 23 Spalten):
+
+| **Messung**                     | **UMG + Slate**     | **Web (CEF)**                  |
+| ------------------------------- | ------------------- | ------------------------------ |
+| Game-Thread                     | 18,8 ms             | 8,2 ms (5.000 Zeilen)          |
+| Slate gesamt / Game UI Paint    | 12,7 ms / 4,85 ms   | 3,7 ms / 0,13 ms               |
+| Bildrate der Tabelle            | –                   | 60 fps bei 5.000 Zeilen        |
+| Laden (JSON erzeugen bis erstes Bild) | –             | 19,9 ms (500) / 39,0 ms (5.000) |
+| Sortieren bis Bild              | –                   | 39,3 ms (5.000)                |
+| Zusätzlicher Speicher (CEF-Prozesse) | –              | ca. 130–230 MB                 |
+
+Die UMG/Slate-Werte stammen aus einer Messung mit beiden Tabellen gleichzeitig und ohne Slate-Invalidierung; sie zeigen die Richtung, sind aber kein exakter Vergleich.
+
+Offene Punkte vor dem Ausbau: Tastaturfokus und -navigation zwischen Unreal und Browser, IME-Texteingabe, Klicks durch transparente UI-Bereiche auf den 3D-Viewport, Verhalten im gepackten Build und auf Mobile, sowie schnelleres Sortieren über vorberechnete Sortierschlüssel. Die UI nutzt Browser-APIs nur hinter der UI-Bridge, damit die Laufzeitumgebung austauschbar bleibt.
 
 ## 14. Persistence und Savegames
 
