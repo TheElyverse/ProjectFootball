@@ -25,8 +25,9 @@ public:
 	void Show(APlayerController* Player);
 
 private:
-	// Empty loads the built apps/manager-ui/dist/index.html; the Vite dev server
-	// (http://localhost:5173) gives hot reload inside Unreal.
+	// Empty loads Content/ManagerUI/index.html, which apps/manager-ui builds and packaging
+	// stages as a loose file; the Vite dev server (http://localhost:5173) gives hot reload
+	// inside Unreal.
 	UPROPERTY(Config)
 	FString PageUrl;
 

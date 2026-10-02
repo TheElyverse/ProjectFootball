@@ -35,7 +35,7 @@ void UManagerUISubsystem::Show(APlayerController* Player)
 	if (!Browser)
 	{
 		const FString Url = PageUrl.IsEmpty()
-			? TEXT("file://") + FPaths::ConvertRelativePathToFull(FPaths::ProjectDir() / TEXT("../manager-ui/dist/index.html"))
+			? TEXT("file://") + FPaths::ConvertRelativePathToFull(FPaths::ProjectContentDir() / TEXT("ManagerUI/index.html"))
 			: PageUrl;
 		Browser = SNew(SWebBrowser)
 			.InitialURL(Url)

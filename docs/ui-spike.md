@@ -8,7 +8,8 @@ React app in `apps/manager-ui`, and Unreal only renders 3D content.
 ## Layout
 
 - `apps/manager-ui` — React, TypeScript and Tailwind CSS, built with Vite into a single
-  `dist/index.html`, because Chromium refuses module scripts from `file://` URLs.
+  `apps/unreal-game/Content/ManagerUI/index.html`, because Chromium refuses module
+  scripts from `file://` URLs. Packaging stages that folder as loose files.
   `src/bridge.ts` is the only code that talks to Unreal (`query` for view models,
   `command` for actions). `src/App.tsx` switches between the main menu and the manager
   screens, `src/components/ManagerLayout.tsx` is the frame around them, and
@@ -41,7 +42,7 @@ cd apps/manager-ui && pnpm run build
 <engine>/Engine/Binaries/Linux/UnrealEditor apps/unreal-game/ElyverseFootball.uproject
 ```
 
-`UManagerUISubsystem` loads `apps/manager-ui/dist/index.html`. Its settings live in
+`UManagerUISubsystem` loads `Content/ManagerUI/index.html`. Its settings live in
 `apps/unreal-game/Config/DefaultGame.ini`:
 
 ```
@@ -52,6 +53,23 @@ PlayerCount=5000
 
 `PageUrl` loads the Vite dev server instead of the built file; `Seed` and `PlayerCount`
 drive the generated squad until the world simulation exists.
+
+## Package
+
+`apps/unreal-game/package.sh` builds the manager UI, compiles the game target, cooks the
+content and archives a self-contained Linux build, Chromium included, under
+`build/package/Linux`, and packs it into `build/package/ElyverseFootball-Linux.tar.gz`.
+It leaves out debug files and strips the debug info Epic ships in Chromium's
+`libcef.so`, which brings the build from 2.6 GB to under 900 MB. It takes the engine
+from `UE_ROOT` and the configuration from its argument (`Shipping` by default,
+`Development` keeps the console and logs). On Linux, `Config/Linux/LinuxEngine.ini`
+turns off Chromium's GPU acceleration: its GPU process fails there (seen with NVIDIA
+under Wayland), and with acceleration the page never paints in a packaged build.
+
+```
+UE_ROOT=<engine> apps/unreal-game/package.sh
+build/package/Linux/ElyverseFootball.sh
+```
 
 ## Measuring
 

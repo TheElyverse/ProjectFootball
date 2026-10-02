@@ -5,3 +5,7 @@ DerivedDataCache/
 *.code-workspace
 Makefile
 CMakeLists.txt
+# Built by apps/manager-ui (pnpm run build).
+Content/ManagerUI/
+# Written by every cook.
+Build/*/FileOpenOrder/
