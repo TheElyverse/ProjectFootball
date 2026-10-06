@@ -9,7 +9,9 @@ before starting a change.
 - [Design and architecture](#design-and-architecture)
 - [Build and test](#build-and-test)
 - [Run the CLI](#run-the-cli)
+- [Edit UI texts](#edit-ui-texts)
 - [Check a change](#check-a-change)
+- [License and contributions](#license-and-contributions)
 - [Coding style](#coding-style)
   - [Language](#language)
   - [Naming](#naming)
@@ -144,6 +146,21 @@ exit code.
 `--tui` requires both stdin and stdout to be terminals. The replay is written
 before the screen opens; press Enter on Close, `q`, or Escape to exit.
 
+## Edit UI texts
+
+The manager UI's texts live in one catalog per language under
+`apps/manager-ui/public/locales/<locale>.json`. These checked-in files are the
+only ones to edit. English defines every message id and is the fallback for
+missing texts.
+
+`pnpm run build` in `apps/manager-ui` empties
+`apps/unreal-game/Content/ManagerUI/` and copies the catalogs into its `locales/`
+folder next to `index.html`. The game loads its language's catalog from there.
+That folder is build output and ignored by Git: a change to a catalog reaches the
+game only after the next build, and an edit made there is lost on the next
+build. `pnpm run dev` serves the catalogs straight from `public/`. See
+[the UI spike](docs/ui-spike.md) for the whole setup.
+
 ## Check a change
 
 Build with warnings treated as errors and run the test suite:
@@ -167,6 +184,22 @@ cmake --preset sanitize
 cmake --build --preset sanitize
 ctest --preset sanitize
 ```
+
+## License and contributions
+
+The source code is available under the
+[PolyForm Shield License 1.0.0](LICENSE.md): you may use, change, and share it for
+any purpose except building a product that competes with Elyverse: Football. The
+brand and art assets listed in [LICENSE-ASSETS.md](LICENSE-ASSETS.md) are not
+licensed at all, and the names and logos are covered by
+[TRADEMARKS.md](TRADEMARKS.md).
+
+By submitting a contribution (a pull request, patch, or any other material) you
+confirm that you wrote it or otherwise have the right to submit it, and you grant
+Matthäus Mayer a perpetual, worldwide, non-exclusive, royalty-free, irrevocable
+license to use, modify, sublicense, and distribute your contribution under any
+terms, including the current license, a different license, or a commercial
+license. You keep the copyright to your contribution.
 
 ## Coding style
 

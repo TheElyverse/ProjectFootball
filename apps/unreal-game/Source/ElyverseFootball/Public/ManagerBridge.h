@@ -13,10 +13,12 @@ class ELYVERSEFOOTBALL_API UManagerBridge : public UObject
 
 public:
 	// The view model for the named query as JSON, in the shapes declared in
-	// apps/manager-ui/src/bridge.ts; empty for an unknown name.
+	// apps/manager-ui/src/ue/bridge.ts; empty for an unknown name.
 	UFUNCTION()
 	FString Query(const FString& Name) const;
 
+	// "ready" tells UManagerUISubsystem that the page takes window.ui calls, "quit" ends the
+	// game.
 	UFUNCTION()
 	void Command(const FString& Name);
 
@@ -29,4 +31,5 @@ public:
 
 private:
 	FString SquadJson() const;
+	FString MessagesJson() const;
 };

@@ -1,0 +1,18 @@
+{
+  "mainMenu.newCareer": "Neue Karriere",
+  "mainMenu.startGame": "Spiel starten",
+  "mainMenu.loadGame": "Spiel laden",
+  "mainMenu.settings": "Einstellungen",
+  "mainMenu.quit": "Beenden",
+  "nav.menu": "Menü",
+  "screen.squad": "Kader",
+  "status.unrealBridge": "Unreal-Bridge",
+  "status.browserMock": "Browser-Mock",
+  "status.framesPerSecond": "{framesPerSecond} fps",
+  "squad.name": "Name",
+  "squad.position": "Position",
+  "squad.age": "Alter",
+  "squad.fitness": "Fitness",
+  "squad.contract": "Vertrag",
+  "squad.value": "Marktwert"
+}

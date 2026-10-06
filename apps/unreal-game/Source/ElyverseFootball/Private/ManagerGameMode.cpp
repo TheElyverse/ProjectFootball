@@ -1,7 +1,6 @@
 #include "ManagerGameMode.h"
 
 #include "Engine/GameInstance.h"
-#include "Engine/World.h"
 #include "ManagerUISubsystem.h"
 
 AManagerGameMode::AManagerGameMode()
@@ -12,5 +11,5 @@ AManagerGameMode::AManagerGameMode()
 void AManagerGameMode::BeginPlay()
 {
 	Super::BeginPlay();
-	GetGameInstance()->GetSubsystem<UManagerUISubsystem>()->Show(GetWorld()->GetFirstPlayerController());
+	GetGameInstance()->GetSubsystem<UManagerUISubsystem>()->Show(TEXT("/"));
 }

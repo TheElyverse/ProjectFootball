@@ -10,18 +10,44 @@ React app in `apps/manager-ui`, and Unreal only renders 3D content.
 - `apps/manager-ui` — React, TypeScript and Tailwind CSS, built with Vite into a single
   `apps/unreal-game/Content/ManagerUI/index.html`, because Chromium refuses module
   scripts from `file://` URLs. Packaging stages that folder as loose files.
-  `src/bridge.ts` is the only code that talks to Unreal (`query` for view models,
-  `command` for actions). `src/App.tsx` switches between the main menu and the manager
-  screens, `src/components/ManagerLayout.tsx` is the frame around them, and
-  `src/screens/index.ts` lists the manager screens.
+  `src/ue/bridge.ts` is the only code that talks to Unreal (`query` for view models,
+  `command` for actions, `onGameEvent` for what Unreal sends through `window.ui`).
+  `src/Game.tsx` switches between the main menu and the manager screens, `src/components/ManagerLayout.tsx` is the frame around them, and
+  `src/screens/index.ts` lists the manager screens. UI texts use `react-intl`; the
+  catalogs live in `public/locales/<locale>.json`, which the build copies to
+  `Content/ManagerUI/locales`. English defines the message ids and is bundled as the
+  fallback; the game sends the catalog for its language through the `messages` query.
+  A new language is one JSON file plus its check in `src/i18n/catalogs.check.ts`.
 - `apps/unreal-game/Source/ElyverseAdapter` — compiles `libs/sim-core` from source with
   Unreal's toolchain and exports `GenerateSquad`. On Linux Unreal uses its own clang and
   libc++, so the CMake-built library cannot be linked.
 - `apps/unreal-game/Source/ElyverseFootball` — `UManagerUISubsystem` lives in the game
-  instance and puts one web browser over the viewport, rendering at 60 fps instead of the
-  WebBrowser default of 24, with `UManagerBridge` bound as `window.ue.manager`. Because
-  it outlives maps, the page keeps its state across map changes. `AManagerGameMode` is
-  the global default game mode: no pawn, and it shows the UI on every map. The UMG and
+  instance and puts one transparent web browser over the viewport, rendering at 60 fps
+  instead of the WebBrowser default of 24, with `UManagerBridge` bound as
+  `window.ue.manager`. Because it outlives maps, the page keeps its state across map
+  changes. `AManagerGameMode` is the global default game mode: no pawn, and it shows the
+  UI on every map that does not set its own game mode.
+
+## Showing the UI
+
+`UManagerUISubsystem` has three Blueprint-callable functions. `Preload` adds the browser
+fully transparent, below UMG widgets, so the page loads behind the studio splash in
+`L_Start`. `Show(Route)` makes it visible and calls `window.ui.navigate(route)`; `"/"` is
+the main menu, `"/<screen>"` a manager screen. `Hide` hides it and gives the input back to
+the game. Once the page has subscribed to `window.ui`, it sends the `ready` command; a
+`Show` before that waits for it, and a reloaded page (the Vite dev server) gets its route
+again.
+
+The page owns the focus. Unreal only forwards `nav.up`, `nav.down`, `nav.confirm` and
+`nav.back` through `window.ui.input`, from a Slate input preprocessor that takes Slate's
+navigation keys (arrow keys, Enter, Space, Escape, the gamepad's D-pad, left stick and face
+buttons) before any widget sees them. Enhanced Input cannot do this: the browser takes the
+keyboard focus on every click and then swallows all keys, gamepad buttons included. In a
+plain browser the mock maps the same keys. Text fields will need the arrow keys and
+Enter in the page; that is still open.
+
+The page is transparent over the 3D scene, so scrims are CSS gradients. `backdrop-filter`
+blur does not work: CEF renders the page on its own and never sees the scene. The UMG and
   Slate variants of the spike were removed after the decision.
 
 ## Build and run

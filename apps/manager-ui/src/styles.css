@@ -1,7 +1,30 @@
 @import "tailwindcss";
 
+@theme {
+  --color-shiny-elyverse-blue: #3fd3dc;
+  --color-default-bg: rgba(5, 9, 14);
+}
+
 html,
 body,
 #root {
   height: 100%;
+  width: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+/* Dark behind the main menu column, fading out over the 3D scene. */
+.scrim-main-menu {
+  background: linear-gradient(
+    to right,
+    rgb(5 9 14 / 0.92) 0,
+    rgb(5 9 14 / 0.75) 640px,
+    transparent 1100px
+  );
+}
+
+/* Stands in for the 3D scene when the page runs in a plain browser. */
+.browser-mock body {
+  background: #1e293b;
 }

@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { query, type SquadView } from "../bridge";
+import { query, type SquadView } from "../ue/bridge";
 import { SquadTable } from "../components/SquadTable";
 
 export function SquadScreen() {
