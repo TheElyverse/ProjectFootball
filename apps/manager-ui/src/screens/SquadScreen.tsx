@@ -1,13 +1,12 @@
-import { useEffect, useState } from "react";
-import { query, type SquadView } from "../ue/bridge";
+import { useQuery } from "@tanstack/react-query";
+import { query } from "../ue/bridge";
 import { SquadTable } from "../components/SquadTable";
 
 export function SquadScreen() {
-  const [squad, setSquad] = useState<SquadView>();
-
-  useEffect(() => {
-    void query("squad").then(setSquad);
-  }, []);
+  const { data: squad } = useQuery({
+    queryKey: ["squad"],
+    queryFn: () => query("squad"),
+  });
 
   return squad ? <SquadTable squad={squad} /> : null;
 }
