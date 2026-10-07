@@ -1,0 +1,18 @@
+{
+  "mainMenu.newCareer": "New career",
+  "mainMenu.startGame": "Start game",
+  "mainMenu.loadGame": "Load game",
+  "mainMenu.settings": "Settings",
+  "mainMenu.quit": "Quit",
+  "nav.menu": "Menu",
+  "view.squad": "Squad",
+  "status.unrealBridge": "Unreal bridge",
+  "status.browserMock": "Browser mock",
+  "status.framesPerSecond": "{framesPerSecond} fps",
+  "squad.name": "Name",
+  "squad.position": "Position",
+  "squad.age": "Age",
+  "squad.fitness": "Fitness",
+  "squad.contract": "Contract",
+  "squad.value": "Value"
+}

@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import type { SquadRow, SquadView } from "../bridge";
+import { useIntl, type IntlShape } from "react-intl";
+import type { SquadRow, SquadView } from "@/ue/bridge";
 
 // Virtualized like the UMG ListView and the Slate SListView: only the visible rows
 // plus a few above and below are rendered.
@@ -14,10 +15,12 @@ interface Column {
   value: (row: SquadRow) => number | string;
 }
 
-const euro = new Intl.NumberFormat("en-US", { style: "currency", currency: "EUR", maximumFractionDigits: 0 });
-
-function buildColumns(attributeNames: string[]): Column[] {
-  const numeric = (id: string, label: string, value: (row: SquadRow) => number): Column => ({
+function buildColumns(attributeNames: string[], intl: IntlShape): Column[] {
+  const numeric = (
+    id: string,
+    label: string,
+    value: (row: SquadRow) => number,
+  ): Column => ({
     id,
     label,
     width: 72,
@@ -25,13 +28,48 @@ function buildColumns(attributeNames: string[]): Column[] {
     value,
   });
   return [
-    { id: "name", label: "Name", width: 160, text: (row) => row.name, value: (row) => row.name },
-    { id: "position", label: "Position", width: 72, text: (row) => row.position, value: (row) => row.position },
-    numeric("age", "Age", (row) => row.age),
-    ...attributeNames.map((label, index) => numeric(`attribute${index}`, label, (row) => row.attributes[index] ?? 0)),
-    numeric("fitness", "Fitness", (row) => row.fitness),
-    numeric("contract", "Contract", (row) => row.contractYears),
-    { ...numeric("value", "Value", (row) => row.marketValue), width: 120, text: (row) => euro.format(row.marketValue) },
+    {
+      id: "name",
+      label: intl.formatMessage({ id: "squad.name" }),
+      width: 160,
+      text: (row) => row.name,
+      value: (row) => row.name,
+    },
+    {
+      id: "position",
+      label: intl.formatMessage({ id: "squad.position" }),
+      width: 72,
+      text: (row) => row.position,
+      value: (row) => row.position,
+    },
+    numeric("age", intl.formatMessage({ id: "squad.age" }), (row) => row.age),
+    ...attributeNames.map((label, index) =>
+      numeric(`attribute${index}`, label, (row) => row.attributes[index] ?? 0),
+    ),
+    numeric(
+      "fitness",
+      intl.formatMessage({ id: "squad.fitness" }),
+      (row) => row.fitness,
+    ),
+    numeric(
+      "contract",
+      intl.formatMessage({ id: "squad.contract" }),
+      (row) => row.contractYears,
+    ),
+    {
+      ...numeric(
+        "value",
+        intl.formatMessage({ id: "squad.value" }),
+        (row) => row.marketValue,
+      ),
+      width: 120,
+      text: (row) =>
+        intl.formatNumber(row.marketValue, {
+          style: "currency",
+          currency: "EUR",
+          maximumFractionDigits: 0,
+        }),
+    },
   ];
 }
 
@@ -41,7 +79,11 @@ interface Sort {
 }
 
 export function SquadTable({ squad }: { squad: SquadView }) {
-  const columns = useMemo(() => buildColumns(squad.attributeNames), [squad.attributeNames]);
+  const intl = useIntl();
+  const columns = useMemo(
+    () => buildColumns(squad.attributeNames, intl),
+    [squad.attributeNames, intl],
+  );
   const [sort, setSort] = useState<Sort | undefined>();
   const [scrollTop, setScrollTop] = useState(0);
   const [viewportHeight, setViewportHeight] = useState(0);
@@ -65,7 +107,9 @@ export function SquadTable({ squad }: { squad: SquadView }) {
     if (element === null) {
       return undefined;
     }
-    const observer = new ResizeObserver(() => setViewportHeight(element.clientHeight));
+    const observer = new ResizeObserver(() =>
+      setViewportHeight(element.clientHeight),
+    );
     observer.observe(element);
     return () => observer.disconnect();
   }, []);
@@ -78,7 +122,10 @@ export function SquadTable({ squad }: { squad: SquadView }) {
   };
 
   const first = Math.max(0, Math.floor(scrollTop / ROW_HEIGHT) - OVERSCAN);
-  const last = Math.min(rows.length, Math.ceil((scrollTop + viewportHeight) / ROW_HEIGHT) + OVERSCAN);
+  const last = Math.min(
+    rows.length,
+    Math.ceil((scrollTop + viewportHeight) / ROW_HEIGHT) + OVERSCAN,
+  );
   const totalWidth = columns.reduce((sum, column) => sum + column.width, 0);
 
   return (
@@ -98,7 +145,11 @@ export function SquadTable({ squad }: { squad: SquadView }) {
               onClick={() => sortBy(column)}
             >
               {column.label}
-              {sort?.column.id === column.id ? (sort.ascending ? " ▲" : " ▼") : ""}
+              {sort?.column.id === column.id
+                ? sort.ascending
+                  ? " ▲"
+                  : " ▼"
+                : ""}
             </button>
           ))}
         </div>
@@ -112,7 +163,11 @@ export function SquadTable({ squad }: { squad: SquadView }) {
                 style={{ top: index * ROW_HEIGHT, height: ROW_HEIGHT }}
               >
                 {columns.map((column) => (
-                  <div key={column.id} className="truncate px-2 leading-6" style={{ width: column.width }}>
+                  <div
+                    key={column.id}
+                    className="truncate px-2 leading-6"
+                    style={{ width: column.width }}
+                  >
                     {column.text(row)}
                   </div>
                 ))}

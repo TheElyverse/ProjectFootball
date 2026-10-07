@@ -57,3 +57,11 @@ vision, or follow progress through the
 [GitHub milestones](https://github.com/TheElyverse/ProjectFootball/milestones).
 
 Interested in working on the game? Start with [Contributing](CONTRIBUTING.md).
+
+## License
+
+The source code is available under the
+[PolyForm Shield License 1.0.0](LICENSE.md): use it, learn from it, change it, but
+don't build a competing product with it. Logos and art are not licensed for reuse
+([LICENSE-ASSETS.md](LICENSE-ASSETS.md)), and "Elyverse" is a trademark
+([TRADEMARKS.md](TRADEMARKS.md)).
