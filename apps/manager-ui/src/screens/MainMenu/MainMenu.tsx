@@ -2,11 +2,14 @@ import { useIntl } from "react-intl";
 import { command, isUnrealHost } from "@/ue/bridge";
 import { Brand } from "@/components/Logo/Brand";
 import { MainMenuButton } from "@/components/Button/MainMenuButton";
+import { useScreenController } from "@/screens/screen";
+import { managerViews } from "@/screens/Manager/views";
 
 // A 640 px (40 rem) column on the left over the 3D scene. The page is transparent, so the scrim is a
 // gradient: CEF renders the page on its own, and backdrop blur cannot reach the scene.
-export function MainMenu({ onStartGame }: { onStartGame: () => void }) {
+export function MainMenu() {
   const intl = useIntl();
+  const { navigate } = useScreenController();
 
   return (
     <div className="scrim-main-menu h-full">
@@ -16,7 +19,9 @@ export function MainMenu({ onStartGame }: { onStartGame: () => void }) {
           <MainMenuButton
             autoFocus
             text={intl.formatMessage({ id: "mainMenu.newCareer" })}
-            onClick={onStartGame}
+            onClick={() =>
+              navigate({ kind: "manager", view: managerViews[0].id })
+            }
           />
           <MainMenuButton
             text={intl.formatMessage({ id: "mainMenu.loadGame" })}

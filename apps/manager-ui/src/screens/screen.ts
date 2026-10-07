@@ -1,3 +1,4 @@
+import { createContext, useContext } from "react";
 import { type ManagerViewId, managerViews } from "./Manager/views";
 
 export type Screen =
@@ -9,4 +10,22 @@ export function parseScreen(route: string): Screen | undefined {
   }
   const view = managerViews.find((view) => `/${view.id}` === route);
   return view && { kind: "manager", view: view.id };
+}
+
+export interface ScreenController {
+  // Undefined until the game navigates.
+  screen: Screen | undefined;
+  navigate: (screen: Screen) => void;
+}
+
+export const ScreenContext = createContext<ScreenController | undefined>(
+  undefined,
+);
+
+export function useScreenController(): ScreenController {
+  const controller = useContext(ScreenContext);
+  if (controller === undefined) {
+    throw new Error("useScreenController needs a ScreenProvider");
+  }
+  return controller;
 }

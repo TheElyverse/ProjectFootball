@@ -45,7 +45,8 @@ navigation keys (arrow keys, Enter, Space, Escape, the gamepad's D-pad, left sti
 buttons) before any widget sees them. Enhanced Input cannot do this: the browser takes the
 keyboard focus on every click and then swallows all keys, gamepad buttons included. In a
 plain browser the mock maps the same keys. Text fields will need the arrow keys and
-Enter in the page; that is still open.
+Enter in the page; that is still open. `nav.back` returns to the previous view of the current
+screen; it never leaves a screen.
 
 The page is transparent over the 3D scene, so scrims are CSS gradients. `backdrop-filter`
 blur does not work: CEF renders the page on its own and never sees the scene. The UMG and

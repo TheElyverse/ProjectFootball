@@ -23,8 +23,8 @@ export function moveFocus(step: 1 | -1) {
 }
 
 // The page owns the focus: the game only forwards navigation inputs. Up and down move the
-// focus, confirm clicks the focused control, back calls onBack.
-export function useNavigationInput(onBack: () => void) {
+// focus, confirm clicks the focused control.
+export function useFocusInput() {
   useEffect(
     () =>
       onGameEvent("input", (input: NavigationInput) => {
@@ -40,9 +40,19 @@ export function useNavigationInput(onBack: () => void) {
               document.activeElement.click();
             }
             break;
-          case "nav.back":
-            onBack();
-            break;
+        }
+      }),
+    [],
+  );
+}
+
+// Calls onBack on the back input.
+export function useBackInput(onBack: () => void) {
+  useEffect(
+    () =>
+      onGameEvent("input", (input: NavigationInput) => {
+        if (input === "nav.back") {
+          onBack();
         }
       }),
     [onBack],
