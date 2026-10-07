@@ -13,7 +13,8 @@ async function mockMessages(): Promise<MessagesView> {
   for (const language of navigator.languages) {
     const locale = language.split("-")[0] ?? language;
     const response = await fetch(`locales/${locale}.json`);
-    if (response.ok) {
+    // Vite answers a missing catalog with index.html and 200, not with 404.
+    if (response.headers.get("content-type")?.includes("json")) {
       return { locale, messages: (await response.json()) as Messages };
     }
   }
