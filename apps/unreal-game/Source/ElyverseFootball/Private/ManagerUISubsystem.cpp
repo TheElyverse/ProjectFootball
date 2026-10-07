@@ -184,6 +184,7 @@ void UManagerUISubsystem::Hide()
 	if (APlayerController* Player = GetGameInstance()->GetFirstLocalPlayerController())
 	{
 		Player->SetInputMode(FInputModeGameOnly());
+		Player->SetShowMouseCursor(false);
 	}
 }
 
