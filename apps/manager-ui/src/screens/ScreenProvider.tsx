@@ -11,7 +11,10 @@ export function ScreenProvider({ children }: { children: ReactNode }) {
     const unsubscribe = onGameEvent("navigate", (route) => {
       const nextScreen = parseScreen(route);
       if (nextScreen === undefined) {
-        console.error(`The game navigated to the unknown route "${route}"`);
+        console.error(`game navigated to unknown route "${route}"`);
+        // Keep the shown screen, but never leave the page empty: the game has
+        // already handed input to the UI.
+        setScreen((current) => current ?? { kind: "mainMenu" });
         return;
       }
       setScreen(nextScreen);
