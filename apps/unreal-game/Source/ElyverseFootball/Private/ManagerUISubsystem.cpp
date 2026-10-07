@@ -150,7 +150,9 @@ void UManagerUISubsystem::Preload()
 		.InitialURL(Url)
 		.ShowControls(false)
 		.SupportsTransparency(true)
-		.BrowserFrameRate(BrowserFrameRate);
+		.BrowserFrameRate(BrowserFrameRate)
+		// A reload drops window.ui until the new page reports ready again.
+		.OnLoadStarted_Lambda([this] { bPageReady = false; });
 	Browser->BindUObject(TEXT("manager"), Bridge);
 	// Painted fully transparent instead of hidden, so the browser gets its size and renders
 	// the page before it is shown.
