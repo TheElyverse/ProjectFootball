@@ -135,7 +135,8 @@ struct KeeperDive {
 };
 
 // A player's tactical runtime state, kept in the match state because
-// systems keep nothing between ticks. Empty for a player of a scripted side.
+// systems keep nothing between ticks. Empty for a player of a scripted side,
+// but for his last jump.
 struct PlayerTacticalState {
   std::optional<DesiredRegion> region;
   std::optional<PlayerAction> action;
@@ -145,6 +146,9 @@ struct PlayerTacticalState {
   std::optional<SweepJudgement> sweep;
   // A goalkeeper's answer to the last shot he faced, until he is up again.
   std::optional<KeeperDive> dive;
+  // When he last went up for a high ball (docs/aerial-duels.md): he goes up
+  // for no other until he has landed.
+  std::optional<SimCore::SimTick> lastJump;
 
   friend bool operator==(const PlayerTacticalState&, const PlayerTacticalState&) = default;
 };

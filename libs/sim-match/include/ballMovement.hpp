@@ -21,6 +21,7 @@ namespace ElyverseFootball::SimMatch {
 
 inline constexpr std::string_view kBallMovementSystemName = "ball movement";
 
+struct AerialConfig;
 struct PassConfig;
 struct ReceptionConfig;
 struct ShotConfig;
@@ -55,7 +56,12 @@ struct WoodworkConfig;
 //      ball: where it passes his plane he meets it with his dive, or standing
 //      set before he has reacted, and holds it, parries it or lets it past.
 //      A keeper standing set is down for a moment after it passed him, and
-//      one who holds it is up at once (docs/shot-stopping.md).
+//      one who holds it is up at once (docs/shot-stopping.md). A ball higher
+//      than controlHeight that a player gets to before anyone takes it at his
+//      feet is contested in the air (findAerialContact()): everyone near it
+//      goes up, and the winner heads it -- at goal, to a teammate or clear --
+//      or, a keeper with his hands, catches or punches it; nobody may reach it
+//      at all (docs/aerial-duels.md).
 //   4. A ball that leaves the pitch over a goal line, between the posts and
 //      under the crossbar, is a goal: the score goes up and GoalScored is
 //      recorded. A shot gets its one ShotResolved when the ball goes in, a
@@ -64,8 +70,8 @@ struct WoodworkConfig;
 // Writes the ball's position, velocity, height, vertical velocity, spin, owner
 // and last touch, the last pass, shot and reception, the score and the last
 // goal, a goalkeeper's dive in his tactical state and the position and
-// velocity of one who holds the ball from a dive, and clears the pending
-// actions.
+// velocity of one who holds the ball from a dive, every player's last jump,
+// and clears the pending actions.
 // Throws std::invalid_argument for an invalid
 // configuration. The shorter overloads use the default configuration for what they omit.
 //
@@ -73,6 +79,10 @@ struct WoodworkConfig;
 // makeMatchSystems() does: a controlled ball follows the carrier's move as the
 // movement system makes it, and without that system the ball would end the
 // tick where the carrier would have gone.
+[[nodiscard]] MatchSystem makeBallMovementSystem(
+    const BallPhysics& physics, const PassConfig& passing, const ReceptionConfig& reception,
+    const RestartConfig& restarts, const ShotConfig& shooting, const WoodworkConfig& woodwork,
+    const ShotStoppingConfig& saves, const AerialConfig& aerial);
 [[nodiscard]] MatchSystem makeBallMovementSystem(
     const BallPhysics& physics, const PassConfig& passing, const ReceptionConfig& reception,
     const RestartConfig& restarts, const ShotConfig& shooting, const WoodworkConfig& woodwork,

@@ -12,6 +12,7 @@ namespace {
 
 using RandomDraws::symmetricTriangular;
 using RandomDraws::symmetricUniform;
+using SimCore::unitOr;
 using SimCore::Vec2;
 
 [[nodiscard]] bool isFiniteNonNegative(const double value) noexcept {
@@ -29,11 +30,6 @@ using SimCore::Vec2;
 // However badly a ball is struck, it leaves the foot at no less than half and
 // no more than one and a half times the intended speed.
 inline constexpr double kMaxSpeedError = 0.5;
-
-[[nodiscard]] Vec2 unitOr(const Vec2 vector, const Vec2 fallback) noexcept {
-  const double length = vector.length();
-  return length > 0.0 ? vector * (1.0 / length) : fallback;
-}
 
 }  // namespace
 

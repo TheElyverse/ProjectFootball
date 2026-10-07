@@ -1,6 +1,8 @@
 #pragma once
 
 #include <cstddef>
+#include <functional>
+#include <limits>
 #include <optional>
 
 #include "ballPhysics.hpp"
@@ -47,6 +49,14 @@ struct Contact {
                                                  SimCore::Vec2 ballFrom, SimCore::Vec2 ballTo,
                                                  double radius) noexcept;
 
+// How far from him and how high a player gets to a ball, and above which
+// height only: a ball no higher than `above` is not his to reach this way.
+struct BallReach {
+  double radius = 0.0;                                      // m
+  double height = 0.0;                                      // m
+  double above = -std::numeric_limits<double>::infinity();  // m
+};
+
 // The player who gains control of a free ball moving from ballFrom to ballTo
 // in the step of tick now, if any.
 struct BallClaim {
@@ -81,12 +91,6 @@ struct BallClaim {
                                                      const ReceptionConfig& config,
                                                      std::optional<std::size_t> excluded = {});
 
-// How far from him and how high a player gets to a ball.
-struct BallReach {
-  double radius = 0.0;  // m
-  double height = 0.0;  // m
-};
-
 // findBallClaim() for a ball outfield players do not take at their feet: a
 // goalkeeper still reaches it as findBallClaim() says, everyone else as
 // `outfield` says -- a body in the way of a shot rather than a foot on the
@@ -99,6 +103,29 @@ struct BallReach {
                                                        const ReceptionConfig& config,
                                                        const BallReach& outfield,
                                                        std::optional<std::size_t> excluded = {});
+
+// Whether the player at this index competes for the free ball in the step of
+// tick now at all: he is not `excluded`, not busy with a dive (isDiving()),
+// and not the ball's last touch within reclaimDelaySeconds of it.
+[[nodiscard]] bool mayCompete(const MatchState& state, const BallState& ball,
+                              std::size_t playerIndex, SimCore::SimTick now, double secondsPerTick,
+                              const ReceptionConfig& config, std::optional<std::size_t> excluded);
+
+// Whether the player at this index gets to the ball with his hands: he is
+// the goalkeeper, and he and the ball are in his own penalty area.
+[[nodiscard]] bool hasHands(const MatchState& state, const BallState& ball,
+                            std::size_t playerIndex);
+
+// The first player to reach the ball, each as reachOf says of his index --
+// nobody whose reach is empty, and only those who mayCompete(). The
+// earliest contact wins; equal contact times go to the player who comes
+// closer, and then to the lower id. findBallClaim() and findBallContact()
+// are this search with their own reaches.
+[[nodiscard]] std::optional<BallClaim> findFirstReach(
+    const MatchState& state, const BallState& ball, const BallStep& moved,
+    const BallPhysics& physics, SimCore::SimTick now, double secondsPerTick,
+    const ReceptionConfig& config, std::optional<std::size_t> excluded,
+    const std::function<std::optional<BallReach>(std::size_t)>& reachOf);
 
 // Throws std::invalid_argument unless every value is finite and not
 // negative.

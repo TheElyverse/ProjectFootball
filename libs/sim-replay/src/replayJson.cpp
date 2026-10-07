@@ -66,7 +66,10 @@ using SimMatch::TeamSide;
                         {"keeperPositioning", player.attributes.keeperPositioning},
                         {"keeperAnticipation", player.attributes.keeperAnticipation},
                         {"keeperReflexes", player.attributes.keeperReflexes},
-                        {"keeperHandling", player.attributes.keeperHandling}};
+                        {"keeperHandling", player.attributes.keeperHandling},
+                        {"jumping", player.attributes.jumping},
+                        {"heading", player.attributes.heading},
+                        {"strength", player.attributes.strength}};
   json["target"] = player.target ? vec2Json(*player.target) : Json(nullptr);
   json["facing"] = vec2Json(player.facing);
   return json;
@@ -225,6 +228,41 @@ using SimMatch::TeamSide;
       {"maxPressSeconds", pressing.maxPressSeconds}};
 }
 
+[[nodiscard]] Json aerialJson(const SimMatch::AerialConfig& aerial) {
+  return {{"headHeight", aerial.headHeight},
+          {"headRadius", aerial.headRadius},
+          {"lowestJump", aerial.lowestJump},
+          {"highestJump", aerial.highestJump},
+          {"timingError", aerial.timingError},
+          {"attemptMargin", aerial.attemptMargin},
+          {"contestRadius", aerial.contestRadius},
+          {"landingSeconds", aerial.landingSeconds},
+          {"reachWeight", aerial.reachWeight},
+          {"reachCap", aerial.reachCap},
+          {"arrivalWeight", aerial.arrivalWeight},
+          {"strengthWeight", aerial.strengthWeight},
+          {"bodyWeight", aerial.bodyWeight},
+          {"keeperAdvantage", aerial.keeperAdvantage},
+          {"duelTemperature", aerial.duelTemperature},
+          {"contestedDrop", aerial.contestedDrop},
+          {"shotRange", aerial.shotRange},
+          {"shotSpeed", aerial.shotSpeed},
+          {"shotHeight", aerial.shotHeight},
+          {"shotInside", aerial.shotInside},
+          {"passRange", aerial.passRange},
+          {"knockDownRange", aerial.knockDownRange},
+          {"passSeconds", aerial.passSeconds},
+          {"openDistance", aerial.openDistance},
+          {"passWeight", aerial.passWeight},
+          {"clearanceZone", aerial.clearanceZone},
+          {"clearanceDistance", aerial.clearanceDistance},
+          {"maxHeaderSpeed", aerial.maxHeaderSpeed},
+          {"decisionTemperature", aerial.decisionTemperature},
+          {"directionError", aerial.directionError},
+          {"speedError", aerial.speedError},
+          {"mistimedErrorFactor", aerial.mistimedErrorFactor}};
+}
+
 [[nodiscard]] Json shotStoppingJson(const SimMatch::ShotStoppingConfig& saves) {
   return {{"slowestReaction", saves.slowestReaction},
           {"quickestReaction", saves.quickestReaction},
@@ -342,7 +380,8 @@ using SimMatch::TeamSide;
             {"boldMargin", config.goalkeeper.boldMargin},
             {"sweepHysteresis", config.goalkeeper.sweepHysteresis},
             {"misjudgement", config.goalkeeper.misjudgement}}},
-          {"shotStopping", shotStoppingJson(config.shotStopping)}};
+          {"shotStopping", shotStoppingJson(config.shotStopping)},
+          {"aerial", aerialJson(config.aerial)}};
 }
 
 void addCommandFields(Json& json, const MovePlayerCommand& command) {
@@ -559,7 +598,10 @@ constexpr std::int64_t kMaxGoals = 1'000'000;
                          .keeperPositioning = attributes.member("keeperPositioning").number(),
                          .keeperAnticipation = attributes.member("keeperAnticipation").number(),
                          .keeperReflexes = attributes.member("keeperReflexes").number(),
-                         .keeperHandling = attributes.member("keeperHandling").number()},
+                         .keeperHandling = attributes.member("keeperHandling").number(),
+                         .jumping = attributes.member("jumping").number(),
+                         .heading = attributes.member("heading").number(),
+                         .strength = attributes.member("strength").number()},
           .target = target.isNull() ? std::nullopt : std::optional(readVec2(target)),
           .facing = readVec2(field.member("facing"))};
 }
@@ -842,6 +884,42 @@ constexpr std::int64_t kMaxGoals = 1'000'000;
           .deflectionLift = number("deflectionLift")};
 }
 
+[[nodiscard]] SimMatch::AerialConfig readAerial(const Field& field) {
+  const auto number = [&field](const char* name) { return field.member(name).number(); };
+  return {.headHeight = number("headHeight"),
+          .headRadius = number("headRadius"),
+          .lowestJump = number("lowestJump"),
+          .highestJump = number("highestJump"),
+          .timingError = number("timingError"),
+          .attemptMargin = number("attemptMargin"),
+          .contestRadius = number("contestRadius"),
+          .landingSeconds = number("landingSeconds"),
+          .reachWeight = number("reachWeight"),
+          .reachCap = number("reachCap"),
+          .arrivalWeight = number("arrivalWeight"),
+          .strengthWeight = number("strengthWeight"),
+          .bodyWeight = number("bodyWeight"),
+          .keeperAdvantage = number("keeperAdvantage"),
+          .duelTemperature = number("duelTemperature"),
+          .contestedDrop = number("contestedDrop"),
+          .shotRange = number("shotRange"),
+          .shotSpeed = number("shotSpeed"),
+          .shotHeight = number("shotHeight"),
+          .shotInside = number("shotInside"),
+          .passRange = number("passRange"),
+          .knockDownRange = number("knockDownRange"),
+          .passSeconds = number("passSeconds"),
+          .openDistance = number("openDistance"),
+          .passWeight = number("passWeight"),
+          .clearanceZone = number("clearanceZone"),
+          .clearanceDistance = number("clearanceDistance"),
+          .maxHeaderSpeed = number("maxHeaderSpeed"),
+          .decisionTemperature = number("decisionTemperature"),
+          .directionError = number("directionError"),
+          .speedError = number("speedError"),
+          .mistimedErrorFactor = number("mistimedErrorFactor")};
+}
+
 [[nodiscard]] SimMatch::ShotStoppingConfig readShotStopping(const Field& field) {
   const auto number = [&field](const char* name) { return field.member(name).number(); };
   return {.slowestReaction = number("slowestReaction"),
@@ -908,7 +986,8 @@ constexpr std::int64_t kMaxGoals = 1'000'000;
           .woodwork = {.radius = field.member("woodwork").member("radius").number(),
                        .restitution = field.member("woodwork").member("restitution").number()},
           .goalkeeper = readGoalkeeper(field.member("goalkeeper")),
-          .shotStopping = readShotStopping(field.member("shotStopping"))};
+          .shotStopping = readShotStopping(field.member("shotStopping")),
+          .aerial = readAerial(field.member("aerial"))};
 }
 
 [[nodiscard]] MatchCommand readCommand(const Field& field) {

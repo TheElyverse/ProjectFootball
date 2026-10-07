@@ -299,6 +299,21 @@ void addEventFields(Json& json, const SimMatch::SaveAttempted& event) {
   json["height"] = rounded(event.height);
 }
 
+void addEventFields(Json& json, const SimMatch::AerialContest& event) {
+  json["type"] = "aerialContest";
+  json["position"] = vec2Json(event.position);
+  json["height"] = rounded(event.height);
+  Json contestants = Json::array();
+  for (const SimMatch::AerialContestant& contestant : event.contestants) {
+    contestants.push_back({{"player", contestant.player.value()},
+                           {"reach", rounded(contestant.reach)},
+                           {"reached", contestant.reached}});
+  }
+  json["contestants"] = std::move(contestants);
+  json["winner"] = idJson(event.winner);
+  json["play"] = event.play ? Json(SimMatch::aerialPlayName(*event.play)) : Json(nullptr);
+}
+
 void addEventFields(Json& json, const SimMatch::ShotResolved& event) {
   json["type"] = "shotResolved";
   json["shooter"] = event.shooter.value();

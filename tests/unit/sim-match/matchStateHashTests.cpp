@@ -66,18 +66,7 @@ TEST_CASE("Equal states hash equally", "[matchStateHash]") {
 TEST_CASE("The kickoff hash is pinned", "[matchStateHash]") {
   // Changes when the fixture, a state field or the hash encoding changes;
   // each of those invalidates recorded replays, so update it deliberately.
-  // Re-pinned when the ball gained its height, vertical velocity and spin:
-  // the kickoff ball lies still on the grass as it always has, but the hash
-  // covers three numbers more. Re-pinned again when the pending pass became
-  // a pending action per player, when players gained a shot accuracy and
-  // when the state gained its last shot: the hash covers what they add. And
-  // again with shot execution: players gained a technique and a strong and a
-  // weak foot, the state its score and its last goal. And again when players
-  // gained a keeper's positioning and anticipation and the tactics a
-  // goalkeeper's sweeping dial. And again when players gained a keeper's
-  // reflexes and handling, the last shot the keeper's parry and the
-  // tactical state his dive.
-  REQUIRE(hashOf(kickoffSpec()) == 0x6cf5761d912783aaULL);
+  REQUIRE(hashOf(kickoffSpec()) == 0x4816e7e5978ef284ULL);
 }
 
 // Guards against a field that is added to the state but forgotten here.
@@ -111,6 +100,9 @@ TEST_CASE("Every field of the state changes the hash", "[matchStateHash]") {
        [](auto& spec) { spec.players.at(0).attributes.keeperAnticipation = 0.9; }},
       {"keeper reflexes", [](auto& spec) { spec.players.at(0).attributes.keeperReflexes = 0.9; }},
       {"keeper handling", [](auto& spec) { spec.players.at(0).attributes.keeperHandling = 0.9; }},
+      {"jumping", [](auto& spec) { spec.players.at(2).attributes.jumping = 0.9; }},
+      {"heading", [](auto& spec) { spec.players.at(2).attributes.heading = 0.9; }},
+      {"strength", [](auto& spec) { spec.players.at(2).attributes.strength = 0.9; }},
       {"score home", [](auto& spec) { spec.score.home = 1; }},
       {"score away", [](auto& spec) { spec.score.away = 1; }},
       {"target", [](auto& spec) { spec.players.at(9).target = Vec2{}; }},
@@ -273,6 +265,10 @@ TEST_CASE("Pending actions, the last shot and a keeper's dive are part of the ha
       {"last shot resolved",
        hashAfter(lastShot(changed(aRecord, [](ShotRecord& record) { record.resolved = true; })))},
       {"keeper dive", hashAfter(dive(aDive))},
+      {"last jump",
+       hashAfter([](MatchStateWriter& next) { next.tactical(3).lastJump = SimTick(4); })},
+      {"last jump tick",
+       hashAfter([](MatchStateWriter& next) { next.tactical(3).lastJump = SimTick(5); })},
       {"keeper dive target",
        hashAfter(dive(changed(aDive, [](KeeperDive& answer) { answer.target.across = 1.0; })))},
       {"keeper dive run",
