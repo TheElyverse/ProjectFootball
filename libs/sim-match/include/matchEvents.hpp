@@ -9,6 +9,7 @@
 #include <vector>
 
 #include "actionCandidate.hpp"
+#include "aerialDuels.hpp"
 #include "goalFrame.hpp"
 #include "goalkeeper.hpp"
 #include "ids.hpp"
@@ -283,12 +284,27 @@ struct SaveAttempted {
   friend bool operator==(const SaveAttempted&, const SaveAttempted&) = default;
 };
 
+// Players went up for a high ball, where it was and how high when the first
+// of them got to it (docs/aerial-duels.md): everyone who did, how high each
+// got and whether that reached it, the one who won it -- nobody if none
+// reached it -- and what he did with it.
+struct AerialContest {
+  SimCore::SimTick tick;
+  SimCore::Vec2 position;
+  double height = 0.0;
+  std::vector<AerialContestant> contestants;
+  std::optional<SimCore::PlayerId> winner;
+  std::optional<AerialPlay> play;
+
+  friend bool operator==(const AerialContest&, const AerialContest&) = default;
+};
+
 // New alternatives go last: an event's index is part of its hash.
 using MatchEvent =
     std::variant<PassAttempted, PassReceived, PassIntercepted, LooseBallRecovered,
                  PossessionChanged, PhaseChanged, BallWon, PressingStarted, PressingEnded,
                  TacticChanged, PitchControlSampled, RestartTaken, ShotAttempted, ShotDeflected,
-                 ShotHitWoodwork, ShotResolved, GoalScored, SaveAttempted>;
+                 ShotHitWoodwork, ShotResolved, GoalScored, SaveAttempted, AerialContest>;
 
 // "pass attempted", "pass received", ... for logs and diagnostics.
 [[nodiscard]] std::string_view eventName(const MatchEvent& event);

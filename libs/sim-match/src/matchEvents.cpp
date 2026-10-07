@@ -155,6 +155,21 @@ void addFields(StableHasher& hasher, const SaveAttempted& event) noexcept {
   hasher.addDouble(event.height);
 }
 
+void addFields(StableHasher& hasher, const AerialContest& event) noexcept {
+  hasher.addDouble(event.position.x);
+  hasher.addDouble(event.position.y);
+  hasher.addDouble(event.height);
+  hasher.addU64(event.contestants.size());
+  for (const AerialContestant& contestant : event.contestants) {
+    hasher.addU64(contestant.player.value());
+    hasher.addDouble(contestant.reach);
+    hasher.addBool(contestant.reached);
+  }
+  addPlayer(hasher, event.winner);
+  hasher.addBool(event.play.has_value());
+  hasher.addU64(static_cast<std::uint64_t>(event.play.value_or(AerialPlay::kShot)));
+}
+
 }  // namespace
 
 std::string_view saveResultName(const SaveResult result) noexcept {
@@ -238,6 +253,9 @@ std::string_view eventName(const MatchEvent& event) {
     }
     std::string_view operator()(const SaveAttempted& /*event*/) const noexcept {
       return "save attempted";
+    }
+    std::string_view operator()(const AerialContest& /*event*/) const noexcept {
+      return "aerial contest";
     }
   };
   return std::visit(Names{}, event);

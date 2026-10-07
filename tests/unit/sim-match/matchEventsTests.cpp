@@ -27,6 +27,9 @@ using ElyverseFootball::SimCore::SimTick;
 using ElyverseFootball::SimCore::StableHasher;
 using ElyverseFootball::SimCore::Vec2;
 using ElyverseFootball::SimMatch::addEvent;
+using ElyverseFootball::SimMatch::AerialContest;
+using ElyverseFootball::SimMatch::AerialPlay;
+using ElyverseFootball::SimMatch::aerialPlayName;
 using ElyverseFootball::SimMatch::BallPhysics;
 using ElyverseFootball::SimMatch::DecisionDiagnostic;
 using ElyverseFootball::SimMatch::DecisionOutcome;
@@ -351,6 +354,61 @@ TEST_CASE("Every field of a shot's events is part of their hash", "[matchEvents]
   REQUIRE(saveResultName(SaveResult::kParriedBehind) == "parriedBehind");
   REQUIRE(saveResultName(SaveResult::kOutOfReach) == "outOfReach");
   REQUIRE(saveResultName(static_cast<SaveResult>(9)) == "unknown");
+}
+
+TEST_CASE("Every field of an aerial contest is part of its hash", "[matchEvents]") {
+  const auto hashOf = [](const MatchEvent& event) {
+    StableHasher hasher;
+    addEvent(hasher, event);
+    return hasher.value();
+  };
+  const auto changed = [](AerialContest event, auto change) {
+    change(event);
+    return MatchEvent{event};
+  };
+  const AerialContest contest{
+      .tick = SimTick(12),
+      .position = {.x = 50.0, .y = 20.0},
+      .height = 2.1,
+      .contestants = {{.player = PlayerId(4), .reach = 2.3, .reached = true},
+                      {.player = PlayerId(11), .reach = 2.0, .reached = false}},
+      .winner = PlayerId(4),
+      .play = AerialPlay::kShot};
+
+  const std::vector<std::pair<std::string, MatchEvent>> events{
+      {"contest", contest},
+      {"position x", changed(contest, [](auto& event) { event.position.x = 51.0; })},
+      {"position y", changed(contest, [](auto& event) { event.position.y = 21.0; })},
+      {"height", changed(contest, [](auto& event) { event.height = 2.2; })},
+      {"one contestant fewer", changed(contest, [](auto& event) { event.contestants.pop_back(); })},
+      {"contestant",
+       changed(contest, [](auto& event) { event.contestants.at(1).player = PlayerId(12); })},
+      {"contestant reach",
+       changed(contest, [](auto& event) { event.contestants.at(0).reach = 2.4; })},
+      {"contestant reached",
+       changed(contest, [](auto& event) { event.contestants.at(1).reached = true; })},
+      {"winner", changed(contest, [](auto& event) { event.winner = PlayerId(11); })},
+      {"no winner", changed(contest,
+                            [](auto& event) {
+                              event.winner.reset();
+                              event.play.reset();
+                            })},
+      {"play", changed(contest, [](auto& event) { event.play = AerialPlay::kClearance; })},
+  };
+  for (std::size_t first = 0; first < events.size(); ++first) {
+    for (std::size_t second = 0; second < first; ++second) {
+      CAPTURE(events.at(first).first, events.at(second).first);
+      REQUIRE(hashOf(events.at(first).second) != hashOf(events.at(second).second));
+    }
+  }
+  REQUIRE(eventName(contest) == "aerial contest");
+  REQUIRE(aerialPlayName(AerialPlay::kShot) == "shot");
+  REQUIRE(aerialPlayName(AerialPlay::kPass) == "pass");
+  REQUIRE(aerialPlayName(AerialPlay::kKnockDown) == "knockDown");
+  REQUIRE(aerialPlayName(AerialPlay::kClearance) == "clearance");
+  REQUIRE(aerialPlayName(AerialPlay::kCaught) == "caught");
+  REQUIRE(aerialPlayName(AerialPlay::kPunched) == "punched");
+  REQUIRE(aerialPlayName(static_cast<AerialPlay>(9)) == "unknown");
 }
 
 TEST_CASE("Decision diagnostics explain every decision", "[matchEvents]") {

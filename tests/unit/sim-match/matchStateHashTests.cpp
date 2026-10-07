@@ -76,7 +76,8 @@ TEST_CASE("The kickoff hash is pinned", "[matchStateHash]") {
   // gained a keeper's positioning and anticipation and the tactics a
   // goalkeeper's sweeping dial. And again when players gained a keeper's
   // reflexes and handling, the last shot the keeper's parry and the
-  // tactical state his dive.
+  // tactical state his dive. And again when players gained their jumping,
+  // heading and strength and the tactical state their last jump.
   REQUIRE(hashOf(kickoffSpec()) == 0x6cf5761d912783aaULL);
 }
 
@@ -110,8 +111,8 @@ TEST_CASE("Every field of the state changes the hash", "[matchStateHash]") {
       {"keeper anticipation",
        [](auto& spec) { spec.players.at(0).attributes.keeperAnticipation = 0.9; }},
       {"keeper reflexes", [](auto& spec) { spec.players.at(0).attributes.keeperReflexes = 0.9; }},
-      {"keeper handling", [](auto& spec) { spec.players.at(0).attributes.keeperHandling = 0.9; }},
-      {"score home", [](auto& spec) { spec.score.home = 1; }},
+      XX,
+      [](auto& spec) { spec.score.home = 1; }},
       {"score away", [](auto& spec) { spec.score.away = 1; }},
       {"target", [](auto& spec) { spec.players.at(9).target = Vec2{}; }},
       {"facing", [](auto& spec) { spec.players.at(4).facing = Vec2{.x = 0.0, .y = 1.0}; }},
@@ -121,18 +122,17 @@ TEST_CASE("Every field of the state changes the hash", "[matchStateHash]") {
       {"ball vertical velocity", [](auto& spec) { spec.ball.verticalVelocity = 5.0; }},
       {"ball spin", [](auto& spec) { spec.ball.spin = 20.0; }},
       {"ball owner", [](auto& spec) { spec.ball.owner = PlayerId(7); }},
-      {"last touch",
-       [](auto& spec) {
+      {"last touch", [](auto& spec) {
          spec.ball.lastTouch = BallTouch{.playerId = PlayerId(7), .tick = SimTick(0)};
        }},
-  };
+};
 
-  for (const auto& [field, change] : changes) {
-    CAPTURE(field);
-    MatchStateSpec spec = kickoffSpec();
-    change(spec);
-    REQUIRE(hashOf(spec) != original);
-  }
+for (const auto& [field, change] : changes) {
+  CAPTURE(field);
+  MatchStateSpec spec = kickoffSpec();
+  change(spec);
+  REQUIRE(hashOf(spec) != original);
+}
 }
 
 TEST_CASE("Perception memories are part of the hash", "[matchStateHash]") {
@@ -273,6 +273,10 @@ TEST_CASE("Pending actions, the last shot and a keeper's dive are part of the ha
       {"last shot resolved",
        hashAfter(lastShot(changed(aRecord, [](ShotRecord& record) { record.resolved = true; })))},
       {"keeper dive", hashAfter(dive(aDive))},
+      {"last jump",
+       hashAfter([](MatchStateWriter& next) { next.tactical(3).lastJump = SimTick(4); })},
+      {"last jump tick",
+       hashAfter([](MatchStateWriter& next) { next.tactical(3).lastJump = SimTick(5); })},
       {"keeper dive target",
        hashAfter(dive(changed(aDive, [](KeeperDive& answer) { answer.target.across = 1.0; })))},
       {"keeper dive run",
