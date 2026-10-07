@@ -34,7 +34,9 @@ React app in `apps/manager-ui`, and Unreal only renders 3D content.
 `UManagerUISubsystem` has three Blueprint-callable functions. `Preload` adds the browser
 fully transparent, below UMG widgets, so the page loads behind the studio splash in
 `L_Start`. `Show(Route)` makes it visible and calls `window.ui.navigate(route)`; `"/"` is
-the main menu, `"/<view>"` a view of the manager screen. `Hide` hides it and gives the input back to
+the main menu, `"/<view>"` a view of the manager screen. An empty route keeps the page where
+it is, or opens the main menu the first time; `AManagerGameMode` uses it, so a map change does
+not reset the page. `Hide` hides it and gives the input back to
 the game. Once the page has subscribed to `window.ui`, it sends the `ready` command; a
 `Show` before that waits for it, and a reloaded page (the Vite dev server) gets its route
 again.

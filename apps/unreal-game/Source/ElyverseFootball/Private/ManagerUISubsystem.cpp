@@ -164,13 +164,18 @@ void UManagerUISubsystem::Preload()
 void UManagerUISubsystem::Show(const FString& InRoute)
 {
 	Preload();
-	Route = InRoute;
+	bShown = true;
+	if (!InRoute.IsEmpty() || Route.IsEmpty())
+	{
+		Route = InRoute.IsEmpty() ? TEXT("/") : InRoute;
+		bNavigate = true;
+	}
 	Present();
 }
 
 void UManagerUISubsystem::Hide()
 {
-	Route.Reset();
+	bShown = false;
 	SetNavigationInput(false);
 	if (Browser)
 	{
@@ -185,16 +190,21 @@ void UManagerUISubsystem::Hide()
 void UManagerUISubsystem::HandlePageReady()
 {
 	bPageReady = true;
+	bNavigate = !Route.IsEmpty();
 	Present();
 }
 
 void UManagerUISubsystem::Present()
 {
-	if (!bPageReady || !Route.IsSet())
+	if (!bPageReady || !bShown)
 	{
 		return;
 	}
-	CallPage(TEXT("navigate"), Route.GetValue());
+	if (bNavigate)
+	{
+		CallPage(TEXT("navigate"), Route);
+		bNavigate = false;
+	}
 	Browser->SetVisibility(EVisibility::Visible);
 	Browser->SetRenderOpacity(1.0f);
 	SetNavigationInput(true);

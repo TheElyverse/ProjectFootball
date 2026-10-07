@@ -28,9 +28,10 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Manager UI")
 	void Preload();
 
-	// Shows the page at the route ("/" is the main menu) and gives it the first local
-	// player's input. Before the page is ready, it stays invisible and shows the route once
-	// it is.
+	// Shows the page and gives it the first local player's input. A route ("/" is the main
+	// menu) navigates the page there; an empty one keeps the page where it is, or opens the
+	// main menu the first time. Before the page is ready, it stays invisible and shows the
+	// route once it is.
 	UFUNCTION(BlueprintCallable, Category = "Manager UI")
 	void Show(const FString& Route);
 
@@ -70,7 +71,10 @@ private:
 	TSharedPtr<SWebBrowser> Browser;
 	TSharedPtr<IInputProcessor> NavigationInput;
 
-	// The route Show asked for; unset while the page is hidden.
-	TOptional<FString> Route;
+	// The last route Show asked for, sent again after a reload.
+	FString Route;
+	// Whether Route still has to be sent to the page.
+	bool bNavigate = false;
+	bool bShown = false;
 	bool bPageReady = false;
 };

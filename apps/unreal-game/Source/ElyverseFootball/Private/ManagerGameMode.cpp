@@ -11,5 +11,6 @@ AManagerGameMode::AManagerGameMode()
 void AManagerGameMode::BeginPlay()
 {
 	Super::BeginPlay();
-	GetGameInstance()->GetSubsystem<UManagerUISubsystem>()->Show(TEXT("/"));
+	// Keeps the page's route across map changes, but gives it the new player controller.
+	GetGameInstance()->GetSubsystem<UManagerUISubsystem>()->Show(FString());
 }
