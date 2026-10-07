@@ -12,8 +12,9 @@ React app in `apps/manager-ui`, and Unreal only renders 3D content.
   scripts from `file://` URLs. Packaging stages that folder as loose files.
   `src/ue/bridge.ts` is the only code that talks to Unreal (`query` for view models,
   `command` for actions, `onGameEvent` for what Unreal sends through `window.ui`).
-  `src/Game.tsx` switches between the main menu and the manager screens, `src/components/ManagerLayout.tsx` is the frame around them, and
-  `src/screens/index.ts` lists the manager screens. UI texts use `react-intl`; the
+  `src/Game.tsx` switches between the screens in `src/screens`, each filling the whole page:
+  the main menu and the manager screen. The manager screen shows one of its views inside
+  `ManagerLayout`; `src/screens/Manager/views/index.ts` lists them. UI texts use `react-intl`; the
   catalogs live in `public/locales/<locale>.json`, which the build copies to
   `Content/ManagerUI/locales`. English defines the message ids and is bundled as the
   fallback; the game sends the catalog for its language through the `messages` query.
@@ -33,7 +34,7 @@ React app in `apps/manager-ui`, and Unreal only renders 3D content.
 `UManagerUISubsystem` has three Blueprint-callable functions. `Preload` adds the browser
 fully transparent, below UMG widgets, so the page loads behind the studio splash in
 `L_Start`. `Show(Route)` makes it visible and calls `window.ui.navigate(route)`; `"/"` is
-the main menu, `"/<screen>"` a manager screen. `Hide` hides it and gives the input back to
+the main menu, `"/<view>"` a view of the manager screen. `Hide` hides it and gives the input back to
 the game. Once the page has subscribed to `window.ui`, it sends the `ready` command; a
 `Show` before that waits for it, and a reloaded page (the Vite dev server) gets its route
 again.
@@ -99,7 +100,7 @@ build/package/Linux/ElyverseFootball.sh
 
 ## Measuring
 
-The status line at the bottom of the manager screens shows whether the Unreal bridge is
+The status line at the bottom of the manager screen shows whether the Unreal bridge is
 bound and the page's frame rate. In Unreal, `stat unit` and `stat slate` show the engine
 side; the CEF processes (`EpicWebHelper`) are not part of Unreal's memory statistics.
 The editor throttles itself when it loses focus, so turn off *Editor Preferences →

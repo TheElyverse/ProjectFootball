@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { onGameEvent, type NavigationInput } from "../ue/bridge";
+import { onGameEvent, type NavigationInput } from "@/ue/bridge";
 
 const focusableSelector =
   "button:not([disabled]), a[href], [tabindex]:not([tabindex='-1'])";

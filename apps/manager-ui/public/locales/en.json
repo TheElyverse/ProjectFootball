@@ -5,7 +5,7 @@
   "mainMenu.settings": "Settings",
   "mainMenu.quit": "Quit",
   "nav.menu": "Menu",
-  "screen.squad": "Squad",
+  "view.squad": "Squad",
   "status.unrealBridge": "Unreal bridge",
   "status.browserMock": "Browser mock",
   "status.framesPerSecond": "{framesPerSecond} fps",

@@ -1,6 +1,6 @@
 import { Suspense, use, type ReactNode } from "react";
 import { IntlProvider } from "react-intl";
-import { query } from "../ue/bridge";
+import { query } from "@/ue/bridge";
 import en from "../../public/locales/en.json";
 
 // English is the source language: public/locales/en.json defines every message id and is

@@ -8,6 +8,7 @@ import { viteSingleFile } from "vite-plugin-singlefile";
 // straight into the Unreal project, which stages that folder as loose files.
 export default defineConfig({
   plugins: [react(), tailwindcss(), viteSingleFile()],
+  resolve: { tsconfigPaths: true },
   build: {
     outDir: "../unreal-game/Content/ManagerUI",
     emptyOutDir: true,

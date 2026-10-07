@@ -4,7 +4,7 @@
 // route, input(action) forwards keyboard and gamepad navigation. In a plain browser there
 // is no binding, so mocks stand in for development.
 
-import type { Messages } from "../i18n";
+import type { Messages } from "@/i18n";
 import { mockQueries } from "./mockQueries";
 
 export interface SquadRow {

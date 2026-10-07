@@ -1,70 +1,56 @@
 import { useCallback, useEffect, useState } from "react";
-import { ManagerLayout } from "./components/ManagerLayout";
 import { useNavigationInput } from "./navigation/focus";
-import { managerScreens, type ManagerScreenId } from "./screens";
 import { MainMenu } from "./screens/MainMenu/MainMenu";
+import { Manager } from "./screens/Manager/Manager";
+import { managerViews } from "./screens/Manager/views";
 import { command, onGameEvent } from "./ue/bridge";
+import { parseScreen, Screen } from "./screens/screen";
 
 // Navigation lives entirely in the UI: Unreal only hosts the page, keeps it alive across
-// map changes and says which route to show first ("/" is the main menu, "/<screen>" a
-// manager screen).
-type Route =
-  { kind: "mainMenu" } | { kind: "manager"; screen: ManagerScreenId };
-
-function parseRoute(path: string): Route | undefined {
-  if (path === "/") {
-    return { kind: "mainMenu" };
-  }
-  const screen = managerScreens.find((screen) => `/${screen.id}` === path);
-  return screen && { kind: "manager", screen: screen.id };
-}
-
+// map changes and says which route to show first ("/" is the main menu, "/<view>" a view
+// of the manager screen). A screen fills the whole page; the manager screen shows one of
+// its views.
 export function Game() {
   // Nothing is shown until the game navigates.
-  const [route, setRoute] = useState<Route>();
+  const [screen, setScreen] = useState<Screen>();
 
   useEffect(() => {
-    const unsubscribe = onGameEvent("navigate", (path) => {
-      const next = parseRoute(path);
+    const unsubscribe = onGameEvent("navigate", (route) => {
+      const next = parseScreen(route);
       if (next === undefined) {
-        console.error(`The game navigated to the unknown route "${path}"`);
+        console.error(`The game navigated to the unknown route "${route}"`);
         return;
       }
-      setRoute(next);
+      setScreen(next);
     });
     void command("ready");
     return unsubscribe;
   }, []);
 
   const back = useCallback(() => {
-    if (route?.kind === "manager") {
-      setRoute({ kind: "mainMenu" });
+    if (screen?.kind === "manager") {
+      setScreen({ kind: "mainMenu" });
     }
-  }, [route]);
+  }, [screen]);
   useNavigationInput(back);
 
-  if (route === undefined) {
+  if (screen === undefined) {
     return null;
   }
-  if (route.kind === "mainMenu") {
+  if (screen.kind === "mainMenu") {
     return (
       <MainMenu
         onStartGame={() =>
-          setRoute({ kind: "manager", screen: managerScreens[0].id })
+          setScreen({ kind: "manager", view: managerViews[0].id })
         }
       />
     );
   }
-  const { Component } =
-    managerScreens.find((screen) => screen.id === route.screen) ??
-    managerScreens[0];
   return (
-    <ManagerLayout
-      activeScreen={route.screen}
-      onNavigate={(screen) => setRoute({ kind: "manager", screen })}
-      onMainMenu={() => setRoute({ kind: "mainMenu" })}
-    >
-      <Component />
-    </ManagerLayout>
+    <Manager
+      view={screen.view}
+      onNavigate={(view) => setScreen({ kind: "manager", view })}
+      onMainMenu={() => setScreen({ kind: "mainMenu" })}
+    />
   );
 }

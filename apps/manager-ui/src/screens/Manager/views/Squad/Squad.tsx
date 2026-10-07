@@ -1,8 +1,8 @@
 import { useQuery } from "@tanstack/react-query";
-import { query } from "../ue/bridge";
-import { SquadTable } from "../components/SquadTable";
+import { query } from "@/ue/bridge";
+import { SquadTable } from "./SquadTable";
 
-export function SquadScreen() {
+export function Squad() {
   const { data: squad } = useQuery({
     queryKey: ["squad"],
     queryFn: () => query("squad"),

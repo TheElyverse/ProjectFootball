@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useIntl, type IntlShape } from "react-intl";
-import type { SquadRow, SquadView } from "../ue/bridge";
+import type { SquadRow, SquadView } from "@/ue/bridge";
 
 // Virtualized like the UMG ListView and the Slate SListView: only the visible rows
 // plus a few above and below are rendered.

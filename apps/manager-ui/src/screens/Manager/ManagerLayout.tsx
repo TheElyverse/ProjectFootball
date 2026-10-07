@@ -1,20 +1,20 @@
 import type { ReactNode } from "react";
 import { FormattedMessage } from "react-intl";
-import { isUnrealHost } from "../ue/bridge";
-import { useFramesPerSecond } from "../hooks/useFramesPerSecond";
-import { managerScreens, type ManagerScreenId } from "../screens";
+import { isUnrealHost } from "@/ue/bridge";
+import { useFramesPerSecond } from "@/hooks/useFramesPerSecond";
+import { managerViews, type ManagerViewId } from "./views";
 
 interface ManagerLayoutProps {
-  activeScreen: ManagerScreenId;
-  onNavigate: (screen: ManagerScreenId) => void;
+  activeView: ManagerViewId;
+  onNavigate: (view: ManagerViewId) => void;
   onMainMenu: () => void;
   children: ReactNode;
 }
 
-// The frame around every manager screen: navigation on top, the screen in the middle and a
+// The frame of the manager screen: navigation on top, the active view in the middle and a
 // status line at the bottom.
 export function ManagerLayout({
-  activeScreen,
+  activeView,
   onNavigate,
   onMainMenu,
   children,
@@ -31,18 +31,18 @@ export function ManagerLayout({
         >
           <FormattedMessage id="nav.menu" />
         </button>
-        {managerScreens.map((screen) => (
+        {managerViews.map((view) => (
           <button
-            key={screen.id}
+            key={view.id}
             type="button"
             className={`rounded px-3 py-1 hover:bg-slate-800 focus-visible:outline-2 focus-visible:outline-sky-400 ${
-              screen.id === activeScreen
+              view.id === activeView
                 ? "bg-slate-800 text-slate-100"
                 : "text-slate-300"
             }`}
-            onClick={() => onNavigate(screen.id)}
+            onClick={() => onNavigate(view.id)}
           >
-            <FormattedMessage id={screen.title} />
+            <FormattedMessage id={view.title} />
           </button>
         ))}
       </nav>

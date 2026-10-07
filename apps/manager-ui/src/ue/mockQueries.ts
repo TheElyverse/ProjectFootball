@@ -1,4 +1,4 @@
-import type { Messages } from "../i18n";
+import type { Messages } from "@/i18n";
 import { MessagesView, Queries, SquadRow, SquadView } from "./bridge";
 
 export const mockQueries: {

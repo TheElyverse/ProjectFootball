@@ -1,7 +1,7 @@
 import { useIntl } from "react-intl";
-import { command, isUnrealHost } from "../../ue/bridge";
-import { Brand } from "../../components/Logo/Brand";
-import { MainMenuButton } from "../../components/Button/MainMenuButton";
+import { command, isUnrealHost } from "@/ue/bridge";
+import { Brand } from "@/components/Logo/Brand";
+import { MainMenuButton } from "@/components/Button/MainMenuButton";
 
 // A 640 px (40 rem) column on the left over the 3D scene. The page is transparent, so the scrim is a
 // gradient: CEF renders the page on its own, and backdrop blur cannot reach the scene.
