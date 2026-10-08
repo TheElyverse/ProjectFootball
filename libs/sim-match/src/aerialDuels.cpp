@@ -60,9 +60,9 @@ using SimCore::Vec2;
   return nearest;
 }
 
-// Where this many shares of the way from `from` to `to` is.
-[[nodiscard]] Vec2 along(const Vec2 from, const Vec2 to, const double fraction) noexcept {
-  return from + ((to - from) * fraction);
+// Where this many shares of the way from `start` to `end` is.
+[[nodiscard]] Vec2 along(const Vec2 start, const Vec2 end, const double fraction) noexcept {
+  return start + ((end - start) * fraction);
 }
 
 }  // namespace
@@ -174,11 +174,11 @@ std::optional<BallClaim> findAerialContact(const MatchState& state, const BallSt
       return false;
     }
     const PlayerMatchState& player = state.players()[playerIndex];
-    const Vec2 to = stepPlayerMovement(player, secondsPerTick).position;
-    const auto contact =
-        findContact(player.position, to, ball.position, moved.ball.position, reception.handsRadius);
+    const Vec2 stepped = stepPlayerMovement(player, secondsPerTick).position;
+    const auto contact = findContact(player.position, stepped, ball.position, moved.ball.position,
+                                     reception.handsRadius);
     const double fraction = contact ? contact->contactFraction : 0.0;
-    return hasHands(state, playerIndex, along(player.position, to, fraction),
+    return hasHands(state, playerIndex, along(player.position, stepped, fraction),
                     along(ball.position, moved.ball.position, fraction));
   };
   return findFirstReach(state, ball, moved, physics, now, secondsPerTick, reception, excluded,
