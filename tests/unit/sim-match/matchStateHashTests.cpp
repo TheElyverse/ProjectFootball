@@ -113,6 +113,11 @@ TEST_CASE("Every field of the state changes the hash", "[matchStateHash]") {
       {"ball vertical velocity", [](auto& spec) { spec.ball.verticalVelocity = 5.0; }},
       {"ball spin", [](auto& spec) { spec.ball.spin = 20.0; }},
       {"ball owner", [](auto& spec) { spec.ball.owner = PlayerId(7); }},
+      {"ball held",
+       [](auto& spec) {
+         spec.ball.owner = PlayerId(7);
+         spec.ball.held = true;
+       }},
       {"last touch",
        [](auto& spec) {
          spec.ball.lastTouch = BallTouch{.playerId = PlayerId(7), .tick = SimTick(0)};
@@ -234,6 +239,8 @@ TEST_CASE("Pending actions, the last shot and a keeper's dive are part of the ha
        hashAfter(pass(2, changed(aPass, [&](PassIntent& intent) { intent.receiver = idOf(6); })))},
       {"pass into space",
        hashAfter(pass(2, changed(aPass, [](PassIntent& intent) { intent.receiver.reset(); })))},
+      {"lofted pass",
+       hashAfter(pass(2, changed(aPass, [](PassIntent& intent) { intent.lofted = true; })))},
       {"shot", hashAfter(shot(2, aShot))},
       {"shot in another slot",
        hashAfter(shot(3, changed(aShot, [&](ShotIntent& intent) { intent.shooter = idOf(3); })))},
@@ -269,6 +276,10 @@ TEST_CASE("Pending actions, the last shot and a keeper's dive are part of the ha
        hashAfter([](MatchStateWriter& next) { next.tactical(3).lastJump = SimTick(4); })},
       {"last jump tick",
        hashAfter([](MatchStateWriter& next) { next.tactical(3).lastJump = SimTick(5); })},
+      {"hands released",
+       hashAfter([](MatchStateWriter& next) { next.tactical(7).handsReleased = SimTick(4); })},
+      {"hands released tick",
+       hashAfter([](MatchStateWriter& next) { next.tactical(7).handsReleased = SimTick(5); })},
       {"keeper dive target",
        hashAfter(dive(changed(aDive, [](KeeperDive& answer) { answer.target.across = 1.0; })))},
       {"keeper dive run",

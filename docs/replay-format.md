@@ -19,7 +19,7 @@ validation leaves no file behind.
 ```json
 {
     "schemaVersion": 9,
-  "coreVersion": "0.25.0",
+  "coreVersion": "0.26.0",
   "createdAt": "2026-09-24T10:00:00Z",
   "seed": "18446744073709551615",
   "gameTime": 300,
@@ -50,7 +50,9 @@ validation leaves no file behind.
             "directionError": 0.03,
             "speedError": 0.05,
       "pressureRadius": 3.0,
-      "pressureErrorFactor": 1.0
+      "pressureErrorFactor": 1.0,
+      "maxLoftedSpeed": 28.0,
+      "loftedErrorFactor": 2.0
     },
     "reception": {
       "controlRadius": 1.0,
@@ -74,7 +76,8 @@ validation leaves no file behind.
         "completionWeight": 1.0,
         "progressionWeight": 0.8,
         "pressureWeight": 0.3,
-                "riskWeight": 0.3
+                "riskWeight": 0.3,
+        "loftedBias": 0.0
       },
       "shooting": {
         "minConfidence": 0.3,
@@ -100,6 +103,14 @@ validation leaves no file behind.
         "goalWeight": 2.5,
         "secondBallWeight": 0.5,
         "lossWeight": 1.0
+      },
+      "distribution": {
+        "holdSeconds": 2.0,
+        "throwRange": 25.0,
+        "minLongDistance": 25.0,
+        "flightSeconds": 3.0,
+        "contestMarginSeconds": 1.0,
+        "directnessWeight": 0.5
       }
     },
         "phases": { "intervalTicks": 10, "transitionSeconds": 4.0, "hysteresisMeters": 3.0 },
@@ -300,13 +311,14 @@ validation leaves no file behind.
       "verticalVelocity": 0.0,
       "spin": 0.0,
             "owner": null,
+      "held": false,
       "lastTouch": null
     },
     "score": { "home": 0, "away": 0 },
         "tactics": {
       "home": {
         "contentHash": "4e5eb51dbc31c06a",
-        "tactic": { "format": "elyverse-tactic", "version": 2, "name": "reference" }
+        "tactic": { "format": "elyverse-tactic", "version": 3, "name": "reference" }
       },
       "away": null
     }
@@ -329,7 +341,7 @@ player and the whole tactic.
 
 | Field           | JSON type | Meaning                                                       |
 |-----------------|-----------|---------------------------------------------------------------|
-| `schemaVersion` | number    | Version of this format. Currently `9`.                        |
+| `schemaVersion` | number    | Version of this format. Currently `10`.                       |
 | `coreVersion`   | string    | The `sim-core` version that recorded the match.               |
 | `createdAt`     | string    | Creation time in UTC, `%Y-%m-%dT%H:%M:%SZ`. Metadata only.    |
 | `seed`          | string    | Unsigned 64-bit master seed, in decimal.                      |
@@ -344,8 +356,9 @@ Positions are meters and velocities meters per second, as in the
 [match state](match-state.md). The ball's `height` and `verticalVelocity` are
 its third dimension, in meters and meters per second, and `spin` is top- or
 backspin in radians per second ([ball movement](ball-movement.md)). A player's `target` is `null` when he has none,
-the ball's `owner` is `null` while it is free, and its `lastTouch` is `null` or
-`{ "playerId": 7, "tick": 120 }`. A player's `strongFoot` is `"left"` or
+the ball's `owner` is `null` while it is free, `held` whether its owner holds
+it in his hands ([goalkeeper distribution](goalkeeper-distribution.md)), and
+its `lastTouch` is `null` or `{ "playerId": 7, "tick": 120 }`. A player's `strongFoot` is `"left"` or
 `"right"`, and `score` is the goals the match starts at, never negative
 ([shooting](shooting.md)). No pending action is recorded: every
 initial state has none. `tactics` holds, for each side, the tactic as a complete
@@ -496,3 +509,4 @@ recorded replays without changing the file format, and surfaces as a new
 | 7       | Players gain `keeperPositioning` and `keeperAnticipation`, reception its `handsRadius` and `handsHeight`, and the configuration its `goalkeeper` block ([goalkeeper](goalkeeper.md)); tactics are files of tactic format version 2. Versions 2 to 6 are rejected with a message to record the scenario again with the same seed. |
 | 8       | Players gain `keeperReflexes` and `keeperHandling`, and the configuration its `shotStopping` block ([shot stopping](shot-stopping.md)). Versions 2 to 7 are rejected with a message to record the scenario again with the same seed. |
 | 9       | Players gain `jumping`, `heading` and `strength`, and the configuration its `aerial` block ([aerial duels](aerial-duels.md)). Versions 2 to 8 are rejected with a message to record the scenario again with the same seed. |
+| 10      | The ball gains `held`, passing its `maxLoftedSpeed` and `loftedErrorFactor`, the pass scoring its `loftedBias`, and the decisions their `distribution` block ([goalkeeper distribution](goalkeeper-distribution.md)); tactics are files of tactic format version 3. Versions 2 to 9 are rejected with a message to record the scenario again with the same seed. |

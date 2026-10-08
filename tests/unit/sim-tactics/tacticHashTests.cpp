@@ -65,6 +65,9 @@ TEST_CASE("Every part of a tactic changes its hash", "[tacticHash]") {
   SECTION("goalkeeper dial") {
     spec.principles.goalkeeper.sweeping = 0.6;
   }
+  SECTION("goalkeeper directness") {
+    spec.principles.goalkeeper.directness = 0.6;
+  }
   SECTION("phase instruction") {
     spec.phases.at(phaseIndex(TacticalPhase::kDefensiveTransition)).runFrequency = 0.31;
   }

@@ -38,9 +38,9 @@ using ElyverseFootball::SimMatch::TeamSide;
 
 namespace {
 
-// One a side: home's carrier 1 at (30, 20) with the ball, touched at tick 0,
-// and away's player 2 at `defender`.
-[[nodiscard]] MatchState duel(const Vec2 defender) {
+// One a side: home's carrier 1 at (30, 20) with the ball, touched at tick 0
+// -- in his hands if `held` --, and away's player 2 at `defender`.
+[[nodiscard]] MatchState duel(const Vec2 defender, const bool held = false) {
   const auto player = [](const PlayerId::ValueType number, const TeamSide side,
                          const Vec2 position) {
     return PlayerMatchState{.playerId = PlayerId(number),
@@ -58,7 +58,8 @@ namespace {
        .ball = {.position = {.x = 30.5, .y = 20.0},
                 .velocity = {},
                 .owner = PlayerId(1),
-                .lastTouch = BallTouch{.playerId = PlayerId(1), .tick = SimTick(0)}},
+                .lastTouch = BallTouch{.playerId = PlayerId(1), .tick = SimTick(0)},
+                .held = held},
        .playersPerSide = 1});
   REQUIRE(state.has_value());
   return *std::move(state);
@@ -92,9 +93,9 @@ struct Outcome {
 
 // Ten seconds of a duel.
 [[nodiscard]] Outcome play(const Vec2 defender, const ActionType type, const std::uint64_t seed,
-                           const ChallengeConfig& config = {}) {
+                           const ChallengeConfig& config = {}, const bool held = false) {
   constexpr SimTick::ValueType ticks = 300;
-  MatchSimulation simulation({.initialState = duel(defender),
+  MatchSimulation simulation({.initialState = duel(defender, held),
                               .seed = seed,
                               .ticksPerSecond = 30,
                               .systems = {decide(type), makeChallengeSystem(config)},
@@ -218,6 +219,12 @@ TEST_CASE("Only a presser within reach challenges", "[challenge]") {
   const Outcome marking = play({.x = 30.8, .y = 20.0}, ActionType::kMarkOpponent, 1);
   REQUIRE(marking.attempts == 0);
   REQUIRE_FALSE(marking.won.has_value());
+}
+
+TEST_CASE("Nobody challenges a keeper who holds the ball in his hands", "[challenge]") {
+  const Outcome outcome = play({.x = 30.8, .y = 20.0}, ActionType::kPressCarrier, 1, {}, true);
+  REQUIRE_FALSE(outcome.won.has_value());
+  REQUIRE(outcome.attempts == 0);
 }
 
 TEST_CASE("A losing presser challenges again only after the attempt time", "[challenge]") {

@@ -91,6 +91,13 @@ namespace {
 
 }  // namespace
 
+SimCore::Vec2 goalKickSpot(const Pitch& pitch, const SimCore::Vec2 out) noexcept {
+  const GoalEnd end = out.x == 0.0 ? GoalEnd::kMinX : GoalEnd::kMaxX;
+  const PitchRect area = pitch.goalArea(end);
+  return {.x = end == GoalEnd::kMinX ? area.max.x : area.min.x,
+          .y = std::clamp(out.y, area.min.y, area.max.y)};
+}
+
 std::string_view restartKindName(const RestartKind kind) noexcept {
   switch (kind) {
     case RestartKind::kThrowIn:
@@ -211,6 +218,23 @@ MatchSystem makeRestartSystem(const RestartConfig& config, const BallPhysics& ba
             next.setBallOwner(taker.playerId);
             next.setBallLastTouch(BallTouch{.playerId = taker.playerId, .tick = context.tick()});
             next.setBallVelocity({});
+            // A restart starts afresh: a keeper takes a goal kick with his feet.
+            next.tactical(plan->playerIndex).handsReleased.reset();
+            if (plan->kind == RestartKind::kGoalKick) {
+              // The taker stands behind the ball in his goal area, facing up
+              // the pitch.
+              PlayerMatchState placed = taker;
+              placed.facing = kickoffFacing(taker.side);
+              placed.position =
+                  current.pitch().clamp(goalKickSpot(current.pitch(), current.ball().position) -
+                                        (placed.facing * ball.carryDistance));
+              next.setPlayerPosition(plan->playerIndex, placed.position);
+              next.setPlayerVelocity(plan->playerIndex, {});
+              next.setPlayerTarget(plan->playerIndex, std::nullopt);
+              next.setPlayerFacing(plan->playerIndex, placed.facing);
+              next.setBallPosition(carriedBallPosition(placed, ball, current.pitch()));
+              return;
+            }
             const auto lineUp = plan->kind == RestartKind::kKickoff
                                     ? lineUpForKickoff(current, taker.side, ball)
                                     : std::nullopt;

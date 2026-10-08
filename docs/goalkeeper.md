@@ -6,7 +6,8 @@ player whose tactic slot holds `guardGoal` (`isGoalkeeper()`) takes up his
 place in goal by its geometry, comes off his line for a ball played in behind
 his defence when he judges he is first to it, and takes a ball in his own
 penalty area with his hands. Stopping shots ([shot stopping](shot-stopping.md))
-and what he does with the ball (#90) are their own systems. The model lives in `sim-match`
+and what he does with the ball ([distribution](goalkeeper-distribution.md)) are
+their own systems. The model lives in `sim-match`
 (`goalkeeper.hpp`); the tactical movement system places him, the pursuit
 system decides whether he comes, and reception gives him his hands.
 
@@ -121,8 +122,11 @@ of him and up to `handsHeight` (2.2 m), against the feet's `controlRadius` and
 `controlHeight` (1 m each) of everyone else (`ReceptionConfig`). That holds for
 passes and loose balls alike; a shot at his goal he meets with a dive instead
 ([shot stopping](shot-stopping.md)). Outside his area he plays as an outfield
-player, with his feet. Once he has the ball he is an ordinary carrier: there is
-no ball held in the hands, no back-pass rule and no six-second rule yet.
+player, with his feet. A ball he takes with his hands he holds: nobody
+challenges him for it, he throws or punts it, and once it has left his hands
+he may not take it in them again until another player has touched it
+([distribution](goalkeeper-distribution.md)). There is no back-pass rule and
+no six-second rule yet.
 
 ## Recognising him
 
@@ -172,9 +176,8 @@ threshold more than twice as often as one of 0.8, and one of 1 never does
 
 ## What this is not
 
-He does not hold the ball in his hands, throw, punt or kick it
-long; with the ball he chooses among passes and shots like any carrier, which
-has no dribbles or carries yet to rule out (#90). He does not command his area
+What he does with the ball is [distribution](goalkeeper-distribution.md). He
+does not command his area
 for crosses, organise his defence or come for high balls in the air beyond what
 his hands reach on the ground. The pursuit system's estimate asks a player to
 reach the ball's point rather than come within his reach of it, so a call that

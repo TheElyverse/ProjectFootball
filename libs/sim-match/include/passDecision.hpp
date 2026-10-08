@@ -5,6 +5,7 @@
 #include <span>
 #include <string_view>
 
+#include "distribution.hpp"
 #include "matchSimulation.hpp"
 #include "passCandidates.hpp"
 #include "random.hpp"
@@ -24,6 +25,8 @@ struct DecisionConfig {
   double temperature = 0.15;
   PassScoringConfig scoring;
   ShotScoringConfig shooting;
+  // How the goalkeeper distributes the ball (docs/goalkeeper-distribution.md).
+  DistributionConfig distribution;
 
   friend bool operator==(const DecisionConfig&, const DecisionConfig&) = default;
 };
@@ -71,11 +74,16 @@ inline constexpr std::string_view kPassDecisionSystemName = "pass decision";
 //
 //   1. Nothing to decide if the ball is free or its owner already has an
 //      action pending.
-//   2. He keeps a ball he took less than minHoldSeconds ago.
+//   2. He keeps a ball he took less than minHoldSeconds ago, and one he
+//      holds in his hands less than the distribution's holdSeconds.
 //   3. He lists and scores his options with generatePassCandidates() and
 //      generateShotCandidates(), from his perception only -- scored for the
 //      passing risk of his side's tactic in its current phase
-//      (scoringForRisk(), shotScoringForRisk()), if it has one.
+//      (scoringForRisk(), shotScoringForRisk()), if it has one. A
+//      goalkeeper adds his long balls (generateLongBallCandidates()), biased
+//      by his tactic's directness (directnessBias()), and from his hands
+//      throws no farther than the distribution's throwRange
+//      (docs/goalkeeper-distribution.md).
 //   4. He picks one of the valid passes and the best valid shot with
 //      chooseByUtility(), drawing from the kAi random stream, and writes it
 //      as his pending action -- the ball system plays it in the next step.
@@ -83,8 +91,9 @@ inline constexpr std::string_view kPassDecisionSystemName = "pass decision";
 //
 // Writes the carrier's pending action only. Throws std::invalid_argument for
 // an interval below one tick, a negative or non-finite hold time, a
-// temperature that is not positive and finite, or invalid scoring
-// (validate(PassScoringConfig), validate(ShotScoringConfig)).
+// temperature that is not positive and finite, or invalid scoring or
+// distribution (validate(PassScoringConfig), validate(ShotScoringConfig),
+// validate(DistributionConfig)).
 [[nodiscard]] MatchSystem makePassDecisionSystem(const DecisionConfig& config,
                                                  const PassCandidateRules& rules);
 

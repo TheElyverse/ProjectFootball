@@ -41,6 +41,11 @@ struct RestartPlan {
 // drawn.
 [[nodiscard]] std::optional<RestartPlan> planRestart(const MatchState& state);
 
+// Where a goal kick is taken from: on the front edge of the goal area at the
+// goal line the ball left the pitch over at `out`, level with where it left
+// it but no wider than the goal area (docs/restarts.md).
+[[nodiscard]] SimCore::Vec2 goalKickSpot(const Pitch& pitch, SimCore::Vec2 out) noexcept;
+
 // Where everybody stands for a kickoff, and who takes it.
 struct KickoffLineUp {
   // Parallel to MatchState::players().
@@ -72,8 +77,10 @@ inline constexpr std::string_view kRestartSystemName = "restart";
 // Every tick while enabled: if the ball is out of play, gives it to the
 // player planRestart() names, at his feet, and records RestartTaken -- at the
 // centre spot for a kickoff, otherwise where the ball left the pitch -- and
-// PossessionChanged. For a throw-in, a goal kick and a corner nobody is
-// moved: the restart only settles who plays on. For a kickoff both sides are
+// PossessionChanged. For a throw-in and a corner nobody is moved: the restart
+// only settles who plays on. For a goal kick the taker stands behind the
+// ball on goalKickSpot(), at rest and facing the goal he attacks, the ball at
+// his feet. For a kickoff both sides are
 // placed in lineUpForKickoff()'s positions, at rest and facing the goal they
 // attack, with the ball on the centre spot, and start as at the beginning of
 // a match: without movement targets, pending actions, memories, tactical

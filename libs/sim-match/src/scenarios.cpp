@@ -442,6 +442,130 @@ constexpr Side kClearChanceAway{{{.x = 59.5, .y = 20.0, .facingX = -1.0},
   return throughBall(seed, {.x = 45.0, .y = 20.0, .facingX = 1.0});
 }
 
+// ---------------------------------------------------------------------------
+// Distribution scenarios (docs/goalkeeper-distribution.md): home plays the
+// reference tactic in the order of its slots -- keeper, centre backs,
+// holding midfielder, wingers, striker -- so player 1 is its keeper, on the
+// ball in his own penalty area from the start; away plays without a tactic
+// and stands where it is placed.
+
+// The setup with home's keeper on the ball from the start, in his hands if
+// `held`, and his tactic's directness set to `directness`.
+[[nodiscard]] std::expected<MatchSetup, std::string> keeperOnTheBall(const std::uint64_t seed,
+                                                                     const Side& home,
+                                                                     const Side& away,
+                                                                     const bool held,
+                                                                     const double directness) {
+  SimTactics::TacticSpec spec = SimTactics::referenceTacticSpec();
+  if (directness != spec.principles.goalkeeper.directness) {
+    spec.name = "reference, plays out";
+    spec.principles.goalkeeper.directness = directness;
+  }
+  auto tactic = SimTactics::Tactic::create(std::move(spec));
+  if (!tactic) {
+    return std::unexpected("invalid distribution tactic: " + tactic.error().front().message);
+  }
+  auto setup = placed(seed, home, away, {.home = *std::move(tactic), .away = std::nullopt});
+  if (!setup) {
+    return setup;
+  }
+  const MatchState& state = setup->initialState;
+  std::vector<PlayerMatchState> players(state.players().begin(), state.players().end());
+  BallState ball = state.ball();
+  ball.owner = kFirstCarrier;
+  ball.held = held;
+  auto owned = MatchState::create({.pitch = state.pitch(),
+                                   .players = std::move(players),
+                                   .ball = ball,
+                                   .playersPerSide = state.playersPerSide()},
+                                  state.tactics());
+  if (!owned) {
+    return std::unexpected("invalid distribution scenario: " + owned.error().front().message);
+  }
+  setup->initialState = *std::move(owned);
+  setup->commands.clear();
+  return setup;
+}
+
+// Home's keeper holds the ball and his tactic wants him to play out
+// (directness 0.1). His centre backs stand wide and free; away marks his
+// holding midfielder, wingers and striker a meter away, so every long ball
+// would be a fifty-fifty.
+[[nodiscard]] std::expected<MatchSetup, std::string> keeperBuildUp(const std::uint64_t seed) {
+  constexpr Side kHome{{{.x = 3.0, .y = 20.0, .facingX = 1.0},
+                        {.x = 12.0, .y = 10.0, .facingX = 1.0},
+                        {.x = 12.0, .y = 30.0, .facingX = 1.0},
+                        {.x = 20.0, .y = 20.0, .facingX = 1.0},
+                        {.x = 30.0, .y = 5.0, .facingX = 1.0},
+                        {.x = 30.0, .y = 35.0, .facingX = 1.0},
+                        {.x = 38.0, .y = 20.0, .facingX = 1.0}}};
+  constexpr Side kAway{{{.x = 59.0, .y = 20.0, .facingX = -1.0},
+                        {.x = 21.0, .y = 20.5, .facingX = -1.0},
+                        {.x = 31.0, .y = 5.5, .facingX = -1.0},
+                        {.x = 31.0, .y = 34.5, .facingX = -1.0},
+                        {.x = 39.0, .y = 20.5, .facingX = -1.0},
+                        {.x = 48.0, .y = 12.0, .facingX = -1.0},
+                        {.x = 48.0, .y = 28.0, .facingX = -1.0}}};
+  return keeperOnTheBall(seed, kHome, kAway, true, 0.1);
+}
+
+// Home's keeper has the ball at his feet, his tactic neutral about going
+// long (directness 0.5). Away presses high: a forward closes him down and
+// three more stand in the lanes to his centre backs and his holding
+// midfielder. Home's wingers and striker wait upfield, beyond the longest
+// ground pass, away's last two defenders deep behind them.
+[[nodiscard]] std::expected<MatchSetup, std::string> keeperLongKick(const std::uint64_t seed) {
+  constexpr Side kHome{{{.x = 4.0, .y = 20.0, .facingX = 1.0},
+                        {.x = 12.0, .y = 10.0, .facingX = 1.0},
+                        {.x = 12.0, .y = 30.0, .facingX = 1.0},
+                        {.x = 20.0, .y = 20.0, .facingX = 1.0},
+                        {.x = 40.0, .y = 3.0, .facingX = 1.0},
+                        {.x = 40.0, .y = 37.0, .facingX = 1.0},
+                        {.x = 42.0, .y = 20.0, .facingX = 1.0}}};
+  constexpr Side kAway{{{.x = 59.0, .y = 20.0, .facingX = -1.0},
+                        {.x = 7.5, .y = 22.0, .facingX = -1.0},
+                        {.x = 8.5, .y = 14.5, .facingX = -1.0},
+                        {.x = 8.5, .y = 25.5, .facingX = -1.0},
+                        {.x = 12.0, .y = 20.0, .facingX = -1.0},
+                        {.x = 57.0, .y = 14.0, .facingX = -1.0},
+                        {.x = 57.0, .y = 26.0, .facingX = -1.0}}};
+  return keeperOnTheBall(seed, kHome, kAway, false, 0.5);
+}
+
+// Home player 1, wide of away's goal, plays the ball over its goal line:
+// restarts are on, so away's keeper, player 8, takes the goal kick. Away
+// plays the reference tactic; home's other players wait in their own half.
+[[nodiscard]] std::expected<MatchSetup, std::string> goalKick(const std::uint64_t seed) {
+  constexpr Side kHome{{{.x = 50.0, .y = 36.0, .facingX = 1.0},
+                        kHomeBehind[0],
+                        kHomeBehind[1],
+                        kHomeBehind[2],
+                        kHomeBehind[3],
+                        kHomeBehind[4],
+                        kHomeBehind[5]}};
+  constexpr Side kAway{{{.x = 58.0, .y = 20.0, .facingX = -1.0},
+                        {.x = 46.0, .y = 12.0, .facingX = -1.0},
+                        {.x = 44.0, .y = 24.0, .facingX = -1.0},
+                        {.x = 38.0, .y = 20.0, .facingX = -1.0},
+                        {.x = 32.0, .y = 6.0, .facingX = -1.0},
+                        {.x = 30.0, .y = 30.0, .facingX = -1.0},
+                        {.x = 25.0, .y = 20.0, .facingX = -1.0}}};
+  auto setup = againstKeeper(seed, kHome, kAway);
+  if (setup) {
+    setup->config.restarts.enabled = true;
+    const SimCore::Vec2 start = setup->initialState.ball().position;
+    constexpr SimCore::Vec2 kWide{.x = 62.0, .y = 38.0};
+    setup->commands.push_back(
+        {.tick = SimCore::SimTick(1),
+         .command = PassCommand{.playerId = kFirstCarrier,
+                                .target = kWide,
+                                .speed = planPassSpeed(SimCore::distance(start, kWide),
+                                                       setup->config.ball, setup->config.passing),
+                                .receiver = std::nullopt}});
+  }
+  return setup;
+}
+
 constexpr std::array kScenarios{
     ScenarioDefinition{
         .name = "kickoff",
@@ -493,6 +617,17 @@ constexpr std::array kScenarios{
                        .description = "a through ball in behind away's line, home's striker "
                                       "first to it",
                        .make = &keeperSweepLeave},
+    ScenarioDefinition{.name = "keeper-build-up",
+                       .description = "home's keeper holds the ball and plays out to a free "
+                                      "centre back",
+                       .make = &keeperBuildUp},
+    ScenarioDefinition{.name = "keeper-long-kick",
+                       .description = "home's keeper on the ball under a high press goes long",
+                       .make = &keeperLongKick},
+    ScenarioDefinition{.name = "goal-kick",
+                       .description = "home plays the ball over away's goal line, away's keeper "
+                                      "takes the goal kick",
+                       .make = &goalKick},
     ScenarioDefinition{.name = "tactic-match",
                        .description = "reference tactic against reference tactic, home kicks off",
                        .make = &tacticMatch},

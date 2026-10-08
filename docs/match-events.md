@@ -75,7 +75,8 @@ A `DecisionDiagnostic` explains one decision of a player on the ball (see
 | `shots`        | every zone of the goal he could aim at, the best first; only that one competed with the passes |
 | `outcome`      | `kPassed`, `kShot` or `kNoValidOption`                      |
 | `chosen`       | index of the chosen pass in `candidates` or shot in `shots`, if he chose one |
-| `scoring`, `shotScoring` | the weights the passes and shots were scored with, after the tactic's passing risk; `passContributions()` and `shotContributions()` with them explain every utility |
+| `scoring`, `shotScoring` | the weights the passes and shots were scored with, after the tactic's passing risk and a goalkeeper's directness; `passContributions()` and `shotContributions()` with them explain every utility |
+| `held` | whether he held the ball in his hands: his passes throws, his lofted passes punts ([goalkeeper distribution](goalkeeper-distribution.md)) |
 
 An `ActionDiagnostic` explains one decision of a player without the ball (see
 [off-ball movement](off-ball-movement.md)): the `tick`, the `player`, every

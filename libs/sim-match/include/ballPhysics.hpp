@@ -137,6 +137,13 @@ struct Launch {
 [[nodiscard]] std::optional<double> launchVerticalVelocity(const Launch& launch,
                                                            const BallPhysics& physics) noexcept;
 
+// The speed along the ground a flight needs to cover this distance in this
+// many seconds, against the drag, in closed form from the same flight
+// stepFreeBall() follows. Empty for a distance or a time that is not
+// positive.
+[[nodiscard]] std::optional<double> flightSpeed(double distance, double seconds,
+                                                const BallPhysics& physics) noexcept;
+
 // One tick of a free ball as described in docs/ball-movement.md.
 //
 // A ball on the grass rolls: ground friction slows it at a constant rate along

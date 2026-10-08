@@ -30,6 +30,8 @@ using ElyverseFootball::SimCore::Vec2;
 using ElyverseFootball::SimMatch::BallPhysics;
 using ElyverseFootball::SimMatch::BallState;
 using ElyverseFootball::SimMatch::BallTouch;
+using ElyverseFootball::SimMatch::GoalEnd;
+using ElyverseFootball::SimMatch::goalKickSpot;
 using ElyverseFootball::SimMatch::isOutOfPlay;
 using ElyverseFootball::SimMatch::KickoffLineUp;
 using ElyverseFootball::SimMatch::lineUpForKickoff;
@@ -178,6 +180,19 @@ TEST_CASE("A goal kick goes to the goalkeeper, not the nearest player", "[restar
                                   kickoff.tactics());
   REQUIRE(state.has_value());
   REQUIRE(planRestart(*state) == RestartPlan{.kind = RestartKind::kGoalKick, .playerIndex = 0});
+}
+
+TEST_CASE("A goal kick is taken from the front of the goal area", "[restart]") {
+  const Pitch pitch(60.0, 40.0);
+  const auto homeArea = pitch.goalArea(GoalEnd::kMinX);
+  const auto awayArea = pitch.goalArea(GoalEnd::kMaxX);
+  // Out wide: as wide as the goal area goes.
+  REQUIRE(goalKickSpot(pitch, {.x = 0.0, .y = 38.0}) ==
+          Vec2{.x = homeArea.max.x, .y = homeArea.max.y});
+  REQUIRE(goalKickSpot(pitch, {.x = 0.0, .y = 1.0}) ==
+          Vec2{.x = homeArea.max.x, .y = homeArea.min.y});
+  // Out within its width: level with where it went out.
+  REQUIRE(goalKickSpot(pitch, {.x = 60.0, .y = 21.0}) == Vec2{.x = awayArea.min.x, .y = 21.0});
 }
 
 TEST_CASE("The restart system gives the ball to the taker once it is out", "[restart]") {

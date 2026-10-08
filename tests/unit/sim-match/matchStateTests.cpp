@@ -473,6 +473,20 @@ TEST_CASE("MatchState::create rejects a negative score", "[matchState]") {
   REQUIRE(mentions(state.error().front().message, "0:-1"));
 }
 
+TEST_CASE("MatchState::create holds only an owned ball in the hands", "[matchState]") {
+  MatchStateSpec spec = validSpec();
+  spec.ball.held = true;
+
+  const auto loose = MatchState::create(spec);
+  REQUIRE_FALSE(loose.has_value());
+  REQUIRE(codesOf(loose.error()) == std::vector{MatchStateErrorCode::kHeldBallWithoutOwner});
+
+  spec.ball.owner = PlayerId(1);
+  const auto owned = MatchState::create(spec);
+  REQUIRE(owned.has_value());
+  REQUIRE(owned.value().ball().held);
+}
+
 TEST_CASE("MatchState::create rejects a non-finite target", "[matchState]") {
   MatchStateSpec spec = validSpec();
   spec.players.at(10).target = Vec2{.x = std::numeric_limits<double>::quiet_NaN(), .y = 3.0};

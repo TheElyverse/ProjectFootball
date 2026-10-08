@@ -75,17 +75,29 @@ test can set both errors to zero to predict a pass exactly.
 | `speedError`     | 0.05     | largest relative deviation of the speed              |
 | `pressureRadius` | 3 m      | an opponent this close puts the passer under pressure |
 | `pressureErrorFactor` | 1.0 | how much full pressure grows both errors             |
+| `maxLoftedSpeed` | 28 m/s   | the hardest lofted kick, along the ground            |
+| `loftedErrorFactor` | 2     | how many times as far a lofted kick strays           |
 
 The ball system rejects non-positive speeds and pressure radius, negative
-errors and factor, a speed error that could reach 1 under full pressure
-(`speedError × (1 + pressureErrorFactor)`), and any non-finite value.
+errors and factors, a speed error that could reach 1 under full pressure
+(`speedError × (1 + pressureErrorFactor)`, and that times `loftedErrorFactor`),
+and any non-finite value.
+
+## Lofted passes
+
+A `PassIntent` with `lofted` set goes through the air: its `speed` is the
+ball's speed along the ground, and the ball goes up at the vertical speed that
+brings it down on the target. It is executed with `loftedPassConfig()` —
+`maxLoftedSpeed` for `maxSpeed`, both errors `loftedErrorFactor` times as
+large — and the pace error scales its rise as it scales its speed. So far only
+a goalkeeper plays one ([goalkeeper distribution](goalkeeper-distribution.md)).
 
 ## What this is not
 
-All passes are ground passes: the ball leaves the foot on the grass, without
-vertical velocity or spin, however much of a third dimension the
-[ball model](ball-movement.md) now has. There is no chip or lofted pass — a [shot](shot-decisions.md) is, for now,
-struck like a ground pass — and the
+Every pass but a goalkeeper's long ball is a ground pass: the ball leaves the
+foot on the grass, without vertical velocity or spin, however much of a third
+dimension the [ball model](ball-movement.md) now has. Outfield players have no
+chip or lofted pass, and nobody spins one — and the
 error does not yet depend on the passer's technique, pressure or body shape — the
 capabilities that will shape it arrive with the player model. Who gets the ball
 afterwards is decided by [reception](reception.md).

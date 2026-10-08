@@ -56,7 +56,9 @@ using Json = nlohmann::ordered_json;
             {"pressure", weights.pressure},
             {"occupancy", weights.occupancy},
             {"transitionRisk", weights.transitionRisk}}},
-          {"goalkeeper", {{"sweeping", principles.goalkeeper.sweeping}}}};
+          {"goalkeeper",
+           {{"sweeping", principles.goalkeeper.sweeping},
+            {"directness", principles.goalkeeper.directness}}}};
 }
 
 // ---------------------------------------------------------------------------
@@ -215,8 +217,9 @@ template <typename Enum>
                             .occupancy = weights.member("occupancy").number(),
                             .transitionRisk = weights.member("transitionRisk").number()};
   const Field goalkeeper = field.member("goalkeeper");
-  goalkeeper.expectOnly({"sweeping"});
-  principles.goalkeeper = {.sweeping = goalkeeper.member("sweeping").number()};
+  goalkeeper.expectOnly({"sweeping", "directness"});
+  principles.goalkeeper = {.sweeping = goalkeeper.member("sweeping").number(),
+                           .directness = goalkeeper.member("directness").number()};
   return principles;
 }
 

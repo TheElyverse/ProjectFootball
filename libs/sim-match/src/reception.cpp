@@ -53,7 +53,13 @@ bool hasHands(const MatchState& state, const std::size_t playerIndex, const Vec2
               const Vec2 ballPosition) {
   const GoalEnd end = ownGoalEnd(state.players()[playerIndex].side);
   return isGoalkeeper(state, playerIndex) && state.pitch().isInPenaltyArea(end, playerPosition) &&
-         state.pitch().isInPenaltyArea(end, ballPosition);
+         state.pitch().isInPenaltyArea(end, ballPosition) && !hasReleasedBall(state, playerIndex);
+}
+
+bool hasReleasedBall(const MatchState& state, const std::size_t playerIndex) {
+  const auto& touch = state.ball().lastTouch;
+  return state.tactical(playerIndex).handsReleased && touch &&
+         touch->playerId == state.players()[playerIndex].playerId;
 }
 
 std::optional<BallClaim> findFirstReach(

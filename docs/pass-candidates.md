@@ -36,7 +36,7 @@ straight line from the ball to the target.
 | `completion`         | 0 … 1   | `(1 − interceptionRisk) · receiverConfidence`                       |
 | `progression`        | −1 … 1  | meters gained toward the opponent's goal line over the pitch length |
 | `receiverPressure`   | 0 … 1   | `1 − d / pressureRadius` for the nearest remembered opponent at `d` from the target, at least 0 |
-| `utility`            |         | `completion·w_c + progression·w_p − pressure·w_r − risk·w_i`       |
+| `utility`            |         | `completion·w_c + progression·w_p − pressure·w_r − risk·w_i`, plus `loftedBias` for a lofted pass |
 
 **Interception risk.** The ball's time to reach a point `s` meters along the lane
 follows from rolling friction, `s = v·t − a·t²/2`. Every half meter along the lane
@@ -54,7 +54,8 @@ of that point (`estimateArrivalSeconds()` minus the radius covered at full speed
 
 **Contributions.** `passContributions(candidate, scoring)` splits the utility
 into its weighted parts — `completion` and `progression` add, `pressure` and
-`risk` subtract — whose sum is the utility bit for bit; the candidate
+`risk` subtract, and `directness` is the scoring's `loftedBias` for a lofted
+pass, 0 for a ground one — whose sum is the utility bit for bit; the candidate
 generator computes the utility this way. `dominantContribution()` names the
 part with the largest absolute value, the reason a decision trace gives for a
 choice.
@@ -86,7 +87,12 @@ the ball.
 ## Order
 
 Valid candidates come first, by descending utility, then the invalid ones; equal
-utilities are ordered by receiver id. The same state always gives the same list,
+utilities are ordered by receiver id, a ground pass before a lofted one to the
+same receiver (`orderPassCandidates()`). A goalkeeper's long balls
+([goalkeeper distribution](goalkeeper-distribution.md#long-balls)) are lofted
+candidates scored the same way (`scorePassCandidate()`), with the risk of
+losing the ball where it comes down as their interception risk, and join his
+ground passes in one list. The same state always gives the same list,
 with every score component visible.
 
 ## Configuration
@@ -106,6 +112,7 @@ with every score component visible.
 | `progressionWeight`         | 0.8     | `w_p`                                   |
 | `pressureWeight`            | 0.3     | `w_r`                                   |
 | `riskWeight`                | 0.3     | `w_i`                                   |
+| `loftedBias`                | 0       | added to a lofted pass's utility; the decision sets it from a keeper's directness |
 
 ## What this is not
 

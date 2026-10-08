@@ -28,9 +28,18 @@ struct PassConfig {
   // Under full pressure both execution errors grow by this factor: 1 doubles
   // them. Without pressure they stay as they are.
   double pressureErrorFactor = 1.0;
+  // The hardest lofted kick, along the ground (docs/goalkeeper-distribution.md).
+  double maxLoftedSpeed = 28.0;  // m/s
+  // A lofted kick strays this many times as far as a ground pass, in
+  // direction and in pace.
+  double loftedErrorFactor = 2.0;
 
   friend bool operator==(const PassConfig&, const PassConfig&) = default;
 };
+
+// The configuration a lofted kick is executed with: maxLoftedSpeed as its
+// maxSpeed, and both errors loftedErrorFactor times as large.
+[[nodiscard]] PassConfig loftedPassConfig(const PassConfig& config) noexcept;
 
 // The speed a pass over this distance needs to arrive at arrivalSpeed:
 // sqrt(arrivalSpeed² + 2 · rollingDeceleration · distance), capped at
@@ -62,9 +71,10 @@ struct PassConfig {
                                   const PassConfig& config) noexcept;
 
 // Throws std::invalid_argument unless every value is finite, the speeds and
-// the pressure radius are positive, the errors and the pressure factor are
-// not negative, and a kick under full pressure keeps some speed: speedError *
-// (1 + pressureErrorFactor) below 1.
+// the pressure radius are positive, the errors and the factors are not
+// negative, and a kick under full pressure keeps some speed: speedError *
+// (1 + pressureErrorFactor) below 1, and loftedErrorFactor times that for a
+// lofted kick.
 void validate(const PassConfig& config);
 
 }  // namespace ElyverseFootball::SimMatch

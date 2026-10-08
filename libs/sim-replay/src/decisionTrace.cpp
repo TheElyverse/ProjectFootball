@@ -90,6 +90,15 @@ using SimMatch::MatchEvent;
                     context, SimMatch::dominantShotContribution(parts));
 }
 
+// How the ball goes: a pass along the ground or a long kick, from the hands
+// a throw or a punt (docs/goalkeeper-distribution.md).
+[[nodiscard]] std::string_view passVerb(const SimMatch::PassCandidate& pass, const bool held) {
+  if (pass.lofted) {
+    return held ? "punts to" : "kicks long to";
+  }
+  return held ? "throws to" : "passes to";
+}
+
 [[nodiscard]] std::string passLine(const PassDecisionTrace& trace) {
   const DecisionDiagnostic& decision = trace.decision;
   std::string line = std::format("t={} #{} ", decision.tick.value(), decision.player.value());
@@ -105,12 +114,15 @@ using SimMatch::MatchEvent;
   }
   const SimMatch::PassCandidate& pass = decision.candidates.at(*decision.chosen);
   const SimMatch::PassContributions parts = SimMatch::passContributions(pass, decision.scoring);
+  const std::string directness =
+      pass.lofted ? std::format(" directness {}", signedNumber(parts.directness)) : std::string();
   line += std::format(
-      "passes to #{} (utility {:.2f}: completion {} progression {} pressure {} risk {}; "
+      "{} #{} (utility {:.2f}: completion {} progression {} pressure {} risk {}{}; "
       "estimated risk {:.2f}; {}{}) because {}",
-      pass.receiver.value(), pass.utility, signedNumber(parts.completion),
-      signedNumber(parts.progression), signedNumber(parts.pressure), signedNumber(parts.risk),
-      pass.interceptionRisk, context, shotNote(decision), SimMatch::dominantContribution(parts));
+      passVerb(pass, decision.held), pass.receiver.value(), pass.utility,
+      signedNumber(parts.completion), signedNumber(parts.progression), signedNumber(parts.pressure),
+      signedNumber(parts.risk), directness, pass.interceptionRisk, context, shotNote(decision),
+      SimMatch::dominantContribution(parts));
   return line + outcomeText(trace.outcome);
 }
 

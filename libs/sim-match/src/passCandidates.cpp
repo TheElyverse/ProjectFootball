@@ -95,15 +95,17 @@ PassContributions passContributions(const PassCandidate& candidate,
   return {.completion = scoring.completionWeight * candidate.completion,
           .progression = scoring.progressionWeight * candidate.progression,
           .pressure = -(scoring.pressureWeight * candidate.receiverPressure),
-          .risk = -(scoring.riskWeight * candidate.interceptionRisk)};
+          .risk = -(scoring.riskWeight * candidate.interceptionRisk),
+          .directness = candidate.lofted ? scoring.loftedBias : 0.0};
 }
 
 std::string_view dominantContribution(const PassContributions& parts) noexcept {
-  const std::array<std::pair<std::string_view, double>, 4> named{{
+  const std::array<std::pair<std::string_view, double>, 5> named{{
       {"completion", parts.completion},
       {"progression", parts.progression},
       {"pressure", parts.pressure},
       {"risk", parts.risk},
+      {"directness", parts.directness},
   }};
   std::size_t dominant = 0;
   for (std::size_t index = 1; index < named.size(); ++index) {
@@ -128,7 +130,8 @@ void validate(const PassScoringConfig& config) {
       config.pressureRadius > 0.0 && finiteIn(config.completionWeight, 0.0, kMaxScoringWeight) &&
       finiteIn(config.progressionWeight, 0.0, kMaxScoringWeight) &&
       finiteIn(config.pressureWeight, 0.0, kMaxScoringWeight) &&
-      finiteIn(config.riskWeight, 0.0, kMaxScoringWeight);
+      finiteIn(config.riskWeight, 0.0, kMaxScoringWeight) &&
+      finiteIn(config.loftedBias, -kMaxScoringWeight, kMaxScoringWeight);
   if (!valid) {
     throw std::invalid_argument("pass scoring: invalid configuration");
   }
@@ -176,23 +179,33 @@ std::vector<PassCandidate> generatePassCandidates(const MatchState& state,
           std::min(nearestOpponent,
                    std::sqrt((opponent.player.position - candidate.target).lengthSquared()));
     }
-    candidate.interceptionRisk = 1.0 - arrives;
-    candidate.completion = arrives * candidate.receiverConfidence;
-    candidate.progression = std::clamp(
-        attackingDirection(carrier.side) * offset.x / state.pitch().lengthMeters(), -1.0, 1.0);
-    candidate.receiverPressure =
-        std::max(0.0, 1.0 - (nearestOpponent / rules.scoring.pressureRadius));
-
-    candidate.utility = passContributions(candidate, rules.scoring).total();
+    scorePassCandidate(candidate, from, carrier.side, arrives, nearestOpponent, state.pitch(),
+                       rules.scoring);
     candidate.rejection = rejectionOf(candidate, rules);
     candidates.push_back(candidate);
   }
 
-  std::ranges::sort(candidates, [](const PassCandidate& left, const PassCandidate& right) {
-    return std::tuple(!left.isValid(), -left.utility, left.receiver) <
-           std::tuple(!right.isValid(), -right.utility, right.receiver);
-  });
+  orderPassCandidates(candidates);
   return candidates;
+}
+
+void scorePassCandidate(PassCandidate& candidate, const Vec2 from, const TeamSide side,
+                        const double arrives, const double nearestOpponent, const Pitch& pitch,
+                        const PassScoringConfig& scoring) noexcept {
+  const Vec2 offset = candidate.target - from;
+  candidate.interceptionRisk = 1.0 - arrives;
+  candidate.completion = arrives * candidate.receiverConfidence;
+  candidate.progression =
+      std::clamp(attackingDirection(side) * offset.x / pitch.lengthMeters(), -1.0, 1.0);
+  candidate.receiverPressure = std::max(0.0, 1.0 - (nearestOpponent / scoring.pressureRadius));
+  candidate.utility = passContributions(candidate, scoring).total();
+}
+
+void orderPassCandidates(std::vector<PassCandidate>& candidates) {
+  std::ranges::sort(candidates, [](const PassCandidate& left, const PassCandidate& right) {
+    return std::tuple(!left.isValid(), -left.utility, left.receiver, left.lofted) <
+           std::tuple(!right.isValid(), -right.utility, right.receiver, right.lofted);
+  });
 }
 
 }  // namespace ElyverseFootball::SimMatch

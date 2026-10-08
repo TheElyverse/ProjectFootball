@@ -109,7 +109,7 @@ abridged example with illustrative values:
 {
     "format": "elyverse-debug-frames",
   "version": 4,
-  "coreVersion": "0.25.0",
+  "coreVersion": "0.26.0",
   "scenario": "m0-acceptance",
   "seed": "42",
   "ticksPerSecond": 30,
@@ -212,7 +212,10 @@ the decision outcome `shot` and the `shotAttempted` event
 `shotHitWoodwork`, `shotResolved` and `goalScored` ([shooting](shooting.md)).
 The events `saveAttempted` ([shot stopping](shot-stopping.md)) and
 `aerialContest` ([aerial duels](aerial-duels.md)) came without a new version: a
-viewer that does not know them shows them by their name.
+viewer that does not know them shows them by their name. So did the ball's
+`held`, the `lofted` of the pending pass and of a pass candidate, and a
+decision's `held` ([goalkeeper distribution](goalkeeper-distribution.md)): a
+viewer that does not know a field ignores it.
 
 ## Development
 

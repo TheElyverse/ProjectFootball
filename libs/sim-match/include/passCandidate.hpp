@@ -24,11 +24,16 @@ struct PassScoringConfig {
   double pressureRadius = 6.0;  // m
   // Candidates less likely to arrive are not offered to the decision.
   double minCompletion = 0.35;
-  // Utility = completion·w_c + progression·w_p − pressure·w_r − risk·w_i.
+  // Utility = completion·w_c + progression·w_p − pressure·w_r − risk·w_i,
+  // and loftedBias on top for a lofted pass.
   double completionWeight = 1.0;
   double progressionWeight = 0.8;
   double pressureWeight = 0.3;
   double riskWeight = 0.3;
+  // What a lofted pass is worth on top of its scores, either way: how much
+  // the keeper's tactic wants him to go long (directnessBias(),
+  // docs/goalkeeper-distribution.md). 0 weighs it on its merits.
+  double loftedBias = 0.0;
 
   friend bool operator==(const PassScoringConfig&, const PassScoringConfig&) = default;
 };
@@ -68,6 +73,10 @@ struct PassCandidate {
   double receiverPressure = 0.0;
   double utility = 0.0;
   PassRejection rejection = PassRejection::kValid;
+  // Whether the ball goes through the air: a goalkeeper's long ball
+  // (docs/goalkeeper-distribution.md). Its interception risk is then the
+  // risk that an opponent wins it where it comes down.
+  bool lofted = false;
 
   [[nodiscard]] bool isValid() const noexcept { return rejection == PassRejection::kValid; }
 

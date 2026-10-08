@@ -66,19 +66,19 @@ TEST_CASE("Documents that are not JSON objects are rejected", "[replayJson]") {
 }
 
 TEST_CASE("Other schema versions are rejected with the version found", "[replayJson]") {
-  requireRejected(validJsonWith("\"schemaVersion\": 9", "\"schemaVersion\": 1"),
+  requireRejected(validJsonWith("\"schemaVersion\": 10", "\"schemaVersion\": 1"),
                   ReplayErrorCode::kUnsupportedSchemaVersion,
                   "schema version 1 holds replay metadata only");
   // Older playable versions name the way to a current file.
-  for (const char* version : {"2", "3", "4", "5", "6", "7", "8"}) {
+  for (const char* version : {"2", "3", "4", "5", "6", "7", "8", "9"}) {
     requireRejected(
-        validJsonWith("\"schemaVersion\": 9", std::string("\"schemaVersion\": ") + version),
+        validJsonWith("\"schemaVersion\": 10", std::string("\"schemaVersion\": ") + version),
         ReplayErrorCode::kUnsupportedSchemaVersion,
         std::string("schema version ") + version +
-            " is no longer supported, expected 9; record the scenario again");
+            " is no longer supported, expected 10; record the scenario again");
   }
-  requireRejected(validJsonWith("\"schemaVersion\": 9", "\"schemaVersion\": 10"),
-                  ReplayErrorCode::kUnsupportedSchemaVersion, "unsupported schema version 10");
+  requireRejected(validJsonWith("\"schemaVersion\": 10", "\"schemaVersion\": 11"),
+                  ReplayErrorCode::kUnsupportedSchemaVersion, "unsupported schema version 11");
 }
 
 TEST_CASE("A replay from another core version is rejected", "[replayJson]") {
@@ -197,6 +197,31 @@ TEST_CASE("How players go up for a high ball is read from the initial state and 
   REQUIRE(reaching->setup.config.aerial.headRadius == 0.8);
   requireRejected(validJsonWith("\"headRadius\"", "\"headRadiuses\""), kMalformed,
                   "config.aerial.headRadius: missing");
+}
+
+TEST_CASE("How a keeper distributes the ball is read from the initial state and the config",
+          "[replayJson]") {
+  const auto kickoff = parseReplayJson(validJson());
+  REQUIRE(kickoff.has_value());
+  REQUIRE_FALSE(kickoff->setup.initialState.ball().held);
+  // The kickoff fixture's ball is free: nobody holds it.
+  requireRejected(validJsonWith("\"held\": false", "\"held\": true"),
+                  ReplayErrorCode::kInvalidSetup, "held in the hands of nobody");
+  requireRejected(validJsonWith("\"held\": false", "\"held\": 0"), kMalformed,
+                  "initialState.ball.held: expected true or false");
+
+  const auto throwing =
+      parseReplayJson(validJsonWith("\"throwRange\": 25.0", "\"throwRange\": 20.0"));
+  REQUIRE(throwing.has_value());
+  REQUIRE(throwing->setup.config.decisions.distribution.throwRange == 20.0);
+  const auto lofting =
+      parseReplayJson(validJsonWith("\"maxLoftedSpeed\": 28.0", "\"maxLoftedSpeed\": 30.0"));
+  REQUIRE(lofting.has_value());
+  REQUIRE(lofting->setup.config.passing.maxLoftedSpeed == 30.0);
+  requireRejected(validJsonWith("\"flightSeconds\"", "\"flightSecond\""), kMalformed,
+                  "config.decisions.distribution.flightSeconds: missing");
+  requireRejected(validJsonWith("\"loftedBias\"", "\"loftedBiases\""), kMalformed,
+                  "config.decisions.scoring.loftedBias: missing");
 }
 
 TEST_CASE("The score is read from the initial state", "[replayJson]") {
