@@ -681,7 +681,8 @@ void playHeader(const HeaderIntent& intent, const BallClaim& claim, const Aerial
 // rather than to his feet, the keeper it faces meets it where it passes him,
 // a high ball is contested in the air, and any ball comes off the goal
 // frame; either way it flies on for the rest of the tick, and nothing else
-// gets to it before the next.
+// gets to it before the next. A high ball nobody won flies on past everyone
+// who went up for it, to the keeper and to whoever else gets to it.
 void moveFreeBall(const BallState& ball, const BallRules& rules, const MatchStepContext& context,
                   const MatchState& current, MatchStateWriter& next) {
   const Pitch& pitch = current.pitch();
@@ -714,14 +715,19 @@ void moveFreeBall(const BallState& ball, const BallRules& rules, const MatchStep
                                    secondsPerTick, rules.reception, rules.aerial, excluded);
   const bool inTheAir =
       aerial && (!contact || aerial->contact.contactFraction <= contact->contact.contactFraction);
-  const auto& first = inTheAir ? aerial : contact;
-  // The keeper meets the ball if it passes him before anyone else gets to it.
-  if (keeper) {
-    const double before = free.step.seconds * (first ? first->contact.contactFraction : 1.0);
-    if (const auto passage = findPlanePassage(ball, keeper->dive, rules.physics, before);
-        passage && meetKeeper(*keeper, *passage, free, rules, context, current, next)) {
-      return;
+  // The keeper meets the ball if it passes him before anyone else gets to
+  // it, at most once: a ball that went past him flies on.
+  std::optional<BallPassage> passage;
+  const auto meetsKeeper = [&](const std::optional<BallClaim>& first) {
+    if (!keeper || passage) {
+      return false;
     }
+    passage = findPlanePassage(ball, keeper->dive, rules.physics,
+                               free.step.seconds * (first ? first->contact.contactFraction : 1.0));
+    return passage && meetKeeper(*keeper, *passage, free, rules, context, current, next);
+  };
+  if (meetsKeeper(inTheAir ? aerial : contact)) {
+    return;
   }
   if (inTheAir) {
     if (contestInTheAir(*aerial, free, rules, context, current, next, excluded)) {
@@ -729,6 +735,9 @@ void moveFreeBall(const BallState& ball, const BallRules& rules, const MatchStep
     }
     // Who went up for it does not take it at his feet as well.
     contact = contactOf();
+    if (meetsKeeper(contact)) {
+      return;
+    }
   }
   if (contact && (!deflects || isGoalkeeper(current, contact->playerIndex))) {
     takeBall(free, *contact, current.players()[contact->playerIndex], rules, context, current,

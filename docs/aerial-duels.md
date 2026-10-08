@@ -49,7 +49,8 @@ A player who went up for a ball is **in the air** for `landingSeconds` (0.6 s)
 after (`isInTheAir()`, the `lastJump` of his tactical state): he goes up for
 no other ball until he has landed, so a ball nobody reached is not contested
 again by the same players as it flies on, nor taken at their feet in the same
-tick. Like reception, the contest leaves
+tick. It flies on past them to the keeper who faces it and to whoever else
+gets to it first. Like reception, the contest leaves
 out a keeper busy with a dive or facing a shot ([shot stopping](shot-stopping.md))
 and the ball's last touch within `reclaimDelaySeconds` (`mayCompete()`). A shot
 still fast enough to come off a body is no aerial ball: it is
