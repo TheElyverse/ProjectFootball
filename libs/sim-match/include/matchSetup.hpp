@@ -3,6 +3,7 @@
 #include <cstdint>
 #include <vector>
 
+#include "aerialDuels.hpp"
 #include "ballMovement.hpp"
 #include "challenge.hpp"
 #include "desiredRegion.hpp"
@@ -50,6 +51,7 @@ struct MatchConfig {
   WoodworkConfig woodwork;
   GoalkeeperConfig goalkeeper;
   ShotStoppingConfig shotStopping;
+  AerialConfig aerial;
 
   friend bool operator==(const MatchConfig&, const MatchConfig&) = default;
 };

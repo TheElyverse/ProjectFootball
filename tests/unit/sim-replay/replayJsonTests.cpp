@@ -66,19 +66,19 @@ TEST_CASE("Documents that are not JSON objects are rejected", "[replayJson]") {
 }
 
 TEST_CASE("Other schema versions are rejected with the version found", "[replayJson]") {
-  requireRejected(validJsonWith("\"schemaVersion\": 8", "\"schemaVersion\": 1"),
+  requireRejected(validJsonWith("\"schemaVersion\": 9", "\"schemaVersion\": 1"),
                   ReplayErrorCode::kUnsupportedSchemaVersion,
                   "schema version 1 holds replay metadata only");
   // Older playable versions name the way to a current file.
-  for (const char* version : {"2", "3", "4", "5", "6", "7"}) {
+  for (const char* version : {"2", "3", "4", "5", "6", "7", "8"}) {
     requireRejected(
-        validJsonWith("\"schemaVersion\": 8", std::string("\"schemaVersion\": ") + version),
+        validJsonWith("\"schemaVersion\": 9", std::string("\"schemaVersion\": ") + version),
         ReplayErrorCode::kUnsupportedSchemaVersion,
         std::string("schema version ") + version +
-            " is no longer supported, expected 8; record the scenario again");
+            " is no longer supported, expected 9; record the scenario again");
   }
-  requireRejected(validJsonWith("\"schemaVersion\": 8", "\"schemaVersion\": 9"),
-                  ReplayErrorCode::kUnsupportedSchemaVersion, "unsupported schema version 9");
+  requireRejected(validJsonWith("\"schemaVersion\": 9", "\"schemaVersion\": 10"),
+                  ReplayErrorCode::kUnsupportedSchemaVersion, "unsupported schema version 10");
 }
 
 TEST_CASE("A replay from another core version is rejected", "[replayJson]") {
@@ -178,6 +178,25 @@ TEST_CASE("How a keeper stops shots is read from the initial state and the confi
   REQUIRE(diving->setup.config.shotStopping.diveSpeed == 7.0);
   requireRejected(validJsonWith("\"diveSpeed\"", "\"diveSpeeds\""), kMalformed,
                   "config.shotStopping.diveSpeed: missing");
+}
+
+TEST_CASE("How players go up for a high ball is read from the initial state and the config",
+          "[replayJson]") {
+  const auto springy = parseReplayJson(validJsonWith("\"jumping\": 0.5", "\"jumping\": 0.8"));
+  REQUIRE(springy.has_value());
+  REQUIRE(springy->setup.initialState.players()[0].attributes.jumping == 0.8);
+  const auto strong = parseReplayJson(validJsonWith("\"strength\": 0.5", "\"strength\": 0.9"));
+  REQUIRE(strong.has_value());
+  REQUIRE(strong->setup.initialState.players()[0].attributes.strength == 0.9);
+  requireRejected(validJsonWith("\"heading\": 0.5", "\"heading\": 2.0"),
+                  ReplayErrorCode::kInvalidSetup, "heading 2");
+
+  const auto reaching =
+      parseReplayJson(validJsonWith("\"headRadius\": 0.7", "\"headRadius\": 0.8"));
+  REQUIRE(reaching.has_value());
+  REQUIRE(reaching->setup.config.aerial.headRadius == 0.8);
+  requireRejected(validJsonWith("\"headRadius\"", "\"headRadiuses\""), kMalformed,
+                  "config.aerial.headRadius: missing");
 }
 
 TEST_CASE("The score is read from the initial state", "[replayJson]") {

@@ -27,8 +27,8 @@ player against the ball:
   itself is a fraction of the path the ball really travelled, which for a ball
   the line stops is only part of the tick, so `findBallClaim()` takes the step
   `stepFreeBallTimed()` makes rather than only the state it ends in.
-  Heading a ball and challenging for it in the air are their own systems; until
-  they exist a high ball simply runs through.
+  A ball above `controlHeight` that a player gets to first is contested in
+  the air instead ([aerial duels](aerial-duels.md)).
 - **No instant reclaim.** The ball's last touch cannot take it back for
   `reclaimDelaySeconds` (0.3 s) after touching it, so a pass does not stick to
   the passer's foot.
@@ -41,8 +41,10 @@ player against the ball:
 - **The keeper's hands.** A goalkeeper who stands in his own penalty area, with
   the ball in it, at the start of the tick reaches it with his hands: within
   `handsRadius` (1.2 m) and up to `handsHeight` (2.2 m) instead of the feet's
-  `controlRadius` and `controlHeight`. Outside his area he has his feet like
-  everyone else ([goalkeeper](goalkeeper.md)).
+  `controlRadius` and `controlHeight`; a ball above `controlHeight` he goes
+  up for, and gets to with his hands where he and it are in his area when he
+  meets it, in the air ([aerial duels](aerial-duels.md)). Outside his area he has his
+  feet like everyone else ([goalkeeper](goalkeeper.md)).
 - **Competing claims.** The earliest contact in the tick wins. At the same
   moment the player who comes closer wins, and at the same distance the lower
   player id: deterministic whatever the order of players in the state.
@@ -117,6 +119,6 @@ is rejected.
 ## What this is not
 
 There is no first-touch quality, no deflection and no failed control: a player
-who reaches the ball at a height he can play has it. Nobody heads a ball or
-jumps for one. Pressing a player on the ball, tackles and
+who reaches the ball at a height he can play has it. Heading a ball and
+jumping for one are [aerial duels](aerial-duels.md). Pressing a player on the ball, tackles and
 duels are out of scope.

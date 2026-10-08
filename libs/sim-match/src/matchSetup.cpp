@@ -30,7 +30,7 @@ std::vector<MatchSystem> makeMatchSystems(const MatchConfig& config) {
   systems.push_back(makePlayerMovementSystem(config.shotStopping));
   systems.push_back(makeBallMovementSystem(config.ball, config.passing, config.reception,
                                            config.restarts, config.shooting, config.woodwork,
-                                           config.shotStopping));
+                                           config.shotStopping, config.aerial));
   // Only when enabled, so matches without restarts keep their system list.
   if (config.restarts.enabled) {
     systems.push_back(makeRestartSystem(config.restarts, config.ball));

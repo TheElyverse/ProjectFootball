@@ -190,10 +190,8 @@ like any other invalid state.
 
 Only a [shot](shooting.md) lifts the ball off the ground: every pass is a
 ground pass, and it leaves the foot without height, vertical velocity or spin.
-Crosses and lofted passes are what else will fill the third dimension; headers
-and aerial duels
-decide who wins a high ball, and until they exist a ball above
-`controlHeight` simply runs through (see [reception](reception.md)).
+Crosses and lofted passes are what else will fill the third dimension. Who
+wins a high ball is decided in the air ([aerial duels](aerial-duels.md)).
 
 The flight has no sidespin and so no curve: a Magnus force needs a sine and a
 cosine that are bit-identical on every platform, and `sim-core` has no such

@@ -35,6 +35,7 @@ Every event carries the `tick` of its step and the players involved:
 | `ShotResolved`       | `shooter`, `shotTick`, `outcome`                             | a shot has become what it will be, once per shot: `goal`, `saved`, `offTarget` or `blocked` |
 | `GoalScored`         | `side`, `scorer`, `assist`, `ownGoal`, `score`               | the ball crosses a goal line inside the frame: a goal for `side`, by `scorer` — empty for a ball nobody touched —, with the `score` it makes |
 | `SaveAttempted`      | `keeper`, `shooter`, `shotTick`, `result`, `position`, `height` | a shot passes the keeper of the goal it attacks and touches him, or was on its way in: `caught`, `parriedIntoPlay`, `parriedBehind` or `outOfReach` ([shot stopping](shot-stopping.md)) |
+| `AerialContest`      | `position`, `height`, `contestants`, `winner`, `play`        | players go up for a high ball where the first of them gets to it: each contestant's `player`, `reach` and whether he `reached` it, the `winner` — empty if nobody did — and his `play`: `shot`, `pass`, `knockDown`, `clearance`, `caught` or `punched` ([aerial duels](aerial-duels.md)). A header shot's `ShotAttempted` or a header pass's `PassAttempted` follows |
 
 The shot events name their shot by its `shooter` and `shotTick`, the tick of its
 `ShotAttempted`; see [shooting](shooting.md) and [shot stopping](shot-stopping.md)
@@ -49,11 +50,11 @@ PassAttempted(t, passer)  PossessionChanged(t, passer → none)
 ```
 
 **Classification.** When a player takes a free ball, the ball's last touch
-decides what it was. A ball becomes free by a pass or a shot, so a last touch
-that was neither the last shot (`MatchState::lastShot()`) nor a deflection or a
-keeper's parry of it means the ball was passed: a teammate of the passer received it, an opponent
-intercepted it. Without a last touch, after a shot, or when the passer takes his
-own ball back, the ball was loose.
+decides what it was. A last touch that kicked or headed the last pass
+(`MatchState::lastPass()`) means the ball was passed: a teammate of the passer
+received it, an opponent intercepted it. Without a last touch, after a shot, a
+deflection or a keeper's parry of one, a headed clearance or a punch, or when
+the passer takes his own ball back, the ball was loose.
 
 Events are part of the match: the same setup produces the same events in the
 same order. `addEvent()` feeds an event into a `StableHasher` — its type, tick

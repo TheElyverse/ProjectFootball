@@ -109,7 +109,7 @@ abridged example with illustrative values:
 {
     "format": "elyverse-debug-frames",
   "version": 4,
-  "coreVersion": "0.24.0",
+  "coreVersion": "0.25.0",
   "scenario": "m0-acceptance",
   "seed": "42",
   "ticksPerSecond": 30,
@@ -210,8 +210,9 @@ the decision outcome `shot` and the `shotAttempted` event
 ([shot decisions](shot-decisions.md)). Version 5 added every frame's `score`,
 `struckAt` and `struckHeight` to `shotAttempted`, and the events `shotDeflected`,
 `shotHitWoodwork`, `shotResolved` and `goalScored` ([shooting](shooting.md)).
-The event `saveAttempted` ([shot stopping](shot-stopping.md)) came without a new
-version: a viewer that does not know it shows it by its name.
+The events `saveAttempted` ([shot stopping](shot-stopping.md)) and
+`aerialContest` ([aerial duels](aerial-duels.md)) came without a new version: a
+viewer that does not know them shows them by their name.
 
 ## Development
 

@@ -40,6 +40,7 @@ add_executable(sim-match-tests
         sim-match/goalFrameTests.cpp
         sim-match/shotOutcomeTests.cpp
         sim-match/shotStoppingTests.cpp
+        sim-match/aerialDuelsTests.cpp
         sim-match/passDecisionTests.cpp
         sim-match/matchEventsTests.cpp
         sim-match/tacticalPhasesTests.cpp

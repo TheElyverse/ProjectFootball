@@ -242,8 +242,9 @@ before he has reacted.
 
 The keeper's positioning and his shot stopping are their own systems
 ([goalkeeper](goalkeeper.md), [shot stopping](shot-stopping.md)). Outfield players do
-not block on purpose — a body in the way is a body in the way — and nobody
-heads a ball. The shot decision still judges a shot by a straight line and a
+not block on purpose — a body in the way is a body in the way. A header at
+goal is a shot like any other ([aerial duels](aerial-duels.md)), struck from
+the head instead of the foot. The shot decision still judges a shot by a straight line and a
 point-sized ball; it does not know the flight or the thickness of the frame.
 There is no curl, no chip and no choice of how to strike the ball. A goal
 counts and is kicked off, but no match ends with a result yet.

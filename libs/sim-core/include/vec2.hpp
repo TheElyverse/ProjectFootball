@@ -54,4 +54,10 @@ struct Vec2 {
   return vector.length();
 }
 
+// The vector scaled to unit length, or the fallback for the zero vector.
+[[nodiscard]] inline Vec2 unitOr(const Vec2 vector, const Vec2 fallback) noexcept {
+  const double length = vector.length();
+  return length > 0.0 ? vector * (1.0 / length) : fallback;
+}
+
 }  // namespace ElyverseFootball::SimCore

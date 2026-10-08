@@ -314,20 +314,7 @@ TEST_CASE("P1: the final hashes are pinned", "[acceptance][p1]") {
   // Identical on every platform and compiler CI builds with. They change only
   // with the simulation's behavior, a scenario or the state layout -- each of
   // which must bump the core version or document the scenario change, and
-  // update these values deliberately. The state hashes were re-pinned when
-  // the ball gained height, vertical velocity and spin: every scenario plays
-  // out exactly as before -- the event hashes prove it -- and only the state
-  // hash covers three numbers more. They were re-pinned again when the
-  // pending pass became a pending action per player, when players gained a
-  // shot accuracy and when the state gained its last shot, with unchanged
-  // event hashes: nobody in these scenarios shoots, and the state hash
-  // covers what the three add. The same again with shot execution: players
-  // gained a technique and a strong and a weak foot, the state its score and
-  // its last goal, and the last reception whose pass it was. And again when
-  // players gained a keeper's positioning and anticipation, with unchanged
-  // event hashes: these sides are scripted and have no goalkeeper. The same
-  // when players gained a keeper's reflexes and handling and the tactical
-  // state a keeper's dive.
+  // update these values deliberately.
   struct Pinned {
     std::string_view name;
     std::uint64_t stateHash;
@@ -335,13 +322,13 @@ TEST_CASE("P1: the final hashes are pinned", "[acceptance][p1]") {
   };
   const std::array<Pinned, 3> pinned{{
       {.name = "pass-chain",
-       .stateHash = 0x9cf275a5fd426ea4ULL,
+       .stateHash = 0x1bd74267b1db4f6aULL,
        .eventHash = 0x998519c3360aaabbULL},
       {.name = "intercepted-pass",
-       .stateHash = 0x895c5829f87b2f01ULL,
+       .stateHash = 0x1e45815f29251dc7ULL,
        .eventHash = 0x22f2a2f2ddabf1e5ULL},
       {.name = "no-passing-option",
-       .stateHash = 0x1657999787f470cdULL,
+       .stateHash = 0x96e1e8b71bbd29bfULL,
        .eventHash = 0x4c3da4b4c5ecf1a7ULL},
   }};
   for (const Pinned& expected : pinned) {

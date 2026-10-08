@@ -38,9 +38,12 @@ using ElyverseFootball::SimMatch::makePlayerMovementSystem;
 using ElyverseFootball::SimMatch::makeSevenASideKickoff;
 using ElyverseFootball::SimMatch::MatchSimulation;
 using ElyverseFootball::SimMatch::MatchState;
+using ElyverseFootball::SimMatch::MatchStateWriter;
+using ElyverseFootball::SimMatch::MatchStepContext;
 using ElyverseFootball::SimMatch::MatchSystem;
 using ElyverseFootball::SimMatch::MovePlayerCommand;
 using ElyverseFootball::SimMatch::PassIntercepted;
+using ElyverseFootball::SimMatch::PassRecord;
 using ElyverseFootball::SimMatch::Pitch;
 using ElyverseFootball::SimMatch::PlayerMatchState;
 using ElyverseFootball::SimMatch::ReceptionConfig;
@@ -180,9 +183,9 @@ TEST_CASE("A ball rolling along the line stays in play", "[ballMovement]") {
 
 TEST_CASE("An interception's position interpolates the contact, not the tick's start",
           "[ballMovement]") {
-  // Away's player 8 stands where a fast free ball, moving in a straight
-  // line this tick, comes within reception's control radius partway
-  // through it, not at the tick's start or end.
+  // Away's player 8 stands where a fast free ball, home 1's pass moving in
+  // a straight line this tick, comes within reception's control radius
+  // partway through it, not at the tick's start or end.
   const Vec2 ballStart{.x = 0.0, .y = 20.0};
   const BallState startBall{.position = ballStart,
                             .velocity = {.x = 90.0, .y = 0.0},
@@ -214,11 +217,21 @@ TEST_CASE("An interception's position interpolates the contact, not the tick's s
                                    .ball = startBall,
                                    .playersPerSide = 1});
   REQUIRE(state.has_value());
-  MatchSimulation simulation({.initialState = *std::move(state),
-                              .seed = 1,
-                              .ticksPerSecond = kDefaultTicksPerSecond,
-                              .systems = {makeBallMovementSystem({})},
-                              .commands = {}});
+  MatchSimulation simulation(
+      {.initialState = *std::move(state),
+       .seed = 1,
+       .ticksPerSecond = kDefaultTicksPerSecond,
+       .systems = {{.name = "last pass",
+                    .update =
+                        [&](const MatchStepContext& /*context*/, const MatchState& /*current*/,
+                            MatchStateWriter& next) {
+                          next.setLastPass(PassRecord{.passer = PlayerId(1),
+                                                      .from = ballStart,
+                                                      .tick = SimTick(0),
+                                                      .receiver = std::nullopt});
+                        }},
+                   makeBallMovementSystem({})},
+       .commands = {}});
   REQUIRE(simulation.step().has_value());
   const auto events = simulation.events();
   const auto found = std::ranges::find_if(

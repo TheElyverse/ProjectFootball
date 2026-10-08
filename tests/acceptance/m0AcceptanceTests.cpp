@@ -171,18 +171,5 @@ TEST_CASE("M0: the final state hash is pinned", "[acceptance][m0]") {
   // Identical on every platform and compiler CI builds with. It changes only
   // with the simulation's behavior, the scenario or the state layout -- each
   // of which must bump the core version and update this value deliberately.
-  // Re-pinned for the ball's third dimension: the scenario plays out tick for
-  // tick as before -- nothing lifts the ball off the grass -- and only the
-  // hash grew by the ball's height, vertical velocity and spin. Re-pinned
-  // again when the pending pass became a pending action per player, when
-  // players gained a shot accuracy, and when players began to shoot: the M0
-  // players now shoot at a goal in front of them -- and when shots were no
-  // longer held to the hardest pass's speed. And again with shot execution:
-  // their shots now fly, hit the frame, come off defenders and score, and
-  // the last reception remembers whose pass it was. And again with the
-  // goalkeeper's own model: he keeps goal on the angle's bisector, takes a
-  // ball in his area with his hands and decides whether to come for one.
-  // And again with shot stopping: players gained a keeper's reflexes and
-  // handling, and the keeper reacts, dives and holds or parries a shot.
-  REQUIRE(record().checkpoints.back().stateHash == 0x028095361fcd4f41ULL);
+  REQUIRE(record().checkpoints.back().stateHash == 0x8c05764e591b4d5bULL);
 }

@@ -69,6 +69,11 @@ inline constexpr double kDefaultKeeperPositioning = 0.5;
 inline constexpr double kDefaultKeeperAnticipation = 0.5;
 inline constexpr double kDefaultKeeperReflexes = 0.5;
 inline constexpr double kDefaultKeeperHandling = 0.5;
+// An average player's jump, heading and strength, on the scale of jumping,
+// heading and strength.
+inline constexpr double kDefaultJumping = 0.5;
+inline constexpr double kDefaultHeading = 0.5;
+inline constexpr double kDefaultStrength = 0.5;
 
 // The foot a player strikes the ball with.
 enum class Foot : std::uint8_t {
@@ -92,7 +97,10 @@ enum class Foot : std::uint8_t {
 // ball played in behind first (docs/goalkeeper.md) and where a shot will pass
 // him; keeperReflexes, in [0, 1], how quickly he reacts to a shot, and
 // keeperHandling, in [0, 1], how surely he holds one he reaches
-// (docs/shot-stopping.md). Only a goalkeeper uses them.
+// (docs/shot-stopping.md). Only a goalkeeper uses them. jumping, in [0, 1],
+// is how high he gets off the ground, heading how well he times his jump and
+// directs a header, and strength how well he holds his own in a duel
+// (docs/aerial-duels.md).
 struct PlayerAttributes {
   double maxSpeed = kDefaultMaxSpeed;
   double acceleration = kDefaultAcceleration;
@@ -104,6 +112,9 @@ struct PlayerAttributes {
   double keeperAnticipation = kDefaultKeeperAnticipation;
   double keeperReflexes = kDefaultKeeperReflexes;
   double keeperHandling = kDefaultKeeperHandling;
+  double jumping = kDefaultJumping;
+  double heading = kDefaultHeading;
+  double strength = kDefaultStrength;
 
   friend bool operator==(const PlayerAttributes&, const PlayerAttributes&) = default;
 };
@@ -572,6 +583,11 @@ class MatchStateWriter {
   void setPendingAction(std::size_t playerIndex, std::optional<PendingAction> action);
   // Throw std::invalid_argument for a player not in the state.
   void setLastPass(std::optional<PassRecord> pass);
+  // The last pass as this step has left it so far; see ball() for why this
+  // differs from MatchState::lastPass().
+  [[nodiscard]] const std::optional<PassRecord>& lastPass() const noexcept {
+    return state_->lastPass_;
+  }
   void setLastShot(std::optional<ShotRecord> shot);
   // The last shot as this step has left it so far; see ball() for why this
   // differs from MatchState::lastShot().
