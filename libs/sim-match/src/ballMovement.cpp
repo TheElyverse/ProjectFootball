@@ -121,12 +121,15 @@ struct BallRules {
   return ball;
 }
 
-// Whether the ball's last touch kicked or headed the last pass. A free ball
-// whose last touch did not -- a shot, a deflection or a parry of one, a
-// header clear or a keeper's punch -- is loose.
-[[nodiscard]] bool isPassed(const BallState& ball, const std::optional<PassRecord>& pass) noexcept {
-  return ball.lastTouch && pass &&
-         *ball.lastTouch == BallTouch{.playerId = pass->passer, .tick = pass->tick};
+// The passer, if the ball's last touch kicked or headed the last pass. A
+// free ball whose last touch did not -- a shot, a deflection or a parry of
+// one, a header clear or a keeper's punch -- is loose.
+[[nodiscard]] std::optional<PlayerId> passerOf(const BallState& ball,
+                                               const std::optional<PassRecord>& pass) noexcept {
+  if (!pass || ball.lastTouch != BallTouch{.playerId = pass->passer, .tick = pass->tick}) {
+    return std::nullopt;
+  }
+  return pass->passer;
 }
 
 // What gaining control of a free ball was: the ball's last touch passed it,
@@ -138,11 +141,12 @@ struct BallRules {
                                       const std::optional<PassRecord>& pass, const BallClaim& claim,
                                       const Vec2 contactPosition, const SimCore::SimTick tick) {
   const PlayerMatchState& claimant = state.players()[claim.playerIndex];
-  if (!isPassed(ball, pass) || ball.lastTouch->playerId == claimant.playerId) {
+  const std::optional<PlayerId> passedBy = passerOf(ball, pass);
+  if (!passedBy || *passedBy == claimant.playerId) {
     return LooseBallRecovered{
         .tick = tick, .player = claimant.playerId, .position = contactPosition};
   }
-  const PlayerId passer = ball.lastTouch->playerId;
+  const PlayerId passer = *passedBy;
   const auto passerIndex = findPlayerIndex(state, passer);
   const bool teammate = passerIndex && state.players()[*passerIndex].side == claimant.side;
   if (teammate) {
@@ -622,7 +626,12 @@ void playHeader(const HeaderIntent& intent, const BallClaim& claim, const Aerial
   auto& random = context.random(SimCore::RandomNumberGeneratorDomain::kExecution);
   const AerialDuel duel = resolveAerialDuel(current, challengers, there.height, rules.aerial,
                                             rules.physics.gravity, random);
-  AerialContest contest{.tick = context.tick(), .position = there.position, .height = there.height};
+  AerialContest contest{.tick = context.tick(),
+                        .position = there.position,
+                        .height = there.height,
+                        .contestants = {},
+                        .winner = std::nullopt,
+                        .play = std::nullopt};
   for (std::size_t index = 0; index < challengers.size(); ++index) {
     const std::size_t playerIndex = challengers[index].playerIndex;
     next.tactical(playerIndex).lastJump = context.tick();

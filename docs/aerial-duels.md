@@ -89,12 +89,11 @@ Of those who reached the ball, `chooseByUtility()` picks the winner at
 never a certainty — by `duelUtility()`:
 
 ```text
-  reachWeight · min(reach − ball height, reachCap)
-− arrivalWeight · late
-+ strengthWeight · strength
-+ bodyWeight · body
-+ keeperAdvantage · keeperHandling (a keeper with his hands)
-= utility
+utility = reachWeight · min(reach − ball height, reachCap)
+        − arrivalWeight · late
+        + strengthWeight · strength
+        + bodyWeight · body
+        + keeperAdvantage · keeperHandling        (a keeper with his hands)
 ```
 
 with `reachWeight` 4 per meter up to `reachCap` (0.3 m), `arrivalWeight` 5 per

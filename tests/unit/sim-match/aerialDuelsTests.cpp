@@ -125,6 +125,11 @@ struct Delivery {
   bool lifted = true;
 };
 
+// A ball lying still at `position`, played by nobody.
+[[nodiscard]] BallState ballAt(const Vec2 position) {
+  return {.position = position, .velocity = {}, .owner = std::nullopt, .lastTouch = std::nullopt};
+}
+
 [[nodiscard]] BallState crossTo(const Delivery& delivery) {
   constexpr double kStartHeight = 1.0;
   const double contactY = delivery.at.y - AerialConfig{}.headRadius;
@@ -139,7 +144,7 @@ struct Delivery {
                                              BallPhysics{});
     REQUIRE(lift.has_value());
     ball.height = kStartHeight;
-    ball.verticalVelocity = *lift;
+    ball.verticalVelocity = lift.value_or(0.0);
   }
   return ball;
 }
@@ -150,8 +155,8 @@ struct Delivery {
 struct Box {
   Vec2 attacker{.x = 95.0, .y = 34.0};
   std::optional<Vec2> defender = Vec2{.x = 94.4, .y = 34.3};
-  PlayerAttributes attackerAttributes;
-  PlayerAttributes defenderAttributes;
+  PlayerAttributes attackerAttributes{};
+  PlayerAttributes defenderAttributes{};
   bool keeper = false;
 };
 
@@ -332,7 +337,7 @@ TEST_CASE("A header goes at goal near it, and clear near his own", "[aerialDuels
   const AerialConfig config;
   const auto playsOf = [&](const MatchState& state, const Vec2 ball) {
     std::vector<AerialPlay> plays;
-    for (const HeaderOption& option : headerOptions(state, 0, {.position = ball}, config)) {
+    for (const HeaderOption& option : headerOptions(state, 0, ballAt(ball), config)) {
       plays.push_back(option.intent.play);
     }
     return plays;
@@ -346,7 +351,7 @@ TEST_CASE("A header goes at goal near it, and clear near his own", "[aerialDuels
 
   // Near his own goal a clearance is worth the most.
   const MatchState back = boxState({.attacker = {.x = 5.0, .y = 34.0}}, BallState{});
-  const auto backOptions = headerOptions(back, 0, {.position = {.x = 5.0, .y = 34.0}}, config);
+  const auto backOptions = headerOptions(back, 0, ballAt({.x = 5.0, .y = 34.0}), config);
   REQUIRE(backOptions.front().intent.play == AerialPlay::kClearance);
   REQUIRE(backOptions.front().utility > 0.8);
   REQUIRE(backOptions.front().intent.target.x > 30.0);
@@ -369,7 +374,7 @@ TEST_CASE("A header is played to the closer teammate as a knock-down, the farthe
       {.pitch = pitch(), .players = std::move(players), .ball = {}, .playersPerSide = 7});
   REQUIRE(state.has_value());
 
-  const auto options = headerOptions(*state, 0, {.position = {.x = 52.0, .y = 34.0}}, config);
+  const auto options = headerOptions(*state, 0, ballAt({.x = 52.0, .y = 34.0}), config);
   REQUIRE(options.size() == 3);
   REQUIRE(options.at(1).intent.play == AerialPlay::kKnockDown);
   REQUIRE(options.at(1).intent.receiver == PlayerId(2));
@@ -423,8 +428,7 @@ TEST_CASE("A defender wins a high ball in his own box and heads it clear", "[aer
   REQUIRE(eventsOf<ShotAttempted>(events).empty());
   // Two seconds after the header it is far up the pitch, away from his goal.
   const BallState& ball = simulation.state().ball();
-  REQUIRE(ball.lastTouch.has_value());
-  REQUIRE(ball.lastTouch->playerId == PlayerId(8));
+  REQUIRE(ball.lastTouch.value_or(BallTouch{}).playerId == PlayerId(8));
   REQUIRE(ball.position.x < 80.0);
 }
 
