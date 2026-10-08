@@ -166,7 +166,7 @@ struct AerialContestant {
     const MatchState& state, const BallState& ball, const BallStep& moved,
     const BallPhysics& physics, SimCore::SimTick now, double secondsPerTick,
     const ReceptionConfig& reception, const AerialConfig& config,
-    std::optional<std::size_t> excluded = {});
+    std::span<const std::size_t> excluded = {});
 
 // A player going up for a high ball, as the duel sees him: how high he
 // stands and jumps, with his hands or not, how long after the ball he gets
@@ -190,7 +190,7 @@ struct AerialChallenger {
     const MatchState& state, const BallState& ball, const BallStep& moved, const BallClaim& first,
     const BallPhysics& physics, SimCore::SimTick now, double secondsPerTick,
     const ReceptionConfig& reception, const AerialConfig& config,
-    std::optional<std::size_t> excluded = {});
+    std::span<const std::size_t> excluded = {});
 
 // One challenger's jump: how far off he timed it, the share of timingError
 // that is (his mistiming, at most 1), how high that took him and whether it

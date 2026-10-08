@@ -163,7 +163,7 @@ std::optional<BallClaim> findAerialContact(const MatchState& state, const BallSt
                                            const SimCore::SimTick now, const double secondsPerTick,
                                            const ReceptionConfig& reception,
                                            const AerialConfig& config,
-                                           const std::optional<std::size_t> excluded) {
+                                           const std::span<const std::size_t> excluded) {
   if (!mayRiseAbove(ball, reception.controlHeight, physics)) {
     return std::nullopt;
   }
@@ -195,7 +195,7 @@ std::vector<AerialChallenger> findChallengers(
     const MatchState& state, const BallState& ball, const BallStep& moved, const BallClaim& first,
     const BallPhysics& physics, const SimCore::SimTick now, const double secondsPerTick,
     const ReceptionConfig& reception, const AerialConfig& config,
-    const std::optional<std::size_t> excluded) {
+    const std::span<const std::size_t> excluded) {
   const double fraction = first.contact.contactFraction;
   const Vec2 where = along(ball.position, moved.ball.position, fraction);
   const double height = ballHeightAfter(ball, physics, fraction * moved.seconds);

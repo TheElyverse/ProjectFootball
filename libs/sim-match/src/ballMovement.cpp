@@ -612,13 +612,12 @@ void playHeader(const HeaderIntent& intent, const BallClaim& claim, const Aerial
 // The high ball `first` got to first in this tick: everyone near enough goes
 // up for it and AerialContest records them. Whoever wins it heads it, or, a
 // keeper with his hands, holds it or punches it clear. Everyone who went up
-// is in the air until he lands. Returns whether anyone won it, which makes
-// it the ball's tick; nobody reaching it, it flies on as if they were not
-// there.
+// is in the air until he lands, and joins `excluded`, which leaves out of
+// the contest who is in it. Returns whether anyone won it, which makes it
+// the ball's tick; nobody reaching it, it flies on as if they were not there.
 [[nodiscard]] bool contestInTheAir(const BallClaim& first, FreeBall& free, const BallRules& rules,
                                    const MatchStepContext& context, const MatchState& current,
-                                   MatchStateWriter& next,
-                                   const std::optional<std::size_t> excluded) {
+                                   MatchStateWriter& next, std::vector<std::size_t>& excluded) {
   const double moment = first.contact.contactFraction * free.step.seconds;
   const BallState there = ballAfter(free.ball, rules.physics, moment);
   const std::vector<AerialChallenger> challengers =
@@ -636,6 +635,7 @@ void playHeader(const HeaderIntent& intent, const BallClaim& claim, const Aerial
   for (std::size_t index = 0; index < challengers.size(); ++index) {
     const std::size_t playerIndex = challengers[index].playerIndex;
     next.tactical(playerIndex).lastJump = context.tick();
+    excluded.push_back(playerIndex);
     contest.contestants.push_back({.player = current.players()[playerIndex].playerId,
                                    .reach = duel.jumps[index].reach,
                                    .reached = duel.jumps[index].reached});
@@ -690,16 +690,22 @@ void moveFreeBall(const BallState& ball, const BallRules& rules, const MatchStep
   FreeBall free = freeBallOf(ball, next.lastShot(), rules, pitch, secondsPerTick);
 
   const auto keeper = keeperFacing(free, rules, context, current, next);
-  const auto excluded = keeper ? std::optional(keeper->index) : std::nullopt;
+  // The keeper facing the ball meets it his own way.
+  std::vector<std::size_t> excluded;
+  if (keeper) {
+    excluded.push_back(keeper->index);
+  }
   const bool deflects = free.shot && ball.velocity.length() >= rules.shooting.deflectionSpeed;
-  const auto contact =
-      deflects ? findBallContact(
-                     current, ball, free.step, rules.physics, context.tick(), secondsPerTick,
-                     rules.reception,
-                     {.radius = rules.shooting.blockRadius, .height = rules.shooting.blockReach},
-                     excluded)
-               : findBallClaim(current, ball, free.step, rules.physics, context.tick(),
-                               secondsPerTick, rules.reception, excluded);
+  const auto contactOf = [&] {
+    return deflects ? findBallContact(current, ball, free.step, rules.physics, context.tick(),
+                                      secondsPerTick, rules.reception,
+                                      {.radius = rules.shooting.blockRadius,
+                                       .height = rules.shooting.blockReach},
+                                      excluded)
+                    : findBallClaim(current, ball, free.step, rules.physics, context.tick(),
+                                    secondsPerTick, rules.reception, excluded);
+  };
+  auto contact = contactOf();
   // A high ball someone gets to before anyone takes it at his feet is
   // contested in the air; a fast shot comes off a body instead.
   const auto aerial =
@@ -717,8 +723,12 @@ void moveFreeBall(const BallState& ball, const BallRules& rules, const MatchStep
       return;
     }
   }
-  if (inTheAir && contestInTheAir(*aerial, free, rules, context, current, next, excluded)) {
-    return;
+  if (inTheAir) {
+    if (contestInTheAir(*aerial, free, rules, context, current, next, excluded)) {
+      return;
+    }
+    // Who went up for it does not take it at his feet as well.
+    contact = contactOf();
   }
   if (contact && (!deflects || isGoalkeeper(current, contact->playerIndex))) {
     takeBall(free, *contact, current.players()[contact->playerIndex], rules, context, current,
