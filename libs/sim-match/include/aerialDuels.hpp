@@ -125,6 +125,10 @@ struct AerialContestant {
 // How high a jump lifts a player of this jumping.
 [[nodiscard]] double jumpRise(double jumping, const AerialConfig& config) noexcept;
 
+// The skill a player times his jump and aims his header with: a keeper with
+// his hands his keeperHandling, everyone else his heading.
+[[nodiscard]] double timingSkill(const PlayerAttributes& attributes, bool hands) noexcept;
+
 // How far from the ball's arrival a player of this skill may time the top of
 // his jump.
 [[nodiscard]] double timingSpread(double skill, const AerialConfig& config) noexcept;

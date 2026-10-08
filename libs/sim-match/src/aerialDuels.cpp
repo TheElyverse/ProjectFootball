@@ -36,12 +36,6 @@ using SimCore::Vec2;
   return hands ? reception.handsHeight : config.headHeight;
 }
 
-// The skill he times his jump with: a keeper with his hands his handling,
-// everyone else his heading.
-[[nodiscard]] double timingSkill(const PlayerAttributes& attributes, const bool hands) noexcept {
-  return hands ? attributes.keeperHandling : attributes.heading;
-}
-
 // The opposing goalkeeper, if one keeps goal (keepsGoal()).
 [[nodiscard]] std::optional<std::size_t> opposingKeeper(const MatchState& state,
                                                         const TeamSide side) {
@@ -112,6 +106,10 @@ std::string_view aerialPlayName(const AerialPlay play) noexcept {
       return "punched";
   }
   return "unknown";
+}
+
+double timingSkill(const PlayerAttributes& attributes, const bool hands) noexcept {
+  return hands ? attributes.keeperHandling : attributes.heading;
 }
 
 double jumpRise(const double jumping, const AerialConfig& config) noexcept {

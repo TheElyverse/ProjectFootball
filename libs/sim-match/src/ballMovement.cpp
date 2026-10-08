@@ -565,10 +565,11 @@ void playHeader(const HeaderIntent& intent, const BallClaim& claim, const Aerial
                 next);
     free.shot.reset();
   }
-  const double skill = winner.hands ? player.attributes.keeperHandling : player.attributes.heading;
   const HeaderStrike strike = executeHeader(
-      intent, there, player, headerErrorFactor(skill, jump.mistime, rules.aerial), rules.aerial,
-      rules.physics, context.random(SimCore::RandomNumberGeneratorDomain::kExecution));
+      intent, there, player,
+      headerErrorFactor(timingSkill(player.attributes, winner.hands), jump.mistime, rules.aerial),
+      rules.aerial, rules.physics,
+      context.random(SimCore::RandomNumberGeneratorDomain::kExecution));
   BallState from = there;
   from.velocity = strike.velocity;
   from.verticalVelocity = strike.verticalVelocity;
