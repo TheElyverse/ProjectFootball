@@ -27,6 +27,10 @@ a caught shot, a high ball he holds in the air) **holds** it: the ball's
 `held` is true. Holding it
 
 - he stands where he took it: his movement target is gone;
+- once he no longer runs he looks up the pitch, where his options are, not
+  at the ball in his hands -- he would otherwise keep looking wherever he
+  took it, at his own goal after a ball rolled back to him, see no one to
+  play to and keep the ball for good;
 - nobody challenges him for it ([pressing](pressing.md));
 - he keeps it at least `holdSeconds` (2 s) from the moment he took it, for
   his side to get into shape, against the half second (`minHoldSeconds`)
@@ -162,6 +166,7 @@ keeper and which is 0 in the configuration.
 | Scenario           | Setup | Checked |
 |--------------------|-------|---------|
 | `keeper-build-up`  | Home's keeper holds the ball at his goal, his tactic's directness 0.1; his centre backs stand wide and free; away, without a tactic, stands a meter in front of his holding midfielder, in the lane from the keeper, and a meter off his wingers and striker. | Over ten seeds he throws, along the ground, to a centre back, who receives it; his hands are barred from the throw until the centre back has it. |
+| `keeper-turned`    | `keeper-build-up` with the keeper facing his own goal, every option behind him. | Over ten seeds he turns up the pitch and throws to a centre back within five seconds. |
 | `keeper-long-kick` | Home's keeper has the ball at his feet, directness 0.5; away stands in the lanes to his centre backs and his holding midfielder, a forward four meters to his side, out of the way of a long ball, its last two defenders deep; his wingers and striker wait beyond the longest ground pass. | Over ten seeds he kicks long to a winger or the striker, the ball goes more than five meters up, and somebody gets to it. |
 | `goal-kick`        | Home player 1 plays the ball wide over away's goal line; restarts are on; away plays the reference tactic. | Over ten seeds away's keeper takes the goal kick, from `goalKickSpot()` in his goal area, the ball at his feet, and plays it from there. |
 

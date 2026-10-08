@@ -150,6 +150,20 @@ TEST_CASE("Distribution: the keeper throws the ball out to a free centre back",
   }
 }
 
+TEST_CASE("Distribution: a keeper holding the ball facing his own goal turns and throws it out",
+          "[acceptance][distribution]") {
+  for (std::uint64_t seed = 1; seed <= kSeeds; ++seed) {
+    CAPTURE(seed);
+    MatchSimulation simulation = start("keeper-turned", seed);
+    REQUIRE(simulation.state().ball().held);
+    REQUIRE(simulation.state().players()[0].facing.x < 0.0);
+    const Distribution run = distribute(simulation, kHomeKeeper, 0, SimTick(150));
+    REQUIRE(run.pass.has_value());
+    const auto receiver = run.pass.value_or(PassAttempted{}).intendedReceiver;
+    REQUIRE((receiver == PlayerId(2) || receiver == PlayerId(3)));
+  }
+}
+
 TEST_CASE("Distribution: under a high press the keeper goes long", "[acceptance][distribution]") {
   for (std::uint64_t seed = 1; seed <= kSeeds; ++seed) {
     CAPTURE(seed);

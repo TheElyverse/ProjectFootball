@@ -21,6 +21,7 @@ in `sim-match` (`scenarios.hpp`), and `sim-cli --scenario <name>` runs one.
 | `keeper-sweep-claim` | a through ball in behind away's line, the keeper first to it |
 | `keeper-sweep-leave` | a through ball in behind away's line, home's striker first to it |
 | `keeper-build-up` | home's keeper holds the ball and plays out to a free centre back ([goalkeeper distribution](goalkeeper-distribution.md)) |
+| `keeper-turned` | home's keeper holds the ball facing his own goal, turns and plays out |
 | `keeper-long-kick` | home's keeper on the ball under a high press goes long |
 | `goal-kick` | home plays the ball over away's goal line, away's keeper takes the goal kick |
 | `tactic-match` | the reference tactic against itself, lined up for home's kickoff   |
@@ -204,6 +205,8 @@ They show what a [goalkeeper](goalkeeper.md) does with the ball
   without a tactic and stands still, a meter in front of his holding
   midfielder, in the lane from the keeper, and a meter off his wingers and
   striker.
+- **`keeper-turned`**: `keeper-build-up` with the keeper facing his own goal,
+  as after taking a ball that rolled back to him.
 - **`keeper-long-kick`**: the same home side, its keeper with the ball at his
   feet and the reference tactic's directness of 0.5. Away stands in the lanes
   to his centre backs and his holding midfielder, a forward four meters to

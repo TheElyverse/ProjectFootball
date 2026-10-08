@@ -30,12 +30,11 @@ using SimCore::Vec2;
 
 // The owner as the movement system leaves him after this tick: moved and
 // turned with the same pure functions, so ball and carrier stay together.
-[[nodiscard]] PlayerMatchState ownerAfterMove(const PlayerMatchState& owner,
-                                              const Vec2 ballPosition,
+[[nodiscard]] PlayerMatchState ownerAfterMove(const PlayerMatchState& owner, const BallState& ball,
                                               const double secondsPerTick) noexcept {
   const PlayerKinematics moved = stepPlayerMovement(owner, secondsPerTick);
   PlayerMatchState after = owner;
-  after.facing = facingAfterMove(owner, moved, ballPosition);
+  after.facing = facingAfterMove(owner, moved, ball);
   after.position = moved.position;
   after.velocity = moved.velocity;
   return after;
@@ -268,8 +267,7 @@ void scoreGoal(const MatchState& state, const GoalEnd end, const BallState& ball
 // ground, since that is where a player keeps a ball he has.
 void carryBy(const PlayerMatchState& player, const BallRules& rules,
              const MatchStepContext& context, const MatchState& current, MatchStateWriter& next) {
-  const PlayerMatchState owner =
-      ownerAfterMove(player, current.ball().position, context.secondsPerTick());
+  const PlayerMatchState owner = ownerAfterMove(player, current.ball(), context.secondsPerTick());
   next.setBallPosition(carriedBallPosition(owner, rules.physics, current.pitch()));
   next.setBallVelocity(owner.velocity);
   next.setBallHeight(0.0);

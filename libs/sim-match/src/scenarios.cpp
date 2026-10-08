@@ -492,22 +492,32 @@ constexpr Side kClearChanceAway{{{.x = 59.5, .y = 20.0, .facingX = -1.0},
 // meter in front of his holding midfielder, in the lane from the keeper, and
 // a meter off his wingers and striker, so every long ball would be a
 // fifty-fifty.
+constexpr Side kBuildUpHome{{{.x = 3.0, .y = 20.0, .facingX = 1.0},
+                             {.x = 12.0, .y = 10.0, .facingX = 1.0},
+                             {.x = 12.0, .y = 30.0, .facingX = 1.0},
+                             {.x = 20.0, .y = 20.0, .facingX = 1.0},
+                             {.x = 30.0, .y = 5.0, .facingX = 1.0},
+                             {.x = 30.0, .y = 35.0, .facingX = 1.0},
+                             {.x = 38.0, .y = 20.0, .facingX = 1.0}}};
+constexpr Side kBuildUpAway{{{.x = 59.0, .y = 20.0, .facingX = -1.0},
+                             {.x = 19.0, .y = 20.0, .facingX = -1.0},
+                             {.x = 31.0, .y = 5.5, .facingX = -1.0},
+                             {.x = 31.0, .y = 34.5, .facingX = -1.0},
+                             {.x = 39.0, .y = 20.5, .facingX = -1.0},
+                             {.x = 48.0, .y = 12.0, .facingX = -1.0},
+                             {.x = 48.0, .y = 28.0, .facingX = -1.0}}};
+
 [[nodiscard]] std::expected<MatchSetup, std::string> keeperBuildUp(const std::uint64_t seed) {
-  constexpr Side kHome{{{.x = 3.0, .y = 20.0, .facingX = 1.0},
-                        {.x = 12.0, .y = 10.0, .facingX = 1.0},
-                        {.x = 12.0, .y = 30.0, .facingX = 1.0},
-                        {.x = 20.0, .y = 20.0, .facingX = 1.0},
-                        {.x = 30.0, .y = 5.0, .facingX = 1.0},
-                        {.x = 30.0, .y = 35.0, .facingX = 1.0},
-                        {.x = 38.0, .y = 20.0, .facingX = 1.0}}};
-  constexpr Side kAway{{{.x = 59.0, .y = 20.0, .facingX = -1.0},
-                        {.x = 19.0, .y = 20.0, .facingX = -1.0},
-                        {.x = 31.0, .y = 5.5, .facingX = -1.0},
-                        {.x = 31.0, .y = 34.5, .facingX = -1.0},
-                        {.x = 39.0, .y = 20.5, .facingX = -1.0},
-                        {.x = 48.0, .y = 12.0, .facingX = -1.0},
-                        {.x = 48.0, .y = 28.0, .facingX = -1.0}}};
-  return keeperOnTheBall(seed, kHome, kAway, true, 0.1);
+  return keeperOnTheBall(seed, kBuildUpHome, kBuildUpAway, true, 0.1);
+}
+
+// keeper-build-up with home's keeper facing his own goal, as after taking a
+// ball that rolled back to him: every option is behind him, out of sight,
+// until he turns.
+[[nodiscard]] std::expected<MatchSetup, std::string> keeperTurned(const std::uint64_t seed) {
+  Side home = kBuildUpHome;
+  home[0].facingX = -1.0;
+  return keeperOnTheBall(seed, home, kBuildUpAway, true, 0.1);
 }
 
 // Home's keeper has the ball at his feet, his tactic neutral about going
@@ -623,6 +633,10 @@ constexpr std::array kScenarios{
                        .description = "home's keeper holds the ball and plays out to a free "
                                       "centre back",
                        .make = &keeperBuildUp},
+    ScenarioDefinition{.name = "keeper-turned",
+                       .description = "home's keeper holds the ball facing his own goal, turns "
+                                      "and plays out",
+                       .make = &keeperTurned},
     ScenarioDefinition{.name = "keeper-long-kick",
                        .description = "home's keeper on the ball under a high press goes long",
                        .make = &keeperLongKick},
