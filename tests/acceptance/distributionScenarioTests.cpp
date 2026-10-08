@@ -77,16 +77,20 @@ struct Distribution {
   // The option he chose.
   [[nodiscard]] PassCandidate chosen() const {
     REQUIRE(decision.has_value());
-    REQUIRE(decision->chosen.has_value());
-    return decision->candidates.at(decision->chosen.value_or(0));
+    const DecisionDiagnostic made = decision.value_or(DecisionDiagnostic{});
+    REQUIRE(made.chosen.has_value());
+    return made.candidates.at(made.chosen.value_or(0));
   }
 };
 
+// A contest nobody won leaves the ball flying.
 [[nodiscard]] bool settles(const MatchEvent& event) {
+  if (const auto* contest = std::get_if<AerialContest>(&event)) {
+    return contest->winner.has_value();
+  }
   return std::holds_alternative<PassReceived>(event) ||
          std::holds_alternative<PassIntercepted>(event) ||
-         std::holds_alternative<LooseBallRecovered>(event) ||
-         std::holds_alternative<AerialContest>(event);
+         std::holds_alternative<LooseBallRecovered>(event);
 }
 
 // Steps until the keeper's first pass has been settled, or `until`.
@@ -128,7 +132,7 @@ TEST_CASE("Distribution: the keeper throws the ball out to a free centre back",
     REQUIRE(simulation.state().ball().held);
     const Distribution run = distribute(simulation, kHomeKeeper, 0, SimTick(150));
     REQUIRE(run.decision.has_value());
-    REQUIRE(run.decision->held);
+    REQUIRE(run.decision.value_or(DecisionDiagnostic{}).held);
     REQUIRE_FALSE(run.chosen().lofted);
     REQUIRE(run.pass.has_value());
     const auto receiver = run.pass.value_or(PassAttempted{}).intendedReceiver;
@@ -138,7 +142,8 @@ TEST_CASE("Distribution: the keeper throws the ball out to a free centre back",
     REQUIRE(run.released);
     REQUIRE(run.peak == 0.0);
     REQUIRE(run.settled.has_value());
-    const auto* received = std::get_if<PassReceived>(&run.settled.value());
+    const MatchEvent settled = run.settled.value_or(MatchEvent{});
+    const auto* received = std::get_if<PassReceived>(&settled);
     REQUIRE(received != nullptr);
     REQUIRE(received->receiver == receiver);
     REQUIRE_FALSE(simulation.state().tactical(0).handsReleased.has_value());
@@ -152,7 +157,7 @@ TEST_CASE("Distribution: under a high press the keeper goes long", "[acceptance]
     REQUIRE_FALSE(simulation.state().ball().held);
     const Distribution run = distribute(simulation, kHomeKeeper, 0, SimTick(240));
     REQUIRE(run.decision.has_value());
-    REQUIRE_FALSE(run.decision->held);
+    REQUIRE_FALSE(run.decision.value_or(DecisionDiagnostic{}).held);
     REQUIRE(run.chosen().lofted);
     REQUIRE(run.pass.has_value());
     const auto receiver = run.pass.value_or(PassAttempted{}).intendedReceiver;
@@ -178,12 +183,13 @@ TEST_CASE("Distribution: the keeper takes a goal kick from his goal area",
       }
     }
     REQUIRE(restart.has_value());
-    REQUIRE(restart->kind == RestartKind::kGoalKick);
-    REQUIRE(restart->player == kAwayKeeper);
+    const RestartTaken goalKick = restart.value_or(RestartTaken{});
+    REQUIRE(goalKick.kind == RestartKind::kGoalKick);
+    REQUIRE(goalKick.player == kAwayKeeper);
 
     // The ball lies on the front edge of his goal area, at his feet.
     const auto& state = simulation.state();
-    const Vec2 spot = goalKickSpot(state.pitch(), restart->position);
+    const Vec2 spot = goalKickSpot(state.pitch(), goalKick.position);
     REQUIRE(state.pitch().goalArea(GoalEnd::kMaxX).contains(spot));
     REQUIRE(state.ball().position == spot);
     REQUIRE(state.ball().owner == kAwayKeeper);

@@ -189,9 +189,11 @@ std::vector<PassCandidate> generatePassCandidates(const MatchState& state,
   return candidates;
 }
 
+// NOLINTBEGIN(bugprone-easily-swappable-parameters) -- a chance and a distance, as documented.
 void scorePassCandidate(PassCandidate& candidate, const Vec2 from, const TeamSide side,
                         const double arrives, const double nearestOpponent, const Pitch& pitch,
                         const PassScoringConfig& scoring) noexcept {
+  // NOLINTEND(bugprone-easily-swappable-parameters)
   const Vec2 offset = candidate.target - from;
   candidate.interceptionRisk = 1.0 - arrives;
   candidate.completion = arrives * candidate.receiverConfidence;

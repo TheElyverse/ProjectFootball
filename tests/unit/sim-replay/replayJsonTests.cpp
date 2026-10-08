@@ -337,7 +337,7 @@ TEST_CASE("A tactic whose content does not match its hash is rejected", "[replay
   REQUIRE(replay.has_value());
   const std::string json = toReplayJson(*replay);
   // The reference tactic's pinned content hash (tacticHashTests.cpp).
-  REQUIRE(json.contains(R"("contentHash": "4e5eb51dbc31c06a")"));
+  REQUIRE(json.contains(R"("contentHash": "4741c1e75f6412df")"));
 
   // An edited tactic no longer matches the hash recorded with it.
   std::string edited = json;

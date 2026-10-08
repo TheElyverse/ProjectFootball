@@ -21,6 +21,7 @@ using Catch::Matchers::WithinAbs;
 using ElyverseFootball::SimCore::PlayerId;
 using ElyverseFootball::SimCore::SimTick;
 using ElyverseFootball::SimCore::Vec2;
+using ElyverseFootball::SimMatch::BallLanding;
 using ElyverseFootball::SimMatch::BallPhysics;
 using ElyverseFootball::SimMatch::BallState;
 using ElyverseFootball::SimMatch::directnessBias;
@@ -114,22 +115,23 @@ TEST_CASE("A long ball comes down on its target after the flight time", "[distri
     CAPTURE(distance);
     const auto speed = flightSpeed(distance, 3.0, physics);
     REQUIRE(speed.has_value());
-    const auto rise =
-        launchVerticalVelocity({.speed = *speed, .distance = distance, .height = 0.0}, physics);
+    const auto rise = launchVerticalVelocity(
+        {.speed = speed.value_or(0.0), .distance = distance, .height = 0.0}, physics);
     REQUIRE(rise.has_value());
     const BallState ball{.position = {},
-                         .velocity = {.x = *speed, .y = 0.0},
+                         .velocity = {.x = speed.value_or(0.0), .y = 0.0},
                          .owner = std::nullopt,
                          .lastTouch = std::nullopt,
                          .height = 0.0,
-                         .verticalVelocity = *rise,
+                         .verticalVelocity = rise.value_or(0.0),
                          .spin = 0.0};
-    const auto landing = predictBallLanding(ball, physics);
-    REQUIRE(landing.has_value());
-    REQUIRE_THAT(landing->position.x, WithinAbs(distance, 1e-6));
-    REQUIRE_THAT(landing->seconds, WithinAbs(3.0, 1e-6));
+    const auto predicted = predictBallLanding(ball, physics);
+    REQUIRE(predicted.has_value());
+    const BallLanding landing = predicted.value_or(BallLanding{});
+    REQUIRE_THAT(landing.position.x, WithinAbs(distance, 1e-6));
+    REQUIRE_THAT(landing.seconds, WithinAbs(3.0, 1e-6));
     // High enough to come down on a head, not along the grass.
-    REQUIRE(landing->apexHeight > 5.0);
+    REQUIRE(landing.apexHeight > 5.0);
   }
   REQUIRE_FALSE(flightSpeed(0.0, 3.0, physics).has_value());
   REQUIRE_FALSE(flightSpeed(30.0, 0.0, physics).has_value());

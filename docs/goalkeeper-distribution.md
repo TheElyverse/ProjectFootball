@@ -161,8 +161,8 @@ keeper and which is 0 in the configuration.
 
 | Scenario           | Setup | Checked |
 |--------------------|-------|---------|
-| `keeper-build-up`  | Home's keeper holds the ball at his goal, his tactic's directness 0.1; his centre backs stand wide and free; away, without a tactic, stands a meter off his holding midfielder, wingers and striker. | Over ten seeds he throws, along the ground, to a centre back, who receives it; his hands are barred from the throw until the centre back has it. |
-| `keeper-long-kick` | Home's keeper has the ball at his feet, directness 0.5; away stands in the lanes to his centre backs and his holding midfielder, a forward four meters from him, its last two defenders deep; his wingers and striker wait beyond the longest ground pass. | Over ten seeds he kicks long to a winger or the striker, the ball goes more than five meters up, and somebody gets to it. |
+| `keeper-build-up`  | Home's keeper holds the ball at his goal, his tactic's directness 0.1; his centre backs stand wide and free; away, without a tactic, stands a meter in front of his holding midfielder, in the lane from the keeper, and a meter off his wingers and striker. | Over ten seeds he throws, along the ground, to a centre back, who receives it; his hands are barred from the throw until the centre back has it. |
+| `keeper-long-kick` | Home's keeper has the ball at his feet, directness 0.5; away stands in the lanes to his centre backs and his holding midfielder, a forward four meters to his side, out of the way of a long ball, its last two defenders deep; his wingers and striker wait beyond the longest ground pass. | Over ten seeds he kicks long to a winger or the striker, the ball goes more than five meters up, and somebody gets to it. |
 | `goal-kick`        | Home player 1 plays the ball wide over away's goal line; restarts are on; away plays the reference tactic. | Over ten seeds away's keeper takes the goal kick, from `goalKickSpot()` in his goal area, the ball at his feet, and plays it from there. |
 
 `tests/acceptance/distributionScenarioTests.cpp` holds the scenario checks;

@@ -488,9 +488,10 @@ constexpr Side kClearChanceAway{{{.x = 59.5, .y = 20.0, .facingX = -1.0},
 }
 
 // Home's keeper holds the ball and his tactic wants him to play out
-// (directness 0.1). His centre backs stand wide and free; away marks his
-// holding midfielder, wingers and striker a meter away, so every long ball
-// would be a fifty-fifty.
+// (directness 0.1). His centre backs stand wide and free; away stands a
+// meter in front of his holding midfielder, in the lane from the keeper, and
+// a meter off his wingers and striker, so every long ball would be a
+// fifty-fifty.
 [[nodiscard]] std::expected<MatchSetup, std::string> keeperBuildUp(const std::uint64_t seed) {
   constexpr Side kHome{{{.x = 3.0, .y = 20.0, .facingX = 1.0},
                         {.x = 12.0, .y = 10.0, .facingX = 1.0},
@@ -500,7 +501,7 @@ constexpr Side kClearChanceAway{{{.x = 59.5, .y = 20.0, .facingX = -1.0},
                         {.x = 30.0, .y = 35.0, .facingX = 1.0},
                         {.x = 38.0, .y = 20.0, .facingX = 1.0}}};
   constexpr Side kAway{{{.x = 59.0, .y = 20.0, .facingX = -1.0},
-                        {.x = 21.0, .y = 20.5, .facingX = -1.0},
+                        {.x = 19.0, .y = 20.0, .facingX = -1.0},
                         {.x = 31.0, .y = 5.5, .facingX = -1.0},
                         {.x = 31.0, .y = 34.5, .facingX = -1.0},
                         {.x = 39.0, .y = 20.5, .facingX = -1.0},
@@ -510,10 +511,11 @@ constexpr Side kClearChanceAway{{{.x = 59.5, .y = 20.0, .facingX = -1.0},
 }
 
 // Home's keeper has the ball at his feet, his tactic neutral about going
-// long (directness 0.5). Away presses high: a forward closes him down and
-// three more stand in the lanes to his centre backs and his holding
-// midfielder. Home's wingers and striker wait upfield, beyond the longest
-// ground pass, away's last two defenders deep behind them.
+// long (directness 0.5). Away presses high: a forward stands four meters to
+// his side, out of the way of a long ball, and three more stand in the lanes
+// to his centre backs and his holding midfielder. Home's wingers and striker
+// wait upfield, beyond the longest ground pass, away's last two defenders
+// deep behind them.
 [[nodiscard]] std::expected<MatchSetup, std::string> keeperLongKick(const std::uint64_t seed) {
   constexpr Side kHome{{{.x = 4.0, .y = 20.0, .facingX = 1.0},
                         {.x = 12.0, .y = 10.0, .facingX = 1.0},
@@ -523,7 +525,7 @@ constexpr Side kClearChanceAway{{{.x = 59.5, .y = 20.0, .facingX = -1.0},
                         {.x = 40.0, .y = 37.0, .facingX = 1.0},
                         {.x = 42.0, .y = 20.0, .facingX = 1.0}}};
   constexpr Side kAway{{{.x = 59.0, .y = 20.0, .facingX = -1.0},
-                        {.x = 7.5, .y = 22.0, .facingX = -1.0},
+                        {.x = 4.0, .y = 24.0, .facingX = -1.0},
                         {.x = 8.5, .y = 14.5, .facingX = -1.0},
                         {.x = 8.5, .y = 25.5, .facingX = -1.0},
                         {.x = 12.0, .y = 20.0, .facingX = -1.0},

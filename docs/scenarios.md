@@ -201,13 +201,14 @@ They show what a [goalkeeper](goalkeeper.md) does with the ball
   order, so player 1 is its keeper, at his goal with the ball in his hands from
   the start; his tactic's directness is 0.1, and the tactic is named
   "reference, plays out". His centre backs stand wide and free. Away plays
-  without a tactic and stands still, a meter off his holding midfielder,
-  wingers and striker.
+  without a tactic and stands still, a meter in front of his holding
+  midfielder, in the lane from the keeper, and a meter off his wingers and
+  striker.
 - **`keeper-long-kick`**: the same home side, its keeper with the ball at his
   feet and the reference tactic's directness of 0.5. Away stands in the lanes
-  to his centre backs and his holding midfielder, a forward four meters from
-  him, and its last two defenders deep behind home's wingers and striker, who
-  wait beyond the longest ground pass.
+  to his centre backs and his holding midfielder, a forward four meters to
+  his side, out of the way of a long ball, and its last two defenders deep
+  behind home's wingers and striker, who wait beyond the longest ground pass.
 - **`goal-kick`**: away plays the reference tactic, home without one;
   restarts are on. Home player 1, wide of away's goal, plays the ball over
   its goal line at tick 1, and away's keeper, player 8, takes the goal kick.

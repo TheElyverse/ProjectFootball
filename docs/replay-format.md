@@ -317,7 +317,7 @@ validation leaves no file behind.
     "score": { "home": 0, "away": 0 },
         "tactics": {
       "home": {
-        "contentHash": "4e5eb51dbc31c06a",
+        "contentHash": "4741c1e75f6412df",
         "tactic": { "format": "elyverse-tactic", "version": 3, "name": "reference" }
       },
       "away": null
