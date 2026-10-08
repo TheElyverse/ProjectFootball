@@ -462,23 +462,25 @@ struct FacingKeeper {
 }
 
 // The free ball passing the keeper who faces it, where it passes his plane:
-// he holds it, it comes off him, or it goes past. A keeper who stood set is
-// down from then on; one who dived is down as his dive has it. Returns
-// whether that was the ball's tick: held, or off him and on for the rest of
-// the tick; one that went past flies on as if he were not there.
+// he holds it, it comes off him, or it goes past. The ball's flight began
+// `start` into the tick, and the passage is timed from there. A keeper who
+// stood set is down from then on; one who dived is down as his dive has it.
+// Returns whether that was the ball's tick: held, or off him and on for the
+// rest of the tick; one that went past flies on as if he were not there.
 [[nodiscard]] bool meetKeeper(const FacingKeeper& keeper, const BallPassage& passage,
-                              FreeBall& free, const BallRules& rules,
+                              const double start, FreeBall& free, const BallRules& rules,
                               const MatchStepContext& context, const MatchState& current,
                               MatchStateWriter& next) {
   const KeeperDive& dive = keeper.dive;
   const PlayerMatchState& player = current.players()[keeper.index];
   const double since =
       static_cast<double>(context.tick().value() - dive.tick.value()) * context.secondsPerTick();
-  const double feet = feetAt(dive, since + passage.seconds, player.attributes);
-  const PlanePoint hands = handsAt(dive, since + passage.seconds, player.attributes, rules.saves);
+  const double passed = start + passage.seconds;
+  const double feet = feetAt(dive, since + passed, player.attributes);
+  const PlanePoint hands = handsAt(dive, since + passed, player.attributes, rules.saves);
   if (!keeper.dived) {
     KeeperDive down = dive;
-    down.landSeconds = passage.seconds;
+    down.landSeconds = passed;
     next.tactical(keeper.index).dive = down;
   }
   const ShotRecord& shot = keeper.shot;
@@ -543,10 +545,48 @@ struct FacingKeeper {
   const auto heading = predictGoalLineCrossing(from, rules.physics, current.pitch(), end);
   const bool behind = heading && !goal.framesPoint(heading->y, heading->height);
   record(behind ? SaveResult::kParriedBehind : SaveResult::kParriedIntoPlay);
-  free.step = stepFreeBallTimed(from, rules.physics, current.pitch(),
-                                context.secondsPerTick() - passage.seconds);
+  free.step =
+      stepFreeBallTimed(from, rules.physics, current.pitch(), context.secondsPerTick() - passed);
   settleFreeBall(from, free, rules, context, current, next);
   return true;
+}
+
+// The ball as it comes off the goal frame, if its flight hits it, and its
+// step on from there for the rest of the tick; the flight began `start` into
+// the tick. A shot that hits the frame records ShotHitWoodwork.
+[[nodiscard]] BallState offTheFrame(FreeBall& free, const double start, const BallRules& rules,
+                                    const MatchStepContext& context, const Pitch& pitch) {
+  if (!free.frameHit) {
+    return free.ball;
+  }
+  const BallState from = free.frameHit->rebound;
+  if (free.shot) {
+    context.record(ShotHitWoodwork{.tick = context.tick(),
+                                   .shooter = free.shot->shooter,
+                                   .shotTick = free.shot->tick,
+                                   .part = free.frameHit->part,
+                                   .position = from.position,
+                                   .height = from.height});
+  }
+  free.step = stepFreeBallTimed(from, rules.physics, pitch,
+                                context.secondsPerTick() - start - free.frameHit->seconds);
+  return from;
+}
+
+// The ball flying on from `from`, `start` into the tick, for the rest of it:
+// the keeper who faces it meets it where it passes him, and it comes off the
+// goal frame, but no other player gets to it before the next tick.
+void flyOn(const BallState& from, const double start, FreeBall& free, const BallRules& rules,
+           const MatchStepContext& context, const MatchState& current, MatchStateWriter& next) {
+  free = freeBallOf(from, free.shot, rules, current.pitch(), context.secondsPerTick() - start);
+  if (const auto keeper = keeperFacing(free, rules, context, current, next)) {
+    if (const auto passage = findPlanePassage(from, keeper->dive, rules.physics, free.step.seconds);
+        passage && meetKeeper(*keeper, *passage, start, free, rules, context, current, next)) {
+      return;
+    }
+  }
+  const BallState after = offTheFrame(free, start, rules, context, current.pitch());
+  settleFreeBall(after, free, rules, context, current, next);
 }
 
 // The ball off the head of the winner of an aerial contest -- or a keeper's
@@ -554,7 +594,7 @@ struct FacingKeeper {
 // ball where he met it `moment` into the tick. He is its last touch: a shot
 // is a new shot, a pass or a knock-down a pass, a clearance or a punch
 // loose; an open shot he got to has become what it will be. It flies on for
-// the rest of the tick.
+// the rest of the tick (flyOn()).
 void playHeader(const HeaderIntent& intent, const BallClaim& claim, const AerialChallenger& winner,
                 const AerialJump& jump, const BallState& there, const double moment, FreeBall& free,
                 const BallRules& rules, const MatchStepContext& context, const MatchState& current,
@@ -604,9 +644,7 @@ void playHeader(const HeaderIntent& intent, const BallClaim& claim, const Aerial
                                  .target = intent.target,
                                  .speed = strike.velocity.length()});
   }
-  free.step =
-      stepFreeBallTimed(from, rules.physics, current.pitch(), context.secondsPerTick() - moment);
-  settleFreeBall(from, free, rules, context, current, next);
+  flyOn(from, moment, free, rules, context, current, next);
 }
 
 // The high ball `first` got to first in this tick: everyone near enough goes
@@ -724,7 +762,7 @@ void moveFreeBall(const BallState& ball, const BallRules& rules, const MatchStep
     }
     passage = findPlanePassage(ball, keeper->dive, rules.physics,
                                free.step.seconds * (first ? first->contact.contactFraction : 1.0));
-    return passage && meetKeeper(*keeper, *passage, free, rules, context, current, next);
+    return passage && meetKeeper(*keeper, *passage, 0.0, free, rules, context, current, next);
   };
   if (meetsKeeper(inTheAir ? aerial : contact)) {
     return;
@@ -750,18 +788,8 @@ void moveFreeBall(const BallState& ball, const BallRules& rules, const MatchStep
     const double moment = contact->contact.contactFraction * free.step.seconds;
     from = deflectedBy(*contact, free, rules, context, next);
     free.step = stepFreeBallTimed(from, rules.physics, pitch, secondsPerTick - moment);
-  } else if (free.frameHit) {
-    from = free.frameHit->rebound;
-    if (free.shot) {
-      context.record(ShotHitWoodwork{.tick = context.tick(),
-                                     .shooter = free.shot->shooter,
-                                     .shotTick = free.shot->tick,
-                                     .part = free.frameHit->part,
-                                     .position = from.position,
-                                     .height = from.height});
-    }
-    free.step =
-        stepFreeBallTimed(from, rules.physics, pitch, secondsPerTick - free.frameHit->seconds);
+  } else {
+    from = offTheFrame(free, 0.0, rules, context, pitch);
   }
   settleFreeBall(from, free, rules, context, current, next);
 }

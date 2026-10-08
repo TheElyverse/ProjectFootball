@@ -61,7 +61,8 @@ struct WoodworkConfig;
 //      feet is contested in the air (findAerialContact()): everyone near it
 //      goes up, and the winner heads it -- at goal, to a teammate or clear --
 //      or, a keeper with his hands, catches or punches it; nobody may reach it
-//      at all, and it flies on past them (docs/aerial-duels.md).
+//      at all, and it flies on past them (docs/aerial-duels.md). A headed ball
+//      meets only the keeper and the goal frame before the next tick.
 //   4. A ball that leaves the pitch over a goal line, between the posts and
 //      under the crossbar, is a goal: the score goes up and GoalScored is
 //      recorded. A shot gets its one ShotResolved when the ball goes in, a

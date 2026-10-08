@@ -168,7 +168,9 @@ What the ball is afterwards follows the play:
 
 A shot still open when the ball was headed or punched has become what it will
 be, as if the player had taken it ([shooting](shooting.md#outcomes)). The ball
-flies on from the head for the rest of the tick.
+flies on from the head for the rest of the tick: the keeper who faces a
+header shot meets it where it passes him, and it comes off the goal frame,
+but nobody else gets to it before the next tick.
 
 ## Events
 
