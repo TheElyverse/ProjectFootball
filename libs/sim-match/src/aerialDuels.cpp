@@ -142,12 +142,27 @@ BallReach aerialReach(const MatchState& state, const BallState& ball, const std:
           .above = reception.controlHeight};
 }
 
+bool mayRiseAbove(const BallState& ball, const double height, const BallPhysics& physics) noexcept {
+  if (ball.height > height) {
+    return true;
+  }
+  const double rising = ball.verticalVelocity;
+  if (rising <= 0.0) {
+    return false;
+  }
+  return physics.gravity <= 0.0 ||
+         ball.height + ((rising * rising) / (2.0 * physics.gravity)) > height;
+}
+
 std::optional<BallClaim> findAerialContact(const MatchState& state, const BallState& ball,
                                            const BallStep& moved, const BallPhysics& physics,
                                            const SimCore::SimTick now, const double secondsPerTick,
                                            const ReceptionConfig& reception,
                                            const AerialConfig& config,
                                            const std::optional<std::size_t> excluded) {
+  if (!mayRiseAbove(ball, reception.controlHeight, physics)) {
+    return std::nullopt;
+  }
   return findFirstReach(state, ball, moved, physics, now, secondsPerTick, reception, excluded,
                         [&](const std::size_t playerIndex) -> std::optional<BallReach> {
                           if (isInTheAir(state, playerIndex, now, secondsPerTick, config)) {

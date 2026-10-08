@@ -62,6 +62,7 @@ using ElyverseFootball::SimMatch::makePlayerMovementSystem;
 using ElyverseFootball::SimMatch::MatchEvent;
 using ElyverseFootball::SimMatch::MatchSimulation;
 using ElyverseFootball::SimMatch::MatchState;
+using ElyverseFootball::SimMatch::mayRiseAbove;
 using ElyverseFootball::SimMatch::PassAttempted;
 using ElyverseFootball::SimMatch::PassConfig;
 using ElyverseFootball::SimMatch::Pitch;
@@ -347,6 +348,27 @@ TEST_CASE("No header leaves faster than maxHeaderSpeed", "[aerialDuels]") {
               config.maxHeaderSpeed + 1e-9);
     }
   }
+}
+
+TEST_CASE("Only a ball that may rise above a height is searched for in the air", "[aerialDuels]") {
+  const BallPhysics physics;
+  BallState ball = ballAt({.x = 50.0, .y = 34.0});
+  ball.velocity = {.x = 10.0, .y = 0.0};
+  // Rolling, or coming down from below it: never.
+  REQUIRE_FALSE(mayRiseAbove(ball, 1.0, physics));
+  ball.height = 0.9;
+  ball.verticalVelocity = -2.0;
+  REQUIRE_FALSE(mayRiseAbove(ball, 1.0, physics));
+  // Rising, but not that far: never.
+  ball.height = 0.5;
+  ball.verticalVelocity = 1.0;
+  REQUIRE_FALSE(mayRiseAbove(ball, 1.0, physics));
+  // Rising far enough, or already above it.
+  ball.verticalVelocity = 5.0;
+  REQUIRE(mayRiseAbove(ball, 1.0, physics));
+  ball.height = 1.5;
+  ball.verticalVelocity = -2.0;
+  REQUIRE(mayRiseAbove(ball, 1.0, physics));
 }
 
 TEST_CASE("A keeper holds a ball nobody challenged him for, and drops some he was",

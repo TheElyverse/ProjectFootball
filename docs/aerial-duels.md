@@ -38,7 +38,9 @@ player reaching it as `aerialReach()` says:
   little too high for him, and does not get to it.
 
 A ball that a player gets to in the air at the same moment as, or before,
-anyone takes one at his feet, is contested. A keeper's hands used to take every
+anyone takes one at his feet, is contested. A ball that never rises above
+`controlHeight` in the tick — on the grass, or coming down from no higher —
+is not searched at all (`mayRiseAbove()`). A keeper's hands used to take every
 ball up to `handsHeight` in his area; a ball above `controlHeight` there is
 now contested like any other, and uncontested he still holds it.
 

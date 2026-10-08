@@ -152,9 +152,17 @@ struct AerialContestant {
                                     std::size_t playerIndex, const ReceptionConfig& reception,
                                     const AerialConfig& config);
 
+// Whether the ball may be higher than `height` at any moment of its flight
+// from here on: its peak without drag, which only lowers it, is, and no
+// bounce takes it higher than it came down from.
+[[nodiscard]] bool mayRiseAbove(const BallState& ball, double height,
+                                const BallPhysics& physics) noexcept;
+
 // The first player to get to a high ball on its way this tick, as
 // findFirstReach() finds him with aerialReach(): everyone who
-// mayCompete() and is not in the air. Empty if nobody gets near it.
+// mayCompete() and is not in the air. Empty if nobody gets near it, and
+// without a search for a ball that never rises above controlHeight
+// (mayRiseAbove()).
 [[nodiscard]] std::optional<BallClaim> findAerialContact(
     const MatchState& state, const BallState& ball, const BallStep& moved,
     const BallPhysics& physics, SimCore::SimTick now, double secondsPerTick,
