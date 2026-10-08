@@ -4,6 +4,7 @@
 
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
+#include <cmath>
 #include <cstdint>
 #include <optional>
 #include <stdexcept>
@@ -46,8 +47,10 @@ using ElyverseFootball::SimMatch::BallPhysics;
 using ElyverseFootball::SimMatch::BallState;
 using ElyverseFootball::SimMatch::BallTouch;
 using ElyverseFootball::SimMatch::duelUtility;
+using ElyverseFootball::SimMatch::executeHeader;
 using ElyverseFootball::SimMatch::GoalScored;
 using ElyverseFootball::SimMatch::headerErrorFactor;
+using ElyverseFootball::SimMatch::HeaderIntent;
 using ElyverseFootball::SimMatch::HeaderOption;
 using ElyverseFootball::SimMatch::headerOptions;
 using ElyverseFootball::SimMatch::holdChance;
@@ -321,6 +324,29 @@ TEST_CASE("A mistimed jump widens the header's errors", "[aerialDuels]") {
   REQUIRE_THAT(headerErrorFactor(0.5, 1.0, config),
                WithinAbs(1.0 + config.mistimedErrorFactor, 1e-12));
   REQUIRE(headerErrorFactor(1.0, 0.0, config) < headerErrorFactor(0.5, 0.0, config));
+}
+
+TEST_CASE("No header leaves faster than maxHeaderSpeed", "[aerialDuels]") {
+  AerialConfig config;
+  config.speedError = 0.9;
+  const PlayerMatchState player = playerAt(1, TeamSide::kHome, {.x = 50.0, .y = 34.0});
+  BallState ball = ballAt({.x = 50.0, .y = 34.0});
+  ball.height = 2.0;
+  // A clearance as hard as a header goes, and one so far the drag stops it
+  // short and it goes up at 45 degrees.
+  for (const double distance : {30.0, 500.0}) {
+    const HeaderIntent intent{.play = AerialPlay::kClearance,
+                              .target = {.x = 50.0 + distance, .y = 34.0},
+                              .height = 0.0,
+                              .speed = config.maxHeaderSpeed,
+                              .receiver = std::nullopt};
+    for (std::uint64_t seed = 0; seed < 200; ++seed) {
+      RandomNumberGenerator random(seed);
+      const auto strike = executeHeader(intent, ball, player, 3.0, config, BallPhysics{}, random);
+      REQUIRE(std::hypot(strike.velocity.length(), strike.verticalVelocity) <=
+              config.maxHeaderSpeed + 1e-9);
+    }
+  }
 }
 
 TEST_CASE("A keeper holds a ball nobody challenged him for, and drops some he was",

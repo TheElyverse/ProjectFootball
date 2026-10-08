@@ -341,14 +341,18 @@ HeaderStrike executeHeader(const HeaderIntent& intent, const BallState& ball,
   strike.target = intent.target + (Vec2{.x = -line.y, .y = line.x} * across);
   strike.height = std::max(0.0, intent.height + upward);
   const Vec2 offset = strike.target - ball.position;
-  const double speed = std::min(intent.speed * strength, kMaxBallSpeed);
-  strike.velocity = unitOr(offset, player.facing) * speed;
+  const double fastest = std::min(config.maxHeaderSpeed, kMaxBallSpeed);
+  const double speed = std::min(intent.speed, fastest);
   // Down to a point below the ball is a launch with a negative height; one
   // the drag stops short of goes up at 45 degrees, the farthest it can.
   const Launch launch{
       .speed = speed, .distance = offset.length(), .height = strike.height - ball.height};
-  strike.verticalVelocity = std::clamp(launchVerticalVelocity(launch, physics).value_or(speed),
-                                       -kMaxBallSpeed, kMaxBallSpeed);
+  const double lift = launchVerticalVelocity(launch, physics).value_or(speed);
+  // The pace strays along the ground and up alike, but never past fastest.
+  const double pace = std::hypot(speed, lift) * strength;
+  const double scale = pace > fastest ? strength * fastest / pace : strength;
+  strike.velocity = unitOr(offset, player.facing) * (speed * scale);
+  strike.verticalVelocity = lift * scale;
   return strike;
 }
 

@@ -142,6 +142,10 @@ height there (`launchVerticalVelocity()` from the ball's own height, so a
 header down is a launch below it), strayed across and up by a triangular
 error of `directionError` (0.06 m per meter to the aim) and in pace by a
 uniform one of `speedError` (10 %) — five draws from `kExecution`, always.
+The flight is planned at the intended speed, at most `maxHeaderSpeed`; one
+the drag stops short of goes up at 45 degrees. The pace error scales it along
+the ground and up alike, and a header never leaves faster than
+`maxHeaderSpeed` in all.
 Both are scaled by `headerErrorFactor()`: `skillErrorFactor()` of his
 heading, times `1 + mistimedErrorFactor · mistiming` — a fully mistimed header
 is three times as wide. The ball leaves without spin.
@@ -201,7 +205,7 @@ events of the play follow it.
 | `passWeight`          | 0.6     | what a pass to an open teammate is worth                        |
 | `clearanceZone`       | 35 m    | from his own goal, how far a clearance is worth anything        |
 | `clearanceDistance`   | 30 m    | how far up the pitch he clears                                  |
-| `maxHeaderSpeed`      | 18 m/s  | no header leaves faster                                         |
+| `maxHeaderSpeed`      | 18 m/s  | no header leaves faster, along the ground and up together       |
 | `decisionTemperature` | 0.15    | how surely he picks the best header                             |
 | `directionError`      | 0.06    | how far an average header strays per meter to his aim           |
 | `speedError`          | 0.1     | how much harder or softer                                       |

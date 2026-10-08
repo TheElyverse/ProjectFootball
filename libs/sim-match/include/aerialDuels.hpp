@@ -74,7 +74,7 @@ struct AerialConfig {
   // within clearanceZone, heading it clearanceDistance up the pitch.
   double clearanceZone = 35.0;      // m
   double clearanceDistance = 30.0;  // m
-  // No header leaves faster than this.
+  // No header leaves faster than this, along the ground and up together.
   double maxHeaderSpeed = 18.0;  // m/s
   double decisionTemperature = 0.15;
   // An average header goes up to directionError meters off his aim per
@@ -277,10 +277,12 @@ struct HeaderStrike {
 
 // The execution half of a header, from the ball where it meets the head:
 // the ball leaves toward the target on the flight that brings it to the
-// intended height there, its aim strayed across and up by a triangular
-// error and its pace by a uniform one, all widened by errorFactor -- always
-// five draws from random. A target on the ball itself is headed along the
-// player's facing.
+// intended height there at the intended speed -- at most maxHeaderSpeed --,
+// its aim strayed across and up by a triangular error and its pace by a
+// uniform one, all widened by errorFactor -- always five draws from random.
+// A flight the drag stops short of goes up at 45 degrees, and however its
+// pace strays, it leaves no faster than maxHeaderSpeed in all. A target on
+// the ball itself is headed along the player's facing.
 [[nodiscard]] HeaderStrike executeHeader(const HeaderIntent& intent, const BallState& ball,
                                          const PlayerMatchState& player, double errorFactor,
                                          const AerialConfig& config, const BallPhysics& physics,
