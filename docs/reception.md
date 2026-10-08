@@ -42,7 +42,8 @@ player against the ball:
   the ball in it, at the start of the tick reaches it with his hands: within
   `handsRadius` (1.2 m) and up to `handsHeight` (2.2 m) instead of the feet's
   `controlRadius` and `controlHeight`; a ball above `controlHeight` he goes
-  up for, and gets to with his hands, in the air. Outside his area he has his
+  up for, and gets to with his hands where he and it are in his area when he
+  meets it, in the air ([aerial duels](aerial-duels.md)). Outside his area he has his
   feet like everyone else ([goalkeeper](goalkeeper.md)).
 - **Competing claims.** The earliest contact in the tick wins. At the same
   moment the player who comes closer wins, and at the same distance the lower

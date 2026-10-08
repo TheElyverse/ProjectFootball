@@ -60,6 +60,11 @@ using SimCore::Vec2;
   return nearest;
 }
 
+// Where this many shares of the way from `from` to `to` is.
+[[nodiscard]] Vec2 along(const Vec2 from, const Vec2 to, const double fraction) noexcept {
+  return from + ((to - from) * fraction);
+}
+
 }  // namespace
 
 void validate(const AerialConfig& config) {
@@ -132,9 +137,8 @@ bool isInTheAir(const MatchState& state, const std::size_t playerIndex, const Si
                        config.landingSeconds;
 }
 
-BallReach aerialReach(const MatchState& state, const BallState& ball, const std::size_t playerIndex,
+BallReach aerialReach(const MatchState& state, const std::size_t playerIndex, const bool hands,
                       const ReceptionConfig& reception, const AerialConfig& config) {
-  const bool hands = hasHands(state, ball, playerIndex);
   const PlayerAttributes& attributes = state.players()[playerIndex].attributes;
   return {.radius = hands ? reception.handsRadius : config.headRadius,
           .height = standingReach(hands, reception, config) + jumpRise(attributes.jumping, config) +
@@ -163,12 +167,27 @@ std::optional<BallClaim> findAerialContact(const MatchState& state, const BallSt
   if (!mayRiseAbove(ball, reception.controlHeight, physics)) {
     return std::nullopt;
   }
+  // A keeper's hands count where they first get to the ball: in his area,
+  // or not at all.
+  const auto handsOnContact = [&](const std::size_t playerIndex) {
+    if (!isGoalkeeper(state, playerIndex)) {
+      return false;
+    }
+    const PlayerMatchState& player = state.players()[playerIndex];
+    const Vec2 to = stepPlayerMovement(player, secondsPerTick).position;
+    const auto contact =
+        findContact(player.position, to, ball.position, moved.ball.position, reception.handsRadius);
+    const double fraction = contact ? contact->contactFraction : 0.0;
+    return hasHands(state, playerIndex, along(player.position, to, fraction),
+                    along(ball.position, moved.ball.position, fraction));
+  };
   return findFirstReach(state, ball, moved, physics, now, secondsPerTick, reception, excluded,
                         [&](const std::size_t playerIndex) -> std::optional<BallReach> {
                           if (isInTheAir(state, playerIndex, now, secondsPerTick, config)) {
                             return std::nullopt;
                           }
-                          return aerialReach(state, ball, playerIndex, reception, config);
+                          return aerialReach(state, playerIndex, handsOnContact(playerIndex),
+                                             reception, config);
                         });
 }
 
@@ -178,7 +197,7 @@ std::vector<AerialChallenger> findChallengers(
     const ReceptionConfig& reception, const AerialConfig& config,
     const std::optional<std::size_t> excluded) {
   const double fraction = first.contact.contactFraction;
-  const Vec2 where = ball.position + ((moved.ball.position - ball.position) * fraction);
+  const Vec2 where = along(ball.position, moved.ball.position, fraction);
   const double height = ballHeightAfter(ball, physics, fraction * moved.seconds);
   const Vec2 way = unitOr(ball.velocity, Vec2{});
   std::vector<AerialChallenger> challengers;
@@ -190,14 +209,14 @@ std::vector<AerialChallenger> findChallengers(
          isInTheAir(state, playerIndex, now, secondsPerTick, config))) {
       continue;
     }
-    const BallReach reach = aerialReach(state, ball, playerIndex, reception, config);
-    const PlayerKinematics stepped = stepPlayerMovement(player, secondsPerTick);
-    const Vec2 position = player.position + ((stepped.position - player.position) * fraction);
+    const Vec2 position =
+        along(player.position, stepPlayerMovement(player, secondsPerTick).position, fraction);
+    const bool hands = hasHands(state, playerIndex, position, where);
+    const BallReach reach = aerialReach(state, playerIndex, hands, reception, config);
     const double away = SimCore::distance(position, where);
     if (!isFirst && (away > config.contestRadius || height > reach.height)) {
       continue;
     }
-    const bool hands = hasHands(state, ball, playerIndex);
     challengers.push_back(
         {.playerIndex = playerIndex,
          .standing = standingReach(hands, reception, config),

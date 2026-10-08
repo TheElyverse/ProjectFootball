@@ -111,10 +111,11 @@ struct BallClaim {
                               std::size_t playerIndex, SimCore::SimTick now, double secondsPerTick,
                               const ReceptionConfig& config, std::optional<std::size_t> excluded);
 
-// Whether the player at this index gets to the ball with his hands: he is
-// the goalkeeper, and he and the ball are in his own penalty area.
-[[nodiscard]] bool hasHands(const MatchState& state, const BallState& ball,
-                            std::size_t playerIndex);
+// Whether the player at this index gets to the ball with his hands, he at
+// playerPosition and the ball at ballPosition: he is the goalkeeper, and
+// both are in his own penalty area.
+[[nodiscard]] bool hasHands(const MatchState& state, std::size_t playerIndex,
+                            SimCore::Vec2 playerPosition, SimCore::Vec2 ballPosition);
 
 // The first player to reach the ball, each as reachOf says of his index --
 // nobody whose reach is empty, and only those who mayCompete(). The

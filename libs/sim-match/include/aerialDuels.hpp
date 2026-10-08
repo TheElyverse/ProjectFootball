@@ -145,12 +145,11 @@ struct AerialContestant {
                               const AerialConfig& config);
 
 // How far and how high the player at this index gets to a high ball at best:
-// with his hands if hasHands(), with his head otherwise, his jump timed
+// with his hands if `hands`, with his head otherwise, his jump timed
 // exactly, plus attemptMargin; only above controlHeight, where the feet do
 // not take it.
-[[nodiscard]] BallReach aerialReach(const MatchState& state, const BallState& ball,
-                                    std::size_t playerIndex, const ReceptionConfig& reception,
-                                    const AerialConfig& config);
+[[nodiscard]] BallReach aerialReach(const MatchState& state, std::size_t playerIndex, bool hands,
+                                    const ReceptionConfig& reception, const AerialConfig& config);
 
 // Whether the ball may be higher than `height` at any moment of its flight
 // from here on: its peak without drag, which only lowers it, is, and no
@@ -160,9 +159,9 @@ struct AerialContestant {
 
 // The first player to get to a high ball on its way this tick, as
 // findFirstReach() finds him with aerialReach(): everyone who
-// mayCompete() and is not in the air. Empty if nobody gets near it, and
-// without a search for a ball that never rises above controlHeight
-// (mayRiseAbove()).
+// mayCompete() and is not in the air; a keeper with his hands if hasHands()
+// where his hands first get to it. Empty if nobody gets near it, and without
+// a search for a ball that never rises above controlHeight (mayRiseAbove()).
 [[nodiscard]] std::optional<BallClaim> findAerialContact(
     const MatchState& state, const BallState& ball, const BallStep& moved,
     const BallPhysics& physics, SimCore::SimTick now, double secondsPerTick,
@@ -185,7 +184,8 @@ struct AerialChallenger {
 // Everyone who goes up for the ball the first contact found: he, and every
 // other player who may compete for it, is not in the air, is within
 // contestRadius of it by that moment and whose aerialReach() gets as high as
-// it is there, in player order.
+// it is there, in player order. Each has his hands if hasHands() where he
+// and the ball are at that moment.
 [[nodiscard]] std::vector<AerialChallenger> findChallengers(
     const MatchState& state, const BallState& ball, const BallStep& moved, const BallClaim& first,
     const BallPhysics& physics, SimCore::SimTick now, double secondsPerTick,

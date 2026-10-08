@@ -32,8 +32,9 @@ player reaching it as `aerialReach()` says:
   `headHeight` (1.9 m, the ball's centre as he meets it standing) plus his
   jump;
 - **with his hands**, if he is the goalkeeper and he and the ball are in his
-  own penalty area (`hasHands()`): within reception's `handsRadius` (1.2 m), up
-  to its `handsHeight` (2.2 m) plus his jump;
+  own penalty area where his hands first get to it (`hasHands()`): within
+  reception's `handsRadius` (1.2 m), up to its `handsHeight` (2.2 m) plus his
+  jump;
 - and up to `attemptMargin` (0.3 m) beyond that: a player goes up for a ball a
   little too high for him, and does not get to it.
 
@@ -59,6 +60,8 @@ still fast enough to come off a body is no aerial ball: it is
 `contestRadius` (1.5 m) of the ball at that moment and whose `aerialReach()`
 gets as high as the ball is there, in player order. For each the duel knows
 
+- whether he has his hands: `hasHands()` where he and the ball are at that
+  moment;
 - how high he stands — `headHeight`, or `handsHeight` with his hands — and how
   high his jump lifts him: `lowestJump` (0.3 m) at `jumping` 0 to
   `highestJump` (0.7 m) at 1 (`jumpRise()`);

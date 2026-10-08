@@ -24,7 +24,7 @@ using SimCore::Vec2;
 // hands if hasHands(), at his feet otherwise.
 [[nodiscard]] BallReach claimReach(const MatchState& state, const BallState& ball,
                                    const std::size_t playerIndex, const ReceptionConfig& config) {
-  return hasHands(state, ball, playerIndex)
+  return hasHands(state, playerIndex, state.players()[playerIndex].position, ball.position)
              ? BallReach{.radius = config.handsRadius, .height = config.handsHeight}
              : BallReach{.radius = config.controlRadius, .height = config.controlHeight};
 }
@@ -48,11 +48,11 @@ bool mayCompete(const MatchState& state, const BallState& ball, const std::size_
   return sinceTouch >= config.reclaimDelaySeconds;
 }
 
-bool hasHands(const MatchState& state, const BallState& ball, const std::size_t playerIndex) {
-  const PlayerMatchState& player = state.players()[playerIndex];
-  const GoalEnd end = ownGoalEnd(player.side);
-  return isGoalkeeper(state, playerIndex) && state.pitch().isInPenaltyArea(end, player.position) &&
-         state.pitch().isInPenaltyArea(end, ball.position);
+bool hasHands(const MatchState& state, const std::size_t playerIndex, const Vec2 playerPosition,
+              const Vec2 ballPosition) {
+  const GoalEnd end = ownGoalEnd(state.players()[playerIndex].side);
+  return isGoalkeeper(state, playerIndex) && state.pitch().isInPenaltyArea(end, playerPosition) &&
+         state.pitch().isInPenaltyArea(end, ballPosition);
 }
 
 std::optional<BallClaim> findFirstReach(
