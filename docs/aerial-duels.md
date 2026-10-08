@@ -255,5 +255,5 @@ hang in the air or land somewhere else, and the movement system does not know
 he jumped. There are no fouls in the air, no header on the run toward a spot
 he heads for, no diving header and no chest or thigh control of a ball
 between the feet and the head. A header goal earns no assist: the scorer never
-received the ball. Who heads how well is still the predefined attributes of
+received the ball, and his header shot clears a reception of his from before. Who heads how well is still the predefined attributes of
 the sandbox, not a generated player.

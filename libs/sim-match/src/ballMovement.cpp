@@ -594,7 +594,8 @@ void flyOn(const BallState& from, const double start, FreeBall& free, const Ball
 // ball where he met it `moment` into the tick. He is its last touch: a shot
 // is a new shot, a pass or a knock-down a pass, a clearance or a punch
 // loose; an open shot he got to has become what it will be. It flies on for
-// the rest of the tick (flyOn()).
+// the rest of the tick (flyOn()). A header shot came from no reception: a
+// reception of his from before no longer counts, so it earns no assist.
 void playHeader(const HeaderIntent& intent, const BallClaim& claim, const AerialChallenger& winner,
                 const AerialJump& jump, const BallState& there, const double moment, FreeBall& free,
                 const BallRules& rules, const MatchStepContext& context, const MatchState& current,
@@ -621,6 +622,10 @@ void playHeader(const HeaderIntent& intent, const BallClaim& claim, const Aerial
         .shooter = player.playerId, .from = there.position, .tick = context.tick()};
     next.setLastShot(shot);
     free.shot = shot;
+    if (const auto& reception = current.lastReception();
+        reception && reception->player == player.playerId) {
+      next.setLastReception(std::nullopt);
+    }
     const Goal goal = attackedGoal(current.pitch(), player.side);
     context.record(ShotAttempted{.tick = context.tick(),
                                  .shooter = player.playerId,
