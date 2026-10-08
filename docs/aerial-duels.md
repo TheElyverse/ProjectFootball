@@ -10,10 +10,11 @@ clear — and a goalkeeper in his area catches it or punches it clear
 plays it out where the ball meets the players.
 
 ```text
-high ball → first contact        → who goes up        → jumps         → duel              → the winner's touch
-            findAerialContact()     findChallengers()    timing, reach    duelUtility()       decideHeader() (kAi)
-                                                         (kExecution)     chooseByUtility()   executeHeader() (kExecution)
-                                                                          (kExecution)        or hold / punch
+high ball → first contact: findAerialContact()
+          → who goes up: findChallengers()
+          → jumps: timing, reach (kExecution)
+          → duel: duelUtility(), chooseByUtility() (kExecution)
+          → the winner's touch: decideHeader() (kAi), executeHeader() (kExecution), or hold / punch
 ```
 
 ## In the air or on the ground
@@ -88,11 +89,12 @@ Of those who reached the ball, `chooseByUtility()` picks the winner at
 never a certainty — by `duelUtility()`:
 
 ```text
-utility = reachWeight · min(reach − ball height, reachCap)
-        − arrivalWeight · late
-        + strengthWeight · strength
-        + bodyWeight · body
-        + keeperAdvantage · keeperHandling        (a keeper with his hands)
+  reachWeight · min(reach − ball height, reachCap)
+− arrivalWeight · late
++ strengthWeight · strength
++ bodyWeight · body
++ keeperAdvantage · keeperHandling (a keeper with his hands)
+= utility
 ```
 
 with `reachWeight` 4 per meter up to `reachCap` (0.3 m), `arrivalWeight` 5 per
@@ -125,12 +127,12 @@ draw from the `kAi` stream (`decideHeader()`). A header is played without a
 second look, so `headerOptions()` reads the true state rather than his
 [perception](perception.md):
 
-| Play        | When                                     | Aim                                                       | Utility |
-|-------------|------------------------------------------|-----------------------------------------------------------|---------|
-| `clearance` | always                                   | `clearanceDistance` (30 m) up the pitch, on the ground, at `maxHeaderSpeed` (18 m/s) | 1 − distance to his own goal / `clearanceZone` (35 m), at least 0 |
-| `shot`      | the goal he attacks within `shotRange` (14 m) | `shotInside` (0.5 m) inside the post away from the opposing keeper — the centre without one —, `shotHeight` (0.5 m) high, at `shotSpeed` (14 m/s) | 1 − distance to the goal / `shotRange` |
-| `knockDown` | a teammate within `knockDownRange` (6 m) | down to his feet, there in `passSeconds` (0.8 s) along the ground | `passWeight` (0.6) · open · (1 − distance / `passRange`) |
-| `pass`      | a teammate within `passRange` (20 m)     | the same                                                  | the same |
+| Play        | When                                          | Aim                                                                                                                                               | Utility                                                           |
+|-------------|-----------------------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------|-------------------------------------------------------------------|
+| `clearance` | always                                        | `clearanceDistance` (30 m) up the pitch, on the ground, at `maxHeaderSpeed` (18 m/s)                                                              | 1 − distance to his own goal / `clearanceZone` (35 m), at least 0 |
+| `shot`      | the goal he attacks within `shotRange` (14 m) | `shotInside` (0.5 m) inside the post away from the opposing keeper — the centre without one —, `shotHeight` (0.5 m) high, at `shotSpeed` (14 m/s) | 1 − distance to the goal / `shotRange`                            |
+| `knockDown` | a teammate within `knockDownRange` (6 m)      | down to his feet, there in `passSeconds` (0.8 s) along the ground                                                                                 | `passWeight` (0.6) · open · (1 − distance / `passRange`)          |
+| `pass`      | a teammate within `passRange` (20 m)          | the same                                                                                                                                          | the same                                                          |
 
 A teammate is open as far as his nearest opponent is from him, fully at
 `openDistance` (5 m).
@@ -171,40 +173,40 @@ events of the play follow it.
 
 `AerialConfig` is the `aerial` part of `MatchConfig` and of every replay:
 
-| Field                 | Default  | Meaning                                                      |
-|-----------------------|----------|--------------------------------------------------------------|
-| `headHeight`          | 1.9 m    | the ball's centre as a standing player meets it with his head |
-| `headRadius`          | 0.7 m    | how close along the ground it must come to his head          |
-| `lowestJump`          | 0.3 m    | how high a jump lifts a player of jumping 0                  |
-| `highestJump`         | 0.7 m    | and one of jumping 1                                         |
-| `timingError`         | 0.25 s   | how far an average header times his jump off the ball's arrival |
-| `attemptMargin`       | 0.3 m    | he goes up for a ball this far above the best he can reach   |
-| `contestRadius`       | 1.5 m    | who else goes up when the first player gets to the ball      |
-| `landingSeconds`      | 0.6 s    | after going up, he goes up for nothing else this long        |
-| `reachWeight`         | 4 per m  | what getting above the ball is worth in the duel             |
-| `reachCap`            | 0.3 m    | up to this far above it                                      |
-| `arrivalWeight`       | 5 per s  | what getting there late costs                                |
-| `strengthWeight`      | 1        | what strength is worth                                       |
-| `bodyWeight`          | 1        | what facing the ball is worth                                |
-| `keeperAdvantage`     | 1        | what a keeper's handling is worth, with his hands            |
-| `duelTemperature`     | 0.3      | how surely the best in the duel wins                         |
-| `contestedDrop`       | 0.3      | the share of contested balls an average keeper drops         |
-| `shotRange`           | 14 m     | the farthest from the goal's centre he heads at it           |
-| `shotSpeed`           | 14 m/s   | how hard                                                     |
-| `shotHeight`          | 0.5 m    | how high he aims                                             |
-| `shotInside`          | 0.5 m    | how far inside the post                                      |
-| `passRange`           | 20 m     | the farthest teammate he heads to                            |
-| `knockDownRange`      | 6 m      | the farthest he heads down to                                |
-| `passSeconds`         | 0.8 s    | how long a header pass takes along the ground                |
-| `openDistance`        | 5 m      | a teammate this far from his nearest opponent is open        |
-| `passWeight`          | 0.6      | what a pass to an open teammate is worth                     |
-| `clearanceZone`       | 35 m     | from his own goal, how far a clearance is worth anything     |
-| `clearanceDistance`   | 30 m     | how far up the pitch he clears                               |
-| `maxHeaderSpeed`      | 18 m/s   | no header leaves faster                                      |
-| `decisionTemperature` | 0.15     | how surely he picks the best header                          |
-| `directionError`      | 0.06     | how far an average header strays per meter to his aim        |
-| `speedError`          | 0.1      | how much harder or softer                                    |
-| `mistimedErrorFactor` | 2        | how much a fully mistimed jump widens both                   |
+| Field                 | Default | Meaning                                                         |
+|-----------------------|---------|-----------------------------------------------------------------|
+| `headHeight`          | 1.9 m   | the ball's centre as a standing player meets it with his head   |
+| `headRadius`          | 0.7 m   | how close along the ground it must come to his head             |
+| `lowestJump`          | 0.3 m   | how high a jump lifts a player of jumping 0                     |
+| `highestJump`         | 0.7 m   | and one of jumping 1                                            |
+| `timingError`         | 0.25 s  | how far an average header times his jump off the ball's arrival |
+| `attemptMargin`       | 0.3 m   | he goes up for a ball this far above the best he can reach      |
+| `contestRadius`       | 1.5 m   | who else goes up when the first player gets to the ball         |
+| `landingSeconds`      | 0.6 s   | after going up, he goes up for nothing else this long           |
+| `reachWeight`         | 4 per m | what getting above the ball is worth in the duel                |
+| `reachCap`            | 0.3 m   | up to this far above it                                         |
+| `arrivalWeight`       | 5 per s | what getting there late costs                                   |
+| `strengthWeight`      | 1       | what strength is worth                                          |
+| `bodyWeight`          | 1       | what facing the ball is worth                                   |
+| `keeperAdvantage`     | 1       | what a keeper's handling is worth, with his hands               |
+| `duelTemperature`     | 0.3     | how surely the best in the duel wins                            |
+| `contestedDrop`       | 0.3     | the share of contested balls an average keeper drops            |
+| `shotRange`           | 14 m    | the farthest from the goal's centre he heads at it              |
+| `shotSpeed`           | 14 m/s  | how hard                                                        |
+| `shotHeight`          | 0.5 m   | how high he aims                                                |
+| `shotInside`          | 0.5 m   | how far inside the post                                         |
+| `passRange`           | 20 m    | the farthest teammate he heads to                               |
+| `knockDownRange`      | 6 m     | the farthest he heads down to                                   |
+| `passSeconds`         | 0.8 s   | how long a header pass takes along the ground                   |
+| `openDistance`        | 5 m     | a teammate this far from his nearest opponent is open           |
+| `passWeight`          | 0.6     | what a pass to an open teammate is worth                        |
+| `clearanceZone`       | 35 m    | from his own goal, how far a clearance is worth anything        |
+| `clearanceDistance`   | 30 m    | how far up the pitch he clears                                  |
+| `maxHeaderSpeed`      | 18 m/s  | no header leaves faster                                         |
+| `decisionTemperature` | 0.15    | how surely he picks the best header                             |
+| `directionError`      | 0.06    | how far an average header strays per meter to his aim           |
+| `speedError`          | 0.1     | how much harder or softer                                       |
+| `mistimedErrorFactor` | 2       | how much a fully mistimed jump widens both                      |
 
 `validate()` rejects values outside their rules; see `aerialDuels.hpp`. The
 players' side is `PlayerAttributes` ([match state](match-state.md)):
