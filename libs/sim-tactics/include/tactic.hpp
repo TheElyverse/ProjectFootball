@@ -89,12 +89,16 @@ struct PositioningWeights {
   friend bool operator==(const PositioningWeights&, const PositioningWeights&) = default;
 };
 
-// How the goalkeeper plays (docs/goalkeeper.md). A dial in [0, 1].
+// How the goalkeeper plays (docs/goalkeeper.md). Dials in [0, 1].
 struct GoalkeeperPrinciples {
   // How readily he comes off his line for a ball played in behind his
   // defence, from 0 (only when he is clearly first to it) to 1 (even when an
   // attacker is a little closer).
   double sweeping = 0.5;
+  // How readily he goes long with the ball rather than playing out
+  // (docs/goalkeeper-distribution.md), from 0 (plays out whenever he can) to
+  // 1 (goes long whenever he can); 0.5 weighs both on their merits.
+  double directness = 0.5;
 
   friend bool operator==(const GoalkeeperPrinciples&, const GoalkeeperPrinciples&) = default;
 };

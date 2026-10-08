@@ -118,6 +118,7 @@ using SimMatch::TeamSide;
                   {"verticalVelocity", state.ball().verticalVelocity},
                   {"spin", state.ball().spin},
                   {"owner", owner ? Json(owner->value()) : Json(nullptr)},
+                  {"held", state.ball().held},
                   {"lastTouch", touchJson(state.ball().lastTouch)}};
   json["score"] = {{"home", state.score().home}, {"away", state.score().away}};
   json["tactics"] = tacticsJson(state.tactics());
@@ -127,6 +128,7 @@ using SimMatch::TeamSide;
 [[nodiscard]] Json decisionsJson(const SimMatch::DecisionConfig& decisions) {
   const SimMatch::PassScoringConfig& scoring = decisions.scoring;
   const SimMatch::ShotScoringConfig& shooting = decisions.shooting;
+  const SimMatch::DistributionConfig& distribution = decisions.distribution;
   return {{"intervalTicks", decisions.intervalTicks},
           {"minHoldSeconds", decisions.minHoldSeconds},
           {"temperature", decisions.temperature},
@@ -140,7 +142,8 @@ using SimMatch::TeamSide;
             {"completionWeight", scoring.completionWeight},
             {"progressionWeight", scoring.progressionWeight},
             {"pressureWeight", scoring.pressureWeight},
-            {"riskWeight", scoring.riskWeight}}},
+            {"riskWeight", scoring.riskWeight},
+            {"loftedBias", scoring.loftedBias}}},
           {"shooting",
            {{"minConfidence", shooting.minConfidence},
             {"maxShotDistance", shooting.maxShotDistance},
@@ -164,7 +167,14 @@ using SimMatch::TeamSide;
             {"minGoalChance", shooting.minGoalChance},
             {"goalWeight", shooting.goalWeight},
             {"secondBallWeight", shooting.secondBallWeight},
-            {"lossWeight", shooting.lossWeight}}}};
+            {"lossWeight", shooting.lossWeight}}},
+          {"distribution",
+           {{"holdSeconds", distribution.holdSeconds},
+            {"throwRange", distribution.throwRange},
+            {"minLongDistance", distribution.minLongDistance},
+            {"flightSeconds", distribution.flightSeconds},
+            {"contestMarginSeconds", distribution.contestMarginSeconds},
+            {"directnessWeight", distribution.directnessWeight}}}};
 }
 
 [[nodiscard]] Json positioningJson(const SimMatch::PositioningConfig& positioning) {
@@ -336,7 +346,9 @@ using SimMatch::TeamSide;
             {"directionError", config.passing.directionError},
             {"speedError", config.passing.speedError},
             {"pressureRadius", config.passing.pressureRadius},
-            {"pressureErrorFactor", config.passing.pressureErrorFactor}}},
+            {"pressureErrorFactor", config.passing.pressureErrorFactor},
+            {"maxLoftedSpeed", config.passing.maxLoftedSpeed},
+            {"loftedErrorFactor", config.passing.loftedErrorFactor}}},
           {"reception",
            {{"controlRadius", config.reception.controlRadius},
             {"reclaimDelaySeconds", config.reception.reclaimDelaySeconds},
@@ -678,7 +690,8 @@ constexpr std::int64_t kMaxGoals = 1'000'000;
                 .lastTouch = readTouch(ball.member("lastTouch")),
                 .height = ball.member("height").number(),
                 .verticalVelocity = ball.member("verticalVelocity").number(),
-                .spin = ball.member("spin").number()},
+                .spin = ball.member("spin").number(),
+                .held = ball.member("held").boolean()},
        .playersPerSide = static_cast<int>(field.member("playersPerSide").integerIn(1, 1000)),
        .score = {.home = static_cast<int>(score.member("home").integerIn(0, kMaxGoals)),
                  .away = static_cast<int>(score.member("away").integerIn(0, kMaxGoals))}},
@@ -709,7 +722,9 @@ constexpr std::int64_t kMaxGoals = 1'000'000;
           .directionError = field.member("directionError").number(),
           .speedError = field.member("speedError").number(),
           .pressureRadius = field.member("pressureRadius").number(),
-          .pressureErrorFactor = field.member("pressureErrorFactor").number()};
+          .pressureErrorFactor = field.member("pressureErrorFactor").number(),
+          .maxLoftedSpeed = field.member("maxLoftedSpeed").number(),
+          .loftedErrorFactor = field.member("loftedErrorFactor").number()};
 }
 
 [[nodiscard]] SimMatch::PursuitConfig readPursuit(const Field& field) {
@@ -721,6 +736,7 @@ constexpr std::int64_t kMaxGoals = 1'000'000;
 [[nodiscard]] SimMatch::DecisionConfig readDecisions(const Field& field) {
   const Field scoring = field.member("scoring");
   const Field shooting = field.member("shooting");
+  const Field distribution = field.member("distribution");
   return {
       .intervalTicks = static_cast<int>(field.member("intervalTicks").integerIn(1, 100000)),
       .minHoldSeconds = field.member("minHoldSeconds").number(),
@@ -734,7 +750,8 @@ constexpr std::int64_t kMaxGoals = 1'000'000;
                   .completionWeight = scoring.member("completionWeight").number(),
                   .progressionWeight = scoring.member("progressionWeight").number(),
                   .pressureWeight = scoring.member("pressureWeight").number(),
-                  .riskWeight = scoring.member("riskWeight").number()},
+                  .riskWeight = scoring.member("riskWeight").number(),
+                  .loftedBias = scoring.member("loftedBias").number()},
       .shooting = {.minConfidence = shooting.member("minConfidence").number(),
                    .maxShotDistance = shooting.member("maxShotDistance").number(),
                    .minOpening = shooting.member("minOpening").number(),
@@ -759,7 +776,13 @@ constexpr std::int64_t kMaxGoals = 1'000'000;
                    .minGoalChance = shooting.member("minGoalChance").number(),
                    .goalWeight = shooting.member("goalWeight").number(),
                    .secondBallWeight = shooting.member("secondBallWeight").number(),
-                   .lossWeight = shooting.member("lossWeight").number()}};
+                   .lossWeight = shooting.member("lossWeight").number()},
+      .distribution = {.holdSeconds = distribution.member("holdSeconds").number(),
+                       .throwRange = distribution.member("throwRange").number(),
+                       .minLongDistance = distribution.member("minLongDistance").number(),
+                       .flightSeconds = distribution.member("flightSeconds").number(),
+                       .contestMarginSeconds = distribution.member("contestMarginSeconds").number(),
+                       .directnessWeight = distribution.member("directnessWeight").number()}};
 }
 
 [[nodiscard]] SimMatch::PhaseConfig readPhases(const Field& field) {

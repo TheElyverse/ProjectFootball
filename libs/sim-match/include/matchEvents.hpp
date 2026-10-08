@@ -340,10 +340,14 @@ struct DecisionDiagnostic {
   // shot; empty without one.
   std::optional<std::size_t> chosen;
   // The weights the candidates were scored with: the configured scoring,
-  // adjusted to the passing risk of his tactic. passContributions() and
+  // adjusted to the passing risk of his tactic and, for a goalkeeper, its
+  // directness. passContributions() and
   // shotContributions() with them explain each utility.
   PassScoringConfig scoring;
   ShotScoringConfig shotScoring;
+  // Whether he held the ball in his hands: his passes are then throws, his
+  // lofted passes punts (docs/goalkeeper-distribution.md).
+  bool held = false;
 
   friend bool operator==(const DecisionDiagnostic&, const DecisionDiagnostic&) = default;
 };

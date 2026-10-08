@@ -20,14 +20,17 @@ Every `intervalTicks` ticks (6: five times a second at 30 Hz):
 1. **Is there a decision to make?** Not while the ball is free or its owner
    already has an action pending.
 2. **Hold.** A player keeps a ball he took less than `minHoldSeconds` (0.5 s) ago,
-   measured from his last touch. A player who owns the ball from the start of a
-   state may pass at once.
+   measured from his last touch — a goalkeeper one he holds in his hands less
+   than the distribution's `holdSeconds` (2 s). A player who owns the ball from
+   the start of a state may pass at once.
 3. **Options.** `generatePassCandidates()` and `generateShotCandidates()` list
-   and score his options from his memory.
+   and score his options from his memory. A goalkeeper adds his long balls,
+   and from his hands throws no farther than `throwRange`
+   ([goalkeeper distribution](goalkeeper-distribution.md)).
 4. **Choice.** `chooseOnBall()` picks one of the valid passes or the best valid
    shot. Without a valid option he keeps the ball.
 5. **Intent.** The choice becomes his pending action — for a pass the target,
-   planned speed and receiver, for a shot the aimed point, height and speed. The
+   planned speed, receiver and whether it is lofted, for a shot the aimed point, height and speed. The
    ball system plays it in the next step.
 
 ## Seeded softmax
@@ -74,9 +77,11 @@ twice:
 | `temperature`    | 0.15    | softmax temperature over utility                |
 | `scoring`        |         | the pass candidates' scoring configuration      |
 | `shooting`       |         | the shot candidates' scoring configuration      |
+| `distribution`   |         | how a goalkeeper distributes the ball ([goalkeeper distribution](goalkeeper-distribution.md)) |
 
 The system rejects an interval below one tick, a negative or non-finite hold, a
-temperature that is not positive and finite, and invalid scoring.
+temperature that is not positive and finite, and invalid scoring or
+distribution.
 
 ## Passing risk
 
@@ -91,12 +96,14 @@ phase instruction ([tactics](tactics.md)) before the carrier decides;
 | `minCompletion`     | `1.3 - 0.6 r`, at most 1 | offers less likely passes too        |
 
 `r = 0.5`, the reference tactic's value, leaves the scoring unchanged, so a
-team without a tactic and the reference tactic decide alike. The factors are
+team without a tactic and the reference tactic decide alike. A goalkeeper's
+scoring also carries his tactic's directness as the `loftedBias` of his long
+balls ([goalkeeper distribution](goalkeeper-distribution.md#the-tactics-dial)). The factors are
 deliberately simple and linear: they make the styles distinguishable without a
 second tuning surface next to the scoring itself.
 
 ## What this is not
 
 A player on the ball only passes, shoots or keeps the ball: no dribble, no
-carry, no turning to look for options. Off-ball players do not decide yet; they hold their
+carry, no turning to look for options; only a goalkeeper kicks long. Off-ball players do not decide yet; they hold their
 position or chase a free ball (see [reception](reception.md)).

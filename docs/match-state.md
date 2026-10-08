@@ -16,7 +16,7 @@ and ball physics are separate concerns.
 | `MatchState`       | the `Pitch`, the players in order, the `BallState`, the squad size per side, every player's perception memory, and each side's tactic |
 | `PlayerMatchState` | `playerId`, `side`, `position`, `velocity`, `attributes`, `target`, `facing`    |
 | `PlayerAttributes` | `maxSpeed` (m/s), `acceleration` (m/s²), `shotAccuracy`, `shotTechnique`, `weakFootAccuracy`, `keeperPositioning`, `keeperAnticipation`, `keeperReflexes`, `keeperHandling`, `jumping`, `heading` and `strength` (0 … 1) and `strongFoot`, fixed for the match |
-| `BallState`        | `position`, `velocity`, `owner`, `lastTouch`                                    |
+| `BallState`        | `position`, `velocity`, `owner`, `lastTouch`, `held`                            |
 | `TeamSide`         | `kHome` or `kAway`                                                              |
 
 Positions are meters in pitch coordinates, velocities are meters per second, in
@@ -47,6 +47,10 @@ predefined test players of the sandbox, not a generated player.
 
 The ball's `owner` is the player in control of it, empty while it is free, and
 `lastTouch` the last player to kick or take it; see [possession](possession.md).
+`held` says the owner holds it in his hands: a goalkeeper who took it with them
+([goalkeeper distribution](goalkeeper-distribution.md)). Only an owned ball
+can be held; a new owner has it at his feet until the ball system puts it in
+his hands.
 Every player has a slot for the action he has decided on and not yet done,
 `pendingAction(index)`, empty for every player of a state created from a spec.
 The action is a pass (see [passing](passing.md)) or a shot (see
@@ -135,6 +139,7 @@ one.
 | the ball is not faster than `kMaxBallSpeed` (100 m/s) | `kBallTooFast`         |
 | the ball's owner, where set, is a player in the state | `kUnknownBallOwner`    |
 | the ball's last touch, where set, is a player in the state | `kUnknownLastTouch` |
+| a held ball has an owner                          | `kHeldBallWithoutOwner`    |
 
 These rules hold for every state of a match, from kickoff to the final whistle.
 The match loop only changes positions, velocities, targets and facings, and

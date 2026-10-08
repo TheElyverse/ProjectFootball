@@ -167,6 +167,10 @@ struct BallTouch {
 // across its direction of travel: positive is topspin, which drives the ball
 // on when it bounces, negative backspin, which checks it. Sidespin, and with
 // it a curving flight, is not modelled yet.
+//
+// held is whether the owner holds the ball in his hands: a goalkeeper who
+// took it with them (docs/goalkeeper-distribution.md). Only an owned ball can
+// be held; a challenge cannot take it from him.
 struct BallState {
   SimCore::Vec2 position;
   SimCore::Vec2 velocity;
@@ -175,6 +179,7 @@ struct BallState {
   double height = 0.0;
   double verticalVelocity = 0.0;
   double spin = 0.0;
+  bool held = false;
 
   [[nodiscard]] bool isControlled() const noexcept { return owner.has_value(); }
 
@@ -238,6 +243,7 @@ enum class MatchStateErrorCode : std::uint8_t {
   kBallSpinningTooFast,
   kUnknownBallOwner,
   kUnknownLastTouch,
+  kHeldBallWithoutOwner,
   kTacticDoesNotFitSquad,
   kInvalidScore,
 };
@@ -367,6 +373,10 @@ struct PassIntent {
   double speed = 0.0;
   // Who the pass is meant for; empty for a pass into space.
   std::optional<SimCore::PlayerId> receiver;
+  // Whether it goes through the air: speed is then the ball's speed along
+  // the ground, and the flight brings it down on the target
+  // (docs/goalkeeper-distribution.md). A ground pass otherwise.
+  bool lofted = false;
 
   friend bool operator==(const PassIntent&, const PassIntent&) = default;
 };
@@ -570,10 +580,14 @@ class MatchStateWriter {
     state_->ball_.verticalVelocity = verticalVelocity;
   }
   void setBallSpin(double spin) noexcept { state_->ball_.spin = spin; }
-  // Hands the ball to a player, or frees it with std::nullopt. Throws
+  // Hands the ball to a player, or frees it with std::nullopt -- at his feet
+  // either way: setBallHeld() puts it in his hands. Throws
   // std::invalid_argument for an id no player in the state has, so the ball
   // can only ever belong to a player on the pitch.
   void setBallOwner(std::optional<SimCore::PlayerId> owner);
+  // Puts the owned ball in its owner's hands, or back at his feet; throws
+  // std::invalid_argument for holding a ball nobody owns.
+  void setBallHeld(bool held);
   // Records who last played the ball; throws std::invalid_argument for a
   // player not in the state.
   void setBallLastTouch(std::optional<BallTouch> touch);

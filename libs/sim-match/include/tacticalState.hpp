@@ -149,6 +149,10 @@ struct PlayerTacticalState {
   // When he last went up for a high ball (docs/aerial-duels.md): he goes up
   // for no other until he has landed.
   std::optional<SimCore::SimTick> lastJump;
+  // When a goalkeeper last released the ball from his hands
+  // (docs/goalkeeper-distribution.md): he may not take it in them again until
+  // another player has touched it. Forgotten once one has.
+  std::optional<SimCore::SimTick> handsReleased;
 
   friend bool operator==(const PlayerTacticalState&, const PlayerTacticalState&) = default;
 };

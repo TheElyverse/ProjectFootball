@@ -39,7 +39,8 @@ MatchSystem makeChallengeSystem(const ChallengeConfig& config) {
           [config](const MatchStepContext& context, const MatchState& current,
                    MatchStateWriter& next) {
             const BallState& ball = current.ball();
-            if (!ball.owner) {
+            // A keeper holding the ball in his hands is not challenged.
+            if (!ball.owner || ball.held) {
               return;
             }
             const auto carrierIndex = findPlayerIndex(current, *ball.owner);

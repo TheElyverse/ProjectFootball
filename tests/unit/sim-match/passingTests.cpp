@@ -339,9 +339,14 @@ TEST_CASE("A kick under full pressure must keep some speed", "[passing]") {
   PassConfig config;
   config.speedError = 0.5;
   config.pressureErrorFactor = 1.0;
+  config.loftedErrorFactor = 1.0;
   REQUIRE_THROWS_AS(ElyverseFootball::SimMatch::validate(config), std::invalid_argument);
   config.pressureErrorFactor = 0.9;
   REQUIRE_NOTHROW(ElyverseFootball::SimMatch::validate(config));
+  // A lofted kick strays farther and must keep some speed too.
+  config.loftedErrorFactor = 2.0;
+  REQUIRE_THROWS_AS(ElyverseFootball::SimMatch::validate(config), std::invalid_argument);
+  config.loftedErrorFactor = 1.0;
   config.pressureRadius = 0.0;
   REQUIRE_THROWS_AS(ElyverseFootball::SimMatch::validate(config), std::invalid_argument);
 }

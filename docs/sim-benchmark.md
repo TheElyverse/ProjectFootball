@@ -99,9 +99,13 @@ reproduce, and the styles must separate where their identities promise:
 |-------------------------|-----------------------------------------|
 | `regains`               | pressing above possession and counter   |
 | `regainsAttackingThird` | pressing above counter                  |
-| `ppda`                  | possession and counter above pressing — pressing allows the fewest passes per defensive action |
+| `ppda`                  | counter above pressing — pressing allows fewer passes per defensive action |
 
-These hold for base seeds 1, 2 and 3 of the reduced run. Pressing also regained
+These hold for base seeds 1 to 5 of the reduced run. Possession's PPDA lies
+about a tenth above pressing's: thirty matches separate the two, six not with
+every seed — not with seeds 3 and 4 at first, nor with seed 1 since the keeper
+[distributes](goalkeeper-distribution.md) the ball — and the test does not ask
+for it. Pressing also regained
 the ball in the attacking third more often than possession while a shot that
 went in was a goal kick to win back in front of the goal; since it is a
 [goal](shooting.md) and a kickoff, six matches no longer separate the two with

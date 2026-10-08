@@ -144,6 +144,8 @@ void addTactical(StableHasher& hasher, const PlayerTacticalState& tactical) noex
   }
   hasher.addBool(tactical.lastJump.has_value());
   hasher.addI64(tactical.lastJump.value_or(SimCore::SimTick(0)).value());
+  hasher.addBool(tactical.handsReleased.has_value());
+  hasher.addI64(tactical.handsReleased.value_or(SimCore::SimTick(0)).value());
 }
 
 void addPress(StableHasher& hasher, const std::optional<TeamPress>& press) noexcept {
@@ -172,6 +174,7 @@ void addPendingAction(StableHasher& hasher, const PendingAction& action) noexcep
     hasher.addDouble(pass->speed);
     hasher.addBool(pass->receiver.has_value());
     hasher.addU64(pass->receiver.value_or(SimCore::PlayerId::invalid()).value());
+    hasher.addBool(pass->lofted);
   }
   if (const auto* shot = std::get_if<ShotIntent>(&action)) {
     hasher.addU64(shot->shooter.value());
@@ -199,6 +202,7 @@ std::uint64_t hashMatchState(const MatchState& state) noexcept {
   hasher.addDouble(state.ball().spin);
   hasher.addBool(state.ball().owner.has_value());
   hasher.addU64(state.ball().owner.value_or(SimCore::PlayerId::invalid()).value());
+  hasher.addBool(state.ball().held);
   const auto& touch = state.ball().lastTouch;
   hasher.addBool(touch.has_value());
   if (touch) {

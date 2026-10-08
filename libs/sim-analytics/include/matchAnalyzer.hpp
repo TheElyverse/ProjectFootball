@@ -69,6 +69,7 @@ class MatchAnalyzer {
   // Counts kept per side, indexed by kHome and kAway.
   struct SideTally {
     std::int64_t possessionTicks = 0;
+    std::int64_t longestOwnershipTicks = 0;
     int passes = 0;
     int shots = 0;
     int completedPasses = 0;
@@ -97,7 +98,8 @@ class MatchAnalyzer {
   [[nodiscard]] double depthOf(SimMatch::TeamSide side, SimCore::Vec2 position) const noexcept;
   [[nodiscard]] PitchThird thirdOf(SimMatch::TeamSide side, SimCore::Vec2 position) const noexcept;
   [[nodiscard]] TeamStats statsOf(SimMatch::TeamSide side, std::int64_t possessedTicks,
-                                  std::int64_t anyPossessionTicks) const;
+                                  std::int64_t anyPossessionTicks,
+                                  std::int64_t longestOwnershipTicks) const;
 
   void onPass(const SimMatch::PassAttempted& pass);
   void onReception(const SimMatch::PassReceived& reception);
@@ -112,6 +114,10 @@ class MatchAnalyzer {
   std::array<SideTally, 2> sides_{};
   std::optional<SimMatch::TeamSide> possession_;
   SimCore::SimTick possessionSince_;
+  // The side of the player who owns the ball since the last
+  // PossessionChanged, if any.
+  std::optional<SimMatch::TeamSide> ownerSide_;
+  SimCore::SimTick ownerSince_;
   std::optional<PendingPass> pendingPass_;
   int samples_ = 0;
 };

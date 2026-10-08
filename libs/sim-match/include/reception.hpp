@@ -114,10 +114,16 @@ struct BallClaim {
                               const ReceptionConfig& config, std::span<const std::size_t> excluded);
 
 // Whether the player at this index gets to the ball with his hands, he at
-// playerPosition and the ball at ballPosition: he is the goalkeeper, and
-// both are in his own penalty area.
+// playerPosition and the ball at ballPosition: he is the goalkeeper, both are
+// in his own penalty area, and he has not released the ball from his hands
+// since anyone else touched it (hasReleasedBall()).
 [[nodiscard]] bool hasHands(const MatchState& state, std::size_t playerIndex,
                             SimCore::Vec2 playerPosition, SimCore::Vec2 ballPosition);
+
+// Whether the player at this index released the ball from his hands and is
+// still its last touch: nobody else has touched it since, so he may not take
+// it in them again (docs/goalkeeper-distribution.md).
+[[nodiscard]] bool hasReleasedBall(const MatchState& state, std::size_t playerIndex);
 
 // The first player to reach the ball, each as reachOf says of his index --
 // nobody whose reach is empty, and only those who mayCompete(). The

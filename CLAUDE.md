@@ -10,16 +10,16 @@ IDs, sim clock, deterministic RNG, a minimal event bus, and a CLI) exists under 
 `docs/tactic-format.md`, files under `data/tactics/`), and `libs/sim-match` has started with pitch geometry, the validated match state, the
 seven-a-side kickoff fixture, the fixed-timestep match loop with commands (`docs/match-loop.md`), and
 player and ball movement (`docs/player-movement.md`, `docs/ball-movement.md`), spatial queries,
-perception, possession, passing, reception, pass and shot decisions, shot execution with goals, the goalkeeper's own positioning and sweeping and his shot stopping, aerial duels and headers (`docs/spatial-queries.md`,
+perception, possession, passing, reception, pass and shot decisions, shot execution with goals, the goalkeeper's own positioning and sweeping, his shot stopping and his distribution, aerial duels and headers (`docs/spatial-queries.md`,
 `docs/perception.md`, `docs/possession.md`, `docs/passing.md`, `docs/reception.md`,
 `docs/pass-candidates.md`, `docs/pass-decisions.md`, `docs/shot-decisions.md`, `docs/shooting.md`, `docs/goalkeeper.md`,
-`docs/shot-stopping.md`, `docs/aerial-duels.md`), tactical phases, pitch control, zones and team shape, desired regions, off-ball movement, the defensive block and pressing (`docs/match-phases.md`,
+`docs/shot-stopping.md`, `docs/goalkeeper-distribution.md`, `docs/aerial-duels.md`), tactical phases, pitch control, zones and team shape, desired regions, off-ball movement, the defensive block and pressing (`docs/match-phases.md`,
 `docs/pitch-control.md`, `docs/zones.md`, `docs/desired-region.md`, `docs/off-ball-movement.md`, `docs/defensive-shape.md`,
 `docs/pressing.md`), tactic changes by command and simplified restarts (`docs/match-loop.md`, `docs/restarts.md`)
 with events and diagnostics (`docs/match-events.md`, `docs/decision-trace.md`); `libs/sim-analytics` computes
 match statistics from events (`docs/match-analytics.md`); `apps/sim-benchmark` plays series and round robins of
 tactic matches (`docs/sim-benchmark.md`); a web debug viewer with tactical overlays lives in `apps/sim-viewer`
-(`docs/debug-viewer.md`); the P1 passing scenarios, the shot and goalkeeper scenarios, the P2 tactical identities and golden scenarios come with
+(`docs/debug-viewer.md`); the P1 passing scenarios, the shot, goalkeeper and distribution scenarios, the P2 tactical identities and golden scenarios come with
 their acceptance tests (`docs/scenarios.md`, `docs/tactical-identities.md`, `docs/golden-scenarios.md`);
 almost everything described in the design/implementation docs below is still unbuilt.
 When implementing a new system, check whether it belongs in an existing module (see layout below) before
@@ -60,7 +60,7 @@ libs/
   sim-core       IDs, time, RNG, events, base types (depends on: STL only)      [exists]
   sim-player     Capabilities, match/world player state, development           [planned]
   sim-tactics    Principles, phases, responsibilities, spatial targets         [exists: tactic model]
-  sim-match      Pitch, ball, perception, decisions, actions, rules            [exists: pitch, state, loop, movement, ball, perception, possession, passing, reception, decisions, shot decisions, shooting, goalkeeper, shot stopping, aerial duels, events, phases, pitch control, zones, desired region, off-ball, defence, pressing, tactic changes, restarts, scenarios]
+  sim-match      Pitch, ball, perception, decisions, actions, rules            [exists: pitch, state, loop, movement, ball, perception, possession, passing, reception, decisions, shot decisions, shooting, goalkeeper, shot stopping, distribution, aerial duels, events, phases, pitch control, zones, desired region, off-ball, defence, pressing, tactic changes, restarts, scenarios]
   sim-world      Calendar, clubs, competitions, economy, careers               [planned]
   sim-ai         Club planning, coach decisions, staff behavior                [planned]
   sim-analytics  Events, metrics, explanations (read-only over domain events)  [exists: match stats, series summaries]
@@ -76,7 +76,7 @@ apps/
   sim-replay, world-editor                                                     [planned]
 data/            schemas, tactics, competitions, fixtures (JSON/YAML, schema-validated) [exists: tactics]
 tests/unit/      Catch2 tests, mirrors libs/ by subdirectory                   [exists: sim-core, sim-tactics, sim-match, sim-replay, sim-analytics, sim-benchmark]
-tests/acceptance/ whole-match scenarios: stability, determinism, pinned hashes [exists: M0, P1, P2, shots, goalkeeper]
+tests/acceptance/ whole-match scenarios: stability, determinism, pinned hashes [exists: M0, P1, P2, shots, goalkeeper, distribution]
 tests/benchmark/ sim-benchmark smoke test and the Release-only P2 style benchmark [exists]
 ```
 

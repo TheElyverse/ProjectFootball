@@ -1,5 +1,6 @@
 #include "matchAnalyzer.hpp"
 
+#include <algorithm>
 #include <cmath>
 #include <cstddef>
 #include <optional>
@@ -115,11 +116,17 @@ MatchStats MatchAnalyzer::finish(const SimCore::SimTick finalTick) const {
   if (possession_ && finalTick > possessionSince_) {
     possessed.at(indexOf(*possession_)) += finalTick.value() - possessionSince_.value();
   }
+  std::array<std::int64_t, 2> longest{sides_[0].longestOwnershipTicks,
+                                      sides_[1].longestOwnershipTicks};
+  if (ownerSide_ && finalTick > ownerSince_) {
+    std::int64_t& ticks = longest.at(indexOf(*ownerSide_));
+    ticks = std::max(ticks, finalTick.value() - ownerSince_.value());
+  }
   return {.ticks = finalTick.value(),
           .seconds =
               static_cast<double>(finalTick.value()) / static_cast<double>(context_.ticksPerSecond),
-          .home = statsOf(TeamSide::kHome, possessed[0], possessed[0] + possessed[1]),
-          .away = statsOf(TeamSide::kAway, possessed[1], possessed[0] + possessed[1])};
+          .home = statsOf(TeamSide::kHome, possessed[0], possessed[0] + possessed[1], longest[0]),
+          .away = statsOf(TeamSide::kAway, possessed[1], possessed[0] + possessed[1], longest[1])};
 }
 
 std::optional<TeamSide> MatchAnalyzer::sideOf(const SimCore::PlayerId player) const {
@@ -149,13 +156,16 @@ PitchThird MatchAnalyzer::thirdOf(const TeamSide side,
 }
 
 TeamStats MatchAnalyzer::statsOf(const TeamSide side, const std::int64_t possessedTicks,
-                                 const std::int64_t anyPossessionTicks) const {
+                                 const std::int64_t anyPossessionTicks,
+                                 const std::int64_t longestOwnershipTicks) const {
   const SideTally& counts = sides_.at(indexOf(side));
   const SideTally& opponent = sides_.at(indexOf(otherSide(side)));
   return {
       .possessionShare =
           ratio(static_cast<double>(possessedTicks), static_cast<double>(anyPossessionTicks))
               .value_or(0.0),
+      .longestOwnershipSeconds =
+          static_cast<double>(longestOwnershipTicks) / static_cast<double>(context_.ticksPerSecond),
       .passes = counts.passes,
       .completedPasses = counts.completedPasses,
       .passCompletion = ratio(counts.completedPasses, counts.passes),
@@ -220,6 +230,12 @@ void MatchAnalyzer::onDefensiveAction(const SimCore::PlayerId player,
 
 void MatchAnalyzer::onOwner(const SimMatch::PossessionChanged& change,
                             const std::optional<SimCore::Vec2>& wonAt) {
+  if (ownerSide_) {
+    std::int64_t& longest = tally(*ownerSide_).longestOwnershipTicks;
+    longest = std::max(longest, change.tick.value() - ownerSince_.value());
+  }
+  ownerSide_ = change.newOwner ? sideOf(*change.newOwner) : std::nullopt;
+  ownerSince_ = change.tick;
   // A free ball, a pass in flight, still belongs to the side that played it.
   if (!change.newOwner) {
     return;

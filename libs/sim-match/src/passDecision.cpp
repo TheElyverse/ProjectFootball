@@ -7,7 +7,9 @@
 #include <vector>
 
 #include "choicePolicy.hpp"
+#include "distribution.hpp"
 #include "passCandidates.hpp"
+#include "zones.hpp"
 
 namespace ElyverseFootball::SimMatch {
 namespace {
@@ -22,6 +24,7 @@ void validate(const DecisionConfig& config) {
   }
   validate(config.scoring);
   validate(config.shooting);
+  validate(config.distribution);
 }
 
 // How long the owner has had the ball: since his last touch, which is when
@@ -32,6 +35,44 @@ void validate(const DecisionConfig& config) {
     return std::numeric_limits<double>::infinity();
   }
   return static_cast<double>(now.value() - ball.lastTouch->tick.value()) * secondsPerTick;
+}
+
+// How long the owner keeps a ball he has taken before he plays it: a ball in
+// his hands at least the distribution's holdSeconds.
+[[nodiscard]] double holdSeconds(const BallState& ball, const DecisionConfig& config) noexcept {
+  return ball.held ? std::max(config.minHoldSeconds, config.distribution.holdSeconds)
+                   : config.minHoldSeconds;
+}
+
+// The carrier's passes, ordered by orderPassCandidates(): his ground passes
+// -- from his hands throws, no farther than throwRange -- and, a goalkeeper,
+// his long balls, with his tactic's directness as the lofted bias of
+// `rules`, which they are scored with.
+[[nodiscard]] std::vector<PassCandidate> passOptions(const MatchStepContext& context,
+                                                     const MatchState& current,
+                                                     const std::size_t carrier,
+                                                     const DistributionConfig& distribution,
+                                                     PassCandidateRules& rules) {
+  const bool keeper = isGoalkeeper(current, carrier);
+  const auto& tactic = current.tactics().of(current.players()[carrier].side);
+  if (keeper && tactic) {
+    rules.scoring.loftedBias =
+        directnessBias(tactic->principles().goalkeeper.directness, distribution);
+  }
+  PassCandidateRules ground = rules;
+  if (current.ball().held) {
+    ground.scoring.maxPassDistance =
+        std::min(ground.scoring.maxPassDistance, distribution.throwRange);
+  }
+  std::vector<PassCandidate> candidates =
+      generatePassCandidates(current, carrier, context.tick(), context.secondsPerTick(), ground);
+  if (keeper) {
+    const std::vector<PassCandidate> longBalls = generateLongBallCandidates(
+        current, carrier, context.tick(), context.secondsPerTick(), rules, distribution);
+    candidates.insert(candidates.end(), longBalls.begin(), longBalls.end());
+    orderPassCandidates(candidates);
+  }
+  return candidates;
 }
 
 }  // namespace
@@ -101,7 +142,7 @@ MatchSystem makePassDecisionSystem(const DecisionConfig& config, const PassCandi
                   return;
                 }
                 if (heldSeconds(ball, context.tick(), context.secondsPerTick()) <
-                    config.minHoldSeconds) {
+                    holdSeconds(ball, config)) {
                   return;
                 }
                 PassCandidateRules carrierRules = scored;
@@ -114,8 +155,8 @@ MatchSystem makePassDecisionSystem(const DecisionConfig& config, const PassCandi
                   carrierRules.scoring = scoringForRisk(scored.scoring, risk);
                   shooterRules.scoring = shotScoringForRisk(shooting.scoring, risk);
                 }
-                const std::vector<PassCandidate> candidates = generatePassCandidates(
-                    current, *carrier, context.tick(), context.secondsPerTick(), carrierRules);
+                const std::vector<PassCandidate> candidates =
+                    passOptions(context, current, *carrier, config.distribution, carrierRules);
                 const std::vector<ShotCandidate> shots = generateShotCandidates(
                     current, *carrier, context.tick(), context.secondsPerTick(), shooterRules);
                 const auto chosen =
@@ -133,7 +174,8 @@ MatchSystem makePassDecisionSystem(const DecisionConfig& config, const PassCandi
                       .outcome = chosen ? chosen->outcome : DecisionOutcome::kNoValidOption,
                       .chosen = chosen ? std::optional(chosen->index) : std::nullopt,
                       .scoring = carrierRules.scoring,
-                      .shotScoring = shooterRules.scoring});
+                      .shotScoring = shooterRules.scoring,
+                      .held = ball.held});
                 }
                 if (!chosen) {
                   return;
@@ -151,7 +193,8 @@ MatchSystem makePassDecisionSystem(const DecisionConfig& config, const PassCandi
                 next.setPendingAction(*carrier, PassIntent{.passer = *ball.owner,
                                                            .target = pass.target,
                                                            .speed = pass.speed,
-                                                           .receiver = pass.receiver});
+                                                           .receiver = pass.receiver,
+                                                           .lofted = pass.lofted});
               },
           .intervalTicks = config.intervalTicks,
           .phaseTicks = 0};

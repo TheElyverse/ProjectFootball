@@ -283,6 +283,10 @@ void validateBall(const MatchStateSpec& spec, std::vector<MatchStateError>& erro
                                  std::to_string(spec.ball.owner->value()) +
                                  ", who is not in the state"});
   }
+  if (spec.ball.held && !spec.ball.owner) {
+    errors.push_back({.code = MatchStateErrorCode::kHeldBallWithoutOwner,
+                      .message = "the ball is held in the hands of nobody"});
+  }
 }
 
 void validateTactics(const MatchStateSpec& spec, const TeamTactics& tactics,
@@ -386,6 +390,14 @@ void MatchStateWriter::setBallOwner(const std::optional<SimCore::PlayerId> owner
     requirePlayer(*owner, "the ball's owner");
   }
   state_->ball_.owner = owner;
+  state_->ball_.held = false;
+}
+
+void MatchStateWriter::setBallHeld(const bool held) {
+  if (held && !state_->ball_.owner) {
+    throw std::invalid_argument("MatchStateWriter: nobody owns the ball to hold it");
+  }
+  state_->ball_.held = held;
 }
 
 void MatchStateWriter::requirePlayer(const SimCore::PlayerId playerId,

@@ -382,6 +382,14 @@ std::optional<double> launchVerticalVelocity(const Launch& launch,
   return (launch.height + drop) / (high * dragSpanFactor(drag));
 }
 
+std::optional<double> flightSpeed(const double distance, const double seconds,
+                                  const BallPhysics& physics) noexcept {
+  if (!(distance > 0.0) || !(seconds > 0.0)) {
+    return std::nullopt;
+  }
+  return distance / (seconds * dragSpanFactor(physics.airDrag * seconds));
+}
+
 BallStep stepFreeBallTimed(const BallState& ball, const BallPhysics& physics, const Pitch& pitch,
                            const double secondsPerTick) noexcept {
   return withPitchBoundary(ball, ballAfter(ball, physics, secondsPerTick), pitch, secondsPerTick);
