@@ -14,11 +14,11 @@ default is `replay.json` in the working directory, and `--play` plays one back. 
 before the terminal interface opens, so a run rejected by argument or terminal
 validation leaves no file behind.
 
-## Schema version 9
+## Schema version 10
 
 ```json
 {
-    "schemaVersion": 9,
+    "schemaVersion": 10,
   "coreVersion": "0.26.0",
   "createdAt": "2026-09-24T10:00:00Z",
   "seed": "18446744073709551615",
@@ -436,7 +436,7 @@ number`.
 |-----------------------------|------------------------------------------------------------------------|
 | `kIoError`                  | the file cannot be read or written                                     |
 | `kMalformed`                | not JSON, a missing or mistyped field, commands out of order           |
-| `kUnsupportedSchemaVersion` | a `schemaVersion` other than 9                                         |
+| `kUnsupportedSchemaVersion` | a `schemaVersion` other than 10                                        |
 | `kIncompatibleCoreVersion`  | recorded with another `coreVersion`                                    |
 | `kInvalidSetup`             | an invalid initial state, command or checkpoint list                   |
 | `kSimulationFailed`         | a step of the playback failed                                          |
