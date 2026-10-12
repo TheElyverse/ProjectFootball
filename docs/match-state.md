@@ -140,6 +140,7 @@ one.
 | the ball's owner, where set, is a player in the state | `kUnknownBallOwner`    |
 | the ball's last touch, where set, is a player in the state | `kUnknownLastTouch` |
 | a held ball has an owner                          | `kHeldBallWithoutOwner`    |
+| a held ball is in its side's goalkeeper's hands   | `kHeldBallByOutfielder`    |
 
 These rules hold for every state of a match, from kickoff to the final whistle.
 The match loop only changes positions, velocities, targets and facings, and

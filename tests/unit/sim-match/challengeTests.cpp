@@ -12,6 +12,8 @@
 #include "matchEvents.hpp"
 #include "matchSimulation.hpp"
 #include "matchState.hpp"
+#include "referenceTactic.hpp"
+#include "tactic.hpp"
 
 using ElyverseFootball::SimCore::PlayerId;
 using ElyverseFootball::SimCore::SimTick;
@@ -35,11 +37,16 @@ using ElyverseFootball::SimMatch::PlayerAction;
 using ElyverseFootball::SimMatch::PlayerMatchState;
 using ElyverseFootball::SimMatch::PossessionChanged;
 using ElyverseFootball::SimMatch::TeamSide;
+using ElyverseFootball::SimTactics::referenceTacticSpec;
+using ElyverseFootball::SimTactics::Tactic;
 
 namespace {
 
 // One a side: home's carrier 1 at (30, 20) with the ball, touched at tick 0
-// -- in his hands if `held` --, and away's player 2 at `defender`.
+// -- in his hands if `held` --, and away's player 2 at `defender`. Only a
+// goalkeeper holds the ball, so a held ball makes the carrier home's keeper in
+// the reference tactic, with six idle players a side by the touchline to fill
+// the squads.
 [[nodiscard]] MatchState duel(const Vec2 defender, const bool held = false) {
   const auto player = [](const PlayerId::ValueType number, const TeamSide side,
                          const Vec2 position) {
@@ -51,16 +58,26 @@ namespace {
                             .target = std::nullopt,
                             .facing = {.x = 1.0, .y = 0.0}};
   };
+  std::vector<PlayerMatchState> players{player(1, TeamSide::kHome, {.x = 30.0, .y = 20.0}),
+                                        player(2, TeamSide::kAway, defender)};
+  std::optional<Tactic> tactic;
+  if (held) {
+    for (PlayerId::ValueType number = 3; number < 15; ++number) {
+      const TeamSide side = number % 2 == 1 ? TeamSide::kHome : TeamSide::kAway;
+      players.push_back(player(number, side, {.x = 4.0 * static_cast<double>(number), .y = 1.0}));
+    }
+    tactic = Tactic::create(referenceTacticSpec()).value();
+  }
   auto state = MatchState::create(
       {.pitch = Pitch(60.0, 40.0),
-       .players = {player(1, TeamSide::kHome, {.x = 30.0, .y = 20.0}),
-                   player(2, TeamSide::kAway, defender)},
+       .players = std::move(players),
        .ball = {.position = {.x = 30.5, .y = 20.0},
                 .velocity = {},
                 .owner = PlayerId(1),
                 .lastTouch = BallTouch{.playerId = PlayerId(1), .tick = SimTick(0)},
                 .held = held},
-       .playersPerSide = 1});
+       .playersPerSide = held ? 7 : 1},
+      {.home = std::move(tactic), .away = {}});
   REQUIRE(state.has_value());
   return *std::move(state);
 }

@@ -7,7 +7,6 @@
 #include <utility>
 #include <vector>
 
-#include "responsibility.hpp"
 #include "teamFrame.hpp"
 
 namespace ElyverseFootball::SimMatch {
@@ -122,9 +121,7 @@ PitchRect thirdRect(const TeamSide side, const Third third, const Pitch& pitch) 
 }
 
 bool isGoalkeeper(const MatchState& state, const std::size_t playerIndex) {
-  const auto& tactic = state.tactics().of(state.players()[playerIndex].side);
-  return tactic && tactic->responsibilityWeight(slotIndex(state, playerIndex),
-                                                SimTactics::Responsibility::kGuardGoal) > 0.0;
+  return guardsGoal(state.players(), state.tactics(), playerIndex);
 }
 
 bool keepsGoal(const MatchState& state, const std::size_t playerIndex) {

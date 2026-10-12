@@ -113,11 +113,6 @@ TEST_CASE("Every field of the state changes the hash", "[matchStateHash]") {
       {"ball vertical velocity", [](auto& spec) { spec.ball.verticalVelocity = 5.0; }},
       {"ball spin", [](auto& spec) { spec.ball.spin = 20.0; }},
       {"ball owner", [](auto& spec) { spec.ball.owner = PlayerId(7); }},
-      {"ball held",
-       [](auto& spec) {
-         spec.ball.owner = PlayerId(7);
-         spec.ball.held = true;
-       }},
       {"last touch",
        [](auto& spec) {
          spec.ball.lastTouch = BallTouch{.playerId = PlayerId(7), .tick = SimTick(0)};
@@ -333,6 +328,16 @@ TEST_CASE("Tactics are part of the hash", "[matchStateHash]") {
   REQUIRE(none == hashOf(kickoffSpec()));
   REQUIRE(hashWith({.home = *reference, .away = {}}) != none);
   REQUIRE(hashWith({.home = *reference, .away = {}}) != hashWith({.home = {}, .away = *reference}));
+
+  // Only a goalkeeper holds the ball, so the hold needs his side's tactic.
+  MatchStateSpec held = kickoffSpec();
+  held.ball.owner = held.players.front().playerId;
+  const auto owned = MatchState::create(held, {.home = *reference, .away = {}});
+  held.ball.held = true;
+  const auto holding = MatchState::create(held, {.home = *reference, .away = {}});
+  REQUIRE(owned.has_value());
+  REQUIRE(holding.has_value());
+  REQUIRE(hashMatchState(*holding) != hashMatchState(*owned));
   REQUIRE(hashWith({.home = *reference, .away = {}}) != hashWith({.home = *other, .away = {}}));
   REQUIRE(hashWith({.home = *reference, .away = *other}) ==
           hashWith({.home = *reference, .away = *other}));

@@ -199,6 +199,22 @@ TEST_CASE("A system cannot hand the ball to an unknown player", "[possession]") 
   REQUIRE_THROWS_AS((void)simulation.step(), std::invalid_argument);
 }
 
+TEST_CASE("A system cannot put the ball in an outfield player's hands", "[possession]") {
+  MatchSimulation simulation(
+      {.initialState = kickoff(),
+       .seed = 1,
+       .ticksPerSecond = 30,
+       .systems = {{.name = "handball",
+                    .update =
+                        [](const MatchStepContext&, const MatchState&, MatchStateWriter& next) {
+                          next.setBallOwner(PlayerId(1));
+                          next.setBallHeld(true);
+                        }}},
+       .commands = {}});
+
+  REQUIRE_THROWS_AS((void)simulation.step(), std::invalid_argument);
+}
+
 TEST_CASE("The carry distance must be finite and not negative", "[possession]") {
   BallPhysics physics;
   physics.carryDistance = -0.1;

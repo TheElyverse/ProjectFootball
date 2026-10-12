@@ -4,8 +4,10 @@
 #include <cmath>
 #include <cstddef>
 #include <format>
+#include <iterator>
 #include <limits>
 #include <optional>
+#include <span>
 #include <stdexcept>
 #include <string>
 #include <string_view>
@@ -245,6 +247,18 @@ void validatePlayers(const MatchStateSpec& spec, std::vector<MatchStateError>& e
   }
 }
 
+// The player's slot within his side, see slotIndex().
+[[nodiscard]] std::size_t slotOf(const std::span<const PlayerMatchState> players,
+                                 const std::size_t playerIndex) {
+  if (playerIndex >= players.size()) {
+    throw std::out_of_range("slotIndex: no player at index " + std::to_string(playerIndex));
+  }
+  const TeamSide side = players[playerIndex].side;
+  return static_cast<std::size_t>(std::ranges::count_if(
+      players.first(playerIndex),
+      [side](const PlayerMatchState& player) { return player.side == side; }));
+}
+
 [[nodiscard]] bool hasPlayer(const std::vector<PlayerMatchState>& players,
                              const SimCore::PlayerId playerId) noexcept {
   return std::ranges::any_of(
@@ -299,6 +313,22 @@ void validateTactics(const MatchStateSpec& spec, const TeamTactics& tactics,
                                                teamSideName(side), tactic->name(),
                                                tactic->slots().size(), spec.playersPerSide)});
     }
+  }
+}
+
+void validateHeldBall(const MatchStateSpec& spec, const TeamTactics& tactics,
+                      std::vector<MatchStateError>& errors) {
+  if (!spec.ball.held || !spec.ball.owner) {
+    return;
+  }
+  const auto owner = std::ranges::find(spec.players, *spec.ball.owner, &PlayerMatchState::playerId);
+  if (owner != spec.players.end() &&
+      !guardsGoal(spec.players, tactics,
+                  static_cast<std::size_t>(std::distance(spec.players.begin(), owner)))) {
+    errors.push_back({.code = MatchStateErrorCode::kHeldBallByOutfielder,
+                      .message = "the ball is held in the hands of player " +
+                                 std::to_string(spec.ball.owner->value()) +
+                                 ", who is not his side's goalkeeper"});
   }
 }
 
@@ -363,6 +393,7 @@ std::expected<MatchState, std::vector<MatchStateError>> MatchState::create(Match
   validatePlayers(spec, errors);
   validateBall(spec, errors);
   validateTactics(spec, tactics, errors);
+  validateHeldBall(spec, tactics, errors);
   validateScore(spec, errors);
 
   if (!errors.empty()) {
@@ -394,8 +425,15 @@ void MatchStateWriter::setBallOwner(const std::optional<SimCore::PlayerId> owner
 }
 
 void MatchStateWriter::setBallHeld(const bool held) {
-  if (held && !state_->ball_.owner) {
-    throw std::invalid_argument("MatchStateWriter: nobody owns the ball to hold it");
+  if (held) {
+    const std::optional<SimCore::PlayerId>& owner = state_->ball_.owner;
+    if (!owner) {
+      throw std::invalid_argument("MatchStateWriter: nobody owns the ball to hold it");
+    }
+    if (!ownerGuardsGoal()) {
+      throw std::invalid_argument(std::format(
+          "MatchStateWriter: player {} is no goalkeeper and cannot hold the ball", owner->value()));
+    }
   }
   state_->ball_.held = held;
 }
@@ -493,6 +531,15 @@ void MatchStateWriter::setTactic(const TeamSide side, SimTactics::Tactic tactic)
         tactic.name(), tactic.slots().size(), state_->playersPerSide()));
   }
   (side == TeamSide::kHome ? state_->tactics_.home : state_->tactics_.away) = std::move(tactic);
+  if (state_->ball_.held && !ownerGuardsGoal()) {
+    state_->ball_.held = false;
+  }
+}
+
+bool MatchStateWriter::ownerGuardsGoal() const {
+  const std::optional<SimCore::PlayerId>& owner = state_->ball_.owner;
+  const auto index = owner ? findPlayerIndex(*state_, *owner) : std::nullopt;
+  return index && guardsGoal(state_->players_, state_->tactics_, *index);
 }
 
 void MatchStateWriter::setPress(const TeamSide side, std::optional<TeamPress> press) {
@@ -543,14 +590,15 @@ std::optional<std::size_t> findPlayerIndex(const MatchState& state,
 }
 
 std::size_t slotIndex(const MatchState& state, const std::size_t playerIndex) {
-  const auto players = state.players();
-  if (playerIndex >= players.size()) {
-    throw std::out_of_range("slotIndex: no player at index " + std::to_string(playerIndex));
-  }
-  const TeamSide side = players[playerIndex].side;
-  return static_cast<std::size_t>(std::ranges::count_if(
-      players.first(playerIndex),
-      [side](const PlayerMatchState& player) { return player.side == side; }));
+  return slotOf(state.players(), playerIndex);
+}
+
+bool guardsGoal(const std::span<const PlayerMatchState> players, const TeamTactics& tactics,
+                const std::size_t playerIndex) {
+  const std::size_t slot = slotOf(players, playerIndex);
+  const auto& tactic = tactics.of(players[playerIndex].side);
+  return tactic && slot < tactic->slots().size() &&
+         tactic->responsibilityWeight(slot, SimTactics::Responsibility::kGuardGoal) > 0.0;
 }
 
 // Allocates nothing for a state without defects: the vector stays empty until

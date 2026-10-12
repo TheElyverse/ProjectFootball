@@ -244,6 +244,7 @@ enum class MatchStateErrorCode : std::uint8_t {
   kUnknownBallOwner,
   kUnknownLastTouch,
   kHeldBallWithoutOwner,
+  kHeldBallByOutfielder,
   kTacticDoesNotFitSquad,
   kInvalidScore,
 };
@@ -586,7 +587,8 @@ class MatchStateWriter {
   // can only ever belong to a player on the pitch.
   void setBallOwner(std::optional<SimCore::PlayerId> owner);
   // Puts the owned ball in its owner's hands, or back at his feet; throws
-  // std::invalid_argument for holding a ball nobody owns.
+  // std::invalid_argument for holding a ball nobody owns or an outfield
+  // player owns.
   void setBallHeld(bool held);
   // Records who last played the ball; throws std::invalid_argument for a
   // player not in the state.
@@ -628,6 +630,8 @@ class MatchStateWriter {
   // Throws std::invalid_argument for a player not on that side.
   void setChaser(TeamSide side, std::optional<SimCore::PlayerId> chaser);
   // Throws std::invalid_argument for a tactic that does not fit the squad.
+  // A held ball drops to the feet of a holder the new tactic no longer makes
+  // the goalkeeper.
   void setTactic(TeamSide side, SimTactics::Tactic tactic);
   void setPitchControl(std::optional<PitchControlGrid> grid) {
     state_->pitchControl_ = std::move(grid);
@@ -646,6 +650,8 @@ class MatchStateWriter {
 
   // Throws std::invalid_argument naming the role if no player has the id.
   void requirePlayer(SimCore::PlayerId playerId, std::string_view role) const;
+  // Whether the ball has an owner and he is his side's goalkeeper.
+  [[nodiscard]] bool ownerGuardsGoal() const;
 
   MatchState* state_;
 };
@@ -659,6 +665,13 @@ class MatchStateWriter {
 // before him in MatchState::players(). Throws std::out_of_range for an index
 // past the end.
 [[nodiscard]] std::size_t slotIndex(const MatchState& state, std::size_t playerIndex);
+
+// Whether the player at this index guards his side's goal: his slot holds
+// guardGoal in his side's tactic. Lets MatchState::create() and the writer
+// tell the goalkeeper, the only player who may hold the ball, like
+// isGoalkeeper() does.
+[[nodiscard]] bool guardsGoal(std::span<const PlayerMatchState> players, const TeamTactics& tactics,
+                              std::size_t playerIndex);
 
 // The finiteness rules of MatchState::create(), for a state the simulation
 // has just written: every non-finite position, velocity and target, every
