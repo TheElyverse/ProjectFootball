@@ -74,7 +74,7 @@ struct PassConfig {
 // the pressure radius are positive, the errors and the factors are not
 // negative, and a kick under full pressure keeps some speed: speedError *
 // (1 + pressureErrorFactor) below 1, and loftedErrorFactor times that for a
-// lofted kick.
+// lofted kick, whose direction error under full pressure stays finite too.
 void validate(const PassConfig& config);
 
 }  // namespace ElyverseFootball::SimMatch

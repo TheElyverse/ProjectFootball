@@ -2,6 +2,7 @@
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
 #include <cmath>
 #include <cstdint>
+#include <limits>
 #include <optional>
 #include <utility>
 #include <vector>
@@ -348,5 +349,15 @@ TEST_CASE("A kick under full pressure must keep some speed", "[passing]") {
   REQUIRE_THROWS_AS(ElyverseFootball::SimMatch::validate(config), std::invalid_argument);
   config.loftedErrorFactor = 1.0;
   config.pressureRadius = 0.0;
+  REQUIRE_THROWS_AS(ElyverseFootball::SimMatch::validate(config), std::invalid_argument);
+}
+
+TEST_CASE("A lofted kick's direction error must stay finite", "[passing]") {
+  PassConfig config;
+  config.directionError = std::numeric_limits<double>::max();
+  config.loftedErrorFactor = 1.0;
+  config.pressureErrorFactor = 0.0;
+  REQUIRE_NOTHROW(ElyverseFootball::SimMatch::validate(config));
+  config.loftedErrorFactor = 2.0;
   REQUIRE_THROWS_AS(ElyverseFootball::SimMatch::validate(config), std::invalid_argument);
 }

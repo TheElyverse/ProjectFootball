@@ -84,7 +84,9 @@ void validate(const PassConfig& config) {
       isFinite(config.maxLoftedSpeed) && config.loftedErrorFactor >= 0.0 &&
       isFinite(config.loftedErrorFactor) &&
       config.speedError * (1.0 + config.pressureErrorFactor) < 1.0 &&
-      config.speedError * config.loftedErrorFactor * (1.0 + config.pressureErrorFactor) < 1.0;
+      config.speedError * config.loftedErrorFactor * (1.0 + config.pressureErrorFactor) < 1.0 &&
+      isFinite(config.directionError * config.loftedErrorFactor *
+               (1.0 + config.pressureErrorFactor));
   if (!valid) {
     throw std::invalid_argument("passing: invalid configuration");
   }
