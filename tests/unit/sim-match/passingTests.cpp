@@ -27,6 +27,7 @@ using ElyverseFootball::SimMatch::BallState;
 using ElyverseFootball::SimMatch::BallTouch;
 using ElyverseFootball::SimMatch::executePass;
 using ElyverseFootball::SimMatch::GiveBallCommand;
+using ElyverseFootball::SimMatch::loftedPassConfig;
 using ElyverseFootball::SimMatch::makeBallMovementSystem;
 using ElyverseFootball::SimMatch::makePlayerMovementSystem;
 using ElyverseFootball::SimMatch::makeSevenASideKickoff;
@@ -358,6 +359,21 @@ TEST_CASE("A lofted kick's direction error must stay finite", "[passing]") {
   config.loftedErrorFactor = 1.0;
   config.pressureErrorFactor = 0.0;
   REQUIRE_NOTHROW(ElyverseFootball::SimMatch::validate(config));
+  // The largest accepted error still kicks the ball at a finite velocity.
+  const PassIntent intent{.passer = PlayerId(1),
+                          .target = {.x = 40.0, .y = 10.0},
+                          .speed = 12.0,
+                          .receiver = std::nullopt};
+  for (std::uint64_t seed = 0; seed < 50; ++seed) {
+    RandomNumberGenerator random(seed);
+    REQUIRE(executePass(intent, ballAt({.x = 10.0, .y = 10.0}), passerFacing({}),
+                        loftedPassConfig(config), random)
+                .isFinite());
+  }
   config.loftedErrorFactor = 2.0;
+  REQUIRE_THROWS_AS(ElyverseFootball::SimMatch::validate(config), std::invalid_argument);
+  // A ground kick under full pressure must stay finite too.
+  config.loftedErrorFactor = 0.5;
+  config.pressureErrorFactor = 1.0;
   REQUIRE_THROWS_AS(ElyverseFootball::SimMatch::validate(config), std::invalid_argument);
 }

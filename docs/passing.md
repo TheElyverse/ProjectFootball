@@ -81,8 +81,8 @@ test can set both errors to zero to predict a pass exactly.
 The ball system rejects non-positive speeds and pressure radius, negative
 errors and factors, a speed error that could reach 1 under full pressure
 (`speedError × (1 + pressureErrorFactor)`, and that times `loftedErrorFactor`),
-and any non-finite value, also a lofted kick's direction error under full
-pressure (`directionError × loftedErrorFactor × (1 + pressureErrorFactor)`).
+and any non-finite value, also a ground or lofted kick's direction error under
+full pressure (`directionError × max(1, loftedErrorFactor) × (1 + pressureErrorFactor)`).
 
 ## Lofted passes
 

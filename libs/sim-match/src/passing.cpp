@@ -47,7 +47,7 @@ Vec2 executePass(const PassIntent& intent, const BallState& ball, const PlayerMa
   // Off line by `lateral` meters per meter along it, then back to unit length.
   const Vec2 perpendicular{.x = -line.y, .y = line.x};
   const Vec2 skewed = line + (perpendicular * lateral);
-  const Vec2 direction = skewed * (1.0 / std::sqrt(skewed.lengthSquared()));
+  const Vec2 direction = skewed * (1.0 / skewed.length());
 
   const double speed = std::min(intent.speed * strength, config.maxSpeed);
   return direction * speed;
@@ -85,7 +85,7 @@ void validate(const PassConfig& config) {
       isFinite(config.loftedErrorFactor) &&
       config.speedError * (1.0 + config.pressureErrorFactor) < 1.0 &&
       config.speedError * config.loftedErrorFactor * (1.0 + config.pressureErrorFactor) < 1.0 &&
-      isFinite(config.directionError * config.loftedErrorFactor *
+      isFinite(config.directionError * std::max(1.0, config.loftedErrorFactor) *
                (1.0 + config.pressureErrorFactor));
   if (!valid) {
     throw std::invalid_argument("passing: invalid configuration");
