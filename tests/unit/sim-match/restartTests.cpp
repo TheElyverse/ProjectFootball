@@ -6,6 +6,7 @@
 #include <limits>
 #include <optional>
 #include <span>
+#include <stdexcept>
 #include <utility>
 #include <variant>
 #include <vector>
@@ -118,6 +119,17 @@ void requireLegalKickoff(const MatchState& state, const TeamSide kicking,
 }
 
 }  // namespace
+
+TEST_CASE("The restart system rejects an invalid holding limit", "[restart]") {
+  using ElyverseFootball::SimMatch::makeRestartSystem;
+  using ElyverseFootball::SimMatch::RestartConfig;
+  REQUIRE_NOTHROW(makeRestartSystem(RestartConfig{.maxHoldSeconds = 0.0}, BallPhysics{}));
+  for (const double seconds : {-1.0, std::numeric_limits<double>::infinity(), std::nan("")}) {
+    CAPTURE(seconds);
+    REQUIRE_THROWS_AS(makeRestartSystem(RestartConfig{.maxHoldSeconds = seconds}, BallPhysics{}),
+                      std::invalid_argument);
+  }
+}
 
 TEST_CASE("A free ball at rest on a line is out of play", "[restart]") {
   REQUIRE(isOutOfPlay(scene(ballAt({.x = 30.0, .y = 0.0}, 2))));

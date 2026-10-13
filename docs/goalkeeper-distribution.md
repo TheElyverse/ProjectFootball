@@ -35,6 +35,12 @@ a caught shot, a high ball he holds in the air) **holds** it: the ball's
 - he keeps it at least `holdSeconds` (2 s) from the moment he took it, for
   his side to get into shape, against the half second (`minHoldSeconds`)
   anyone else keeps a ball he has just taken;
+- he may not keep it longer than eight seconds (Law 12): with
+  [restarts](restarts.md#holding-the-ball-too-long) enabled, the other side
+  then gets a corner. Still without a valid option after `clearSeconds`
+  (6 s), he therefore **clears** it: he plays the pass with the highest
+  utility of those rejected only as `kUnlikely` -- most often a long ball into
+  a crowd -- and draws nothing more for it. Without such a pass he keeps it;
 - his ground passes are **throws**, rolled out along the ground like a pass
   and no farther than `throwRange` (25 m);
 - his lofted passes are **punts**.

@@ -74,7 +74,12 @@ struct KickoffLineUp {
 
 inline constexpr std::string_view kRestartSystemName = "restart";
 
-// Every tick while enabled: if the ball is out of play, gives it to the
+// Every tick while enabled: if a goalkeeper has held the ball in his hands
+// longer than maxHoldSeconds since he took it -- his last touch -- the other
+// side gets a corner at the corner of his goal line nearer the ball. Its
+// player nearest that corner, ties to the lower index, stands on it at rest,
+// facing the centre of the pitch, the ball at his feet. Otherwise, if the
+// ball is out of play, gives it to the
 // player planRestart() names, at his feet, and records RestartTaken -- at the
 // centre spot for a kickoff, otherwise where the ball left the pitch -- and
 // PossessionChanged. For a throw-in and a corner nobody is moved: the restart
@@ -84,7 +89,8 @@ inline constexpr std::string_view kRestartSystemName = "restart";
 // placed in lineUpForKickoff()'s positions, at rest and facing the goal they
 // attack, with the ball on the centre spot, and start as at the beginning of
 // a match: without movement targets, pending actions, memories, tactical
-// states, presses or chasers. Disabled, it does nothing.
+// states, presses or chasers. Disabled, it does nothing. Throws
+// std::invalid_argument for a negative or non-finite maxHoldSeconds.
 // ball places the ball at the taker's feet.
 [[nodiscard]] MatchSystem makeRestartSystem(const RestartConfig& config, const BallPhysics& ball);
 

@@ -149,7 +149,7 @@ perception, passing, reception, pursuit, decisions, phases, pitch control, posit
 | 9     | shot stopping   | every tick | the dive of the keeper facing a shot, once he has reacted, in his tactical state ([shot stopping](shot-stopping.md)) |
 | 10    | player movement | every tick | player positions, velocities, facings; a keeper busy with a dive where it takes him |
 | 11    | ball movement   | every tick | ball position, velocity, owner, last touch, last pass and shot, the score and the last goal, a keeper's dive once the ball passed him; plays the owner's pending pass or shot and clears every other ([shooting](shooting.md)) |
-| 12    | restart         | every tick | ball owner, position, velocity and last touch after the ball went out or into a goal, and for a kickoff both sides' line-up; only with `restarts.enabled` ([restarts](restarts.md)) |
+| 12    | restart         | every tick | ball owner, position, velocity and last touch after the ball went out or into a goal or a goalkeeper held it too long, and for a kickoff both sides' line-up; only with `restarts.enabled` ([restarts](restarts.md)) |
 
 `MatchSetup` is everything such a match starts from: initial state, config, seed
 and commands. `startMatch(setup)` builds the simulation. A replay records a

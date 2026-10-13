@@ -204,6 +204,7 @@ TEST_CASE("The distribution configuration is validated", "[distribution]") {
     REQUIRE_THROWS_AS(ElyverseFootball::SimMatch::validate(config), std::invalid_argument);
   };
   rejected([](DistributionConfig& config) { config.holdSeconds = -1.0; });
+  rejected([](DistributionConfig& config) { config.clearSeconds = -1.0; });
   rejected([](DistributionConfig& config) { config.throwRange = 0.0; });
   rejected([](DistributionConfig& config) { config.flightSeconds = 0.0; });
   rejected([](DistributionConfig& config) { config.contestMarginSeconds = 0.0; });

@@ -37,10 +37,11 @@ void validate(const DistributionConfig& config) {
   };
   constexpr double kMax = std::numeric_limits<double>::max();
   const bool valid =
-      finiteIn(config.holdSeconds, 0.0, kMax) && finiteIn(config.throwRange, 0.0, kMax) &&
-      config.throwRange > 0.0 && finiteIn(config.minLongDistance, 0.0, kMax) &&
-      finiteIn(config.flightSeconds, 0.0, kMax) && config.flightSeconds > 0.0 &&
-      finiteIn(config.contestMarginSeconds, 0.0, kMax) && config.contestMarginSeconds > 0.0 &&
+      finiteIn(config.holdSeconds, 0.0, kMax) && finiteIn(config.clearSeconds, 0.0, kMax) &&
+      finiteIn(config.throwRange, 0.0, kMax) && config.throwRange > 0.0 &&
+      finiteIn(config.minLongDistance, 0.0, kMax) && finiteIn(config.flightSeconds, 0.0, kMax) &&
+      config.flightSeconds > 0.0 && finiteIn(config.contestMarginSeconds, 0.0, kMax) &&
+      config.contestMarginSeconds > 0.0 &&
       finiteIn(config.directnessWeight, 0.0, kMaxScoringWeight);
   if (!valid) {
     throw std::invalid_argument("distribution: invalid configuration");

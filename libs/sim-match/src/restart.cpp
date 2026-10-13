@@ -6,6 +6,7 @@
 #include <limits>
 #include <optional>
 #include <span>
+#include <stdexcept>
 #include <string>
 #include <utility>
 #include <vector>
@@ -87,6 +88,48 @@ namespace {
                          .y = shape.width * pitch.widthMeters()});
   }
   return positions;
+}
+
+// A corner against a goalkeeper who has held the ball in his hands longer
+// than maxHoldSeconds since his last touch, and the corner it is taken from:
+// that of his goal line nearer the ball.
+[[nodiscard]] std::optional<std::pair<RestartPlan, SimCore::Vec2>> holdingCorner(
+    const MatchState& state, const MatchStepContext& context, const double maxHoldSeconds) {
+  const BallState& ball = state.ball();
+  if (!ball.held || !ball.lastTouch || ball.lastTouch->playerId != ball.owner) {
+    return std::nullopt;
+  }
+  const double held = static_cast<double>(context.tick().value() - ball.lastTouch->tick.value()) *
+                      context.secondsPerTick();
+  const auto keeper = findPlayerIndex(state, ball.lastTouch->playerId);
+  if (held <= maxHoldSeconds || !keeper) {
+    return std::nullopt;
+  }
+  const Pitch& pitch = state.pitch();
+  const TeamSide side = state.players()[*keeper].side;
+  // Home defends x = 0, away x = length.
+  const SimCore::Vec2 corner{
+      .x = side == TeamSide::kHome ? 0.0 : pitch.lengthMeters(),
+      .y = ball.position.y < pitch.widthMeters() / 2.0 ? 0.0 : pitch.widthMeters()};
+  const auto taker = takerOf(state, otherSide(side), false, corner);
+  if (!taker) {
+    return std::nullopt;
+  }
+  return std::pair{RestartPlan{.kind = RestartKind::kCorner, .playerIndex = *taker}, corner};
+}
+
+// Puts the taker on `position` at rest, facing `facing`, the ball at his
+// feet.
+void placeTaker(MatchStateWriter& next, const std::size_t index, PlayerMatchState taker,
+                const SimCore::Vec2 position, const SimCore::Vec2 facing, const BallPhysics& ball,
+                const Pitch& pitch) {
+  taker.position = position;
+  taker.facing = facing;
+  next.setPlayerPosition(index, taker.position);
+  next.setPlayerVelocity(index, {});
+  next.setPlayerTarget(index, std::nullopt);
+  next.setPlayerFacing(index, taker.facing);
+  next.setBallPosition(carriedBallPosition(taker, ball, pitch));
 }
 
 }  // namespace
@@ -194,12 +237,43 @@ SimCore::Vec2 kickoffFacing(const TeamSide side) noexcept {
 }
 
 MatchSystem makeRestartSystem(const RestartConfig& config, const BallPhysics& ball) {
+  // False for NaN.
+  const bool valid =
+      config.maxHoldSeconds >= 0.0 && config.maxHoldSeconds <= std::numeric_limits<double>::max();
+  if (!valid) {
+    throw std::invalid_argument("restart: invalid configuration");
+  }
   return {
       .name = std::string(kRestartSystemName),
       .update =
           [config, ball](const MatchStepContext& context, const MatchState& current,
                          MatchStateWriter& next) {
             if (!config.enabled) {
+              return;
+            }
+            if (const auto corner = holdingCorner(current, context, config.maxHoldSeconds)) {
+              const auto& [plan, spot] = *corner;
+              const PlayerMatchState& taker = current.players()[plan.playerIndex];
+              context.record(RestartTaken{.tick = context.tick(),
+                                          .kind = plan.kind,
+                                          .player = taker.playerId,
+                                          .position = spot});
+              context.record(PossessionChanged{.tick = context.tick(),
+                                               .previousOwner = current.ball().owner,
+                                               .newOwner = taker.playerId});
+              if (const auto keeper = findPlayerIndex(current, *current.ball().owner)) {
+                next.setPendingAction(*keeper, std::nullopt);
+              }
+              next.setBallOwner(taker.playerId);
+              next.setBallLastTouch(BallTouch{.playerId = taker.playerId, .tick = context.tick()});
+              next.setBallVelocity({});
+              next.setBallHeight(0.0);
+              next.setBallVerticalVelocity(0.0);
+              next.tactical(plan.playerIndex).handsReleased.reset();
+              placeTaker(
+                  next, plan.playerIndex, taker, spot,
+                  SimCore::unitOr(current.pitch().center() - spot, kickoffFacing(taker.side)), ball,
+                  current.pitch());
               return;
             }
             const auto plan = planRestart(current);
@@ -223,16 +297,12 @@ MatchSystem makeRestartSystem(const RestartConfig& config, const BallPhysics& ba
             if (plan->kind == RestartKind::kGoalKick) {
               // The taker stands behind the ball in his goal area, facing up
               // the pitch.
-              PlayerMatchState placed = taker;
-              placed.facing = kickoffFacing(taker.side);
-              placed.position =
+              const SimCore::Vec2 facing = kickoffFacing(taker.side);
+              placeTaker(
+                  next, plan->playerIndex, taker,
                   current.pitch().clamp(goalKickSpot(current.pitch(), current.ball().position) -
-                                        (placed.facing * ball.carryDistance));
-              next.setPlayerPosition(plan->playerIndex, placed.position);
-              next.setPlayerVelocity(plan->playerIndex, {});
-              next.setPlayerTarget(plan->playerIndex, std::nullopt);
-              next.setPlayerFacing(plan->playerIndex, placed.facing);
-              next.setBallPosition(carriedBallPosition(placed, ball, current.pitch()));
+                                        (facing * ball.carryDistance)),
+                  facing, ball, current.pitch());
               return;
             }
             const auto lineUp = plan->kind == RestartKind::kKickoff

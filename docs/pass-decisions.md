@@ -28,7 +28,9 @@ Every `intervalTicks` ticks (6: five times a second at 30 Hz):
    and from his hands throws no farther than `throwRange`
    ([goalkeeper distribution](goalkeeper-distribution.md)).
 4. **Choice.** `chooseOnBall()` picks one of the valid passes or the best valid
-   shot. Without a valid option he keeps the ball.
+   shot. Without a valid option he keeps the ball — except a goalkeeper who has
+   held it in his hands for `clearSeconds` (6 s): he clears it
+   ([goalkeeper distribution](goalkeeper-distribution.md#the-ball-in-his-hands)).
 5. **Intent.** The choice becomes his pending action — for a pass the target,
    planned speed, receiver and whether it is lofted, for a shot the aimed point, height and speed. The
    ball system plays it in the next step.

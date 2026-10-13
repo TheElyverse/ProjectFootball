@@ -1,7 +1,10 @@
 #include "passDecision.hpp"
 
 #include <algorithm>
+#include <cstddef>
 #include <limits>
+#include <optional>
+#include <span>
 #include <stdexcept>
 #include <string>
 #include <vector>
@@ -75,6 +78,20 @@ void validate(const DecisionConfig& config) {
   return candidates;
 }
 
+// A keeper's clearance when nothing is on: of the passes rejected only as
+// too unlikely to arrive, the one with the highest utility, ties to the
+// first. Empty without such a pass.
+[[nodiscard]] std::optional<OnBallChoice> clearance(const std::span<const PassCandidate> passes) {
+  std::optional<OnBallChoice> best;
+  for (std::size_t index = 0; index < passes.size(); ++index) {
+    if (passes[index].rejection == PassRejection::kUnlikely &&
+        (!best || passes[index].utility > passes[best->index].utility)) {
+      best = OnBallChoice{.outcome = DecisionOutcome::kPassed, .index = index};
+    }
+  }
+  return best;
+}
+
 }  // namespace
 
 std::optional<OnBallChoice> chooseOnBall(const std::span<const PassCandidate> passes,
@@ -129,75 +146,79 @@ MatchSystem makePassDecisionSystem(const DecisionConfig& config, const PassCandi
                                     .ball = rules.ball,
                                     .perception = rules.perception,
                                     .reception = rules.reception};
-  return {.name = std::string(kPassDecisionSystemName),
-          .update =
-              [config, scored, shooting](const MatchStepContext& context, const MatchState& current,
-                                         MatchStateWriter& next) {
-                const BallState& ball = current.ball();
-                if (!ball.owner) {
-                  return;
-                }
-                const auto carrier = findPlayerIndex(current, *ball.owner);
-                if (!carrier || current.pendingAction(*carrier)) {
-                  return;
-                }
-                if (heldSeconds(ball, context.tick(), context.secondsPerTick()) <
-                    holdSeconds(ball, config)) {
-                  return;
-                }
-                PassCandidateRules carrierRules = scored;
-                ShotCandidateRules shooterRules = shooting;
-                const TeamSide side = current.players()[*carrier].side;
-                const auto& tactic = current.tactics().of(side);
-                const auto& phase = current.phase(side);
-                if (tactic && phase) {
-                  const double risk = tactic->instruction(phase->phase).passingRisk;
-                  carrierRules.scoring = scoringForRisk(scored.scoring, risk);
-                  shooterRules.scoring = shotScoringForRisk(shooting.scoring, risk);
-                }
-                const std::vector<PassCandidate> candidates =
-                    passOptions(context, current, *carrier, config.distribution, carrierRules);
-                const std::vector<ShotCandidate> shots = generateShotCandidates(
-                    current, *carrier, context.tick(), context.secondsPerTick(), shooterRules);
-                const auto chosen =
-                    chooseOnBall(candidates, shots, config.temperature,
-                                 context.random(SimCore::RandomNumberGeneratorDomain::kAi));
-                // Built only on request, and after the choice: diagnostics can
-                // neither change the decision nor draw a number.
-                if (context.collectsDiagnostics(*ball.owner)) {
-                  context.diagnose(DecisionDiagnostic{
-                      .tick = context.tick(),
-                      .player = *ball.owner,
-                      .observations = current.perception(*carrier).observations,
-                      .candidates = candidates,
-                      .shots = shots,
-                      .outcome = chosen ? chosen->outcome : DecisionOutcome::kNoValidOption,
-                      .chosen = chosen ? std::optional(chosen->index) : std::nullopt,
-                      .scoring = carrierRules.scoring,
-                      .shotScoring = shooterRules.scoring,
-                      .held = ball.held});
-                }
-                if (!chosen) {
-                  return;
-                }
-                if (chosen->outcome == DecisionOutcome::kShot) {
-                  const ShotCandidate& shot = shots[chosen->index];
-                  next.setPendingAction(*carrier,
-                                        ShotIntent{.shooter = *ball.owner,
-                                                   .target = shot.target,
-                                                   .height = shot.height,
-                                                   .speed = shooterRules.scoring.shotSpeed});
-                  return;
-                }
-                const PassCandidate& pass = candidates[chosen->index];
-                next.setPendingAction(*carrier, PassIntent{.passer = *ball.owner,
-                                                           .target = pass.target,
-                                                           .speed = pass.speed,
-                                                           .receiver = pass.receiver,
-                                                           .lofted = pass.lofted});
-              },
-          .intervalTicks = config.intervalTicks,
-          .phaseTicks = 0};
+  return {
+      .name = std::string(kPassDecisionSystemName),
+      .update =
+          [config, scored, shooting](const MatchStepContext& context, const MatchState& current,
+                                     MatchStateWriter& next) {
+            const BallState& ball = current.ball();
+            if (!ball.owner) {
+              return;
+            }
+            const auto carrier = findPlayerIndex(current, *ball.owner);
+            if (!carrier || current.pendingAction(*carrier)) {
+              return;
+            }
+            if (heldSeconds(ball, context.tick(), context.secondsPerTick()) <
+                holdSeconds(ball, config)) {
+              return;
+            }
+            PassCandidateRules carrierRules = scored;
+            ShotCandidateRules shooterRules = shooting;
+            const TeamSide side = current.players()[*carrier].side;
+            const auto& tactic = current.tactics().of(side);
+            const auto& phase = current.phase(side);
+            if (tactic && phase) {
+              const double risk = tactic->instruction(phase->phase).passingRisk;
+              carrierRules.scoring = scoringForRisk(scored.scoring, risk);
+              shooterRules.scoring = shotScoringForRisk(shooting.scoring, risk);
+            }
+            const std::vector<PassCandidate> candidates =
+                passOptions(context, current, *carrier, config.distribution, carrierRules);
+            const std::vector<ShotCandidate> shots = generateShotCandidates(
+                current, *carrier, context.tick(), context.secondsPerTick(), shooterRules);
+            auto chosen = chooseOnBall(candidates, shots, config.temperature,
+                                       context.random(SimCore::RandomNumberGeneratorDomain::kAi));
+            if (!chosen && ball.held &&
+                heldSeconds(ball, context.tick(), context.secondsPerTick()) >=
+                    config.distribution.clearSeconds) {
+              chosen = clearance(candidates);
+            }
+            // Built only on request, and after the choice: diagnostics can
+            // neither change the decision nor draw a number.
+            if (context.collectsDiagnostics(*ball.owner)) {
+              context.diagnose(DecisionDiagnostic{
+                  .tick = context.tick(),
+                  .player = *ball.owner,
+                  .observations = current.perception(*carrier).observations,
+                  .candidates = candidates,
+                  .shots = shots,
+                  .outcome = chosen ? chosen->outcome : DecisionOutcome::kNoValidOption,
+                  .chosen = chosen ? std::optional(chosen->index) : std::nullopt,
+                  .scoring = carrierRules.scoring,
+                  .shotScoring = shooterRules.scoring,
+                  .held = ball.held});
+            }
+            if (!chosen) {
+              return;
+            }
+            if (chosen->outcome == DecisionOutcome::kShot) {
+              const ShotCandidate& shot = shots[chosen->index];
+              next.setPendingAction(*carrier, ShotIntent{.shooter = *ball.owner,
+                                                         .target = shot.target,
+                                                         .height = shot.height,
+                                                         .speed = shooterRules.scoring.shotSpeed});
+              return;
+            }
+            const PassCandidate& pass = candidates[chosen->index];
+            next.setPendingAction(*carrier, PassIntent{.passer = *ball.owner,
+                                                       .target = pass.target,
+                                                       .speed = pass.speed,
+                                                       .receiver = pass.receiver,
+                                                       .lofted = pass.lofted});
+          },
+      .intervalTicks = config.intervalTicks,
+      .phaseTicks = 0};
 }
 
 }  // namespace ElyverseFootball::SimMatch

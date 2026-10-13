@@ -87,7 +87,10 @@ inline constexpr std::string_view kPassDecisionSystemName = "pass decision";
 //   4. He picks one of the valid passes and the best valid shot with
 //      chooseByUtility(), drawing from the kAi random stream, and writes it
 //      as his pending action -- the ball system plays it in the next step.
-//      Without a valid option he keeps the ball.
+//      Without a valid option he keeps the ball -- unless he is a goalkeeper
+//      who has held it in his hands for the distribution's clearSeconds: he
+//      then plays the pass with the highest utility of those rejected only
+//      as kUnlikely, drawing nothing more.
 //
 // Writes the carrier's pending action only. Throws std::invalid_argument for
 // an interval below one tick, a negative or non-finite hold time, a

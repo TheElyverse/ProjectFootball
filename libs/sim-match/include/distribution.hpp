@@ -16,6 +16,10 @@ struct DistributionConfig {
   // With the ball in his hands he keeps it at least this long, for his side
   // to get into shape.
   double holdSeconds = 2.0;  // s
+  // Still without a valid option after this long in his hands, he clears it:
+  // he plays his likeliest unlikely pass rather than be penalised for
+  // holding it too long (RestartConfig::maxHoldSeconds).
+  double clearSeconds = 6.0;  // s
   // From his hands his passes are throws, rolled out along the ground, and
   // he throws no farther than this.
   double throwRange = 25.0;  // m
@@ -35,7 +39,7 @@ struct DistributionConfig {
   friend bool operator==(const DistributionConfig&, const DistributionConfig&) = default;
 };
 
-// Throws std::invalid_argument unless every value is finite, the hold and
+// Throws std::invalid_argument unless every value is finite, the holds and
 // the shortest long ball are not negative, the throw range, the flight time
 // and the margin are positive, and the directness weight is not negative and
 // at most kMaxScoringWeight.

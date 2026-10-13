@@ -106,6 +106,7 @@ validation leaves no file behind.
       },
       "distribution": {
         "holdSeconds": 2.0,
+        "clearSeconds": 6.0,
         "throwRange": 25.0,
         "minLongDistance": 25.0,
         "flightSeconds": 3.0,
@@ -183,7 +184,7 @@ validation leaves no file behind.
             "phaseIntensity": 0.5,
       "maxPressSeconds": 4.0
     },
-    "restarts": { "enabled": false },
+    "restarts": { "enabled": false, "maxHoldSeconds": 8.0 },
     "shooting": {
       "spreadAtZero": 0.2,
       "spreadPerMeter": 0.04,
