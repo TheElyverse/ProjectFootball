@@ -153,15 +153,16 @@ replay:
 | Field                  | Default | Meaning                                                     |
 |------------------------|---------|-------------------------------------------------------------|
 | `holdSeconds`          | 2 s     | he keeps a ball in his hands at least this long             |
+| `clearSeconds`         | 6 s     | held this long without a valid option, he clears the ball   |
 | `throwRange`           | 25 m    | the farthest he throws                                      |
 | `minLongDistance`      | 25 m    | the shortest long ball                                      |
 | `flightSeconds`        | 3 s     | how long a long ball is in the air                          |
 | `contestMarginSeconds` | 1 s     | width of the contest-risk step where a long ball comes down |
 | `directnessWeight`     | 0.5     | the lofted bias at directness 1, and minus it at 0          |
 
-`validate()` rejects a non-finite value, a negative hold, shortest long ball or
-weight, a weight above `kMaxScoringWeight`, and a throw range, flight time or
-margin that is not positive. The kick's own limits are `PassConfig`'s
+`validate()` rejects a non-finite value, a negative hold, clearance time,
+shortest long ball or weight, a weight above `kMaxScoringWeight`, and a throw
+range, flight time or margin that is not positive. The kick's own limits are `PassConfig`'s
 `maxLoftedSpeed` (28 m/s) and `loftedErrorFactor` (2)
 ([passing](passing.md)); the bias is the scoring's `loftedBias`
 ([pass candidates](pass-candidates.md)), which the decision system sets for a

@@ -75,8 +75,9 @@ struct KickoffLineUp {
 inline constexpr std::string_view kRestartSystemName = "restart";
 
 // Every tick while enabled: if a goalkeeper has held the ball in his hands
-// longer than maxHoldSeconds since he took it -- his last touch -- the other
-// side gets a corner at the corner of his goal line nearer the ball. Its
+// longer than maxHoldSeconds since he took it -- his last touch -- and has no
+// pending pass or shot that lets go of it in this step, the other side gets a
+// corner at the corner of his goal line nearer the ball. Its
 // player nearest that corner, ties to the lower index, stands on it at rest,
 // facing the centre of the pitch, the ball at his feet. Otherwise, if the
 // ball is out of play, gives it to the

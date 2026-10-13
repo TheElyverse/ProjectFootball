@@ -92,7 +92,8 @@ namespace {
 
 // A corner against a goalkeeper who has held the ball in his hands longer
 // than maxHoldSeconds since his last touch, and the corner it is taken from:
-// that of his goal line nearer the ball.
+// that of his goal line nearer the ball. A pass or shot he chose in time and
+// the ball system plays in this step lets go of it in time.
 [[nodiscard]] std::optional<std::pair<RestartPlan, SimCore::Vec2>> holdingCorner(
     const MatchState& state, const MatchStepContext& context, const double maxHoldSeconds) {
   const BallState& ball = state.ball();
@@ -102,7 +103,7 @@ namespace {
   const double held = static_cast<double>(context.tick().value() - ball.lastTouch->tick.value()) *
                       context.secondsPerTick();
   const auto keeper = findPlayerIndex(state, ball.lastTouch->playerId);
-  if (held <= maxHoldSeconds || !keeper) {
+  if (held <= maxHoldSeconds || !keeper || state.pendingAction(*keeper)) {
     return std::nullopt;
   }
   const Pitch& pitch = state.pitch();

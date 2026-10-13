@@ -47,13 +47,14 @@ since the state's last goal (`MatchState::lastGoal()`).
 A goalkeeper may hold the ball in his hands for eight seconds (Law 12): the
 referee counts the last five down. One who holds it longer than
 `maxHoldSeconds` (8 s) since he took it -- his last touch -- concedes a
-**corner**, at the corner of his goal line nearer the ball. The other side's
-player nearest that corner, ties to the lower index, takes it: he stands on
-the corner flag at rest, facing the centre of the pitch, the ball at his feet.
-The system records `RestartTaken` (`corner`, the taker, the corner) and
-`PossessionChanged` from the keeper to the taker. The keeper's own way out is
-the [clearance](goalkeeper-distribution.md#the-ball-in-his-hands) two seconds
-earlier; there is no visible count.
+**corner**, at the corner of his goal line nearer the ball -- unless the
+ball system is just playing the pass or shot he chose before the limit. The
+other side's player nearest that corner, ties to the lower index, takes it: he
+stands on the corner flag at rest, facing the centre of the pitch, the ball at
+his feet. The system records `RestartTaken` (`corner`, the taker, the corner)
+and `PossessionChanged` from the keeper to the taker. The keeper's own way out
+is the [clearance](goalkeeper-distribution.md#the-ball-in-his-hands) two
+seconds earlier; there is no visible count.
 
 ## What happens
 

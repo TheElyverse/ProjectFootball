@@ -327,3 +327,21 @@ TEST_CASE("Distribution: a keeper holding the ball longer than eight seconds con
     REQUIRE(state.players()[taker.value_or(0)].position == corner.position);
   }
 }
+
+TEST_CASE("Distribution: a clearance chosen at the holding limit is played without a corner",
+          "[acceptance][distribution]") {
+  for (std::uint64_t seed = 1; seed <= kSeeds; ++seed) {
+    CAPTURE(seed);
+    MatchSetup setup = nothingOn(seed);
+    // He clears it at tick 240, eight seconds in, and the ball system plays
+    // it in the step after, when he has held it beyond the limit.
+    setup.config.decisions.distribution.clearSeconds = 7.99;
+    MatchSimulation simulation = frozen(setup);
+    const Distribution run = distribute(simulation, kHomeKeeper, 0, SimTick(242));
+    REQUIRE(run.pass.has_value());
+    REQUIRE(run.pass.value_or(PassAttempted{}).tick == SimTick(241));
+    REQUIRE_FALSE(std::ranges::any_of(simulation.events(), [](const MatchEvent& event) {
+      return std::holds_alternative<RestartTaken>(event);
+    }));
+  }
+}
