@@ -1,6 +1,6 @@
 SOURCES := $(shell find libs apps tests -name '*.hpp' -o -name '*.cpp')
 
-.PHONY: help configure build test run ci sanitize format format-check lint clean viewer-test website-build
+.PHONY: help configure build test run ci sanitize format format-check lint lint-changed clean viewer-test website-build
 
 help:
 	@echo "Targets:"
@@ -13,6 +13,7 @@ help:
 	@echo "  format        Auto-format all sources with clang-format"
 	@echo "  format-check  Check formatting without modifying files"
 	@echo "  lint          Run clang-tidy (incl. camelCase/PascalCase naming rule); needs a configured build dir"
+	@echo "  lint-changed  Run clang-tidy only on the sources changed since LINT_BASE (default: main)"
 	@echo "  viewer-test   Install, build and test the web debug viewer (needs Node.js 22+ and pnpm)"
 	@echo "  website-build Install and build the static website into apps/website/dist (needs Node.js 22+ and pnpm)"
 	@echo "  clean         Remove all build directories"
@@ -58,6 +59,14 @@ BUILD_DIR ?= build/debug
 # Needs a configured build dir with compile_commands.json (e.g. via `build` or `ci`).
 lint:
 	run-clang-tidy -quiet -p $(BUILD_DIR) $(SOURCES)
+
+LINT_BASE ?= main
+
+# Like lint, but only for the sources changed since LINT_BASE (committed, staged,
+# unstaged, or untracked) and the sources that include a changed header.
+lint-changed:
+	{ git diff --name-only --diff-filter=d $$(git merge-base $(LINT_BASE) HEAD); git ls-files --others --exclude-standard; } \
+		| scripts/lint-scope.sh | xargs -r run-clang-tidy -quiet -p $(BUILD_DIR)
 
 clean:
 	rm -rf build

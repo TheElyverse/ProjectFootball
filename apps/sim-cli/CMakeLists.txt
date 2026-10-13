@@ -2,6 +2,7 @@ CPMAddPackage(
         NAME ftxui
         GITHUB_REPOSITORY ArthurSonzogni/FTXUI
         GIT_TAG v6.1.9
+        SYSTEM YES
         OPTIONS
         "FTXUI_BUILD_EXAMPLES OFF"
         "FTXUI_BUILD_DOCS OFF"

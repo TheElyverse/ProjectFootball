@@ -47,10 +47,18 @@ Vec2 executePass(const PassIntent& intent, const BallState& ball, const PlayerMa
   // Off line by `lateral` meters per meter along it, then back to unit length.
   const Vec2 perpendicular{.x = -line.y, .y = line.x};
   const Vec2 skewed = line + (perpendicular * lateral);
-  const Vec2 direction = skewed * (1.0 / std::sqrt(skewed.lengthSquared()));
+  const Vec2 direction = skewed * (1.0 / skewed.length());
 
   const double speed = std::min(intent.speed * strength, config.maxSpeed);
   return direction * speed;
+}
+
+PassConfig loftedPassConfig(const PassConfig& config) noexcept {
+  PassConfig lofted = config;
+  lofted.maxSpeed = config.maxLoftedSpeed;
+  lofted.directionError = config.directionError * config.loftedErrorFactor;
+  lofted.speedError = config.speedError * config.loftedErrorFactor;
+  return lofted;
 }
 
 double passPressure(const MatchState& state, const std::size_t passerIndex,
@@ -67,13 +75,18 @@ double passPressure(const MatchState& state, const std::size_t passerIndex,
 }
 
 void validate(const PassConfig& config) {
-  const bool valid = config.arrivalSpeed > 0.0 && isFinite(config.arrivalSpeed) &&
-                     config.maxSpeed > 0.0 && isFinite(config.maxSpeed) &&
-                     config.directionError >= 0.0 && isFinite(config.directionError) &&
-                     config.speedError >= 0.0 && config.pressureRadius > 0.0 &&
-                     isFinite(config.pressureRadius) && config.pressureErrorFactor >= 0.0 &&
-                     isFinite(config.pressureErrorFactor) &&
-                     config.speedError * (1.0 + config.pressureErrorFactor) < 1.0;
+  const bool valid =
+      config.arrivalSpeed > 0.0 && isFinite(config.arrivalSpeed) && config.maxSpeed > 0.0 &&
+      isFinite(config.maxSpeed) && config.directionError >= 0.0 &&
+      isFinite(config.directionError) && config.speedError >= 0.0 && config.pressureRadius > 0.0 &&
+      isFinite(config.pressureRadius) && config.pressureErrorFactor >= 0.0 &&
+      isFinite(config.pressureErrorFactor) && config.maxLoftedSpeed > 0.0 &&
+      isFinite(config.maxLoftedSpeed) && config.loftedErrorFactor >= 0.0 &&
+      isFinite(config.loftedErrorFactor) &&
+      config.speedError * (1.0 + config.pressureErrorFactor) < 1.0 &&
+      config.speedError * config.loftedErrorFactor * (1.0 + config.pressureErrorFactor) < 1.0 &&
+      isFinite(config.directionError * std::max(1.0, config.loftedErrorFactor) *
+               (1.0 + config.pressureErrorFactor));
   if (!valid) {
     throw std::invalid_argument("passing: invalid configuration");
   }

@@ -16,6 +16,7 @@ using Json = nlohmann::ordered_json;
 [[nodiscard]] Json teamJson(const TeamStats& stats) {
   Json json;
   json["possessionShare"] = stats.possessionShare;
+  json["longestOwnershipSeconds"] = stats.longestOwnershipSeconds;
   json["passes"] = stats.passes;
   json["completedPasses"] = stats.completedPasses;
   json["passCompletion"] = optionalJson(stats.passCompletion);

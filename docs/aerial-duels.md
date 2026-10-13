@@ -248,8 +248,11 @@ players' side is `PlayerAttributes` ([match state](match-state.md)):
 
 ## What this is not
 
-Nobody lofts a pass or crosses a ball yet: a high ball comes off a shot, a
-deflection, a parry or the woodwork, or from a test. The jump is resolved at
+Nobody but a goalkeeper lofts a pass, and nobody crosses a ball yet: a high
+ball comes off a keeper's long ball
+([goalkeeper distribution](goalkeeper-distribution.md)), a shot, a deflection,
+a parry or the woodwork, or from a test. A keeper who holds a ball he caught in
+the air distributes it like any ball in his hands. The jump is resolved at
 the moment the ball arrives: a player does not leave the ground before it,
 hang in the air or land somewhere else, and the movement system does not know
 he jumped. There are no fouls in the air, no header on the run toward a spot

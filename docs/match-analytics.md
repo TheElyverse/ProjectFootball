@@ -39,6 +39,7 @@ frame: from its own goal line toward the one it attacks.
 | Metric | From | Definition |
 |---|---|---|
 | `possessionShare` | `PossessionChanged` | ticks the side had the ball over ticks either side had it. A free ball — a pass in flight — belongs to the side that last owned it; the time before the first owner belongs to nobody |
+| `longestOwnershipSeconds` | `PossessionChanged` | the longest time one player of the side owned the ball, from the change that gave it to him to the next change or the end; an ownership the match starts with is not counted. A player who never plays the ball shows here |
 | `passes`, `completedPasses`, `passCompletion` | `PassAttempted`, `PassReceived` | attempts, receptions by a teammate, and their ratio |
 | `meanPassMeters` | `PassAttempted` | mean distance from `from` to `target` |
 | `progressivePasses`, `completedProgressivePasses` | `PassAttempted`, `PassReceived` | passes whose target is at least `progressiveMeters` (10 m) deeper than their origin, and those received |
@@ -70,6 +71,7 @@ rejects a negative or non-finite distance and a zone outside `(0, 1]`.
   "seconds": 60.0,
   "home": {
     "possessionShare": 0.55,
+    "longestOwnershipSeconds": 4.2,
     "passes": 18,
     "...": "...",
     "regainsByThird": { "defensive": 2, "middle": 3, "attacking": 1 },

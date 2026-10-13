@@ -473,6 +473,47 @@ TEST_CASE("MatchState::create rejects a negative score", "[matchState]") {
   REQUIRE(mentions(state.error().front().message, "0:-1"));
 }
 
+namespace {
+
+[[nodiscard]] ElyverseFootball::SimTactics::Tactic referenceTactic() {
+  auto tactic = ElyverseFootball::SimTactics::Tactic::create(
+      ElyverseFootball::SimTactics::referenceTacticSpec());
+  REQUIRE(tactic.has_value());
+  return *std::move(tactic);
+}
+
+}  // namespace
+
+TEST_CASE("MatchState::create holds only an owned ball in the hands", "[matchState]") {
+  MatchStateSpec spec = validSpec();
+  spec.ball.held = true;
+
+  const auto loose = MatchState::create(spec);
+  REQUIRE_FALSE(loose.has_value());
+  REQUIRE(codesOf(loose.error()) == std::vector{MatchStateErrorCode::kHeldBallWithoutOwner});
+
+  spec.ball.owner = PlayerId(1);
+  const auto owned = MatchState::create(spec, {.home = referenceTactic(), .away = {}});
+  REQUIRE(owned.has_value());
+  REQUIRE(owned.value().ball().held);
+}
+
+TEST_CASE("MatchState::create holds the ball only in a goalkeeper's hands", "[matchState]") {
+  MatchStateSpec spec = validSpec();
+  spec.ball.owner = PlayerId(2);
+  spec.ball.held = true;
+
+  const auto outfielder = MatchState::create(spec, {.home = referenceTactic(), .away = {}});
+  REQUIRE_FALSE(outfielder.has_value());
+  REQUIRE(codesOf(outfielder.error()) == std::vector{MatchStateErrorCode::kHeldBallByOutfielder});
+  REQUIRE(mentions(outfielder.error().front().message, "player 2"));
+
+  spec.ball.owner = PlayerId(1);
+  const auto scripted = MatchState::create(spec);
+  REQUIRE_FALSE(scripted.has_value());
+  REQUIRE(codesOf(scripted.error()) == std::vector{MatchStateErrorCode::kHeldBallByOutfielder});
+}
+
 TEST_CASE("MatchState::create rejects a non-finite target", "[matchState]") {
   MatchStateSpec spec = validSpec();
   spec.players.at(10).target = Vec2{.x = std::numeric_limits<double>::quiet_NaN(), .y = 3.0};
@@ -651,17 +692,6 @@ TEST_CASE("checkStartingPositions reports players by index, then the ball", "[ma
   REQUIRE(mentions(errors.at(0).message, "index 3"));
   REQUIRE(mentions(errors.at(1).message, "index 11"));
 }
-
-namespace {
-
-[[nodiscard]] ElyverseFootball::SimTactics::Tactic referenceTactic() {
-  auto tactic = ElyverseFootball::SimTactics::Tactic::create(
-      ElyverseFootball::SimTactics::referenceTacticSpec());
-  REQUIRE(tactic.has_value());
-  return *std::move(tactic);
-}
-
-}  // namespace
 
 TEST_CASE("A side plays a tactic or is scripted", "[matchState]") {
   const auto untactical = MatchState::create(validSpec());

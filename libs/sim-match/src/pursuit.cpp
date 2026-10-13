@@ -97,7 +97,8 @@ namespace {
     const PlayerMatchState& player = current.players()[index];
     const bool justPassed = moving && ball.lastTouch && ball.lastTouch->playerId == player.playerId;
     const bool down = isDiving(current, index, context.tick(), context.secondsPerTick());
-    const auto hands = isGoalkeeper(current, index)
+    // His hands only while he may still use them, as when he claims it.
+    const auto hands = isGoalkeeper(current, index) && !hasReleasedBall(current, index)
                            ? std::optional(HandsReach{.end = ownGoalEnd(player.side),
                                                       .height = reception.handsHeight})
                            : std::nullopt;

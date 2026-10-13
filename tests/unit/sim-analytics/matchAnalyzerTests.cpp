@@ -129,6 +129,17 @@ TEST_CASE("Possession is the share of the time a side had the ball", "[analytics
   REQUIRE(stats.away.possessionShare == Approx(60.0 / 90.0));
 }
 
+TEST_CASE("The longest ownership is the longest time one player kept the ball", "[analytics]") {
+  // Home player 1 from tick 10 to 40, player 2 from 50 to 60; away player 3
+  // from 60 to the end at 100, still on the ball.
+  const MatchStats stats = analyze({{owner(10, std::nullopt, 1)},
+                                    {owner(40, 1, std::nullopt)},
+                                    {owner(50, std::nullopt, 2)},
+                                    {owner(60, 2, 3)}});
+  REQUIRE(stats.home.longestOwnershipSeconds == Approx(30.0 / 30.0));
+  REQUIRE(stats.away.longestOwnershipSeconds == Approx(40.0 / 30.0));
+}
+
 TEST_CASE("Passes count attempts, completions, length and progression", "[analytics]") {
   // Home: a 10 m square pass (completed) and a 15 m forward pass (completed,
   // progressive), then a 20 m forward pass that is intercepted.

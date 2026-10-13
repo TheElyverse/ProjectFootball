@@ -1,6 +1,6 @@
 {
   "format": "elyverse-tactic",
-  "version": 2,
+  "version": 3,
   "name": "pressing",
   "description": "Hunts the ball high: a high line and short block that presses on every trigger with several players and attacks quickly after a regain.",
   "slots": [
@@ -22,7 +22,7 @@
       "occupancy": 0.5,
       "transitionRisk": 0.4
     },
-    "goalkeeper": { "sweeping": 0.8 }
+    "goalkeeper": { "sweeping": 0.8, "directness": 0.6 }
   },
   "phases": {
     "buildUp": { "lineHeight": 0.35, "blockLength": 0.4, "blockWidth": 0.85, "ballShift": 0.4, "pressingIntensity": 1.0, "passingRisk": 0.5, "runFrequency": 0.4 },

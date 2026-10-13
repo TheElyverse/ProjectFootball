@@ -42,11 +42,29 @@ Home defends the goal line at `x = 0`, away the one at `x = length`. Ties in
 distance go to the lower player index. A ball went in if nobody has touched it
 since the state's last goal (`MatchState::lastGoal()`).
 
+## Holding the ball too long
+
+A goalkeeper may hold the ball in his hands for eight seconds (Law 12): the
+referee counts the last five down. One who holds it longer than
+`maxHoldSeconds` (8 s) since he took it -- his last touch -- concedes a
+**corner**, at the corner of his goal line nearer the ball -- unless the
+ball system is just playing the pass or shot he chose before the limit. The
+other side's player nearest that corner, ties to the lower index, takes it: he
+stands on the corner flag at rest, facing the centre of the pitch, the ball at
+his feet. The system records `RestartTaken` (`corner`, the taker, the corner)
+and `PossessionChanged` from the keeper to the taker. The keeper's own way out
+is the [clearance](goalkeeper-distribution.md#the-ball-in-his-hands) two
+seconds earlier; there is no visible count.
+
 ## What happens
 
 The taker gets the ball at his feet, at rest, with the last touch his. For a
-throw-in, a goal kick and a corner he is not moved; for a kickoff both sides
-[line up](#the-kickoff) first. The system records `RestartTaken` (kind, taker, where the ball left
+throw-in and a corner he is not moved. A goal kick is taken from the goal
+area: the ball lies on `goalKickSpot()`, the front edge of the goal area level
+with where it went out but no wider than the goal area, and the taker stands
+`carryDistance` behind it, at rest and facing up the pitch
+([goalkeeper distribution](goalkeeper-distribution.md#the-goal-kick)). For a
+kickoff both sides [line up](#the-kickoff) first. The system records `RestartTaken` (kind, taker, where the ball left
 the pitch — the centre spot for a kickoff) and `PossessionChanged`, so [analytics](match-analytics.md) sees the
 change of possession. From the next step on, play continues as after any other
 change of possession: the taker decides, his team shapes up around him.
@@ -91,7 +109,8 @@ not; only the restart after a goal needs them. Its opening kickoff is a
 ## What this is not
 
 No throw-in technique, no set pieces: the ball is simply handed to the right
-side. For a throw-in, a goal kick and a corner, players do not take up
-positions; they are wherever the ball's journey left them. The kickoff is not
+side. For a throw-in, a goal kick and a corner, players other than the goal
+kick's and a holding corner's taker do not take up positions; they are wherever the ball's journey
+left them, opponents in the penalty area at a goal kick included. The kickoff is not
 kicked to a teammate and need not go forward: the taker has the ball and
 decides like any other carrier, and the opponents may enter the circle at once.

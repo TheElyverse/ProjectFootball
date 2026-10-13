@@ -6,6 +6,7 @@ add_executable(sim-acceptance-tests
         goldenScenarioTests.cpp
         shotScenarioTests.cpp
         goalkeeperScenarioTests.cpp
+        distributionScenarioTests.cpp
 )
 target_link_libraries(sim-acceptance-tests PRIVATE
         ElyverseFootball::sim-replay

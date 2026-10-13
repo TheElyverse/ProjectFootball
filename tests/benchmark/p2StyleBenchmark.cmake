@@ -37,11 +37,14 @@ endif()
 # them any more: since a shot that goes in is a goal and a kickoff rather than
 # a goal kick to win back in front of the goal, six matches no longer separate
 # the two with every seed -- not with seed 2 since both sides line up for the
-# kickoff (docs/restarts.md).
+# kickoff (docs/restarts.md). Nor is possession's PPDA over pressing's: the
+# two differ by about a tenth, which thirty matches separate but six do not
+# with every seed -- not with seed 1 since the keeper distributes the ball
+# (docs/goalkeeper-distribution.md), nor with seeds 3 and 4 before.
 set(expected
         "regains:pressing:possession" "regains:pressing:counter"
         "regainsAttackingThird:pressing:counter"
-        "ppda:possession:pressing" "ppda:counter:pressing")
+        "ppda:counter:pressing")
 string(JSON count LENGTH "${json}" separations)
 set(found "")
 if(count GREATER 0)

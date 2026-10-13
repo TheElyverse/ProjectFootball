@@ -25,6 +25,7 @@ t=40 #7 shoots at (60.0, 21.2) 0.43 m high (utility 1.62: goal +1.60 secondBall 
 t=66 #4 pressCarrier #14 (utility 0.97: responsibility +0.60 region -0.47 space +0.19 lane +0.00 urgency +0.68 effort -0.03; 5 options) because urgency
 t=81 #5 blockLane #12 (assigned by the team press)
 t=3 #8 sweeps (reaches the ball in 2.20 s, the first attacker in 4.20 s; misjudged by +0.00 s, needs +0.15 s)
+t=0 #1 kicks long to #5 (utility 1.24: completion +0.86 progression +0.42 pressure -0.00 risk -0.04 directness +0.00; estimated risk 0.14; 12 options, 13 observed) because completion -> pending
 ```
 
 - **Observations**: how many entities the player remembered when he decided.
@@ -33,7 +34,10 @@ t=3 #8 sweeps (reaches the ball in 2.20 s, the first attacker in 4.20 s; misjudg
   ([pass candidates](pass-candidates.md)), `shotContributions()` for a shot
   with its aim and its goal, save and block chances
   ([shot decisions](shot-decisions.md)), `ActionScores` for an action without
-  the ball ([off-ball movement](off-ball-movement.md)). A goalkeeper's call to
+  the ball ([off-ball movement](off-ball-movement.md)). A goalkeeper
+  `throws to` or `punts to` a teammate from his hands and `kicks long to` one
+  from his feet, a long ball's utility with its `directness`
+  ([goalkeeper distribution](goalkeeper-distribution.md)). A goalkeeper's call to
   come for a ball (`sweeps`) or not (`stays home`) gives both arrivals, his
   misjudgement and the head start he needed instead
   ([goalkeeper](goalkeeper.md)).

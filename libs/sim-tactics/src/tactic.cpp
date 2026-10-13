@@ -130,6 +130,7 @@ void validatePrinciples(const TeamPrinciples& principles, ErrorList& errors) {
   errors.checkRange(weights.occupancy, 0.0, kMaxPositioningWeight, prefix + "occupancy");
   errors.checkRange(weights.transitionRisk, 0.0, kMaxPositioningWeight, prefix + "transitionRisk");
   errors.checkRange(principles.goalkeeper.sweeping, 0.0, 1.0, "principles.goalkeeper.sweeping");
+  errors.checkRange(principles.goalkeeper.directness, 0.0, 1.0, "principles.goalkeeper.directness");
 }
 
 void validatePhase(const TacticalPhase phase, const PhaseInstruction& instruction,

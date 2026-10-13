@@ -18,6 +18,7 @@
 using ElyverseFootball::SimCore::PlayerId;
 using ElyverseFootball::SimCore::SimTick;
 using ElyverseFootball::SimCore::Vec2;
+using ElyverseFootball::SimMatch::BallState;
 using ElyverseFootball::SimMatch::facingAfterMove;
 using ElyverseFootball::SimMatch::kDefaultAcceleration;
 using ElyverseFootball::SimMatch::kDefaultMaxSpeed;
@@ -32,6 +33,7 @@ using ElyverseFootball::SimMatch::PlayerKinematics;
 using ElyverseFootball::SimMatch::PlayerMatchState;
 using ElyverseFootball::SimMatch::ScheduledCommand;
 using ElyverseFootball::SimMatch::stepPlayerMovement;
+using ElyverseFootball::SimMatch::TeamSide;
 
 namespace {
 
@@ -276,6 +278,23 @@ TEST_CASE("A player on the ball keeps his facing", "[playerMovement]") {
       facingAfterMove(player, {.position = player.position, .velocity = {}}, player.position);
 
   REQUIRE(facing == Vec2{.x = 0.0, .y = -1.0});
+}
+
+TEST_CASE("A goalkeeper holding the ball looks up the pitch once he stops", "[playerMovement]") {
+  PlayerMatchState keeper = playerAt({.x = 58.0, .y = 20.0});
+  keeper.side = TeamSide::kAway;
+  // The ball in his hands lies toward his own goal, where he took it.
+  BallState ball;
+  ball.position = {.x = 59.0, .y = 20.0};
+  ball.owner = keeper.playerId;
+  ball.held = true;
+  const PlayerKinematics standing{.position = keeper.position, .velocity = {.x = 0.5, .y = 0.0}};
+  const PlayerKinematics running{.position = keeper.position, .velocity = {.x = 3.0, .y = 0.0}};
+
+  REQUIRE(facingAfterMove(keeper, standing, ball) == Vec2{.x = -1.0, .y = 0.0});
+  REQUIRE(facingAfterMove(keeper, running, ball) == Vec2{.x = 1.0, .y = 0.0});
+  ball.held = false;
+  REQUIRE(facingAfterMove(keeper, standing, ball) == Vec2{.x = 1.0, .y = 0.0});
 }
 
 TEST_CASE("The movement system keeps every facing a unit vector", "[playerMovement]") {

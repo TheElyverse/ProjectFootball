@@ -33,7 +33,8 @@ std::vector<Metric> metricsOf(const TeamStats& stats) {
           {.name = "ppda", .value = stats.ppda},
           {.name = "pitchControlShare", .value = stats.pitchControlShare},
           {.name = "attackingThirdShare", .value = stats.attackingThirdShare},
-          {.name = "shots", .value = count(stats.shots)}};
+          {.name = "shots", .value = count(stats.shots)},
+          {.name = "longestOwnershipSeconds", .value = stats.longestOwnershipSeconds}};
 }
 
 }  // namespace ElyverseFootball::SimAnalytics

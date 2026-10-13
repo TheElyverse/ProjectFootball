@@ -42,7 +42,8 @@ second, after the pass decision and before movement:
    challenges.
 2. A carrier who has had the ball for less than `protectSeconds` (0.5 s) -- since
    his last touch -- is not challenged: he is still settling it, and a winner is
-   not robbed straight back.
+   not robbed straight back. Nor is a goalkeeper who holds the ball in his
+   hands ([goalkeeper distribution](goalkeeper-distribution.md)).
 3. A challenge is one draw from the `kExecution` stream, won below `winChance`
    (0.2): the how-well half of the press, separate from the decision to press.
 4. The first won challenge in player order takes the ball: the presser owns it

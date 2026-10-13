@@ -23,6 +23,9 @@ inline constexpr std::size_t kThirdCount = 3;
 struct TeamStats {
   // Share of the time either side had the ball that this side had it.
   double possessionShare = 0.0;
+  // The longest time one player of the side kept the ball: a match that
+  // stalls with a player who never plays it shows here.
+  double longestOwnershipSeconds = 0.0;
 
   int passes = 0;
   int completedPasses = 0;

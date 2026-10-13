@@ -20,6 +20,10 @@ in `sim-match` (`scenarios.hpp`), and `sim-cli --scenario <name>` runs one.
 | `keeper-arc` | home player 1 carries the ball across in front of away's goal, the keeper moves with it ([goalkeeper](goalkeeper.md)) |
 | `keeper-sweep-claim` | a through ball in behind away's line, the keeper first to it |
 | `keeper-sweep-leave` | a through ball in behind away's line, home's striker first to it |
+| `keeper-build-up` | home's keeper holds the ball and plays out to a free centre back ([goalkeeper distribution](goalkeeper-distribution.md)) |
+| `keeper-turned` | home's keeper holds the ball facing his own goal, turns and plays out |
+| `keeper-long-kick` | home's keeper on the ball under a high press goes long |
+| `goal-kick` | home plays the ball over away's goal line, away's keeper takes the goal kick |
 | `tactic-match` | the reference tactic against itself, lined up for home's kickoff   |
 | `transition-3v2` | home wins the ball in midfield, three attackers against two defenders ([golden](golden-scenarios.md)) |
 | `isolated-winger` | home plays out to an isolated winger, away presses on the trigger |
@@ -188,6 +192,33 @@ ten seeds: in the arc the keeper stands off his line, on the ball's side of the
 goal, and once the ball has stopped within 0.75 m of the bisector of his goal's
 angle; in the claim his first call is to come and he is first to the ball; in
 the leave he stays home, stays in his area and the striker has the ball.
+
+## The distribution scenarios
+
+They show what a [goalkeeper](goalkeeper.md) does with the ball
+([goalkeeper distribution](goalkeeper-distribution.md)):
+
+- **`keeper-build-up`**: home plays the reference tactic with its slots in
+  order, so player 1 is its keeper, at his goal with the ball in his hands from
+  the start; his tactic's directness is 0.1, and the tactic is named
+  "reference, plays out". His centre backs stand wide and free. Away plays
+  without a tactic and stands still, a meter in front of his holding
+  midfielder, in the lane from the keeper, and a meter off his wingers and
+  striker.
+- **`keeper-turned`**: `keeper-build-up` with the keeper facing his own goal,
+  as after taking a ball that rolled back to him.
+- **`keeper-long-kick`**: the same home side, its keeper with the ball at his
+  feet and the reference tactic's directness of 0.5. Away stands in the lanes
+  to his centre backs and his holding midfielder, a forward four meters to
+  his side, out of the way of a long ball, and its last two defenders deep
+  behind home's wingers and striker, who wait beyond the longest ground pass.
+- **`goal-kick`**: away plays the reference tactic, home without one;
+  restarts are on. Home player 1, wide of away's goal, plays the ball over
+  its goal line at tick 1, and away's keeper, player 8, takes the goal kick.
+
+`tests/acceptance/distributionScenarioTests.cpp` checks each over ten seeds:
+the keeper throws to a centre back along the ground, kicks long to a winger or
+the striker through the air, and takes the goal kick from his goal area.
 
 ## The tactic match
 

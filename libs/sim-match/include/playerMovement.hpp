@@ -39,6 +39,14 @@ inline constexpr double kFacingRunSpeed = 1.0;  // m/s
                                             const PlayerKinematics& moved,
                                             SimCore::Vec2 ballPosition) noexcept;
 
+// facingAfterMove() toward this ball, except that a goalkeeper who holds it
+// in his hands and no longer runs looks up the pitch, where his options are,
+// rather than at the ball in front of him: he would otherwise keep looking
+// wherever he took it, at his own goal after a ball rolled back to him.
+[[nodiscard]] SimCore::Vec2 facingAfterMove(const PlayerMatchState& player,
+                                            const PlayerKinematics& moved,
+                                            const BallState& ball) noexcept;
+
 inline constexpr std::string_view kPlayerMovementSystemName = "player movement";
 
 struct ShotStoppingConfig;

@@ -71,7 +71,8 @@ the result does not depend on the platform's math library.
 The movement system also turns players, with `facingAfterMove()`:
 
 - a player moving faster than `kFacingRunSpeed` (1 m/s) looks where he runs,
-- a slower or standing player looks at the ball,
+- a slower or standing player looks at the ball -- a goalkeeper holding it up
+  the pitch ([distribution](goalkeeper-distribution.md#the-ball-in-his-hands)),
 - a player standing exactly on the ball keeps his facing.
 
 He turns at once. A turning rate, and looking elsewhere than where he runs,

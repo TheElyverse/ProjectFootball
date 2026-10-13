@@ -153,6 +153,7 @@ using SimMatch::MatchState;
   json["verticalVelocity"] = rounded(ball.verticalVelocity);
   json["spin"] = rounded(ball.spin);
   json["owner"] = idJson(ball.owner);
+  json["held"] = ball.held;
   json["lastTouch"] = ball.lastTouch ? Json(ball.lastTouch->playerId.value()) : Json(nullptr);
   return json;
 }
@@ -166,6 +167,7 @@ using SimMatch::MatchState;
   json["target"] = vec2Json(intent->target);
   json["speed"] = rounded(intent->speed);
   json["receiver"] = idJson(intent->receiver);
+  json["lofted"] = intent->lofted;
   return json;
 }
 
@@ -352,6 +354,7 @@ void addEventFields(Json& json, const SimMatch::GoalScored& event) {
   json["receiverPressure"] = rounded(candidate.receiverPressure);
   json["utility"] = rounded(candidate.utility);
   json["rejection"] = SimMatch::passRejectionName(candidate.rejection);
+  json["lofted"] = candidate.lofted;
   return json;
 }
 
@@ -372,6 +375,7 @@ void addEventFields(Json& json, const SimMatch::GoalScored& event) {
   json["tick"] = decision.tick.value();
   json["player"] = decision.player.value();
   json["outcome"] = outcomeName(decision.outcome);
+  json["held"] = decision.held;
   // An index into the pass candidates; the frames do not list shots yet.
   const bool passed = decision.outcome == SimMatch::DecisionOutcome::kPassed;
   json["chosen"] = decision.chosen && passed ? Json(*decision.chosen) : Json(nullptr);

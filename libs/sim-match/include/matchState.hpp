@@ -167,6 +167,10 @@ struct BallTouch {
 // across its direction of travel: positive is topspin, which drives the ball
 // on when it bounces, negative backspin, which checks it. Sidespin, and with
 // it a curving flight, is not modelled yet.
+//
+// held is whether the owner holds the ball in his hands: a goalkeeper who
+// took it with them (docs/goalkeeper-distribution.md). Only an owned ball can
+// be held; a challenge cannot take it from him.
 struct BallState {
   SimCore::Vec2 position;
   SimCore::Vec2 velocity;
@@ -175,6 +179,7 @@ struct BallState {
   double height = 0.0;
   double verticalVelocity = 0.0;
   double spin = 0.0;
+  bool held = false;
 
   [[nodiscard]] bool isControlled() const noexcept { return owner.has_value(); }
 
@@ -238,6 +243,8 @@ enum class MatchStateErrorCode : std::uint8_t {
   kBallSpinningTooFast,
   kUnknownBallOwner,
   kUnknownLastTouch,
+  kHeldBallWithoutOwner,
+  kHeldBallByOutfielder,
   kTacticDoesNotFitSquad,
   kInvalidScore,
 };
@@ -367,6 +374,10 @@ struct PassIntent {
   double speed = 0.0;
   // Who the pass is meant for; empty for a pass into space.
   std::optional<SimCore::PlayerId> receiver;
+  // Whether it goes through the air: speed is then the ball's speed along
+  // the ground, and the flight brings it down on the target
+  // (docs/goalkeeper-distribution.md). A ground pass otherwise.
+  bool lofted = false;
 
   friend bool operator==(const PassIntent&, const PassIntent&) = default;
 };
@@ -570,10 +581,15 @@ class MatchStateWriter {
     state_->ball_.verticalVelocity = verticalVelocity;
   }
   void setBallSpin(double spin) noexcept { state_->ball_.spin = spin; }
-  // Hands the ball to a player, or frees it with std::nullopt. Throws
+  // Hands the ball to a player, or frees it with std::nullopt -- at his feet
+  // either way: setBallHeld() puts it in his hands. Throws
   // std::invalid_argument for an id no player in the state has, so the ball
   // can only ever belong to a player on the pitch.
   void setBallOwner(std::optional<SimCore::PlayerId> owner);
+  // Puts the owned ball in its owner's hands, or back at his feet; throws
+  // std::invalid_argument for holding a ball nobody owns or an outfield
+  // player owns.
+  void setBallHeld(bool held);
   // Records who last played the ball; throws std::invalid_argument for a
   // player not in the state.
   void setBallLastTouch(std::optional<BallTouch> touch);
@@ -614,6 +630,8 @@ class MatchStateWriter {
   // Throws std::invalid_argument for a player not on that side.
   void setChaser(TeamSide side, std::optional<SimCore::PlayerId> chaser);
   // Throws std::invalid_argument for a tactic that does not fit the squad.
+  // A held ball drops to the feet of a holder the new tactic no longer makes
+  // the goalkeeper.
   void setTactic(TeamSide side, SimTactics::Tactic tactic);
   void setPitchControl(std::optional<PitchControlGrid> grid) {
     state_->pitchControl_ = std::move(grid);
@@ -632,6 +650,8 @@ class MatchStateWriter {
 
   // Throws std::invalid_argument naming the role if no player has the id.
   void requirePlayer(SimCore::PlayerId playerId, std::string_view role) const;
+  // Whether the ball has an owner and he is his side's goalkeeper.
+  [[nodiscard]] bool ownerGuardsGoal() const;
 
   MatchState* state_;
 };
@@ -645,6 +665,13 @@ class MatchStateWriter {
 // before him in MatchState::players(). Throws std::out_of_range for an index
 // past the end.
 [[nodiscard]] std::size_t slotIndex(const MatchState& state, std::size_t playerIndex);
+
+// Whether the player at this index guards his side's goal: his slot holds
+// guardGoal in his side's tactic. Lets MatchState::create() and the writer
+// tell the goalkeeper, the only player who may hold the ball, like
+// isGoalkeeper() does.
+[[nodiscard]] bool guardsGoal(std::span<const PlayerMatchState> players, const TeamTactics& tactics,
+                              std::size_t playerIndex);
 
 // The finiteness rules of MatchState::create(), for a state the simulation
 // has just written: every non-finite position, velocity and target, every

@@ -175,7 +175,9 @@ With Make, clang-format, and run-clang-tidy available, `make ci` also runs the
 repository's formatting and static-analysis checks. CI uses clang-tidy 19; see
 [the workflow](.github/workflows/ci.yml) for toolchain setup. On a pull request CI
 runs clang-tidy only on the changed sources and on the sources that include a
-changed header; `make lint` and a push to `main` check everything.
+changed header; `make lint` and a push to `main` check everything. `make
+lint-changed` checks locally what a pull request would: the sources changed since
+`main`, including uncommitted ones, and the sources that include a changed header.
 
 For AddressSanitizer and UndefinedBehaviorSanitizer with GCC or Clang:
 

@@ -6,6 +6,7 @@
 #include <optional>
 #include <string>
 
+#include "passCandidates.hpp"
 #include "shotStopping.hpp"
 
 namespace ElyverseFootball::SimMatch {
@@ -88,6 +89,14 @@ Vec2 facingAfterMove(const PlayerMatchState& player, const PlayerKinematics& mov
   return player.facing;
 }
 
+Vec2 facingAfterMove(const PlayerMatchState& player, const PlayerKinematics& moved,
+                     const BallState& ball) noexcept {
+  if (ball.held && ball.owner == player.playerId && moved.velocity.length() <= kFacingRunSpeed) {
+    return {.x = attackingDirection(player.side), .y = 0.0};
+  }
+  return facingAfterMove(player, moved, ball.position);
+}
+
 namespace {
 
 // A keeper busy with a dive at the start of the step is where it takes him by
@@ -134,7 +143,7 @@ MatchSystem makePlayerMovementSystem(const ShotStoppingConfig& saves) {
               const PlayerKinematics moved = stepPlayerMovement(player, context.secondsPerTick());
               next.setPlayerPosition(index, moved.position);
               next.setPlayerVelocity(index, moved.velocity);
-              next.setPlayerFacing(index, facingAfterMove(player, moved, current.ball().position));
+              next.setPlayerFacing(index, facingAfterMove(player, moved, current.ball()));
               ++index;
             }
           }};

@@ -6,6 +6,7 @@
 #include <limits>
 #include <optional>
 #include <span>
+#include <stdexcept>
 #include <utility>
 #include <variant>
 #include <vector>
@@ -30,6 +31,8 @@ using ElyverseFootball::SimCore::Vec2;
 using ElyverseFootball::SimMatch::BallPhysics;
 using ElyverseFootball::SimMatch::BallState;
 using ElyverseFootball::SimMatch::BallTouch;
+using ElyverseFootball::SimMatch::GoalEnd;
+using ElyverseFootball::SimMatch::goalKickSpot;
 using ElyverseFootball::SimMatch::isOutOfPlay;
 using ElyverseFootball::SimMatch::KickoffLineUp;
 using ElyverseFootball::SimMatch::lineUpForKickoff;
@@ -117,6 +120,17 @@ void requireLegalKickoff(const MatchState& state, const TeamSide kicking,
 
 }  // namespace
 
+TEST_CASE("The restart system rejects an invalid holding limit", "[restart]") {
+  using ElyverseFootball::SimMatch::makeRestartSystem;
+  using ElyverseFootball::SimMatch::RestartConfig;
+  REQUIRE_NOTHROW(makeRestartSystem(RestartConfig{.maxHoldSeconds = 0.0}, BallPhysics{}));
+  for (const double seconds : {-1.0, std::numeric_limits<double>::infinity(), std::nan("")}) {
+    CAPTURE(seconds);
+    REQUIRE_THROWS_AS(makeRestartSystem(RestartConfig{.maxHoldSeconds = seconds}, BallPhysics{}),
+                      std::invalid_argument);
+  }
+}
+
 TEST_CASE("A free ball at rest on a line is out of play", "[restart]") {
   REQUIRE(isOutOfPlay(scene(ballAt({.x = 30.0, .y = 0.0}, 2))));
   REQUIRE(isOutOfPlay(scene(ballAt({.x = 60.0, .y = 12.0}, 2))));
@@ -178,6 +192,19 @@ TEST_CASE("A goal kick goes to the goalkeeper, not the nearest player", "[restar
                                   kickoff.tactics());
   REQUIRE(state.has_value());
   REQUIRE(planRestart(*state) == RestartPlan{.kind = RestartKind::kGoalKick, .playerIndex = 0});
+}
+
+TEST_CASE("A goal kick is taken from the front of the goal area", "[restart]") {
+  const Pitch pitch(60.0, 40.0);
+  const auto homeArea = pitch.goalArea(GoalEnd::kMinX);
+  const auto awayArea = pitch.goalArea(GoalEnd::kMaxX);
+  // Out wide: as wide as the goal area goes.
+  REQUIRE(goalKickSpot(pitch, {.x = 0.0, .y = 38.0}) ==
+          Vec2{.x = homeArea.max.x, .y = homeArea.max.y});
+  REQUIRE(goalKickSpot(pitch, {.x = 0.0, .y = 1.0}) ==
+          Vec2{.x = homeArea.max.x, .y = homeArea.min.y});
+  // Out within its width: level with where it went out.
+  REQUIRE(goalKickSpot(pitch, {.x = 60.0, .y = 21.0}) == Vec2{.x = awayArea.min.x, .y = 21.0});
 }
 
 TEST_CASE("The restart system gives the ball to the taker once it is out", "[restart]") {

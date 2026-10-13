@@ -24,6 +24,9 @@ enum class RestartKind : std::uint8_t {
 // take it without depending on the restart system.
 struct RestartConfig {
   bool enabled = false;
+  // A goalkeeper who holds the ball in his hands longer than this concedes
+  // a corner (Law 12).
+  double maxHoldSeconds = 8.0;  // s
 
   friend bool operator==(const RestartConfig&, const RestartConfig&) = default;
 };

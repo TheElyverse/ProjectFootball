@@ -188,9 +188,11 @@ like any other invalid state.
 
 ## What this is not
 
-Only a [shot](shooting.md) lifts the ball off the ground: every pass is a
-ground pass, and it leaves the foot without height, vertical velocity or spin.
-Crosses and lofted passes are what else will fill the third dimension. Who
+Only a [shot](shooting.md) and a goalkeeper's long ball
+([goalkeeper distribution](goalkeeper-distribution.md)) lift the ball off the
+ground: every other pass is a ground pass, and it leaves the foot without
+height, vertical velocity or spin. Crosses and outfield lofted passes are what
+else will fill the third dimension. Who
 wins a high ball is decided in the air ([aerial duels](aerial-duels.md)).
 
 The flight has no sidespin and so no curve: a Magnus force needs a sine and a

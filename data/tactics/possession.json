@@ -1,6 +1,6 @@
 {
   "format": "elyverse-tactic",
-  "version": 2,
+  "version": 3,
   "name": "possession",
   "description": "Keeps the ball: a wide, patient 1-2-1-3 that circulates with safe passes, holds a compact rest defence and counterpresses hard on a sloppy loss (a poor touch or a back pass).",
   "slots": [
@@ -22,7 +22,7 @@
       "occupancy": 0.8,
       "transitionRisk": 0.8
     },
-    "goalkeeper": { "sweeping": 0.6 }
+    "goalkeeper": { "sweeping": 0.6, "directness": 0.15 }
   },
   "phases": {
     "buildUp": { "lineHeight": 0.3, "blockLength": 0.45, "blockWidth": 0.95, "ballShift": 0.3, "pressingIntensity": 0.4, "passingRisk": 0.2, "runFrequency": 0.2 },
