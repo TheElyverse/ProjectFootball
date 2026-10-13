@@ -1,8 +1,19 @@
 @import "tailwindcss";
 
 @theme {
-  --color-shiny-elyverse-blue: #3fd3dc;
-  --color-default-bg: rgba(5, 9, 14);
+  --color-night-pitch: #050C08; /* Page background */
+  --color-turf: #0C1811; /* Panels, cards, input */
+  --color-mowed-stripes-dark: #04140E; /* Navigation rail */
+  --color-mowed-stripes-light: #08190F; /* Navigation rail */
+  --color-touchline: #1F3428; /*Borders, empty bars */
+  --color-chalk: #E8F0EA; /* Text, pitch lines */
+  --color-shade: #A0B3A7; /* Secondary text */
+  --color-volt: #C8F03C; /* Accent: focus, selection, primary action. Dark text on it. */
+  --color-boot-black: #0B1A05; /* Text on volt and paper */
+  --color-trophy-gold: #F5A524; /* Board targets, objectives, awards */
+  --color-promotion: #4F9D5A; /* Up places, positive change */
+  --color-relegation: #7F1D1D; /* Drop zone, danger */
+  --color-paper: #F4F0E6; /* Contracts, newspapers */
 }
 
 html,
@@ -18,13 +29,13 @@ body,
 .scrim-main-menu {
   background: linear-gradient(
     to right,
-    rgb(5 9 14 / 0.92) 0,
-    rgb(5 9 14 / 0.75) 640px,
+    --alpha(var(--color-night-pitch) / 92%) 0,
+    --alpha(var(--color-night-pitch) / 75%) 640px,
     transparent 1100px
   );
 }
 
 /* Stands in for the 3D scene when the page runs in a plain browser. */
 .browser-mock body {
-  background: #1e293b;
+  background: #0C1811;
 }
