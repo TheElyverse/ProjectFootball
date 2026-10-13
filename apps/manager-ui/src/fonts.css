@@ -1,0 +1,73 @@
+/* Paths are relative to index.html, which Unreal opens from a file:// URL. Each role loads its own
+   weight plus a bold; a face sharing a family name is picked by Tailwind's font-bold and italic
+   classes. Weights or styles without a face are synthesized by the browser. */
+
+@font-face {
+  font-family: "Font-Title";
+  src: url("./fonts/BarlowCondensed-BoldItalic.ttf") format("truetype");
+  font-weight: 700;
+  font-style: italic;
+}
+
+@font-face {
+  font-family: "Font-Body";
+  src: url("./fonts/Barlow-Regular.ttf") format("truetype");
+  font-weight: 400;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: "Font-Body";
+  src: url("./fonts/Barlow-Italic.ttf") format("truetype");
+  font-weight: 400;
+  font-style: italic;
+}
+
+@font-face {
+  font-family: "Font-Body";
+  src: url("./fonts/Barlow-Bold.ttf") format("truetype");
+  font-weight: 700;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: "Font-Body";
+  src: url("./fonts/Barlow-BoldItalic.ttf") format("truetype");
+  font-weight: 700;
+  font-style: italic;
+}
+
+@font-face {
+  font-family: "Font-Label";
+  src: url("./fonts/BarlowCondensed-SemiBold.ttf") format("truetype");
+  font-weight: 600;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: "Font-Label";
+  src: url("./fonts/BarlowCondensed-Bold.ttf") format("truetype");
+  font-weight: 700;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: "Font-Data";
+  src: url("./fonts/IBMPlexMono-Regular.ttf") format("truetype");
+  font-weight: 400;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: "Font-Data";
+  src: url("./fonts/IBMPlexMono-Bold.ttf") format("truetype");
+  font-weight: 700;
+  font-style: normal;
+}
+
+@theme {
+  --font-headline: "Font-Title", sans-serif; /* Titles, main menu */
+  --font-body: "Font-Body", sans-serif; /* Running text */
+  --font-label: "Font-Label", sans-serif; /* Buttons, table headers, tags */
+  --font-data: "Font-Data", monospace; /* Numbers, stats, tables */
+}
