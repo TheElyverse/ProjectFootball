@@ -205,17 +205,9 @@ jobs:
       # does a pull request that changes the lint or build configuration.
       - name: Run clang-tidy
         run: |
-          sources() { find libs apps tests -name '*.cpp'; }
           if [ "$GITHUB_EVENT_NAME" = pull_request ]; then
-            changed=$(git diff --name-only --diff-filter=d HEAD^1 HEAD)
-            if ! grep -qE '(^|/)(\.clang-tidy|CMakeLists\.txt|CMakePresets\.json|ci\.yml)$|^cmake/' <<< "$changed"; then
-              headers=$(grep -E '^(libs|apps|tests)/.*\.hpp$' <<< "$changed" | xargs -r -n1 basename || true)
-              files=$({
-                grep -E '^(libs|apps|tests)/.*\.cpp$' <<< "$changed" || true
-                for header in $headers; do
-                  sources | xargs grep -lF "\"$header\"" || true
-                done
-              } | sort -u)
-            fi
+            files=$(git diff --name-only --diff-filter=d HEAD^1 HEAD | scripts/lint-scope.sh)
+          else
+            files=$(find libs apps tests -name '*.cpp')
           fi
-          echo "${files-$(sources)}" | xargs -r run-clang-tidy-19 -quiet -p build/ci
+          echo "$files" | xargs -r run-clang-tidy-19 -quiet -p build/ci
