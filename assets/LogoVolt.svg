@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<svg width="100%" height="100%" viewBox="0 0 1632 343" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" xml:space="preserve" xmlns:affinity="https://www.affinity.studio/" style="fill-rule:evenodd;clip-rule:evenodd;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:1.5;">
+    <g transform="matrix(1,0,0,1,-4123.968936,-349.595331)">
+        <g transform="matrix(1,0,0,1,3994.196873,0)">
+            <g id="Logo">
+                <g id="Year" transform="matrix(0.508286,0,0,0.508286,487.632175,145.103046)">
+                    <g transform="matrix(0.897711,0,0,1.177381,1065.466816,401.276145)">
+                        <path d="M1575.862,82.614C1580.272,82.614 1584.481,86.452 1583.907,90.004L1544.189,350.653C1543.57,354.236 1539.114,357.22 1534.703,357.22L1136.219,357.19C1131.808,357.19 1127.831,352.644 1128.475,349.137L1167.037,89.152C1167.737,85.429 1171.559,82.614 1175.969,82.614L1575.862,82.614Z"/>
+                    </g>
+                    <g transform="matrix(0.746908,0,0,0.746908,656.709405,-78.108842)">
+                        <text x="1968.709px" y="1151.883px" style="font-family:'BarlowCondensed-BoldItalic', 'Barlow Condensed';font-weight:700;font-style:italic;font-stretch:condensed;font-size:463.593px;fill:rgb(201,241,56);">28</text>
+                    </g>
+                </g>
+                <g transform="matrix(1,0,0,1,-757.292673,-405.255822)">
+                    <text x="873.373px" y="1038.443px" style="font-family:'Barlow-BoldItalic', 'Barlow';font-weight:700;font-style:italic;font-size:336px;">F<tspan x="1038.685px 1224.493px 1407.613px 1581.325px 1753.693px 1955.629px 2125.309px " y="1038.443px 1038.443px 1038.443px 1038.443px 1038.443px 1038.443px 1038.443px ">OOTBALL</tspan></text>
+                </g>
+                <g transform="matrix(1,0,0,1,-1258.089548,-654.863991)">
+                    <text x="1415.845px" y="1038.443px" style="font-family:'Barlow-MediumItalic', 'Barlow';font-weight:500;font-style:italic;font-size:48px;">E<tspan x="1462.885px 1507.045px 1553.461px 1600.117px 1647.157px 1694.869px 1741.477px " y="1038.443px 1038.443px 1038.443px 1038.443px 1038.443px 1038.443px 1038.443px ">LYVERSE</tspan></text>
+                </g>
+                <g id="Passline" transform="matrix(1,0,0,1,0.820738,-0)">
+                    <g transform="matrix(1.018589,0,0,1.244675,-11.725197,-168.698936)">
+                        <rect x="165.094" y="673.134" width="1022.526" height="6.427" style="fill:url(#_Linear1);"/>
+                    </g>
+                    <g transform="matrix(0.995344,0,0,1,8.036346,0)">
+                        <path d="M1202.534,676.134L1202.534,670.134L1221.572,670.134L1221.572,676.134L1202.534,676.134ZM1241.562,676.134L1241.562,670.134L1273.609,670.134L1273.609,676.134L1241.562,676.134ZM1293.6,676.134L1293.6,670.134L1325.646,670.134L1325.646,676.134L1293.6,676.134ZM1345.637,676.134L1345.637,670.134L1377.684,670.134L1377.684,676.134L1345.637,676.134ZM1397.674,676.134L1397.674,670.134L1429.721,670.134L1429.721,676.134L1397.674,676.134ZM1449.711,676.134L1449.711,670.134L1481.758,670.134L1481.758,676.134L1449.711,676.134ZM1501.748,676.134L1501.748,670.134L1533.795,670.134L1533.795,676.134L1501.748,676.134ZM1553.786,676.134L1553.786,670.134L1585.833,670.134L1585.833,676.134L1553.786,676.134ZM1605.823,676.134L1605.823,670.134L1637.87,670.134L1637.87,676.134L1605.823,676.134ZM1657.86,676.134L1657.86,670.134L1689.907,670.134L1689.907,676.134L1657.86,676.134ZM1709.897,676.134L1709.897,670.134L1728.935,670.134L1728.935,676.134L1709.897,676.134Z"/>
+                    </g>
+                    <g transform="matrix(1.281555,0,0,1.31981,1534.408001,-223.356388)">
+                        <ellipse cx="161.923" cy="679.257" rx="12.485" ry="12.123" style="fill:none;stroke:black;stroke-width:4.61px;"/>
+                    </g>
+                    <g transform="matrix(0.800972,0,0,0.824882,1068.275703,112.827458)">
+                        <ellipse cx="161.923" cy="679.257" rx="12.485" ry="12.123"/>
+                    </g>
+                    <g transform="matrix(1.281555,0,0,1.31981,-56.074966,-223.356388)">
+                        <ellipse cx="161.923" cy="679.257" rx="12.485" ry="12.123"/>
+                    </g>
+                </g>
+            </g>
+        </g>
+    </g>
+    <defs>
+        <linearGradient id="_Linear1" x1="0" y1="0" x2="1" y2="0" gradientUnits="userSpaceOnUse" gradientTransform="matrix(1022.525536,0,0,6.427381,165.094022,676.347558)"><stop offset="0" style="stop-color:black;stop-opacity:1"/><stop offset="0.25" style="stop-color:rgb(61,73,17);stop-opacity:0.78"/><stop offset="0.58" style="stop-color:rgb(201,241,56);stop-opacity:0.27"/><stop offset="1" style="stop-color:black;stop-opacity:1"/></linearGradient>
+    </defs>
+</svg>
