@@ -32,15 +32,15 @@ export function MainMenuButton({
       onClick={onClick}
       onMouseEnter={(event) => event.currentTarget.focus()}
     >
-      <div
+      <span
         className={clsx(
           "font-label font-bold uppercase",
           level === 1 ? "text-5xl italic" : "text-3xl",
         )}
       >
         {text}
-      </div>
-      {hint && <div className="text-slate-400">{hint}</div>}
+      </span>
+      {hint && <span className="text-slate-400">{hint}</span>}
     </button>
   );
 }
