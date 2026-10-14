@@ -46,9 +46,23 @@
 
 @font-face {
   font-family: "Font-Label";
-  src: url("./fonts/BarlowCondensed-Bold.ttf") format("truetype");
+  src: url("./fonts/BarlowCondensed-ExtraBold.ttf") format("truetype");
   font-weight: 700;
   font-style: normal;
+}
+
+@font-face {
+  font-family: "Font-Label";
+  src: url("./fonts/BarlowCondensed-SemiBoldItalic.ttf") format("truetype");
+  font-weight: 600;
+  font-style: italic;
+}
+
+@font-face {
+  font-family: "Font-Label";
+  src: url("./fonts/BarlowCondensed-ExtraBoldItalic.ttf") format("truetype");
+  font-weight: 700;
+  font-style: italic;
 }
 
 @font-face {
