@@ -85,3 +85,26 @@
   --font-label: "Font-Label", sans-serif; /* Buttons, table headers, tags */
   --font-data: "Font-Data", monospace; /* Numbers, stats, tables */
 }
+
+/* The faces the logo SVG names in its text, so it renders without the fonts installed. */
+
+@font-face {
+  font-family: "BarlowCondensed-BoldItalic";
+  src: url("./fonts/BarlowCondensed-BoldItalic.ttf") format("truetype");
+  font-weight: 700;
+  font-style: italic;
+}
+
+@font-face {
+  font-family: "Barlow-BoldItalic";
+  src: url("./fonts/Barlow-BoldItalic.ttf") format("truetype");
+  font-weight: 700;
+  font-style: italic;
+}
+
+@font-face {
+  font-family: "Barlow-MediumItalic";
+  src: url("./fonts/Barlow-MediumItalic.ttf") format("truetype");
+  font-weight: 500;
+  font-style: italic;
+}
