@@ -14,5 +14,6 @@
   "squad.age": "Age",
   "squad.fitness": "Fitness",
   "squad.contract": "Contract",
-  "squad.value": "Value"
+  "squad.value": "Value",
+  "dev.components.overview.title": "Components"
 }

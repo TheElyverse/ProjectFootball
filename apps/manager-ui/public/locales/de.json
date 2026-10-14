@@ -14,5 +14,6 @@
   "squad.age": "Alter",
   "squad.fitness": "Fitness",
   "squad.contract": "Vertrag",
-  "squad.value": "Marktwert"
+  "squad.value": "Marktwert",
+  "dev.components.overview.title": "Komponenten"
 }

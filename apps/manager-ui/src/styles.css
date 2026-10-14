@@ -15,6 +15,7 @@
   --color-promotion: #4F9D5A; /* Up places, positive change */
   --color-relegation: #7F1D1D; /* Drop zone, danger */
   --color-paper: #F4F0E6; /* Contracts, newspapers */
+  --color-top-bar: #08120D; /* Top bar */
 }
 
 html,
