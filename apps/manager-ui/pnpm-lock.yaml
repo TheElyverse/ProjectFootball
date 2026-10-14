@@ -12,7 +12,7 @@ importers:
         specifier: 5.104.1
         version: 5.104.1(react@19.3.0)
       clsx:
-        specifier: ^2.1.1
+        specifier: 2.1.1
         version: 2.1.1
       react:
         specifier: 19.3.0
@@ -21,7 +21,7 @@ importers:
         specifier: 19.3.0
         version: 19.3.0(react@19.3.0)
       react-icons:
-        specifier: ^5.7.0
+        specifier: 5.7.0
         version: 5.7.0(react@19.3.0)
       react-intl:
         specifier: 12.1.3
