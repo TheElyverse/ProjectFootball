@@ -1,4 +1,4 @@
-import { ViewComponent } from "@/screens/screen";
+import type { ViewComponent } from "@/screens/screen";
 import { Components } from "./views/Components/Components";
 
 export const devViews = [

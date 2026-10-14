@@ -1,6 +1,6 @@
 import { type ComponentType, createContext, useContext } from "react";
 import { type ManagerViewId, managerViews } from "./Manager/views";
-import { DevViewId } from "@/screens/dev";
+import type { DevViewId } from "@/screens/dev";
 import type { MessageId } from "@/i18n";
 
 export type Screen =
