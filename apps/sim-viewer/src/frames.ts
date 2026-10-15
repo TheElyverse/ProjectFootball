@@ -44,8 +44,9 @@ export interface PlayerFrame {
   readonly velocity: Vec2;
   readonly facing: Vec2;
   // Where he looks: his facing, or a carrier's look over his shoulder for an
-  // option (docs/pass-decisions.md).
-  readonly look: Vec2;
+  // option (docs/pass-decisions.md). Absent from recordings of a core before
+  // 0.27.0, which came without a new version; he looks along his facing then.
+  readonly look?: Vec2;
   readonly target: Vec2 | null;
   readonly observations: readonly Observation[];
   // Null for a player of a scripted side, and for goalkeepers' actions.

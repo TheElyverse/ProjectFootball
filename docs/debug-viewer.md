@@ -111,7 +111,7 @@ abridged example with illustrative values:
 {
     "format": "elyverse-debug-frames",
   "version": 4,
-  "coreVersion": "0.26.0",
+  "coreVersion": "0.27.0",
   "scenario": "m0-acceptance",
   "seed": "42",
   "ticksPerSecond": 30,
@@ -220,7 +220,10 @@ The events `saveAttempted` ([shot stopping](shot-stopping.md)) and
 viewer that does not know them shows them by their name. So did the ball's
 `held`, the `lofted` of the pending pass and of a pass candidate, and a
 decision's `held` ([goalkeeper distribution](goalkeeper-distribution.md)): a
-viewer that does not know a field ignores it.
+viewer that does not know a field ignores it. So did a player's `look`, a
+decision's `reason` and `target` and an action's `idlePress`
+([pass decisions](pass-decisions.md#without-a-valid-option)): the viewer draws
+the vision cone of a player without a `look` along his facing.
 
 ## Development
 

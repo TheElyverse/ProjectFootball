@@ -121,7 +121,8 @@ function drawPerception(
   player: PlayerFrame,
 ): void {
   const { viewDistance, fieldOfViewDegrees, awarenessRadius } = recording.perception;
-  const cone = visionCone(player.position, player.look, viewDistance, fieldOfViewDegrees);
+  const look = player.look ?? player.facing;
+  const cone = visionCone(player.position, look, viewDistance, fieldOfViewDegrees);
   context.fillStyle = COLORS.vision;
   context.beginPath();
   cone.forEach((point, index) => {
