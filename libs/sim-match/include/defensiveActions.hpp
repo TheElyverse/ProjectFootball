@@ -32,6 +32,11 @@ struct DefensiveConfig {
   double pressRadius = 15.0;  // m
   // A presser aims this far from the carrier, on the line to his option.
   double pressDistance = 1.0;  // m
+  // A carrier who has stood on the ball this long since his last touch is
+  // pressed by the nearest outfield player within idlePressRadius of him,
+  // whatever the phase's pressing.
+  double idleSeconds = 2.0;
+  double idlePressRadius = 3.0;  // m
   // A lane blocker stands at least this far from the carrier and the
   // receiver.
   double laneMinDistance = 2.0;  // m
@@ -52,7 +57,7 @@ struct DefensiveConfig {
 };
 
 // Throws std::invalid_argument for a radius, distance, speed or temperature
-// that is not positive and finite, a negative lead, a hold responsibility
+// that is not positive and finite, a negative lead or idle time, a hold responsibility
 // outside [0, 1] or a negative or non-finite weight.
 void validate(const DefensiveConfig& config);
 

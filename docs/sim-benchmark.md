@@ -89,10 +89,10 @@ of both sides with their intervals, and the mean and slowest match time.
 
 **In CI**, the `style-benchmark` job builds the `ci-release` preset and runs
 `ctest -L benchmark`: `tests/benchmark/p2StyleBenchmark.cmake` plays the round
-robin of the three [tactical identities](tactical-identities.md), six
+robin of the three [tactical identities](tactical-identities.md), eight
 six-minute matches per pairing with seed 1 and one sampled replay per pairing.
 It must finish without an invalid value within 5 s per match and 120 s for
-all 54 (about 20 s at the time of writing), every sampled replay must
+all 72 (about 30 s at the time of writing), every sampled replay must
 reproduce, and the styles must separate where their identities promise:
 
 | Metric                  | Separation                              |
@@ -101,8 +101,11 @@ reproduce, and the styles must separate where their identities promise:
 | `regainsAttackingThird` | pressing above counter                  |
 | `ppda`                  | counter above pressing — pressing allows fewer passes per defensive action |
 
-These hold for base seeds 1 to 5 of the reduced run. Possession's PPDA lies
-about a tenth above pressing's: thirty matches separate the two, six not with
+These hold for base seeds 1 to 5 of the reduced run. It played six matches
+per pairing until the carrier saw the goal along where he
+[looks](perception.md): six then no longer separated pressing's regains in the
+attacking third from counter's with seed 1, eight do with seeds 1 to 5.
+Possession's PPDA lies about a tenth above pressing's: thirty matches separate the two, six not with
 every seed — not with seeds 3 and 4 at first, nor with seed 1 since the keeper
 [distributes](goalkeeper-distribution.md) the ball — and the test does not ask
 for it. Pressing also regained
@@ -117,7 +120,13 @@ average — a guardrail against a change that stops the shooting or turns the
 sandbox into a shooting gallery, set from the first measurement of 2 to 27,
 which goals have brought down to 3 to 13, the kickoff line-up to 1 to 9 and
 the keeper's [shot stopping](shot-stopping.md) to 0.67 to 11.67, possession
-against counter's deep block the fewest ([shot decisions](shot-decisions.md)). The test is registered for Release
+against counter's deep block the fewest ([shot decisions](shot-decisions.md)). And in
+every match no player of either side may own the ball longer than 30 s at a
+time (`longestOwnershipSeconds`, [match analytics](match-analytics.md)): a
+carrier without an option once kept it for up to 318 s against counter's deep
+block; since he [looks round for one](pass-decisions.md#without-a-valid-option)
+and a carrier who stands on the ball [is gone at](pressing.md#a-carrier-who-stands-on-the-ball),
+the longest is 4.4 s. The test is registered for Release
 builds only; in Debug it would take minutes.
 
 **The full run** is twenty 90-minute matches per pairing, the command above.

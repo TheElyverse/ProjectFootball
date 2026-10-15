@@ -200,6 +200,22 @@ std::string_view shotOutcomeName(const ShotOutcome outcome) noexcept {
   return "unknown";
 }
 
+std::string_view onBallReasonName(const OnBallReason reason) noexcept {
+  switch (reason) {
+    case OnBallReason::kChoice:
+      return "choice";
+    case OnBallReason::kScanFirstSide:
+      return "scanFirstSide";
+    case OnBallReason::kScanOtherSide:
+      return "scanOtherSide";
+    case OnBallReason::kForcedRejected:
+      return "forcedRejected";
+    case OnBallReason::kForcedClear:
+      return "forcedClear";
+  }
+  return "unknown";
+}
+
 std::string_view eventName(const MatchEvent& event) {
   struct Names {
     std::string_view operator()(const PassAttempted& /*event*/) const noexcept {

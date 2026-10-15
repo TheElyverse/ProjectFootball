@@ -211,8 +211,9 @@ constexpr SimCore::PlayerId kFirstCarrier{1};
 }
 
 // Player 1 faces the away goal with every teammate behind him, beyond his
-// awareness radius: he sees no one to pass to and keeps the ball. The away
-// side waits in its own half, too far away to matter.
+// awareness radius: at first he sees no one to pass to. He looks over his
+// shoulder, finds them and plays back. The away side waits in its own half,
+// too far away to matter.
 [[nodiscard]] std::expected<MatchSetup, std::string> noPassingOption(const std::uint64_t seed) {
   constexpr Side kHome{{{.x = 30.0, .y = 20.0, .facingX = 1.0},
                         {.x = 20.0, .y = 10.0, .facingX = 1.0},
@@ -229,6 +230,57 @@ constexpr SimCore::PlayerId kFirstCarrier{1};
                         {.x = 58.0, .y = 20.0, .facingX = -1.0},
                         {.x = 52.0, .y = 12.0, .facingX = -1.0}}};
   return placed(seed, kHome, kAway);
+}
+
+// Player 1 faces the away goal with every teammate ahead of him, each with an
+// away player in the lane two meters in front of him: every pass he sees is
+// too likely to be cut out. Nobody stands behind him. He looks round for
+// stuckSeconds, then plays the best of the passes he rejected.
+[[nodiscard]] std::expected<MatchSetup, std::string> noOptionForced(const std::uint64_t seed) {
+  constexpr Side kHome{{{.x = 30.0, .y = 20.0, .facingX = 1.0},
+                        {.x = 42.0, .y = 8.0, .facingX = -1.0},
+                        {.x = 42.0, .y = 32.0, .facingX = -1.0},
+                        {.x = 48.0, .y = 20.0, .facingX = -1.0},
+                        {.x = 54.0, .y = 4.0, .facingX = -1.0},
+                        {.x = 54.0, .y = 36.0, .facingX = -1.0},
+                        {.x = 40.0, .y = 20.0, .facingX = -1.0}}};
+  constexpr Side kAway{{{.x = 58.0, .y = 20.0, .facingX = -1.0},
+                        {.x = 40.4, .y = 9.3, .facingX = -1.0},
+                        {.x = 40.4, .y = 30.7, .facingX = -1.0},
+                        {.x = 46.0, .y = 20.0, .facingX = -1.0},
+                        {.x = 52.1, .y = 4.6, .facingX = -1.0},
+                        {.x = 52.1, .y = 35.4, .facingX = -1.0},
+                        {.x = 38.0, .y = 20.0, .facingX = -1.0}}};
+  return placed(seed, kHome, kAway);
+}
+
+// Player 1 stands with his back to away's goal, every teammate more than a
+// long pass away; he never acts on his own (stuckSeconds is out of reach).
+// Away plays the reference tactic without any pressing, a centre back a
+// meter and a half goal-side of him, its forwards far off in home's half:
+// after idleSeconds the centre back goes at him regardless.
+[[nodiscard]] std::expected<MatchSetup, std::string> idleCarrierChallenged(
+    const std::uint64_t seed) {
+  constexpr Side kHome{{{.x = 46.0, .y = 20.0, .facingX = -1.0},
+                        {.x = 8.0, .y = 10.0, .facingX = 1.0},
+                        {.x = 8.0, .y = 30.0, .facingX = 1.0},
+                        {.x = 6.0, .y = 20.0, .facingX = 1.0},
+                        {.x = 4.0, .y = 5.0, .facingX = 1.0},
+                        {.x = 4.0, .y = 35.0, .facingX = 1.0},
+                        {.x = 2.0, .y = 20.0, .facingX = 1.0}}};
+  constexpr Side kAway{{{.x = 58.0, .y = 20.0, .facingX = -1.0},
+                        {.x = 47.5, .y = 20.0, .facingX = -1.0},
+                        {.x = 48.0, .y = 28.0, .facingX = -1.0},
+                        {.x = 50.0, .y = 12.0, .facingX = -1.0},
+                        {.x = 15.0, .y = 4.0, .facingX = -1.0},
+                        {.x = 15.0, .y = 36.0, .facingX = -1.0},
+                        {.x = 12.0, .y = 20.0, .facingX = -1.0}}};
+  auto setup = placed(seed, kHome, kAway,
+                      {.home = std::nullopt, .away = goldenPressingTactic(0.0, {}, 0.6)});
+  if (setup) {
+    setup->config.decisions.stuckSeconds = 1.0e6;
+  }
+  return setup;
 }
 
 // ---------------------------------------------------------------------------
@@ -600,8 +652,16 @@ constexpr std::array kScenarios{
                        .make = &interceptedPass},
     ScenarioDefinition{.name = "no-passing-option",
                        .description = "home player 1 on the ball, every teammate behind him "
-                                      "out of sight",
+                                      "out of sight, looks round and plays back",
                        .make = &noPassingOption},
+    ScenarioDefinition{.name = "no-option-forced",
+                       .description = "home player 1 on the ball, every pass he sees cut out, "
+                                      "plays the best after looking round",
+                       .make = &noOptionForced},
+    ScenarioDefinition{.name = "idle-carrier-challenged",
+                       .description = "home player 1 stands on the ball, away does not press "
+                                      "and still goes at him",
+                       .make = &idleCarrierChallenged},
     ScenarioDefinition{.name = "clear-chance",
                        .description = "home player 1 eight meters out, only the keeper to beat",
                        .make = &clearChance},

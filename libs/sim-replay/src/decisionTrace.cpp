@@ -108,9 +108,21 @@ using SimMatch::MatchEvent;
       *decision.chosen < decision.shots.size()) {
     return shotLine(decision, *decision.chosen, line, context);
   }
-  if (!decision.chosen || *decision.chosen >= decision.candidates.size()) {
+  const SimMatch::OnBallReason reason = decision.reason;
+  if (reason == SimMatch::OnBallReason::kForcedClear && decision.target) {
     return line +
-           std::format("keeps the ball: no valid option ({}{})", context, shotNote(decision));
+           std::format("clears the ball to ({:.1f}, {:.1f}): no pass to play ({}; {})",
+                       decision.target->x, decision.target->y, context,
+                       SimMatch::onBallReasonName(reason)) +
+           outcomeText(trace.outcome);
+  }
+  if (!decision.chosen || *decision.chosen >= decision.candidates.size()) {
+    const std::string look = decision.target ? std::format("; {} toward ({:.1f}, {:.1f})",
+                                                           SimMatch::onBallReasonName(reason),
+                                                           decision.target->x, decision.target->y)
+                                             : std::string();
+    return line + std::format("keeps the ball: no valid option ({}{}{})", context,
+                              shotNote(decision), look);
   }
   const SimMatch::PassCandidate& pass = decision.candidates.at(*decision.chosen);
   const SimMatch::PassContributions parts = SimMatch::passContributions(pass, decision.scoring);
@@ -122,7 +134,9 @@ using SimMatch::MatchEvent;
       passVerb(pass, decision.held), pass.receiver.value(), pass.utility,
       signedNumber(parts.completion), signedNumber(parts.progression), signedNumber(parts.pressure),
       signedNumber(parts.risk), directness, pass.interceptionRisk, context, shotNote(decision),
-      SimMatch::dominantContribution(parts));
+      reason == SimMatch::OnBallReason::kForcedRejected
+          ? std::string("its best rejected option (forcedRejected)")
+          : std::string(SimMatch::dominantContribution(parts)));
   return line + outcomeText(trace.outcome);
 }
 
@@ -140,6 +154,9 @@ using SimMatch::MatchEvent;
   }
   if (decision.assigned) {
     return line + " (assigned by the team press)";
+  }
+  if (decision.idlePress) {
+    return line + " (idlePress: the carrier stands on the ball)";
   }
   return line + std::format(
                     " (utility {:.2f}: responsibility {} region {} space {} lane {} urgency {} "

@@ -6,6 +6,7 @@ export function fixture() {
     position: [x, y],
     velocity: [0, 0],
     facing: [1, 0],
+    look: [1, 0],
         target: null,
     observations: [],
     region: null,
@@ -60,6 +61,7 @@ export function fixture() {
             player: 2,
             chosen: 0,
             assigned: false,
+            idlePress: false,
             candidates: [
               {
                 type: "holdPosition",
@@ -78,6 +80,8 @@ export function fixture() {
             player: 1,
             outcome: "noValidOption",
             chosen: null,
+            reason: "scanFirstSide",
+            target: [10, 20],
             candidates: [],
             observations: [],
           },

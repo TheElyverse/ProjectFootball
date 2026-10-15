@@ -33,9 +33,12 @@ inline constexpr std::string_view kTacticalMovementSystemName = "tactical moveme
 //   1. gets a new desired region (chooseDesiredRegion(); the goalkeeper's is
 //      goalkeeperRegion(), with draws from the kExecution stream);
 //   2. with a role in his side's press (MatchState::press()), takes that
-//      role's action -- the team assigned it, he does not choose;
-//      otherwise, unless he is the goalkeeper, decides an action when one is due
-//      (isActionDecisionDue()): with his team on the ball from
+//      role's action -- the team assigned it, he does not choose; as the
+//      nearest outfield player within the defensive idlePressRadius of an
+//      opponent who has stood on the ball for idleSeconds since his last
+//      touch -- not a goalkeeper holding it --, presses him, whatever his
+//      phase's pressing (docs/pressing.md); otherwise, unless he is the goalkeeper, decides an
+//      action when one is due (isActionDecisionDue()): with his team on the ball from
 //      generateOffBallCandidates(), without it from
 //      generateDefensiveCandidates(), then the seeded softmax
 //      chooseByUtility() with a draw from the kAi stream -- the same

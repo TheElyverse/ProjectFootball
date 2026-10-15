@@ -38,7 +38,7 @@ Three things rule out every shot at once, before anything is scored:
 | Rejection    | When                                                                   |
 |--------------|------------------------------------------------------------------------|
 | `kTooFar`    | the ball is farther than `maxShotDistance` (25 m) from the goal's center |
-| `kGoalUnseen`| the goal's center is outside his field of view: he is facing away      |
+| `kGoalUnseen`| the goal's center is outside his field of view: he looks away -- along his facing, or his look over his shoulder ([pass decisions](pass-decisions.md#without-a-valid-option)) |
 | `kTooNarrow` | the goal looks narrower than `minOpening` (0.1)                        |
 
 A player facing away from the goal would have forgotten the keeper within

@@ -28,12 +28,63 @@ Every `intervalTicks` ticks (6: five times a second at 30 Hz):
    and from his hands throws no farther than `throwRange`
    ([goalkeeper distribution](goalkeeper-distribution.md)).
 4. **Choice.** `chooseOnBall()` picks one of the valid passes or the best valid
-   shot. Without a valid option he keeps the ball — except a goalkeeper who has
-   held it in his hands for `clearSeconds` (6 s): he clears it
-   ([goalkeeper distribution](goalkeeper-distribution.md#the-ball-in-his-hands)).
+   shot. Without a valid option he keeps the ball — a goalkeeper who has
+   held it in his hands for `clearSeconds` (6 s) clears it
+   ([goalkeeper distribution](goalkeeper-distribution.md#the-ball-in-his-hands)),
+   any other carrier [looks for one](#without-a-valid-option).
 5. **Intent.** The choice becomes his pending action — for a pass the target,
    planned speed, receiver and whether it is lofted, for a shot the aimed point, height and speed. The
    ball system plays it in the next step.
+
+## Without a valid option
+
+A carrier who finds no valid option does not stand on the ball for good. He
+looks around for one, and plays the best he has once he has looked long
+enough. Only a goalkeeper holding the ball in his hands keeps his own rule.
+
+**He looks over his shoulder.** Each decision without an option he looks at
+the next of his look targets (`lookTargets()`, `carrierScan.hpp`) until the
+next decision, 0.2 s and two [perception](perception.md) updates later. He
+turns his head, not his body: the look is a direction of its own, his scan's
+`gaze`, which perception uses instead of his facing while he has the ball.
+His body and the ball in front of it stay as they are. The scan
+(`CarrierScan` in his tactical state) belongs to his possession: it ends
+when he plays the ball, and counts for nothing once he has lost it or
+touched it again.
+
+**Where he looks.** The look targets come in two sides, taken from his
+facing:
+
+1. The **first side** is the one on which his turn toward the opponent's goal
+   is shorter: a winger on the left at the opponent's goal line who faces it
+   turns right, toward the box, one on the right turns left. A carrier who
+   faces the goal or straight away from it turns toward the pitch's middle.
+   On that side a forward -- his slot holds `runInBehind` -- looks at the
+   opponent's penalty spot, everyone else at the centroid of the movement
+   targets of his teammates there: where their tactic wants them, or where
+   they stand without a target.
+2. The **other side**: the centroid of his teammates' targets there.
+
+A side without a teammate gives no target, and he keeps alternating between
+the two while he has no option.
+
+**He acts when stuck.** `stuckSeconds` (3 s) after the decision that first
+found no option -- time for teammates to get free -- he plays the pass with
+the highest utility of all he rejected. Without any pass at all he kicks the
+ball long: lofted, to `clearanceTarget()`, `clearTouchlineMargin` (5 m) inside
+a touchline, as far up the pitch as his longest kick reaches but no closer
+than `clearGoalLineMargin` (10 m) to the opponent's goal line, on the side
+where his team's [pitch control](pitch-control.md) is higher -- the nearer
+side on a tie or without a grid. A side whose point lies closer to the ball
+than the distribution's `minLongDistance` (25 m) gives way to the other, as
+for a carrier at the near touchline as far up as the goal-line margin lets
+him; if both do, the farther wins. The kick goes at the speed along the ground
+that brings it down there after the distribution's `flightSeconds`; his
+longest is the one at the passing's `maxLoftedSpeed`. Neither choice draws a
+number.
+
+Should he stand on the ball anyway, an opponent nearby
+[goes at him](pressing.md#a-carrier-who-stands-on-the-ball).
 
 ## Seeded softmax
 
@@ -80,10 +131,13 @@ twice:
 | `scoring`        |         | the pass candidates' scoring configuration      |
 | `shooting`       |         | the shot candidates' scoring configuration      |
 | `distribution`   |         | how a goalkeeper distributes the ball ([goalkeeper distribution](goalkeeper-distribution.md)) |
+| `stuckSeconds`   | 3 s     | a carrier without a valid option looks for one this long |
+| `clearTouchlineMargin` | 5 m | his long kick without any pass lands this far inside a touchline |
+| `clearGoalLineMargin`  | 10 m | and no closer than this to the opponent's goal line |
 
-The system rejects an interval below one tick, a negative or non-finite hold, a
-temperature that is not positive and finite, and invalid scoring or
-distribution.
+The system rejects an interval below one tick, a negative or non-finite hold,
+stuck time or margin, a temperature that is not positive and finite, and
+invalid scoring or distribution.
 
 ## Passing risk
 
@@ -107,5 +161,8 @@ second tuning surface next to the scoring itself.
 ## What this is not
 
 A player on the ball only passes, shoots or keeps the ball: no dribble, no
-carry, no turning to look for options; only a goalkeeper kicks long. Off-ball players do not decide yet; they hold their
+carry, no turning his body with the ball; he only turns his head to look for
+options, and kicks long only as a goalkeeper or when he has nothing else.
+Where he looks ignores the opponents around him: shielding the ball from a
+challenger comes with the duels. Off-ball players do not decide yet; they hold their
 position or chase a free ball (see [reception](reception.md)).

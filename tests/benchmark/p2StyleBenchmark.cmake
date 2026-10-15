@@ -1,5 +1,5 @@
 # P2 acceptance, reduced for CI (docs/sim-benchmark.md): the three tactical
-# identities in a round robin of every pairing, six six-minute matches each.
+# identities in a round robin of every pairing, eight six-minute matches each.
 # The run must finish within its time budget without an invalid value, a
 # sampled match of every pairing must replay identically, and the styles must
 # separate where their identities promise. Invoked by CTest with
@@ -15,7 +15,7 @@ execute_process(
         --style "${DATA_DIR}/tactics/possession.json"
         --style "${DATA_DIR}/tactics/counter.json"
         --style "${DATA_DIR}/tactics/pressing.json"
-        --matches 6 --minutes 6 --seed 1 --jobs 2 --verify-replays 1
+        --matches 8 --minutes 6 --seed 1 --jobs 2 --verify-replays 1
         --max-seconds-per-match 5 --max-seconds-total 120
         --out "${results}"
         RESULT_VARIABLE result OUTPUT_VARIABLE output ERROR_VARIABLE error
@@ -81,5 +81,26 @@ foreach(index RANGE ${lastPairing})
             message(FATAL_ERROR
                     "Pairing ${index}: ${side} (${style}) took ${shots} shots, expected ${minShots} to ${maxShots}")
         endif()
+    endforeach()
+endforeach()
+
+# Nobody stands on the ball (docs/pass-decisions.md, docs/pressing.md): in
+# every match no player of either side owns it longer than 30 s at a time. A
+# carrier without an option once kept it for up to 318 s against counter's
+# deep block; with looking round for one and the press on a carrier who
+# stands on the ball the longest is 4.4 s.
+set(maxOwnershipSeconds 30)
+foreach(index RANGE ${lastPairing})
+    string(JSON matches LENGTH "${json}" pairings ${index} results)
+    math(EXPR lastMatch "${matches} - 1")
+    foreach(match RANGE ${lastMatch})
+        foreach(side IN ITEMS home away)
+            string(JSON longest GET "${json}" pairings ${index} results ${match} stats ${side}
+                   longestOwnershipSeconds)
+            if(longest GREATER maxOwnershipSeconds)
+                message(FATAL_ERROR
+                        "Pairing ${index}, match ${match}: a ${side} player owned the ball for ${longest} s, more than ${maxOwnershipSeconds} s")
+            endif()
+        endforeach()
     endforeach()
 endforeach()

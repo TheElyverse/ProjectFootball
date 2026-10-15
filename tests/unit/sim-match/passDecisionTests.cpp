@@ -1,4 +1,5 @@
 #include <catch2/catch_test_macros.hpp>
+#include <cmath>
 #include <cstddef>
 #include <cstdint>
 #include <limits>
@@ -7,6 +8,7 @@
 #include <utility>
 #include <vector>
 
+#include "carrierScan.hpp"
 #include "choicePolicy.hpp"
 #include "kickoffScenario.hpp"
 #include "matchCommand.hpp"
@@ -23,11 +25,13 @@ using ElyverseFootball::SimCore::PlayerId;
 using ElyverseFootball::SimCore::RandomNumberGenerator;
 using ElyverseFootball::SimCore::SimTick;
 using ElyverseFootball::SimCore::Vec2;
+using ElyverseFootball::SimMatch::activeScan;
 using ElyverseFootball::SimMatch::chooseOnBall;
 using ElyverseFootball::SimMatch::DecisionConfig;
 using ElyverseFootball::SimMatch::DecisionOutcome;
 using ElyverseFootball::SimMatch::GiveBallCommand;
 using ElyverseFootball::SimMatch::hashMatchState;
+using ElyverseFootball::SimMatch::lookDirection;
 using ElyverseFootball::SimMatch::makePassDecisionSystem;
 using ElyverseFootball::SimMatch::makeSevenASideKickoff;
 using ElyverseFootball::SimMatch::MatchConfig;
@@ -38,6 +42,7 @@ using ElyverseFootball::SimMatch::MatchStateSpec;
 using ElyverseFootball::SimMatch::OnBallChoice;
 using ElyverseFootball::SimMatch::PassCandidate;
 using ElyverseFootball::SimMatch::PassCandidateRules;
+using ElyverseFootball::SimMatch::PassIntent;
 using ElyverseFootball::SimMatch::PassRejection;
 using ElyverseFootball::SimMatch::PassScoringConfig;
 using ElyverseFootball::SimMatch::Pitch;
@@ -267,9 +272,11 @@ TEST_CASE("A pass is decided only by the player on the ball, once", "[passDecisi
   REQUIRE(kicks >= 3);
 }
 
-TEST_CASE("A player without a visible teammate keeps the ball", "[passDecision]") {
-  // Player 1, the home goalkeeper, looks at his own goal line: every
-  // teammate is behind him. Standing still, he keeps facing it.
+TEST_CASE("A player without a visible teammate looks round and passes", "[passDecision]") {
+  // Player 1, the home goalkeeper -- of a side without a tactic, so with the
+  // ball at his feet like anyone else -- looks at his own goal line: every
+  // teammate is behind him. He looks over his shoulder, up the pitch, while
+  // his body keeps facing the goal line, and plays to a teammate he finds.
   auto kickoff = makeSevenASideKickoff(Pitch(60.0, 40.0));
   REQUIRE(kickoff.has_value());
   MatchStateSpec spec{.pitch = kickoff->pitch(),
@@ -284,11 +291,79 @@ TEST_CASE("A player without a visible teammate keeps the ball", "[passDecision]"
   MatchSimulation simulation =
       startMatch({.initialState = *state, .config = {}, .seed = 1, .commands = {}});
 
-  for (int tick = 0; tick < 150; ++tick) {
+  bool lookedUp = false;
+  bool passed = false;
+  for (int tick = 0; tick < 30 && !passed; ++tick) {
     REQUIRE(simulation.step().has_value());
-    REQUIRE_FALSE(simulation.state().pendingPass().has_value());
-    REQUIRE(simulation.state().ball().owner == PlayerId(1));
+    const MatchState& current = simulation.state();
+    if (activeScan(current, 0) != nullptr) {
+      REQUIRE(current.players()[0].facing == Vec2{.x = -1.0, .y = 0.0});
+      lookedUp = lookedUp || lookDirection(current, 0).x > 0.0;
+    }
+    passed = current.pendingPass().has_value();
   }
+  REQUIRE(lookedUp);
+  REQUIRE(passed);
+  // Playing the ball ends his scan.
+  REQUIRE(simulation.state().tactical(0).scan == std::nullopt);
+}
+
+TEST_CASE("A carrier without any pass clears the ball long after looking round", "[passDecision]") {
+  // Player 5 stands 5 m inside the touchline and 10 m from the opponent's
+  // goal line, so seeing next to nothing -- a view of a meter -- he has no
+  // pass and no shot. Looking round, he finds none either; once stuck he
+  // clears the ball: not on the spot at the near touchline, where the goal
+  // line's margin leaves him no room, but long across to the far one.
+  auto kickoff = makeSevenASideKickoff(Pitch(60.0, 40.0));
+  REQUIRE(kickoff.has_value());
+  MatchStateSpec spec{.pitch = kickoff->pitch(),
+                      .players = {kickoff->players().begin(), kickoff->players().end()},
+                      .ball = kickoff->ball(),
+                      .playersPerSide = kickoff->playersPerSide()};
+  spec.players[4].position = {.x = 50.0, .y = 5.0};
+  spec.players[4].facing = {.x = 1.0, .y = 0.0};
+  spec.ball.position = {.x = 50.5, .y = 5.0};
+  spec.ball.owner = PlayerId(5);
+  const auto state = MatchState::create(spec);
+  REQUIRE(state.has_value());
+  MatchConfig config;
+  config.perception.viewDistance = 1.0;
+  config.perception.awarenessRadius = 0.5;
+  config.decisions.stuckSeconds = 1.0;
+  MatchSimulation simulation =
+      startMatch({.initialState = *state, .config = config, .seed = 1, .commands = {}});
+
+  std::optional<PassIntent> clearance;
+  Vec2 from;
+  while (!clearance && simulation.tick() < SimTick(90)) {
+    REQUIRE(simulation.step().has_value());
+    clearance = simulation.state().pendingPass();
+    from = simulation.state().ball().position;
+  }
+  REQUIRE(clearance.has_value());
+  const PassIntent kick = clearance.value_or(PassIntent{});
+  REQUIRE(kick.lofted);
+  REQUIRE_FALSE(kick.receiver.has_value());
+  REQUIRE(kick.target.y > 20.0);
+  REQUIRE(std::sqrt((kick.target - from).lengthSquared()) >=
+          DecisionConfig{}.distribution.minLongDistance);
+  // And he plays it.
+  REQUIRE(simulation.step().has_value());
+  REQUIRE_FALSE(simulation.state().ball().owner.has_value());
+}
+
+TEST_CASE("The decision system rejects a negative stuck time or margin", "[passDecision]") {
+  const auto rejects = [](const auto& change) {
+    DecisionConfig config;
+    change(config);
+    return throwsInvalidArgument(
+        [&config] { (void)makePassDecisionSystem(config, PassCandidateRules{}); });
+  };
+  REQUIRE(rejects([](DecisionConfig& config) { config.stuckSeconds = -1.0; }));
+  REQUIRE(rejects([](DecisionConfig& config) { config.clearTouchlineMargin = -1.0; }));
+  REQUIRE(rejects([](DecisionConfig& config) {
+    config.clearGoalLineMargin = std::numeric_limits<double>::infinity();
+  }));
 }
 
 TEST_CASE("The same seed makes the same choices", "[passDecision]") {

@@ -53,7 +53,9 @@ Clicking a player selects him; Escape or a click on empty grass clears it. For
 the selected player the pitch adds:
 
 - his **vision cone**, `viewDistance` deep and `fieldOfViewDegrees` wide around
-  his facing, and his **awareness radius**, the circle in which he notices
+  where he looks -- his facing, or a carrier's look over his shoulder for an
+  option ([pass decisions](pass-decisions.md#without-a-valid-option)) -- and
+  his **awareness radius**, the circle in which he notices
   players behind him ([perception](perception.md));
 - his **observations**: a dotted circle where he remembers each player and the
   ball, fainter as its confidence falls;
@@ -109,7 +111,7 @@ abridged example with illustrative values:
 {
     "format": "elyverse-debug-frames",
   "version": 4,
-  "coreVersion": "0.26.0",
+  "coreVersion": "0.27.0",
   "scenario": "m0-acceptance",
   "seed": "42",
   "ticksPerSecond": 30,
@@ -134,6 +136,7 @@ abridged example with illustrative values:
           "position": [3, 20],
           "velocity": [0, 0],
           "facing": [1, 0],
+          "look": [1, 0],
           "target": null,
           "observations": [
             { "entity": "ball", "position": [30, 20], "velocity": [0, 0], "confidence": 1, "lastSeen": 0 }
@@ -147,6 +150,8 @@ abridged example with illustrative values:
           "player": 4,
           "outcome": "passed",
           "chosen": 0,
+          "reason": "choice",
+          "target": null,
           "candidates": [
             {
               "receiver": 7, "target": [40, 15], "distance": 12.1, "speed": 9.6,
@@ -215,7 +220,10 @@ The events `saveAttempted` ([shot stopping](shot-stopping.md)) and
 viewer that does not know them shows them by their name. So did the ball's
 `held`, the `lofted` of the pending pass and of a pass candidate, and a
 decision's `held` ([goalkeeper distribution](goalkeeper-distribution.md)): a
-viewer that does not know a field ignores it.
+viewer that does not know a field ignores it. So did a player's `look`, a
+decision's `reason` and `target` and an action's `idlePress`
+([pass decisions](pass-decisions.md#without-a-valid-option)): the viewer draws
+the vision cone of a player without a `look` along his facing.
 
 ## Development
 

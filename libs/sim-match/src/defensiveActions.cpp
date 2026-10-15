@@ -243,6 +243,7 @@ void validate(const DefensiveConfig& config) {
                      positive(config.trackRadius) && positive(config.runnerSpeed) &&
                      weight(config.trackLeadSeconds) && positive(config.coverDistance) &&
                      positive(config.pressRadius) && positive(config.pressDistance) &&
+                     weight(config.idleSeconds) && positive(config.idlePressRadius) &&
                      weight(config.laneMinDistance) && positive(config.effortScale) &&
                      config.holdResponsibility >= 0.0 && config.holdResponsibility <= 1.0 &&
                      positive(config.temperature) && weight(config.responsibilityWeight) &&

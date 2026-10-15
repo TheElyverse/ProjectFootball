@@ -27,6 +27,14 @@ struct DecisionConfig {
   ShotScoringConfig shooting;
   // How the goalkeeper distributes the ball (docs/goalkeeper-distribution.md).
   DistributionConfig distribution;
+  // A carrier without a valid option looks around for one this long, then
+  // plays the best pass he rejected (docs/pass-decisions.md).
+  double stuckSeconds = 3.0;
+  // Without any pass to play, he kicks the ball long this far inside a
+  // touchline, and no closer than clearGoalLineMargin to the opponent's
+  // goal line.
+  double clearTouchlineMargin = 5.0;  // m
+  double clearGoalLineMargin = 10.0;  // m
 
   friend bool operator==(const DecisionConfig&, const DecisionConfig&) = default;
 };
@@ -91,11 +99,20 @@ inline constexpr std::string_view kPassDecisionSystemName = "pass decision";
 //      who has held it in his hands for the distribution's clearSeconds: he
 //      then plays the pass with the highest utility of those rejected only
 //      as kUnlikely, drawing nothing more.
+//   5. Any other carrier without a valid option scans: each decision he
+//      looks at the next of his lookTargets() (carrierScan.hpp) until the
+//      next. stuckSeconds after the first decision without an option he
+//      plays the pass with the highest utility of all he rejected, and
+//      without any a lofted kick to clearanceTarget() at the speed that
+//      brings it down there after the distribution's flightSeconds, no
+//      farther than the passing's maxLoftedSpeed reaches. Neither draws a
+//      number.
 //
-// Writes the carrier's pending action only. Throws std::invalid_argument for
-// an interval below one tick, a negative or non-finite hold time, a
-// temperature that is not positive and finite, or invalid scoring or
-// distribution (validate(PassScoringConfig), validate(ShotScoringConfig),
+// Writes the carrier's pending action and his scan (CarrierScan) only; a
+// carrier who acts ends his scan. Throws std::invalid_argument for an
+// interval below one tick, a negative or non-finite hold time, stuck time or
+// margin, a temperature that is not positive and finite, or invalid scoring
+// or distribution (validate(PassScoringConfig), validate(ShotScoringConfig),
 // validate(DistributionConfig)).
 [[nodiscard]] MatchSystem makePassDecisionSystem(const DecisionConfig& config,
                                                  const PassCandidateRules& rules);

@@ -7,6 +7,8 @@
 #include <stdexcept>
 #include <string>
 
+#include "carrierScan.hpp"
+
 namespace ElyverseFootball::SimMatch {
 namespace {
 
@@ -105,7 +107,9 @@ Vec2 estimatePosition(const Observation& observation, const SimTick now,
 void perceive(const MatchState& state, const std::size_t observerIndex, const SimTick now,
               const double secondsPerTick, const PerceptionConfig& config,
               PlayerPerception& memory) {
-  const PlayerMatchState& observer = state.players()[observerIndex];
+  // He sees along where he looks, which is not always where he faces.
+  PlayerMatchState observer = state.players()[observerIndex];
+  observer.facing = lookDirection(state, observerIndex);
   const PlayerPerception& previous = state.perception(observerIndex);
 
   // Build into memory's own storage: clear() keeps its capacity, so a

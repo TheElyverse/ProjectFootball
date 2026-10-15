@@ -77,12 +77,15 @@ A `DecisionDiagnostic` explains one decision of a player on the ball (see
 | `chosen`       | index of the chosen pass in `candidates` or shot in `shots`, if he chose one |
 | `scoring`, `shotScoring` | the weights the passes and shots were scored with, after the tactic's passing risk and a goalkeeper's directness; `passContributions()` and `shotContributions()` with them explain every utility |
 | `held` | whether he held the ball in his hands: his passes throws, his lofted passes punts ([goalkeeper distribution](goalkeeper-distribution.md)) |
+| `reason`, `target` | how he came to it -- `kChoice` among valid options, or without one `kScanFirstSide`, `kScanOtherSide`, `kForcedRejected` or `kForcedClear` -- and the point he looks at or clears the ball to ([pass decisions](pass-decisions.md#without-a-valid-option)) |
 
 An `ActionDiagnostic` explains one decision of a player without the ball (see
 [off-ball movement](off-ball-movement.md)): the `tick`, the `player`, every
 `candidates` action with its target, subject, weighted `scores` and utility, and
-the index of the `chosen` one. `MatchSimulation::actionDiagnostics()` holds those
-of the last step.
+the index of the `chosen` one; `assigned` and `idlePress` mark an action he did
+not choose, a role in his team's press or the press on a carrier who stands on
+the ball ([pressing](pressing.md)). `MatchSimulation::actionDiagnostics()` holds
+those of the last step.
 
 A `SweepDiagnostic` explains a goalkeeper's call to come for a ball the
 opponent played or to stay home (see [goalkeeper](goalkeeper.md)): the `tick`,

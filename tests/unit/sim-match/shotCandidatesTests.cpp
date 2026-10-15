@@ -23,11 +23,15 @@ using Catch::Matchers::WithinAbs;
 using ElyverseFootball::SimCore::PlayerId;
 using ElyverseFootball::SimCore::SimTick;
 using ElyverseFootball::SimCore::Vec2;
+using ElyverseFootball::SimMatch::CarrierScan;
 using ElyverseFootball::SimMatch::generateShotCandidates;
 using ElyverseFootball::SimMatch::GoalEnd;
 using ElyverseFootball::SimMatch::makePerceptionSystem;
 using ElyverseFootball::SimMatch::MatchSimulation;
 using ElyverseFootball::SimMatch::MatchState;
+using ElyverseFootball::SimMatch::MatchStateWriter;
+using ElyverseFootball::SimMatch::MatchStepContext;
+using ElyverseFootball::SimMatch::MatchSystem;
 using ElyverseFootball::SimMatch::Pitch;
 using ElyverseFootball::SimMatch::PlayerMatchState;
 using ElyverseFootball::SimMatch::ShotCandidate;
@@ -197,6 +201,49 @@ TEST_CASE("A player facing away from the goal offers no shot", "[shotCandidates]
   REQUIRE(turned.has_value());
 
   for (const ShotCandidate& shot : shotsOf(perceived(*std::move(turned)))) {
+    REQUIRE(shot.rejection == ShotRejection::kGoalUnseen);
+  }
+}
+
+TEST_CASE("A carrier sees the goal along where he looks, not where he faces", "[shotCandidates]") {
+  // The clear chance with his body facing `facing` and his scan's gaze along
+  // `gaze`, after a perception update that saw along the gaze.
+  const auto shotsLooking = [](const Vec2 facing, const Vec2 gaze) {
+    const MatchState state = chanceState({.shooter = kClearChance});
+    std::vector<PlayerMatchState> players(state.players().begin(), state.players().end());
+    players.front().facing = facing;
+    auto turned = MatchState::create({.pitch = state.pitch(),
+                                      .players = std::move(players),
+                                      .ball = state.ball(),
+                                      .playersPerSide = 7},
+                                     state.tactics());
+    REQUIRE(turned.has_value());
+    const MatchSystem scan{
+        .name = "scan",
+        .update =
+            [gaze](const MatchStepContext&, const MatchState&, MatchStateWriter& next) {
+              next.tactical(0).scan = CarrierScan{.since = SimTick(0), .looks = 1, .gaze = gaze};
+            },
+        .intervalTicks = 1000,
+        .phaseTicks = 0};
+    MatchSimulation simulation({.initialState = *std::move(turned),
+                                .seed = 1,
+                                .ticksPerSecond = 30,
+                                .systems = {scan, makePerceptionSystem({})},
+                                .commands = {}});
+    while (simulation.tick() < SimTick(4)) {
+      REQUIRE(simulation.step().has_value());
+    }
+    return generateShotCandidates(simulation.state(), 0, simulation.tick(), kSecondsPerTick, {});
+  };
+  constexpr Vec2 kTowardGoal{.x = 1.0, .y = 0.0};
+  constexpr Vec2 kAway{.x = -1.0, .y = 0.0};
+  // Facing away, looking at the goal over his shoulder: he sees it.
+  for (const ShotCandidate& shot : shotsLooking(kAway, kTowardGoal)) {
+    REQUIRE(shot.rejection != ShotRejection::kGoalUnseen);
+  }
+  // Facing the goal, looking away from it: he does not.
+  for (const ShotCandidate& shot : shotsLooking(kTowardGoal, kAway)) {
     REQUIRE(shot.rejection == ShotRejection::kGoalUnseen);
   }
 }

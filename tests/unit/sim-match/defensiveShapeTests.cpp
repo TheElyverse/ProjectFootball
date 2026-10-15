@@ -235,6 +235,12 @@ TEST_CASE("Defensive decisions reject an invalid configuration", "[defensiveShap
   config = {};
   config.urgencyWeight = -1.0;
   REQUIRE_THROWS_AS(validate(config), std::invalid_argument);
+  config = {};
+  config.idleSeconds = -1.0;
+  REQUIRE_THROWS_AS(validate(config), std::invalid_argument);
+  config = {};
+  config.idlePressRadius = 0.0;
+  REQUIRE_THROWS_AS(validate(config), std::invalid_argument);
   REQUIRE_NOTHROW(validate(DefensiveConfig{}));
 }
 
