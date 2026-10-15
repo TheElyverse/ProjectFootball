@@ -75,7 +75,10 @@ ball long: lofted, to `clearanceTarget()`, `clearTouchlineMargin` (5 m) inside
 a touchline, as far up the pitch as his longest kick reaches but no closer
 than `clearGoalLineMargin` (10 m) to the opponent's goal line, on the side
 where his team's [pitch control](pitch-control.md) is higher -- the nearer
-side on a tie or without a grid. The kick goes at the speed along the ground
+side on a tie or without a grid. A side whose point lies closer to the ball
+than the distribution's `minLongDistance` (25 m) gives way to the other, as
+for a carrier at the near touchline as far up as the goal-line margin lets
+him; if both do, the farther wins. The kick goes at the speed along the ground
 that brings it down there after the distribution's `flightSeconds`; his
 longest is the one at the passing's `maxLoftedSpeed`. Neither choice draws a
 number.

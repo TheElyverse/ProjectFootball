@@ -14,6 +14,7 @@
 #include "vec2.hpp"
 
 using ElyverseFootball::SimCore::Vec2;
+using ElyverseFootball::SimMatch::ClearanceRange;
 using ElyverseFootball::SimMatch::clearanceTarget;
 using ElyverseFootball::SimMatch::GoalEnd;
 using ElyverseFootball::SimMatch::LookTarget;
@@ -46,6 +47,13 @@ namespace {
   auto state = MatchState::create(spec, std::move(tactics));
   REQUIRE(state.has_value());
   return *std::move(state);
+}
+
+// A kick of this reach, of any length, 5 m inside a touchline and 10 m short
+// of the goal line.
+[[nodiscard]] ClearanceRange range(const double reach, const double minDistance = 0.0) {
+  return {
+      .reach = reach, .minDistance = minDistance, .touchlineMargin = 5.0, .goalLineMargin = 10.0};
 }
 
 [[nodiscard]] bool near(const Vec2 first, const Vec2 second) {
@@ -127,12 +135,30 @@ TEST_CASE("A clearance goes up the near touchline as far as the kick reaches", "
                                     3, {.x = 1.0, .y = 0.0});
   // 40 m from (10, 10) to y = 5: sqrt(40² − 5²) up the pitch. Without a
   // pitch-control grid the near side.
-  const Vec2 target = clearanceTarget(state, 3, 40.0, 5.0, 10.0);
+  const Vec2 target = clearanceTarget(state, 3, range(40.0));
   REQUIRE(target.y == 5.0);
   REQUIRE(std::abs(target.x - (10.0 + std::sqrt(1575.0))) < 1e-9);
   // A longer kick stops short of the goal line.
-  REQUIRE(clearanceTarget(state, 3, 100.0, 5.0, 10.0) == Vec2{.x = 50.0, .y = 5.0});
+  REQUIRE(clearanceTarget(state, 3, range(100.0)) == Vec2{.x = 50.0, .y = 5.0});
   // A touchline beyond his reach: as far toward it as he reaches.
-  const Vec2 reachable = clearanceTarget(state, 3, 3.0, 5.0, 10.0);
+  const Vec2 reachable = clearanceTarget(state, 3, range(3.0));
   REQUIRE(near(reachable, {.x = 10.0, .y = 7.0}));
+}
+
+TEST_CASE("A clearance too short on the near side goes across", "[carrierScan]") {
+  // Player 5 stands 5 m inside the touchline, 10 m from the opponent's goal
+  // line: as far up as the margin lets him. The near side's point is where
+  // the ball lies, so he kicks it across, 30 m, to the far side.
+  const MatchState state = withHome({{{.x = 5.0, .y = 20.0},
+                                      {.x = 15.0, .y = 12.0},
+                                      {.x = 15.0, .y = 28.0},
+                                      {.x = 20.0, .y = 20.0},
+                                      {.x = 50.0, .y = 5.0},
+                                      {.x = 25.0, .y = 35.0},
+                                      {.x = 30.0, .y = 20.0}}},
+                                    4, {.x = 1.0, .y = 0.0});
+  REQUIRE(clearanceTarget(state, 4, range(100.0)) == Vec2{.x = 50.0, .y = 5.0});
+  REQUIRE(clearanceTarget(state, 4, range(100.0, 25.0)) == Vec2{.x = 50.0, .y = 35.0});
+  // Neither side far enough: the farther.
+  REQUIRE(clearanceTarget(state, 4, range(100.0, 40.0)) == Vec2{.x = 50.0, .y = 35.0});
 }

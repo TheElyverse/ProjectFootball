@@ -80,10 +80,9 @@ std::vector<LookTarget> lookTargets(const MatchState& state, const std::size_t c
   return targets;
 }
 
-// NOLINTBEGIN(bugprone-easily-swappable-parameters) -- a reach and two margins, as documented.
-Vec2 clearanceTarget(const MatchState& state, const std::size_t carrierIndex, const double reach,
-                     const double touchlineMargin, const double goalLineMargin) {
-  // NOLINTEND(bugprone-easily-swappable-parameters)
+Vec2 clearanceTarget(const MatchState& state, const std::size_t carrierIndex,
+                     const ClearanceRange& range) {
+  const double reach = range.reach;
   const PlayerMatchState& carrier = state.players()[carrierIndex];
   const Pitch& pitch = state.pitch();
   const Vec2 from = state.ball().position;
@@ -94,15 +93,26 @@ Vec2 clearanceTarget(const MatchState& state, const std::size_t carrierIndex, co
   const auto alongTouchline = [&](const double y) {
     const double across = std::abs(y - from.y);
     const double along = reach > across ? std::sqrt((reach * reach) - (across * across)) : 0.0;
-    const double depth =
-        std::min(depthOf(carrier.side, from, pitch) + along, pitch.lengthMeters() - goalLineMargin);
+    const double depth = std::min(depthOf(carrier.side, from, pitch) + along,
+                                  pitch.lengthMeters() - range.goalLineMargin);
     const Vec2 point{.x = xAtDepth(carrier.side, depth, pitch), .y = y};
     const double distance = SimCore::distance(from, point);
     return pitch.clamp(distance > reach ? from + ((point - from) * (reach / distance)) : point);
   };
   const bool lowNearer = carrier.position.y <= width / 2.0;
-  const Vec2 nearSide = alongTouchline(lowNearer ? touchlineMargin : width - touchlineMargin);
-  const Vec2 farSide = alongTouchline(lowNearer ? width - touchlineMargin : touchlineMargin);
+  const double low = range.touchlineMargin;
+  const double high = width - range.touchlineMargin;
+  const Vec2 nearSide = alongTouchline(lowNearer ? low : high);
+  const Vec2 farSide = alongTouchline(lowNearer ? high : low);
+  // A side whose point lies too close to the ball -- he stands near that
+  // touchline as far up as the margin lets him -- gives way to the other.
+  const double nearDistance = SimCore::distance(from, nearSide);
+  const double farDistance = SimCore::distance(from, farSide);
+  const bool nearLong = nearDistance >= range.minDistance;
+  const bool farLong = farDistance >= range.minDistance;
+  if (nearLong != farLong || !nearLong) {
+    return farDistance > nearDistance ? farSide : nearSide;
+  }
   const auto& grid = state.pitchControl();
   if (grid && grid->controlAt(carrier.side, farSide) > grid->controlAt(carrier.side, nearSide)) {
     return farSide;

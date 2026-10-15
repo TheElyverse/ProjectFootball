@@ -137,8 +137,12 @@ struct ScanStep {
     const double flightSeconds = config.distribution.flightSeconds;
     const double reach =
         rules.passing.maxLoftedSpeed / flightSpeed(1.0, flightSeconds, rules.ball).value_or(1.0);
-    const SimCore::Vec2 target = clearanceTarget(
-        current, carrier, reach, config.clearTouchlineMargin, config.clearGoalLineMargin);
+    const SimCore::Vec2 target =
+        clearanceTarget(current, carrier,
+                        {.reach = reach,
+                         .minDistance = config.distribution.minLongDistance,
+                         .touchlineMargin = config.clearTouchlineMargin,
+                         .goalLineMargin = config.clearGoalLineMargin});
     const auto speed =
         flightSpeed(SimCore::distance(current.ball().position, target), flightSeconds, rules.ball);
     if (speed) {

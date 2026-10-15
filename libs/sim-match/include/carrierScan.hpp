@@ -42,14 +42,27 @@ struct LookTarget {
 [[nodiscard]] std::vector<LookTarget> lookTargets(const MatchState& state,
                                                   std::size_t carrierIndex);
 
+// How far a carrier without any option can kick the ball, how far he wants
+// to, and where it should land.
+struct ClearanceRange {
+  // His longest kick.
+  double reach = 0.0;  // m
+  // A clearance shorter than this is no clearance.
+  double minDistance = 0.0;  // m
+  // It lands this far inside a touchline, and no closer than goalLineMargin
+  // to the opponent's goal line.
+  double touchlineMargin = 0.0;  // m
+  double goalLineMargin = 0.0;   // m
+};
+
 // Where a carrier without any option kicks the ball: touchlineMargin inside
 // a touchline, as far up the pitch as reach takes it from him but no closer
 // than goalLineMargin to the opponent's goal line -- on the side where his
 // team's pitch control is higher, the side nearer to him on a tie or without
-// a grid. Never farther from the ball than reach: if the point lies beyond
-// it, the one at reach on the way there.
+// a grid. A side whose point lies closer to the ball than minDistance gives
+// way to the other; if both do, the farther. Never farther from the ball than
+// reach: if the point lies beyond it, the one at reach on the way there.
 [[nodiscard]] SimCore::Vec2 clearanceTarget(const MatchState& state, std::size_t carrierIndex,
-                                            double reach, double touchlineMargin,
-                                            double goalLineMargin);
+                                            const ClearanceRange& range);
 
 }  // namespace ElyverseFootball::SimMatch
