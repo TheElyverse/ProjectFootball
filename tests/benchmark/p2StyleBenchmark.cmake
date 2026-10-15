@@ -67,7 +67,8 @@ endforeach()
 # first measurement -- 2 to 27 shots a side in six minutes, 3 to 13 since goals
 # restart play from the centre, 1 to 9 since both sides line up for that
 # kickoff, 0.67 to 11.67 since the keeper dives, holds or parries shots and
-# picks up slow balls (possession against counter's deep block) -- with room
+# picks up slow balls (possession against counter's deep block), 1.62 to
+# 11.88 since players carry the ball (docs/ball-carrying.md) -- with room
 # above; it guards against a change that stops the shooting or makes a
 # shooting gallery of the sandbox, not against balancing.
 set(minShots 0.5)
@@ -84,12 +85,12 @@ foreach(index RANGE ${lastPairing})
     endforeach()
 endforeach()
 
-# Nobody stands on the ball (docs/pass-decisions.md, docs/pressing.md): in
-# every match no player of either side owns it longer than 30 s at a time. A
-# carrier without an option once kept it for up to 318 s against counter's
-# deep block; with looking round for one and the press on a carrier who
-# stands on the ball the longest is 4.4 s.
-set(maxOwnershipSeconds 30)
+# Nobody stands on the ball or carries it about for good (docs/pass-decisions.md,
+# docs/pressing.md, docs/ball-carrying.md): in every match no player of either
+# side owns it longer than 15 s at a time. A carrier without an option once
+# kept it for up to 318 s against counter's deep block; since players carry
+# the ball, touch after touch, the longest is 12.7 s.
+set(maxOwnershipSeconds 15)
 foreach(index RANGE ${lastPairing})
     string(JSON matches LENGTH "${json}" pairings ${index} results)
     math(EXPR lastMatch "${matches} - 1")

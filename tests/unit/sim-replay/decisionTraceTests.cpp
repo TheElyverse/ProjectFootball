@@ -84,7 +84,9 @@ struct Interception {
                               .outcome = DecisionOutcome::kPassed,
                               .chosen = 0,
                               .scoring = {},
-                              .shotScoring = {}};
+                              .shotScoring = {},
+                              .carries = {},
+                              .carryScoring = {}};
   if (setup.seen) {
     decision.observations.push_back(Observation{.entity = ObservedEntity::player(PlayerId(3)),
                                                 .position = *setup.seen,
@@ -213,7 +215,9 @@ TEST_CASE("A shot is traced with its aim, its chances and its reason", "[decisio
                                     .outcome = DecisionOutcome::kShot,
                                     .chosen = 0,
                                     .scoring = {},
-                                    .shotScoring = {}};
+                                    .shotScoring = {},
+                                    .carries = {},
+                                    .carryScoring = {}};
 
   const std::string text =
       formatTrace(std::vector<TraceEntry>{PassDecisionTrace{.decision = decision, .outcome = {}}});
@@ -235,7 +239,9 @@ TEST_CASE("A decision without a shot says why the goal was not on", "[decisionTr
                               .outcome = DecisionOutcome::kNoValidOption,
                               .chosen = std::nullopt,
                               .scoring = {},
-                              .shotScoring = {}};
+                              .shotScoring = {},
+                              .carries = {},
+                              .carryScoring = {}};
   const auto traced = [&decision] {
     return formatTrace(
         std::vector<TraceEntry>{PassDecisionTrace{.decision = decision, .outcome = {}}});
@@ -323,7 +329,9 @@ TEST_CASE("A pass challenged away the step it is decided is traced as not played
                                               .outcome = DecisionOutcome::kPassed,
                                               .chosen = std::nullopt,
                                               .scoring = {},
-                                              .shotScoring = {}});
+                                              .shotScoring = {},
+                                              .carries = {},
+                                              .carryScoring = {}});
         }
       }};
   ChallengeConfig always;

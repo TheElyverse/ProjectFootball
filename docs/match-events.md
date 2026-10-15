@@ -23,7 +23,7 @@ Every event carries the `tick` of its step and the players involved:
 | `LooseBallRecovered` | `player`, `position`                                         | someone takes a ball nobody played, or the passer takes his own pass back |
 | `PossessionChanged`  | `previousOwner`, `newOwner`                                  | the ball's owner changes; either may be empty |
 | `PhaseChanged`       | `side`, `previous`, `phase`                                  | a side with a tactic enters another [tactical phase](match-phases.md); `previous` is empty for its first |
-| `BallWon`            | `winner`, `loser`, `position`                                | a presser wins the ball from the carrier in a [challenge](pressing.md); `PossessionChanged` follows |
+| `BallWon`            | `winner`, `loser`, `position`, `cause`                       | an opponent wins the ball from its owner: `challenge`, a presser in a [challenge](pressing.md), or `looseTouch`, he got to the ball rolling ahead of its owner after a touch ([ball carrying](ball-carrying.md)); `PossessionChanged` follows |
 | `PressingStarted`    | `side`, `carrier`, `trigger`, `assignments`                  | a side starts a [coordinated press](pressing.md); `trigger` is empty for a press of the pressing phase |
 | `PressingEnded`      | `side`, `outcome`                                            | the press ends: `ballRegained`, `passedOut` or `carrierEscaped` |
 | `PitchControlSampled` | `homeShare`, `ball`                                         | the [pitch control](pitch-control.md) grid is updated: home's share of the pitch and the ball's position, a regular sample for [analytics](match-analytics.md) |
@@ -36,6 +36,8 @@ Every event carries the `tick` of its step and the players involved:
 | `GoalScored`         | `side`, `scorer`, `assist`, `ownGoal`, `score`               | the ball crosses a goal line inside the frame: a goal for `side`, by `scorer` — empty for a ball nobody touched —, with the `score` it makes |
 | `SaveAttempted`      | `keeper`, `shooter`, `shotTick`, `result`, `position`, `height` | a shot passes the keeper of the goal it attacks and touches him, or was on its way in: `caught`, `parriedIntoPlay`, `parriedBehind` or `outOfReach` ([shot stopping](shot-stopping.md)) |
 | `AerialContest`      | `position`, `height`, `contestants`, `winner`, `play`        | players go up for a high ball where the first of them gets to it: each contestant's `player`, `reach` and whether he `reached` it, the `winner` — empty if nobody did — and his `play`: `shot`, `pass`, `knockDown`, `clearance`, `caught` or `punched` ([aerial duels](aerial-duels.md)). A header shot's `ShotAttempted` or a header pass's `PassAttempted` follows |
+| `DribbleAttempted`   | `carrier`, `opponent`, `from`, `target`                      | the first touch of a [dribble](ball-carrying.md#dribble) past `opponent` leaves the carrier's foot toward `target` |
+| `DribbleEnded`       | `carrier`, `opponent`, `outcome`, `position`                 | the dribble is over: `beaten`, he has the ball back farther up the pitch than the opponent, `kept`, he has it back short of him, or `lost`, to an opponent or out of play |
 
 The shot events name their shot by its `shooter` and `shotTick`, the tick of its
 `ShotAttempted`; see [shooting](shooting.md) and [shot stopping](shot-stopping.md)
@@ -73,11 +75,12 @@ A `DecisionDiagnostic` explains one decision of a player on the ball (see
 | `observations` | his perception memory at that moment                        |
 | `candidates`   | every pass with all score components and rejection reason   |
 | `shots`        | every zone of the goal he could aim at, the best first; only that one competed with the passes |
-| `outcome`      | `kPassed`, `kShot` or `kNoValidOption`                      |
-| `chosen`       | index of the chosen pass in `candidates` or shot in `shots`, if he chose one |
+| `outcome`      | `kPassed`, `kShot`, `kHeld`, `kTurned`, `kCarried`, `kDribbled` or `kNoValidOption` |
+| `chosen`       | index of the chosen pass in `candidates`, shot in `shots` or carry in `carries`, if he chose one |
 | `scoring`, `shotScoring` | the weights the passes and shots were scored with, after the tactic's passing risk and a goalkeeper's directness; `passContributions()` and `shotContributions()` with them explain every utility |
+| `carries`, `carryScoring` | his options with the ball at his feet -- holding, turning, carrying and dribbling -- with all score parts and rejection reason, and the weights they were scored with; `carryContributions()` with them explains every utility ([ball carrying](ball-carrying.md)) |
 | `held` | whether he held the ball in his hands: his passes throws, his lofted passes punts ([goalkeeper distribution](goalkeeper-distribution.md)) |
-| `reason`, `target` | how he came to it -- `kChoice` among valid options, or without one `kScanFirstSide`, `kScanOtherSide`, `kForcedRejected` or `kForcedClear` -- and the point he looks at or clears the ball to ([pass decisions](pass-decisions.md#without-a-valid-option)) |
+| `reason`, `target` | how he came to it -- `kChoice` among valid options, or looking for one `kScanFirstSide`, `kScanOtherSide`, `kForcedRejected` or `kForcedClear` -- and the point he looks at, clears the ball to or carries it to ([pass decisions](pass-decisions.md#without-a-valid-option)) |
 
 An `ActionDiagnostic` explains one decision of a player without the ball (see
 [off-ball movement](off-ball-movement.md)): the `tick`, the `player`, every

@@ -1,46 +1,63 @@
 # Pass decisions
 
 A player on the ball decides, several times a second, whether and where to pass
-or to shoot. The decision reads only his own [perception](perception.md), picks
-among his [pass candidates](pass-candidates.md) and his best
-[shot](shot-decisions.md) with a seeded softmax, and leaves the kick to
-[pass execution](passing.md). It lives in `sim-match` (`passDecision.hpp`)
-and runs as the system `makePassDecisionSystem()`.
+or to shoot, or to hold, turn, carry or dribble. The decision reads only his own
+[perception](perception.md), picks among his
+[pass candidates](pass-candidates.md), his best [shot](shot-decisions.md) and
+the best of each kind of his [carries](ball-carrying.md) with a seeded softmax,
+and leaves the kick or the touch to execution ([passing](passing.md),
+[ball carrying](ball-carrying.md#the-touch-the-ball-leaves-his-feet)). It lives
+in `sim-match` (`passDecision.hpp`) and runs as the system
+`makePassDecisionSystem()`.
 
 ## The pipeline
 
 ```text
 perception → candidates and utilities → softmax choice → PassIntent  → execution
  (memory)     generatePassCandidates()     chooseOnBall()   ShotIntent    ball system
-              generateShotCandidates()                      pendingAction
+              generateShotCandidates()                      CarryIntent
+              generateCarryCandidates()                     pendingAction
 ```
 
-Every `intervalTicks` ticks (6: five times a second at 30 Hz):
+Every `intervalTicks` ticks (6: five times a second at 30 Hz), and in the tick
+after a carrier got his touched ball back
+([ball carrying](ball-carrying.md#when-he-decides)):
 
-1. **Is there a decision to make?** Not while the ball is free or its owner
-   already has an action pending.
+1. **Is there a decision to make?** Not while the ball is free, rolls ahead of
+   its owner after a touch, or its owner already has an action pending.
 2. **Hold.** A player keeps a ball he took less than `minHoldSeconds` (0.5 s) ago,
    measured from his last touch — a goalkeeper one he holds in his hands less
    than the distribution's `holdSeconds` (2 s). A player who owns the ball from
-   the start of a state may pass at once.
-3. **Options.** `generatePassCandidates()` and `generateShotCandidates()` list
-   and score his options from his memory. A goalkeeper adds his long balls,
-   and from his hands throws no farther than `throwRange`
-   ([goalkeeper distribution](goalkeeper-distribution.md)).
-4. **Choice.** `chooseOnBall()` picks one of the valid passes or the best valid
-   shot. Without a valid option he keeps the ball — a goalkeeper who has
-   held it in his hands for `clearSeconds` (6 s) clears it
-   ([goalkeeper distribution](goalkeeper-distribution.md#the-ball-in-his-hands)),
-   any other carrier [looks for one](#without-a-valid-option).
+   the start of a state may pass at once, and so may one whose last touch was
+   his own touch on in his active run.
+3. **Options.** `generatePassCandidates()`, `generateShotCandidates()` and
+   `generateCarryCandidates()` list and score his options from his memory. A
+   goalkeeper adds his long balls, and from his hands throws no farther than
+   `throwRange` ([goalkeeper distribution](goalkeeper-distribution.md)).
+4. **Choice.** `chooseOnBall()` picks one of the valid passes, the best valid
+   shot or the best valid carry of each kind. Without a valid option -- only
+   with the ball in a goalkeeper's hands, since holding the ball at the feet is
+   always valid -- he keeps the ball; a goalkeeper who has held it in his hands
+   for `clearSeconds` (6 s) clears it
+   ([goalkeeper distribution](goalkeeper-distribution.md#the-ball-in-his-hands)).
+   A carrier who holds the ball, or carries it without gaining anything,
+   [looks for an option](#without-a-valid-option).
 5. **Intent.** The choice becomes his pending action — for a pass the target,
-   planned speed, receiver and whether it is lofted, for a shot the aimed point, height and speed. The
-   ball system plays it in the next step.
+   planned speed, receiver and whether it is lofted, for a shot the aimed
+   point, height and speed, for a turn, carry or dribble the touch. The ball
+   system plays it in the next step.
 
 ## Without a valid option
 
 A carrier who finds no valid option does not stand on the ball for good. He
 looks around for one, and plays the best he has once he has looked long
 enough. Only a goalkeeper holding the ball in his hands keeps his own rule.
+
+The same holds for a carrier who has options but holds the ball instead, or
+carries it without gaining anything -- less than `minCarryDistance` toward the
+goal, no better shot, nobody bypassed ([ball carrying](ball-carrying.md#holding-on-and-getting-stuck)):
+he looks around for a better option, and once stuck plays the ball. A carry
+that gains something goes on, and his look around keeps its time through it.
 
 **He looks over his shoulder.** Each decision without an option he looks at
 the next of his look targets (`lookTargets()`, `carrierScan.hpp`) until the
@@ -50,7 +67,7 @@ turns his head, not his body: the look is a direction of its own, his scan's
 His body and the ball in front of it stay as they are. The scan
 (`CarrierScan` in his tactical state) belongs to his possession: it ends
 when he plays the ball, and counts for nothing once he has lost it or
-touched it again.
+touched it again other than to carry it on.
 
 **Where he looks.** The look targets come in two sides, taken from his
 facing:
@@ -134,10 +151,13 @@ twice:
 | `stuckSeconds`   | 3 s     | a carrier without a valid option looks for one this long |
 | `clearTouchlineMargin` | 5 m | his long kick without any pass lands this far inside a touchline |
 | `clearGoalLineMargin`  | 10 m | and no closer than this to the opponent's goal line |
+| `carrying`       |         | how he weighs holding, turning, carrying and dribbling ([ball carrying](ball-carrying.md#configuration)) |
 
 The system rejects an interval below one tick, a negative or non-finite hold,
 stuck time or margin, a temperature that is not positive and finite, and
-invalid scoring or distribution.
+invalid scoring, carrying or distribution. It runs every tick, to follow a
+touched ball and to decide when a carrier gets it back, but decides at the
+interval otherwise.
 
 ## Passing risk
 
@@ -160,9 +180,7 @@ second tuning surface next to the scoring itself.
 
 ## What this is not
 
-A player on the ball only passes, shoots or keeps the ball: no dribble, no
-carry, no turning his body with the ball; he only turns his head to look for
-options, and kicks long only as a goalkeeper or when he has nothing else.
-Where he looks ignores the opponents around him: shielding the ball from a
-challenger comes with the duels. Off-ball players do not decide yet; they hold their
-position or chase a free ball (see [reception](reception.md)).
+A player on the ball kicks long only as a goalkeeper or when he has nothing
+else. Where he looks ignores the opponents around him: shielding the ball from
+a challenger comes with the duels. Off-ball players do not decide here; see
+[off-ball movement](off-ball-movement.md) and [reception](reception.md).

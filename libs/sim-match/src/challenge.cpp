@@ -40,7 +40,9 @@ MatchSystem makeChallengeSystem(const ChallengeConfig& config) {
                    MatchStateWriter& next) {
             const BallState& ball = current.ball();
             // A keeper holding the ball in his hands is not challenged.
-            if (!ball.owner || ball.held) {
+            // A ball rolling ahead of its owner after a touch is won by
+            // getting to it, not in a challenge (docs/ball-carrying.md).
+            if (!ball.owner || ball.held || ball.touch) {
               return;
             }
             const auto carrierIndex = findPlayerIndex(current, *ball.owner);

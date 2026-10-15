@@ -32,6 +32,8 @@ in `sim-match` (`scenarios.hpp`), and `sim-cli --scenario <name>` runs one.
 | `touchline-trap` | away's receiver faces his own goal at the touchline, home presses four players |
 | `lone-press` | the touchline trap with one home presser instead of four |
 | `run-behind-line` | home's striker level with away's defensive line, space behind it |
+| `carry-into-space` | home player 1 on the ball, nobody to pass to, open space ahead ([ball carrying](ball-carrying.md)) |
+| `dribble-past-defender` | home player 1 carries the ball at a covering defender and past him |
 
 All scenarios use the 60 × 40 m example pitch and the default `MatchConfig`
 (30 Hz) unless their section below says otherwise. `sim-cli --list-scenarios` prints the catalog.
@@ -68,6 +70,12 @@ candidates, the seeded decision, execution, the ball's flight and reception --
 without scripted runs or passes. Each is a hand-placed fixture: home players get
 ids 1 to 7, away players 8 to 14, and the ball starts at player 1's feet and is
 given to him at tick 0. From then on only the standard systems act.
+
+Every hand-placed fixture -- these, and the shot, goalkeeper, distribution and
+stuck-carrier scenarios below -- sets up one pass or shot decision, so it
+switches [carrying](ball-carrying.md) off (`decisions.carrying.enabled`): a
+carrier there passes, shoots or keeps the ball, as before players carried it.
+The [carry scenarios](#the-carry-scenarios) switch it on again.
 
 - **`pass-chain`**: the home side stands in a zigzag up the pitch (x = 8, 20, 20,
   32, 44, 44, 54 m), everyone facing the away goal, so every carrier sees
@@ -250,6 +258,30 @@ first side and other side in turn, and the last plays his best rejected pass
 between `stuckSeconds` and a quarter of a second more after the first; in
 `idle-carrier-challenged` nobody goes at him before `idleSeconds`, then player
 9 does and wins the ball. Both, and `no-passing-option`, run alike every time.
+
+## The carry scenarios
+
+They show a carrier with nobody to pass to carrying the ball
+([ball carrying](ball-carrying.md)). Home player 1 stands at (20, 20) facing
+away's goal with carrying switched on; every teammate stands behind him with an
+away player a meter and a half in front of him toward player 1, so every pass
+is too likely to be cut out. Neither side has a tactic: everyone else stands
+still.
+
+- **`carry-into-space`**: away's remaining player stands on its goal line, the
+  space in front of player 1 open. He carries the ball into it, touch after
+  touch.
+- **`dribble-past-defender`**: away player 8 covers the middle at (38, 20).
+  Player 1 carries the ball at him and, as he gets close, takes it past him on
+  one side.
+
+`tests/acceptance/carryScenarioTests.cpp` checks over ten seeds that in
+`carry-into-space` his first decision is a carry, he touches the ball on at
+least three times, never loses it and has it at least ten meters up the pitch
+after four seconds; and over twenty seeds that in `dribble-past-defender` he
+dribbles at player 8 in at least ten, every dribble ends, and at least half of
+those he attempts beat him, with the ball beyond the defender. Both run alike
+every time.
 
 ## The tactic match
 

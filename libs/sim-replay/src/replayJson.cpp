@@ -69,7 +69,9 @@ using SimMatch::TeamSide;
                         {"keeperHandling", player.attributes.keeperHandling},
                         {"jumping", player.attributes.jumping},
                         {"heading", player.attributes.heading},
-                        {"strength", player.attributes.strength}};
+                        {"strength", player.attributes.strength},
+                        {"ballControl", player.attributes.ballControl},
+                        {"dribbling", player.attributes.dribbling}};
   json["target"] = player.target ? vec2Json(*player.target) : Json(nullptr);
   json["facing"] = vec2Json(player.facing);
   return json;
@@ -80,6 +82,13 @@ using SimMatch::TeamSide;
     return nullptr;
   }
   return {{"playerId", touch->playerId.value()}, {"tick", touch->tick.value()}};
+}
+
+[[nodiscard]] Json carryTouchJson(const std::optional<SimMatch::CarryTouch>& touch) {
+  if (!touch) {
+    return nullptr;
+  }
+  return {{"tick", touch->tick.value()}, {"seconds", touch->seconds}};
 }
 
 [[nodiscard]] std::string hashText(const std::uint64_t hash) {
@@ -119,10 +128,64 @@ using SimMatch::TeamSide;
                   {"spin", state.ball().spin},
                   {"owner", owner ? Json(owner->value()) : Json(nullptr)},
                   {"held", state.ball().held},
+                  {"carryTouch", carryTouchJson(state.ball().touch)},
                   {"lastTouch", touchJson(state.ball().lastTouch)}};
   json["score"] = {{"home", state.score().home}, {"away", state.score().away}};
   json["tactics"] = tacticsJson(state.tactics());
   return json;
+}
+
+[[nodiscard]] Json carryFactorsJson(const SimMatch::CarryPhaseFactors& factors) {
+  return {{"progression", factors.progression},
+          {"space", factors.space},
+          {"shot", factors.shot},
+          {"bypassed", factors.bypassed},
+          {"risk", factors.risk}};
+}
+
+[[nodiscard]] Json carryingJson(const SimMatch::CarryScoringConfig& carrying) {
+  return {{"enabled", carrying.enabled},
+          {"minConfidence", carrying.minConfidence},
+          {"horizonSeconds", carrying.horizonSeconds},
+          {"minCarryDistance", carrying.minCarryDistance},
+          {"gapRadius", carrying.gapRadius},
+          {"sameDirection", carrying.sameDirection},
+          {"pitchMargin", carrying.pitchMargin},
+          {"safetySeconds", carrying.safetySeconds},
+          {"lossMarginSeconds", carrying.lossMarginSeconds},
+          {"touchSeconds", carrying.touchSeconds},
+          {"minTouchDistance", carrying.minTouchDistance},
+          {"maxTouchDistance", carrying.maxTouchDistance},
+          {"touchShare", carrying.touchShare},
+          {"lookBackSeconds", carrying.lookBackSeconds},
+          {"turnDistance", carrying.turnDistance},
+          {"dribbleRadius", carrying.dribbleRadius},
+          {"dribbleCone", carrying.dribbleCone},
+          {"dribbleClearance", carrying.dribbleClearance},
+          {"dribbleBeyond", carrying.dribbleBeyond},
+          {"maxTouchError", carrying.maxTouchError},
+          {"minTouchError", carrying.minTouchError},
+          {"maxDribbleError", carrying.maxDribbleError},
+          {"minDribbleError", carrying.minDribbleError},
+          {"slowDribbleShare", carrying.slowDribbleShare},
+          {"quickDribbleShare", carrying.quickDribbleShare},
+          {"shotDistance", carrying.shotDistance},
+          {"fullOpening", carrying.fullOpening},
+          {"minKeepChance", carrying.minKeepChance},
+          {"pressureRadius", carrying.pressureRadius},
+          {"keepWeight", carrying.keepWeight},
+          {"progressionWeight", carrying.progressionWeight},
+          {"spaceWeight", carrying.spaceWeight},
+          {"shotWeight", carrying.shotWeight},
+          {"bypassWeight", carrying.bypassWeight},
+          {"riskWeight", carrying.riskWeight},
+          {"holdWeight", carrying.holdWeight},
+          {"turnCost", carrying.turnCost},
+          {"turnSeconds", carrying.turnSeconds},
+          {"buildUpFactors", carryFactorsJson(carrying.buildUp)},
+          {"progressionFactors", carryFactorsJson(carrying.progression)},
+          {"finalThirdFactors", carryFactorsJson(carrying.finalThird)},
+          {"attackingTransitionFactors", carryFactorsJson(carrying.attackingTransition)}};
 }
 
 [[nodiscard]] Json decisionsJson(const SimMatch::DecisionConfig& decisions) {
@@ -178,7 +241,8 @@ using SimMatch::TeamSide;
             {"directnessWeight", distribution.directnessWeight}}},
           {"stuckSeconds", decisions.stuckSeconds},
           {"clearTouchlineMargin", decisions.clearTouchlineMargin},
-          {"clearGoalLineMargin", decisions.clearGoalLineMargin}};
+          {"clearGoalLineMargin", decisions.clearGoalLineMargin},
+          {"carrying", carryingJson(decisions.carrying)}};
 }
 
 [[nodiscard]] Json positioningJson(const SimMatch::PositioningConfig& positioning) {
@@ -333,6 +397,8 @@ using SimMatch::TeamSide;
       {"ball",
        {{"rollingDeceleration", config.ball.rollingDeceleration},
         {"carryDistance", config.ball.carryDistance},
+        {"minCarrySpeedFactor", config.ball.minCarrySpeedFactor},
+        {"maxCarrySpeedFactor", config.ball.maxCarrySpeedFactor},
         {"gravity", config.ball.gravity},
         {"airDrag", config.ball.airDrag},
         {"bounceRestitution", config.ball.bounceRestitution},
@@ -591,6 +657,14 @@ constexpr std::int64_t kMaxGoals = 1'000'000;
                              .tick = SimTick(field.member("tick").integerIn(-kMaxTick, kMaxTick))};
 }
 
+[[nodiscard]] std::optional<SimMatch::CarryTouch> readCarryTouch(const Field& field) {
+  if (field.isNull()) {
+    return std::nullopt;
+  }
+  return SimMatch::CarryTouch{.tick = SimTick(field.member("tick").integerIn(-kMaxTick, kMaxTick)),
+                              .seconds = field.member("seconds").number()};
+}
+
 [[nodiscard]] SimMatch::Foot readFoot(const Field& field) {
   const std::string foot = field.string();
   if (foot == "left") {
@@ -621,7 +695,9 @@ constexpr std::int64_t kMaxGoals = 1'000'000;
                          .keeperHandling = attributes.member("keeperHandling").number(),
                          .jumping = attributes.member("jumping").number(),
                          .heading = attributes.member("heading").number(),
-                         .strength = attributes.member("strength").number()},
+                         .strength = attributes.member("strength").number(),
+                         .ballControl = attributes.member("ballControl").number(),
+                         .dribbling = attributes.member("dribbling").number()},
           .target = target.isNull() ? std::nullopt : std::optional(readVec2(target)),
           .facing = readVec2(field.member("facing"))};
 }
@@ -699,7 +775,8 @@ constexpr std::int64_t kMaxGoals = 1'000'000;
                 .height = ball.member("height").number(),
                 .verticalVelocity = ball.member("verticalVelocity").number(),
                 .spin = ball.member("spin").number(),
-                .held = ball.member("held").boolean()},
+                .held = ball.member("held").boolean(),
+                .touch = readCarryTouch(ball.member("carryTouch"))},
        .playersPerSide = static_cast<int>(field.member("playersPerSide").integerIn(1, 1000)),
        .score = {.home = static_cast<int>(score.member("home").integerIn(0, kMaxGoals)),
                  .away = static_cast<int>(score.member("away").integerIn(0, kMaxGoals))}},
@@ -739,6 +816,61 @@ constexpr std::int64_t kMaxGoals = 1'000'000;
   return {.intervalTicks = static_cast<int>(field.member("intervalTicks").integerIn(1, 100000)),
           .sampleSeconds = field.member("sampleSeconds").number(),
           .horizonSeconds = field.member("horizonSeconds").number()};
+}
+
+[[nodiscard]] SimMatch::CarryPhaseFactors readCarryFactors(const Field& field) {
+  const auto number = [&field](const std::string_view key) { return field.member(key).number(); };
+  return {.progression = number("progression"),
+          .space = number("space"),
+          .shot = number("shot"),
+          .bypassed = number("bypassed"),
+          .risk = number("risk")};
+}
+
+[[nodiscard]] SimMatch::CarryScoringConfig readCarrying(const Field& field) {
+  const auto number = [&field](const std::string_view key) { return field.member(key).number(); };
+  return {.enabled = field.member("enabled").boolean(),
+          .minConfidence = number("minConfidence"),
+          .horizonSeconds = number("horizonSeconds"),
+          .minCarryDistance = number("minCarryDistance"),
+          .gapRadius = number("gapRadius"),
+          .sameDirection = number("sameDirection"),
+          .pitchMargin = number("pitchMargin"),
+          .safetySeconds = number("safetySeconds"),
+          .lossMarginSeconds = number("lossMarginSeconds"),
+          .touchSeconds = number("touchSeconds"),
+          .minTouchDistance = number("minTouchDistance"),
+          .maxTouchDistance = number("maxTouchDistance"),
+          .touchShare = number("touchShare"),
+          .lookBackSeconds = number("lookBackSeconds"),
+          .turnDistance = number("turnDistance"),
+          .dribbleRadius = number("dribbleRadius"),
+          .dribbleCone = number("dribbleCone"),
+          .dribbleClearance = number("dribbleClearance"),
+          .dribbleBeyond = number("dribbleBeyond"),
+          .maxTouchError = number("maxTouchError"),
+          .minTouchError = number("minTouchError"),
+          .maxDribbleError = number("maxDribbleError"),
+          .minDribbleError = number("minDribbleError"),
+          .slowDribbleShare = number("slowDribbleShare"),
+          .quickDribbleShare = number("quickDribbleShare"),
+          .shotDistance = number("shotDistance"),
+          .fullOpening = number("fullOpening"),
+          .minKeepChance = number("minKeepChance"),
+          .pressureRadius = number("pressureRadius"),
+          .keepWeight = number("keepWeight"),
+          .progressionWeight = number("progressionWeight"),
+          .spaceWeight = number("spaceWeight"),
+          .shotWeight = number("shotWeight"),
+          .bypassWeight = number("bypassWeight"),
+          .riskWeight = number("riskWeight"),
+          .holdWeight = number("holdWeight"),
+          .turnCost = number("turnCost"),
+          .turnSeconds = number("turnSeconds"),
+          .buildUp = readCarryFactors(field.member("buildUpFactors")),
+          .progression = readCarryFactors(field.member("progressionFactors")),
+          .finalThird = readCarryFactors(field.member("finalThirdFactors")),
+          .attackingTransition = readCarryFactors(field.member("attackingTransitionFactors"))};
 }
 
 [[nodiscard]] SimMatch::DecisionConfig readDecisions(const Field& field) {
@@ -794,7 +926,8 @@ constexpr std::int64_t kMaxGoals = 1'000'000;
                        .directnessWeight = distribution.member("directnessWeight").number()},
       .stuckSeconds = field.member("stuckSeconds").number(),
       .clearTouchlineMargin = field.member("clearTouchlineMargin").number(),
-      .clearGoalLineMargin = field.member("clearGoalLineMargin").number()};
+      .clearGoalLineMargin = field.member("clearGoalLineMargin").number(),
+      .carrying = readCarrying(field.member("carrying"))};
 }
 
 [[nodiscard]] SimMatch::PhaseConfig readPhases(const Field& field) {
@@ -893,7 +1026,9 @@ constexpr std::int64_t kMaxGoals = 1'000'000;
           .bounceGrip = field.member("bounceGrip").number(),
           .spinTransfer = field.member("spinTransfer").number(),
           .spinDecay = field.member("spinDecay").number(),
-          .restingVerticalSpeed = field.member("restingVerticalSpeed").number()};
+          .restingVerticalSpeed = field.member("restingVerticalSpeed").number(),
+          .minCarrySpeedFactor = field.member("minCarrySpeedFactor").number(),
+          .maxCarrySpeedFactor = field.member("maxCarrySpeedFactor").number()};
 }
 
 [[nodiscard]] SimMatch::ShotConfig readShooting(const Field& field) {

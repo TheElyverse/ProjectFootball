@@ -2,6 +2,7 @@
 
 #include <string_view>
 
+#include "ballPhysics.hpp"
 #include "matchSimulation.hpp"
 #include "matchState.hpp"
 #include "vec2.hpp"
@@ -25,6 +26,20 @@ struct PlayerKinematics {
 // ball following its carrier, arrival-time estimates -- can predict movement
 // with exactly the same rule.
 [[nodiscard]] PlayerKinematics stepPlayerMovement(const PlayerMatchState& player,
+                                                  double secondsPerTick) noexcept;
+
+// The fastest a player runs: his maxSpeed, and a share of it with the ball
+// at his feet or rolling ahead of him -- minCarrySpeedFactor at no ball
+// control, maxCarrySpeedFactor at full control, linear in between
+// (docs/ball-carrying.md). A goalkeeper holding the ball in his hands runs as
+// fast as without it.
+[[nodiscard]] double runningSpeed(const PlayerMatchState& player, const BallState& ball,
+                                  const BallPhysics& physics) noexcept;
+
+// stepPlayerMovement() at the player's runningSpeed(): the one rule every
+// system that moves a player, or predicts his move, uses.
+[[nodiscard]] PlayerKinematics stepPlayerMovement(const PlayerMatchState& player,
+                                                  const BallState& ball, const BallPhysics& physics,
                                                   double secondsPerTick) noexcept;
 
 // Speed above which a player looks where he runs.
@@ -51,12 +66,15 @@ inline constexpr std::string_view kPlayerMovementSystemName = "player movement";
 
 struct ShotStoppingConfig;
 
-// Moves every player one tick with stepPlayerMovement() and turns him with
-// facingAfterMove() -- except a goalkeeper busy with a dive, whom it puts
-// where his dive takes him, under his hands (bodyAt(), docs/shot-stopping.md),
-// whatever his target, without turning him. Writes player positions,
-// velocities and facings, every tick. Throws std::invalid_argument for an
-// invalid configuration; the overload without one uses the default.
+// Moves every player one tick with stepPlayerMovement() at his
+// runningSpeed() and turns him with facingAfterMove() -- except a goalkeeper
+// busy with a dive, whom it puts where his dive takes him, under his hands
+// (bodyAt(), docs/shot-stopping.md), whatever his target, without turning
+// him. Writes player positions, velocities and facings, every tick. Throws
+// std::invalid_argument for an invalid configuration; the overloads without
+// one use the default.
+[[nodiscard]] MatchSystem makePlayerMovementSystem(const ShotStoppingConfig& saves,
+                                                   const BallPhysics& physics);
 [[nodiscard]] MatchSystem makePlayerMovementSystem(const ShotStoppingConfig& saves);
 [[nodiscard]] MatchSystem makePlayerMovementSystem();
 

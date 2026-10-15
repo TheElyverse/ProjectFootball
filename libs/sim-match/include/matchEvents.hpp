@@ -10,6 +10,7 @@
 
 #include "actionCandidate.hpp"
 #include "aerialDuels.hpp"
+#include "carryCandidate.hpp"
 #include "goalFrame.hpp"
 #include "goalkeeper.hpp"
 #include "ids.hpp"
@@ -129,13 +130,24 @@ struct RestartTaken {
   friend bool operator==(const RestartTaken&, const RestartTaken&) = default;
 };
 
-// A presser won the ball from the carrier in a challenge (docs/pressing.md),
-// at the ball's position.
+// How a player lost the ball he owned to an opponent: in a challenge
+// (docs/pressing.md), or the opponent got to it while it rolled ahead of him
+// after a touch (docs/ball-carrying.md).
+enum class BallWonCause : std::uint8_t {
+  kChallenge,
+  kLooseTouch,
+};
+
+// "challenge", "looseTouch"; "unknown" outside the enumerators.
+[[nodiscard]] std::string_view ballWonCauseName(BallWonCause cause) noexcept;
+
+// An opponent won the ball from its owner, at the ball's position, and how.
 struct BallWon {
   SimCore::SimTick tick;
   SimCore::PlayerId winner;
   SimCore::PlayerId loser;
   SimCore::Vec2 position;
+  BallWonCause cause = BallWonCause::kChallenge;
 
   friend bool operator==(const BallWon&, const BallWon&) = default;
 };
@@ -299,12 +311,48 @@ struct AerialContest {
   friend bool operator==(const AerialContest&, const AerialContest&) = default;
 };
 
+// A carrier knocked the ball past an opponent to go round him
+// (docs/ball-carrying.md): from where, and where the touch sends it.
+struct DribbleAttempted {
+  SimCore::SimTick tick;
+  SimCore::PlayerId carrier;
+  SimCore::PlayerId opponent;
+  SimCore::Vec2 from;
+  SimCore::Vec2 target;
+
+  friend bool operator==(const DribbleAttempted&, const DribbleAttempted&) = default;
+};
+
+// What became of a dribble: the carrier got the ball back past the opponent,
+// got it back without getting past him, or lost it -- to an opponent or out
+// of play.
+enum class DribbleOutcome : std::uint8_t {
+  kBeaten,
+  kKept,
+  kLost,
+};
+
+// "beaten", "kept", "lost"; "unknown" outside the enumerators.
+[[nodiscard]] std::string_view dribbleOutcomeName(DribbleOutcome outcome) noexcept;
+
+// A dribble ended, where the ball was.
+struct DribbleEnded {
+  SimCore::SimTick tick;
+  SimCore::PlayerId carrier;
+  SimCore::PlayerId opponent;
+  DribbleOutcome outcome = DribbleOutcome::kLost;
+  SimCore::Vec2 position;
+
+  friend bool operator==(const DribbleEnded&, const DribbleEnded&) = default;
+};
+
 // New alternatives go last: an event's index is part of its hash.
 using MatchEvent =
     std::variant<PassAttempted, PassReceived, PassIntercepted, LooseBallRecovered,
                  PossessionChanged, PhaseChanged, BallWon, PressingStarted, PressingEnded,
                  TacticChanged, PitchControlSampled, RestartTaken, ShotAttempted, ShotDeflected,
-                 ShotHitWoodwork, ShotResolved, GoalScored, SaveAttempted, AerialContest>;
+                 ShotHitWoodwork, ShotResolved, GoalScored, SaveAttempted, AerialContest,
+                 DribbleAttempted, DribbleEnded>;
 
 // "pass attempted", "pass received", ... for logs and diagnostics.
 [[nodiscard]] std::string_view eventName(const MatchEvent& event);
@@ -321,7 +369,15 @@ enum class DecisionOutcome : std::uint8_t {
   kPassed,
   kNoValidOption,
   kShot,
+  kHeld,
+  kTurned,
+  kCarried,
+  kDribbled,
 };
+
+// "passed", "noValidOption", "shot", "held", "turned", "carried",
+// "dribbled"; "unknown" outside the enumerators.
+[[nodiscard]] std::string_view decisionOutcomeName(DecisionOutcome outcome) noexcept;
 
 // How a carrier came to his decision (docs/pass-decisions.md): by choosing
 // among his valid options, the usual way, or -- without one -- by looking for
@@ -352,7 +408,8 @@ struct DecisionDiagnostic {
   std::vector<ShotCandidate> shots;
   DecisionOutcome outcome = DecisionOutcome::kNoValidOption;
   // Index of the chosen option: into candidates for a pass, into shots for a
-  // shot; empty without one.
+  // shot, into carries for holding, turning, carrying or dribbling; empty
+  // without one.
   std::optional<std::size_t> chosen;
   // The weights the candidates were scored with: the configured scoring,
   // adjusted to the passing risk of his tactic and, for a goalkeeper, its
@@ -360,6 +417,11 @@ struct DecisionDiagnostic {
   // shotContributions() with them explain each utility.
   PassScoringConfig scoring;
   ShotScoringConfig shotScoring;
+  // His options with the ball at his feet (docs/ball-carrying.md), and the
+  // weights they were scored with: carryContributions() with them explains
+  // each utility.
+  std::vector<CarryCandidate> carries;
+  CarryScoringConfig carryScoring;
   // Whether he held the ball in his hands: his passes are then throws, his
   // lofted passes punts (docs/goalkeeper-distribution.md).
   bool held = false;

@@ -36,6 +36,7 @@ using ElyverseFootball::SimCore::SimTick;
 using ElyverseFootball::SimCore::Vec2;
 using ElyverseFootball::SimMatch::BallState;
 using ElyverseFootball::SimMatch::carriedBallPosition;
+using ElyverseFootball::SimMatch::DecisionDiagnostic;
 using ElyverseFootball::SimMatch::GiveBallCommand;
 using ElyverseFootball::SimMatch::kDefaultPlayersPerSide;
 using ElyverseFootball::SimMatch::makeTacticMatch;
@@ -155,24 +156,47 @@ using Side = std::array<Placement, kDefaultPlayersPerSide>;
                        {.tick = SimTick(10), .command = GiveBallCommand{.playerId = PlayerId(4)}}}};
 }
 
-// How often player 4's first pass after the regain goes forward, over the
-// seeds; every seed must see him pass within three seconds, in the
-// attacking transition.
+// How far forward a decision plays the ball from `from`: a pass to its
+// target, a turn, carry or dribble to where it takes him; nothing for holding
+// it or no decision at all. A shot counts as forward.
+[[nodiscard]] std::optional<double> forwardGain(const DecisionDiagnostic& decision,
+                                                const double from) {
+  using ElyverseFootball::SimMatch::DecisionOutcome;
+  if (!decision.chosen) {
+    return std::nullopt;
+  }
+  switch (decision.outcome) {
+    case DecisionOutcome::kPassed:
+      return decision.candidates.at(*decision.chosen).target.x - from;
+    case DecisionOutcome::kShot:
+      return decision.shots.at(*decision.chosen).target.x - from;
+    case DecisionOutcome::kTurned:
+    case DecisionOutcome::kCarried:
+    case DecisionOutcome::kDribbled:
+      return decision.carries.at(*decision.chosen).target.x - from;
+    default:
+      return std::nullopt;
+  }
+}
+
+// How often player 4's first action after the regain -- a pass, or a carry
+// or a dribble (docs/ball-carrying.md) -- goes forward, over the seeds; every
+// seed must see him act within three seconds, in the attacking transition.
 [[nodiscard]] int forwardFirstPasses(const std::string& home) {
   int forward = 0;
   for (std::uint64_t seed = 1; seed <= kSeeds; ++seed) {
     MatchSimulation simulation = startMatch(regainInMidfield(preset(home), seed));
-    // How far forward the first pass went, once he has played it.
+    simulation.setCollectDiagnostics(true);
+    // How far forward his first action went, once he has decided it.
     std::optional<double> gain;
     while (!gain && simulation.tick() < SimTick(100)) {
       REQUIRE(simulation.step().has_value());
-      for (const MatchEvent& event : simulation.events()) {
-        const auto* pass = std::get_if<PassAttempted>(&event);
-        if (pass != nullptr && pass->passer == PlayerId(4)) {
-          gain = pass->target.x - pass->from.x;
+      for (const DecisionDiagnostic& decision : simulation.diagnostics()) {
+        if (decision.player == PlayerId(4) && !gain) {
+          gain = forwardGain(decision, simulation.previousState().ball().position.x);
           const auto& phase = simulation.state().phase(TeamSide::kHome);
-          CHECK(phase.transform([](const auto& team) { return team.phase; }) ==
-                TacticalPhase::kAttackingTransition);
+          CHECK((!gain || phase.transform([](const auto& team) { return team.phase; }) ==
+                              TacticalPhase::kAttackingTransition));
         }
       }
     }
@@ -201,7 +225,7 @@ TEST_CASE("P2: the counter tactic plays forward straight after a regain",
   const int counter = forwardFirstPasses("counter");
   const int possession = forwardFirstPasses("possession");
   CAPTURE(counter, possession);
-  // Out of twenty; at the time of writing 18 against 5.
+  // Out of twenty; at the time of writing 14 against 4.
   REQUIRE(counter >= possession + 8);
 }
 

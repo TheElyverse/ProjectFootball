@@ -83,8 +83,8 @@ constexpr PlayerId kCarrier{1};
 
 // Possession invariants between two consecutive states and the events of the
 // step between them:
-// - a controlled ball is at its owner's feet, kept on the pitch, and moves
-//   with him,
+// - a controlled ball at its owner's feet -- not rolling ahead of him after a
+//   touch -- is kept on the pitch and moves with him,
 // - a pending pass belongs to the player on the ball,
 // - possession changes only with a PossessionChanged event, and the events
 //   chain from the old owner to the new one,
@@ -95,8 +95,8 @@ void checkPossession(const MatchSetup& setup, const MatchState& before, const Ma
   const auto& ball = after.ball();
   REQUIRE(findNonFiniteValues(after).empty());
   REQUIRE(after.pitch().contains(ball.position));
-  if (ball.owner) {
-    const auto index = findPlayerIndex(after, *ball.owner);
+  if (ball.isAtFeet()) {
+    const auto index = findPlayerIndex(after, ball.owner.value_or(PlayerId::invalid()));
     REQUIRE(index.has_value());
     const auto& owner = after.players()[index.value_or(0)];
     REQUIRE(ball.position == ElyverseFootball::SimMatch::carriedBallPosition(
@@ -336,13 +336,13 @@ TEST_CASE("P1: the final hashes are pinned", "[acceptance][p1]") {
   };
   const std::array<Pinned, 3> pinned{{
       {.name = "pass-chain",
-       .stateHash = 0xabb984263219175eULL,
+       .stateHash = 0xe25418850984128aULL,
        .eventHash = 0x998519c3360aaabbULL},
       {.name = "intercepted-pass",
-       .stateHash = 0xfc9b0ece49696791ULL,
-       .eventHash = 0x22f2a2f2ddabf1e5ULL},
+       .stateHash = 0xd891be9cfd260c15ULL,
+       .eventHash = 0x0250b215a7666d5dULL},
       {.name = "no-passing-option",
-       .stateHash = 0x22899d425d170102ULL,
+       .stateHash = 0x30c776c81d9a7b68ULL,
        .eventHash = 0x6b0a7335c6057c64ULL},
   }};
   for (const Pinned& expected : pinned) {

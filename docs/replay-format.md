@@ -14,12 +14,12 @@ default is `replay.json` in the working directory, and `--play` plays one back. 
 before the terminal interface opens, so a run rejected by argument or terminal
 validation leaves no file behind.
 
-## Schema version 11
+## Schema version 12
 
 ```json
 {
-    "schemaVersion": 11,
-  "coreVersion": "0.27.0",
+    "schemaVersion": 12,
+  "coreVersion": "0.28.0",
   "createdAt": "2026-09-24T10:00:00Z",
   "seed": "18446744073709551615",
   "gameTime": 300,
@@ -34,7 +34,9 @@ validation leaves no file behind.
       "bounceGrip": 0.8,
       "spinTransfer": 0.2,
       "spinDecay": 0.4,
-      "restingVerticalSpeed": 0.25
+      "restingVerticalSpeed": 0.25,
+      "minCarrySpeedFactor": 0.8,
+      "maxCarrySpeedFactor": 0.95
     },
     "perception": {
       "intervalTicks": 3,
@@ -115,7 +117,51 @@ validation leaves no file behind.
       },
       "stuckSeconds": 3.0,
       "clearTouchlineMargin": 5.0,
-      "clearGoalLineMargin": 10.0
+      "clearGoalLineMargin": 10.0,
+      "carrying": {
+        "enabled": true,
+        "minConfidence": 0.3,
+        "horizonSeconds": 2.0,
+        "minCarryDistance": 2.0,
+        "gapRadius": 20.0,
+        "sameDirection": 0.98,
+        "pitchMargin": 1.0,
+        "safetySeconds": 0.3,
+        "lossMarginSeconds": 0.4,
+        "touchSeconds": 0.5,
+        "minTouchDistance": 1.0,
+        "maxTouchDistance": 5.0,
+        "touchShare": 0.5,
+        "lookBackSeconds": 0.3,
+        "turnDistance": 3.0,
+        "dribbleRadius": 6.0,
+        "dribbleCone": 0.5,
+        "dribbleClearance": 2.5,
+        "dribbleBeyond": 1.5,
+        "maxTouchError": 3.0,
+        "minTouchError": 0.5,
+        "maxDribbleError": 1.5,
+        "minDribbleError": 0.5,
+        "slowDribbleShare": 1.2,
+        "quickDribbleShare": 0.8,
+        "shotDistance": 25.0,
+        "fullOpening": 0.6,
+        "minKeepChance": 0.35,
+        "pressureRadius": 6.0,
+        "keepWeight": 0.8,
+        "progressionWeight": 0.8,
+        "spaceWeight": 0.2,
+        "shotWeight": 0.6,
+        "bypassWeight": 0.15,
+        "riskWeight": 0.3,
+        "holdWeight": 0.5,
+        "turnCost": 0.6,
+        "turnSeconds": 0.5,
+        "buildUpFactors": { "progression": 1.0, "space": 1.0, "shot": 1.0, "bypassed": 1.0, "risk": 1.5 },
+        "progressionFactors": { "progression": 1.0, "space": 1.0, "shot": 1.0, "bypassed": 1.0, "risk": 1.0 },
+        "finalThirdFactors": { "progression": 1.0, "space": 1.0, "shot": 2.0, "bypassed": 1.0, "risk": 1.0 },
+        "attackingTransitionFactors": { "progression": 2.0, "space": 1.0, "shot": 1.0, "bypassed": 2.0, "risk": 0.8 }
+      }
     },
         "phases": { "intervalTicks": 10, "transitionSeconds": 4.0, "hysteresisMeters": 3.0 },
         "pitchControl": { "intervalTicks": 10, "cellSize": 2.0, "controlSeconds": 0.5 },
@@ -304,7 +350,9 @@ validation leaves no file behind.
           "keeperHandling": 0.5,
           "jumping": 0.5,
           "heading": 0.5,
-          "strength": 0.5
+          "strength": 0.5,
+          "ballControl": 0.5,
+          "dribbling": 0.5
         },
         "target": null,
         "facing": { "x": 1.0, "y": 0.0 }
@@ -318,6 +366,7 @@ validation leaves no file behind.
       "spin": 0.0,
             "owner": null,
       "held": false,
+      "carryTouch": null,
       "lastTouch": null
     },
     "score": { "home": 0, "away": 0 },
@@ -347,7 +396,7 @@ player and the whole tactic.
 
 | Field           | JSON type | Meaning                                                       |
 |-----------------|-----------|---------------------------------------------------------------|
-| `schemaVersion` | number    | Version of this format. Currently `11`.                       |
+| `schemaVersion` | number    | Version of this format. Currently `12`.                       |
 | `coreVersion`   | string    | The `sim-core` version that recorded the match.               |
 | `createdAt`     | string    | Creation time in UTC, `%Y-%m-%dT%H:%M:%SZ`. Metadata only.    |
 | `seed`          | string    | Unsigned 64-bit master seed, in decimal.                      |
@@ -363,8 +412,10 @@ Positions are meters and velocities meters per second, as in the
 its third dimension, in meters and meters per second, and `spin` is top- or
 backspin in radians per second ([ball movement](ball-movement.md)). A player's `target` is `null` when he has none,
 the ball's `owner` is `null` while it is free, `held` whether its owner holds
-it in his hands ([goalkeeper distribution](goalkeeper-distribution.md)), and
-its `lastTouch` is `null` or `{ "playerId": 7, "tick": 120 }`. A player's `strongFoot` is `"left"` or
+it in his hands ([goalkeeper distribution](goalkeeper-distribution.md)),
+`carryTouch` `null` or `{ "tick": 118, "seconds": 0.4 }` while it rolls ahead of
+its owner after a touch ([ball carrying](ball-carrying.md)), and its
+`lastTouch` is `null` or `{ "playerId": 7, "tick": 120 }`. A player's `strongFoot` is `"left"` or
 `"right"`, and `score` is the goals the match starts at, never negative
 ([shooting](shooting.md)). No pending action is recorded: every
 initial state has none. `tactics` holds, for each side, the tactic as a complete
@@ -442,7 +493,7 @@ number`.
 |-----------------------------|------------------------------------------------------------------------|
 | `kIoError`                  | the file cannot be read or written                                     |
 | `kMalformed`                | not JSON, a missing or mistyped field, commands out of order           |
-| `kUnsupportedSchemaVersion` | a `schemaVersion` other than 11                                        |
+| `kUnsupportedSchemaVersion` | a `schemaVersion` other than 12                                        |
 | `kIncompatibleCoreVersion`  | recorded with another `coreVersion`                                    |
 | `kInvalidSetup`             | an invalid initial state, command or checkpoint list                   |
 | `kSimulationFailed`         | a step of the playback failed                                          |
@@ -517,3 +568,4 @@ recorded replays without changing the file format, and surfaces as a new
 | 9       | Players gain `jumping`, `heading` and `strength`, and the configuration its `aerial` block ([aerial duels](aerial-duels.md)). Versions 2 to 8 are rejected with a message to record the scenario again with the same seed. |
 | 10      | The ball gains `held`, passing its `maxLoftedSpeed` and `loftedErrorFactor`, the pass scoring its `loftedBias`, and the decisions their `distribution` block ([goalkeeper distribution](goalkeeper-distribution.md)); tactics are files of tactic format version 3. Versions 2 to 9 are rejected with a message to record the scenario again with the same seed. |
 | 11      | The decisions gain `stuckSeconds`, `clearTouchlineMargin` and `clearGoalLineMargin` ([pass decisions](pass-decisions.md#without-a-valid-option)), the defensive configuration `idleSeconds` and `idlePressRadius` ([pressing](pressing.md#a-carrier-who-stands-on-the-ball)). Versions 2 to 10 are rejected with a message to record the scenario again with the same seed. |
+| 12      | Players gain `ballControl` and `dribbling`, the ball `carryTouch`, the ball physics `minCarrySpeedFactor` and `maxCarrySpeedFactor`, and the decisions their `carrying` block ([ball carrying](ball-carrying.md)). Versions 2 to 11 are rejected with a message to record the scenario again with the same seed. |

@@ -56,9 +56,10 @@ recognisable, over fixed seeds:
 - **Counter plays forward after a regain.** A hand-placed moment: home's
   holding midfielder has just won the ball in midfield, the striker is ahead
   of him with a defender near the lane, the centre backs behind him are free.
-  In its attacking transition, counter's first pass goes more than five
-  metres forward in at least eight more of twenty seeds than possession's
-  does (at the time of writing 18 against 5).
+  In its attacking transition, counter's first action -- a pass, a carry or a
+  dribble ([ball carrying](ball-carrying.md)) -- goes more than five metres
+  forward in at least eight more of twenty seeds than possession's does (at
+  the time of writing 14 against 4).
 
 `tacticFilesTests.cpp` additionally pins the direction in which the files
 differ, such as pressing's lower pressing line and counter's deeper block,

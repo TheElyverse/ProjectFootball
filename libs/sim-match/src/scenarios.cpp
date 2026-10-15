@@ -123,13 +123,20 @@ using Side = std::array<Placement, kDefaultPlayersPerSide>;
 
 constexpr SimCore::PlayerId kFirstCarrier{1};
 
+// How far in front of a teammate of the carrier a marker stands in the carry
+// scenarios.
+constexpr double kCarryMarkDistance = 1.5;  // m
+
 // Home players get ids 1 to 7 in order, away players 8 to 14. The ball starts
 // at the first carrier's feet and is given to him at tick 0.
 [[nodiscard]] std::expected<MatchSetup, std::string> placed(const std::uint64_t seed,
                                                             const Side& home, const Side& away,
                                                             TeamTactics tactics = {}) {
   const Pitch pitch(kPitchLength, kPitchWidth);
-  const MatchConfig config;
+  MatchConfig config;
+  // Each fixture sets up one pass or shot decision: carrying the ball would
+  // answer a different question (docs/scenarios.md).
+  config.decisions.carrying.enabled = false;
   std::vector<PlayerMatchState> players;
   players.reserve(home.size() + away.size());
   SimCore::PlayerId::ValueType nextId = 1;
@@ -630,6 +637,58 @@ constexpr Side kBuildUpAway{{{.x = 59.0, .y = 20.0, .facingX = -1.0},
   return setup;
 }
 
+// ---------------------------------------------------------------------------
+// Carry scenarios (docs/ball-carrying.md): home player 1 on the ball at
+// (20, 20) facing away's goal with carrying switched on, every teammate behind
+// him with an away player in the lane a meter and a half in front of him --
+// every pass is too likely to be cut out, so he has nobody to pass to. Home
+// plays without a tactic, so its players stand still, and so does away.
+
+constexpr Side kCarryHome{{{.x = 20.0, .y = 20.0, .facingX = 1.0},
+                           {.x = 8.0, .y = 8.0, .facingX = 1.0},
+                           {.x = 8.0, .y = 32.0, .facingX = 1.0},
+                           {.x = 6.0, .y = 14.0, .facingX = 1.0},
+                           {.x = 6.0, .y = 26.0, .facingX = 1.0},
+                           {.x = 4.0, .y = 20.0, .facingX = 1.0},
+                           {.x = 2.0, .y = 20.0, .facingX = 1.0}}};
+
+// Away's first player where the scenario puts him, the others marking home's
+// players 2 to 7, a meter and a half in front of each toward player 1.
+[[nodiscard]] Side carryAway(const Placement first) {
+  Side away{};
+  away[0] = first;
+  const SimCore::Vec2 carrier{.x = kCarryHome[0].x, .y = kCarryHome[0].y};
+  for (std::size_t index = 1; index < kCarryHome.size(); ++index) {
+    const SimCore::Vec2 marked{.x = kCarryHome.at(index).x, .y = kCarryHome.at(index).y};
+    const SimCore::Vec2 marker =
+        marked + (SimCore::unitOr(carrier - marked, {.x = 1.0, .y = 0.0}) * kCarryMarkDistance);
+    away.at(index) = {.x = marker.x, .y = marker.y, .facingX = -1.0};
+  }
+  return away;
+}
+
+// The placed fixture with carrying switched on again.
+[[nodiscard]] std::expected<MatchSetup, std::string> carrying(const std::uint64_t seed,
+                                                              const Placement first) {
+  auto setup = placed(seed, kCarryHome, carryAway(first));
+  if (setup) {
+    setup->config.decisions.carrying.enabled = true;
+  }
+  return setup;
+}
+
+// Away's first player stands deep, on its goal line: open space in front of
+// player 1. He carries the ball into it.
+[[nodiscard]] std::expected<MatchSetup, std::string> carryIntoSpace(const std::uint64_t seed) {
+  return carrying(seed, {.x = 59.0, .y = 20.0, .facingX = -1.0});
+}
+
+// Away's first player, player 8, covers the middle at (38, 20): player 1
+// carries the ball at him and takes it past him on one side.
+[[nodiscard]] std::expected<MatchSetup, std::string> dribblePastDefender(const std::uint64_t seed) {
+  return carrying(seed, {.x = 38.0, .y = 20.0, .facingX = -1.0});
+}
+
 constexpr std::array kScenarios{
     ScenarioDefinition{
         .name = "kickoff",
@@ -726,6 +785,14 @@ constexpr std::array kScenarios{
                        .description = "home's striker level with away's defensive line, space "
                                       "behind it",
                        .make = &makeRunBehindTheLine},
+    ScenarioDefinition{.name = "carry-into-space",
+                       .description = "home player 1 on the ball, nobody to pass to, open space "
+                                      "ahead",
+                       .make = &carryIntoSpace},
+    ScenarioDefinition{.name = "dribble-past-defender",
+                       .description = "home player 1 carries the ball at a covering defender and "
+                                      "past him",
+                       .make = &dribblePastDefender},
 };
 
 }  // namespace

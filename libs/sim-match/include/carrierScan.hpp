@@ -13,12 +13,14 @@ namespace ElyverseFootball::SimMatch {
 // functions of the state; the pass decision (passDecision.hpp) drives them.
 
 // The scan of the player at this index while it is still his: he owns the
-// ball and has not touched it since the scan began. nullptr otherwise.
+// ball and has not touched it since the scan began but to carry it on in his
+// active run (activeCarry(), carrying.hpp). nullptr otherwise.
 [[nodiscard]] const CarrierScan* activeScan(const MatchState& state, std::size_t playerIndex);
 
 // Where the player at this index looks, which decides what he sees
-// (docs/perception.md): along his active scan's gaze, otherwise along his
-// facing.
+// (docs/perception.md): while his ball rolls ahead of him after a touch along
+// his active run's gaze (docs/ball-carrying.md), otherwise along his active
+// scan's gaze, otherwise along his facing.
 [[nodiscard]] SimCore::Vec2 lookDirection(const MatchState& state, std::size_t playerIndex);
 
 // A point a carrier looks at, and whether it lies on the side he looks to
