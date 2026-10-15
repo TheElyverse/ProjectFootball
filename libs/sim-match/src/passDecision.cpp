@@ -112,7 +112,9 @@ struct ScanStep {
   // The point he looks at or clears the ball to.
   std::optional<SimCore::Vec2> target = std::nullopt;
   std::optional<OnBallChoice> chosen = std::nullopt;
-  std::optional<PassIntent> clear = std::nullopt;
+  // The speed along the ground of his clearance, to target; 0 if he does
+  // not clear the ball.
+  double clearSpeed = 0.0;
   // His scan from now on; empty once he acts.
   std::optional<CarrierScan> scan = std::nullopt;
 };
@@ -140,13 +142,7 @@ struct ScanStep {
     const auto speed =
         flightSpeed(SimCore::distance(current.ball().position, target), flightSeconds, rules.ball);
     if (speed) {
-      return {.reason = OnBallReason::kForcedClear,
-              .target = target,
-              .clear = PassIntent{.passer = player.playerId,
-                                  .target = target,
-                                  .speed = *speed,
-                                  .receiver = std::nullopt,
-                                  .lofted = true}};
+      return {.reason = OnBallReason::kForcedClear, .target = target, .clearSpeed = *speed};
     }
   }
   const int looks = active != nullptr ? active->looks : 0;
@@ -171,8 +167,12 @@ struct ScanStep {
                                                     const std::span<const PassCandidate> passes,
                                                     const std::span<const ShotCandidate> shots,
                                                     const double shotSpeed) {
-  if (step.clear) {
-    return *step.clear;
+  if (step.reason == OnBallReason::kForcedClear) {
+    return PassIntent{.passer = carrier,
+                      .target = step.target.value_or(SimCore::Vec2{}),
+                      .speed = step.clearSpeed,
+                      .receiver = std::nullopt,
+                      .lofted = true};
   }
   if (!chosen) {
     return std::nullopt;
