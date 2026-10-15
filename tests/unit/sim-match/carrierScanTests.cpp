@@ -132,4 +132,7 @@ TEST_CASE("A clearance goes up the near touchline as far as the kick reaches", "
   REQUIRE(std::abs(target.x - (10.0 + std::sqrt(1575.0))) < 1e-9);
   // A longer kick stops short of the goal line.
   REQUIRE(clearanceTarget(state, 3, 100.0, 5.0, 10.0) == Vec2{.x = 50.0, .y = 5.0});
+  // A touchline beyond his reach: as far toward it as he reaches.
+  const Vec2 reachable = clearanceTarget(state, 3, 3.0, 5.0, 10.0);
+  REQUIRE(near(reachable, {.x = 10.0, .y = 7.0}));
 }

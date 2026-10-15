@@ -89,13 +89,16 @@ Vec2 clearanceTarget(const MatchState& state, const std::size_t carrierIndex, co
   const Vec2 from = state.ball().position;
   const double width = pitch.widthMeters();
   // As far up as the kick reaches across to that touchline, short of the
-  // goal line by its margin.
+  // goal line by its margin -- and never beyond his reach: a touchline or a
+  // margin he cannot reach brings the point back toward him.
   const auto alongTouchline = [&](const double y) {
     const double across = std::abs(y - from.y);
     const double along = reach > across ? std::sqrt((reach * reach) - (across * across)) : 0.0;
     const double depth =
         std::min(depthOf(carrier.side, from, pitch) + along, pitch.lengthMeters() - goalLineMargin);
-    return pitch.clamp({.x = xAtDepth(carrier.side, depth, pitch), .y = y});
+    const Vec2 point{.x = xAtDepth(carrier.side, depth, pitch), .y = y};
+    const double distance = SimCore::distance(from, point);
+    return pitch.clamp(distance > reach ? from + ((point - from) * (reach / distance)) : point);
   };
   const bool lowNearer = carrier.position.y <= width / 2.0;
   const Vec2 nearSide = alongTouchline(lowNearer ? touchlineMargin : width - touchlineMargin);

@@ -46,7 +46,8 @@ struct LookTarget {
 // a touchline, as far up the pitch as reach takes it from him but no closer
 // than goalLineMargin to the opponent's goal line -- on the side where his
 // team's pitch control is higher, the side nearer to him on a tie or without
-// a grid.
+// a grid. Never farther from the ball than reach: if the point lies beyond
+// it, the one at reach on the way there.
 [[nodiscard]] SimCore::Vec2 clearanceTarget(const MatchState& state, std::size_t carrierIndex,
                                             double reach, double touchlineMargin,
                                             double goalLineMargin);
