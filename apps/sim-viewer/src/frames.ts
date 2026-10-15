@@ -43,6 +43,9 @@ export interface PlayerFrame {
   readonly position: Vec2;
   readonly velocity: Vec2;
   readonly facing: Vec2;
+  // Where he looks: his facing, or a carrier's look over his shoulder for an
+  // option (docs/pass-decisions.md).
+  readonly look: Vec2;
   readonly target: Vec2 | null;
   readonly observations: readonly Observation[];
   // Null for a player of a scripted side, and for goalkeepers' actions.
@@ -113,6 +116,8 @@ export interface ActionDecision {
   readonly player: number;
   readonly chosen: number | null;
   readonly assigned: boolean;
+  // Sent at a carrier who stands on the ball (docs/pressing.md).
+  readonly idlePress: boolean;
   readonly candidates: readonly ActionCandidate[];
 }
 
@@ -215,6 +220,11 @@ export interface Decision {
   readonly outcome: "passed" | "shot" | "noValidOption";
   // Index into candidates of the chosen pass; null for a shot.
   readonly chosen: number | null;
+  // How he came to it: "choice", or without a valid option "scanFirstSide",
+  // "scanOtherSide", "forcedRejected" or "forcedClear"; target is where he
+  // looks or clears the ball to.
+  readonly reason: string;
+  readonly target: Vec2 | null;
   readonly candidates: readonly PassCandidate[];
   readonly observations: readonly Observation[];
 }

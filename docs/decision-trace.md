@@ -24,6 +24,8 @@ t=18 #1 passes to #2 (utility 0.42: completion +0.36 progression +0.26 pressure 
 t=40 #7 shoots at (60.0, 21.2) 0.43 m high (utility 1.62: goal +1.60 secondBall +0.04 possession -0.02; goal chance 0.64, save 0.21, block 0.03; 3 options, 11 observed) because goal
 t=66 #4 pressCarrier #14 (utility 0.97: responsibility +0.60 region -0.47 space +0.19 lane +0.00 urgency +0.68 effort -0.03; 5 options) because urgency
 t=81 #5 blockLane #12 (assigned by the team press)
+t=66 #9 pressCarrier #1 (idlePress: the carrier stands on the ball)
+t=18 #1 keeps the ball: no valid option (0 options, 8 observed; no shot: too far; scanFirstSide toward (12.0, 26.2))
 t=3 #8 sweeps (reaches the ball in 2.20 s, the first attacker in 4.20 s; misjudged by +0.00 s, needs +0.15 s)
 t=0 #1 kicks long to #5 (utility 1.24: completion +0.86 progression +0.42 pressure -0.00 risk -0.04 directness +0.00; estimated risk 0.14; 12 options, 13 observed) because completion -> pending
 ```
@@ -46,7 +48,13 @@ t=0 #1 kicks long to #5 (utility 1.24: completion +0.86 progression +0.42 pressu
   `too narrow`, `blocked`, `unlikely` or `not worth it`, with its goal chance
   where it was scored.
 - **Reason**: the part with the largest absolute weight (`dominantContribution()`,
-  `dominantShotContribution()`, `dominantScore()`).
+  `dominantShotContribution()`, `dominantScore()`). A carrier without a valid
+  option ([pass decisions](pass-decisions.md#without-a-valid-option)) names
+  how he dealt with it instead: `scanFirstSide` or `scanOtherSide` toward the
+  point he looks at, `forcedRejected` for the best rejected pass he plays once
+  stuck, `forcedClear` for his long kick when he has no pass at all. An action
+  marked `idlePress` sent a player at a carrier who stood on the ball
+  ([pressing](pressing.md#a-carrier-who-stands-on-the-ball)).
 - **Outcome** of a pass (a shot's outcome comes with shot execution): `received`, `intercepted`, `recovered by the passer`,
   `not played` (he lost the ball first) or `pending` at the end of the trace.
 

@@ -92,6 +92,8 @@ struct Situation {
 [[nodiscard]] MatchSimulation matchOf(MatchState state, std::vector<ScheduledCommand> commands) {
   MatchConfig config;
   config.decisions.minHoldSeconds = 1.0e6;
+  // Nor does anyone go at a carrier who stands on it.
+  config.defensive.idleSeconds = 1.0e6;
   return startMatch(MatchSetup{.initialState = std::move(state),
                                .config = config,
                                .seed = 3,

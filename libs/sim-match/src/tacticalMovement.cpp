@@ -147,6 +147,70 @@ namespace {
                       .withBall = false};
 }
 
+// The press on a carrier who stands on the ball (docs/pressing.md): once he
+// has had it for more than idleSeconds since his last touch, the nearest
+// outfield player of the other side within idlePressRadius goes at him,
+// goal-side, whatever his phase's pressing -- ties to the first in player
+// order. Not at a goalkeeper holding the ball in his hands. Empty for anyone
+// else.
+[[nodiscard]] std::optional<PlayerAction> idlePressAction(const MatchStepContext& context,
+                                                          const MatchState& current,
+                                                          const std::size_t index,
+                                                          const TacticalMovementRules& rules) {
+  const BallState& ball = current.ball();
+  const PlayerMatchState& player = current.players()[index];
+  const auto carrier = ball.owner ? findPlayerIndex(current, *ball.owner) : std::nullopt;
+  if (!carrier || ball.held || current.players()[*carrier].side == player.side) {
+    return std::nullopt;
+  }
+  const DefensiveConfig& config = rules.defensive;
+  const bool idle = !ball.lastTouch || ball.lastTouch->playerId != ball.owner ||
+                    static_cast<double>(context.tick().value() - ball.lastTouch->tick.value()) *
+                            context.secondsPerTick() >
+                        config.idleSeconds;
+  if (!idle) {
+    return std::nullopt;
+  }
+  const SimCore::Vec2 carrierAt = current.players()[*carrier].position;
+  std::optional<std::size_t> nearest;
+  double nearestDistance = config.idlePressRadius;
+  for (std::size_t other = 0; other < current.players().size(); ++other) {
+    if (current.players()[other].side != player.side || isGoalkeeper(current, other)) {
+      continue;
+    }
+    if (const double distance = SimCore::distance(current.players()[other].position, carrierAt);
+        distance <= nearestDistance && (!nearest || distance < nearestDistance)) {
+      nearest = other;
+      nearestDistance = distance;
+    }
+  }
+  if (nearest != index) {
+    return std::nullopt;
+  }
+  const Pitch& pitch = current.pitch();
+  const SimCore::Vec2 ownGoal{.x = xAtDepth(player.side, 0.0, pitch),
+                              .y = pitch.widthMeters() / 2.0};
+  const ActionCandidate action{
+      .type = ActionType::kPressCarrier,
+      .target = pitch.clamp(pressTarget(carrierAt, std::nullopt, ownGoal, config.pressDistance)),
+      .subject = ball.owner,
+      .scores = {},
+      .utility = 0.0};
+  if (context.collectsDiagnostics(player.playerId)) {
+    context.diagnose(ActionDiagnostic{.tick = context.tick(),
+                                      .player = player.playerId,
+                                      .candidates = {action},
+                                      .chosen = 0,
+                                      .assigned = false,
+                                      .idlePress = true});
+  }
+  return PlayerAction{.type = action.type,
+                      .target = action.target,
+                      .subject = action.subject,
+                      .decidedAt = context.tick(),
+                      .withBall = false};
+}
+
 // The player's desired region in the phase: the goalkeeper's own, drawing his
 // placing error from the kExecution stream, everyone else's by the costs.
 [[nodiscard]] DesiredRegion desiredRegionOf(const MatchStepContext& context,
@@ -207,6 +271,9 @@ MatchSystem makeTacticalMovementSystem(const TacticalMovementRules& rules) {
                   if (const auto assigned = pressRoleAction(context, current, index, rules)) {
                     tactical.action = assigned;
                     target = assigned->target;
+                  } else if (const auto idle = idlePressAction(context, current, index, rules)) {
+                    tactical.action = idle;
+                    target = idle->target;
                   } else {
                     updateAction(context, current, index, region, rules, tactical);
                     if (tactical.action && tactical.action->type != ActionType::kHoldPosition) {

@@ -12,7 +12,9 @@ in `sim-match` (`scenarios.hpp`), and `sim-cli --scenario <name>` runs one.
 | `m0-acceptance`| all 14 players on scripted runs with target changes, rolling ball |
 | `pass-chain`   | home player 1 on the ball, teammates in a zigzag ahead, no opponent in reach |
 | `intercepted-pass` | home player 1's only option is a risky pass past away player 8 |
-| `no-passing-option` | home player 1 on the ball, every teammate behind him out of sight |
+| `no-passing-option` | home player 1 on the ball, every teammate behind him out of sight, looks round and plays back |
+| `no-option-forced` | home player 1 on the ball, every pass he sees cut out, plays the best after looking round ([pass decisions](pass-decisions.md#without-a-valid-option)) |
+| `idle-carrier-challenged` | home player 1 stands on the ball, away does not press and still goes at him ([pressing](pressing.md#a-carrier-who-stands-on-the-ball)) |
 | `clear-chance` | home player 1 eight meters out, only the keeper to beat ([shot decisions](shot-decisions.md)) |
 | `goal-kickoff` | the clear chance with tactics and restarts, the kickoff after the goal ([restarts](restarts.md#the-kickoff)) |
 | `hopeless-angle` | home player 1 on the goal line wide of the post, a teammate free |
@@ -79,9 +81,10 @@ given to him at tick 0. From then on only the standard systems act.
   the ball and, for most seeds, takes it. It checks that the risk estimate means
   something: the risky passes it lets through really are lost.
 - **`no-passing-option`**: player 1 stands at (30, 20) facing the away goal with
-  every teammate behind him, beyond his awareness radius. He sees no one to pass
-  to, decides "no valid option" every time, and keeps the ball. The away side
-  waits in its own half.
+  every teammate behind him, beyond his awareness radius. At first he sees no
+  one to pass to and decides "no valid option"; he
+  [looks over his shoulder](pass-decisions.md#without-a-valid-option), finds
+  his teammates and plays back to one. The away side waits in its own half.
 
 ### Acceptance checks
 
@@ -98,8 +101,9 @@ owner, received by teammates and intercepted by opponents. Then:
   risk above 0.5, he plays it, and player 8 intercepts it; over the seeds 1 to
   50 at least 70 % of these passes are lost, a statistical guardrail rather than
   an exact value;
-- `no-passing-option`: no pass is played, player 1 keeps the ball throughout, and
-  every decision finds no candidate because he sees only opponents;
+- `no-passing-option`: player 1's first decision finds no candidate because he
+  sees only opponents, and he looks toward his teammates behind him; his next,
+  within a second, is a pass to one of them, which a home player receives;
 - two runs and playback of the replay after a JSON round trip agree on every
   state and event hash, and collecting decision diagnostics changes neither;
 - the final state and event hashes are pinned.
@@ -128,8 +132,9 @@ What to look at:
   a risk of about 0.64. After the pass, select player 8 to follow his run to the
   ball; the event log shows the interception at tick 70.
 - **`no-passing-option`**: select player 1. His vision cone points at the away
-  side, his teammates are behind him with no observation circle, and every
-  decision reads "no valid option".
+  side, his teammates are behind him with no observation circle, and his first
+  decision reads "no valid option". Step on: the cone swings round to his
+  teammates while his facing stroke stays, and he plays back.
 
 ## The shot scenarios
 
@@ -219,6 +224,32 @@ They show what a [goalkeeper](goalkeeper.md) does with the ball
 `tests/acceptance/distributionScenarioTests.cpp` checks each over ten seeds:
 the keeper throws to a centre back along the ground, kicks long to a winger or
 the striker through the air, and takes the goal kick from his goal area.
+
+## The stuck-carrier scenarios
+
+They show what a carrier without a valid option does
+([pass decisions](pass-decisions.md#without-a-valid-option)) and what the other
+side does about a carrier who stands on the ball
+([pressing](pressing.md#a-carrier-who-stands-on-the-ball)). Home plays without
+a tactic, so its players stand still.
+
+- **`no-option-forced`**: player 1 stands at (30, 20) facing the away goal,
+  every teammate ahead of him with an away player in the lane two meters in
+  front of him, nobody behind him. Every pass he sees is too likely to be cut
+  out: he looks to one side and the other, and after `stuckSeconds` plays the
+  best pass he rejected.
+- **`idle-carrier-challenged`**: player 1 stands at (46, 20) with his back to
+  away's goal, every teammate more than a long pass away; `stuckSeconds` is
+  out of reach, so he never acts on his own. Away plays the reference tactic
+  without any pressing, a centre back, player 9, a meter and a half goal-side
+  of him and its forwards far off in home's half.
+
+`tests/acceptance/stuckCarrierScenarioTests.cpp` checks each over ten seeds:
+in `no-option-forced` every decision before the last looks for an option,
+first side and other side in turn, and the last plays his best rejected pass
+between `stuckSeconds` and a quarter of a second more after the first; in
+`idle-carrier-challenged` nobody goes at him before `idleSeconds`, then player
+9 does and wins the ball. Both, and `no-passing-option`, run alike every time.
 
 ## The tactic match
 

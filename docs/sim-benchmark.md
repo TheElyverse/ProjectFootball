@@ -117,7 +117,13 @@ average — a guardrail against a change that stops the shooting or turns the
 sandbox into a shooting gallery, set from the first measurement of 2 to 27,
 which goals have brought down to 3 to 13, the kickoff line-up to 1 to 9 and
 the keeper's [shot stopping](shot-stopping.md) to 0.67 to 11.67, possession
-against counter's deep block the fewest ([shot decisions](shot-decisions.md)). The test is registered for Release
+against counter's deep block the fewest ([shot decisions](shot-decisions.md)). And in
+every match no player of either side may own the ball longer than 30 s at a
+time (`longestOwnershipSeconds`, [match analytics](match-analytics.md)): a
+carrier without an option once kept it for up to 318 s against counter's deep
+block; since he [looks round for one](pass-decisions.md#without-a-valid-option)
+and a carrier who stands on the ball [is gone at](pressing.md#a-carrier-who-stands-on-the-ball),
+the longest is 4.4 s. The test is registered for Release
 builds only; in Debug it would take minutes.
 
 **The full run** is twenty 90-minute matches per pairing, the command above.

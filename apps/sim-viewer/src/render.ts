@@ -112,8 +112,8 @@ function drawTarget(
   context.stroke();
 }
 
-// The selected player's view: vision cone, awareness radius, and what he
-// remembers, faded by confidence.
+// The selected player's view: vision cone along where he looks, awareness
+// radius, and what he remembers, faded by confidence.
 function drawPerception(
   context: CanvasRenderingContext2D,
   viewport: Viewport,
@@ -121,7 +121,7 @@ function drawPerception(
   player: PlayerFrame,
 ): void {
   const { viewDistance, fieldOfViewDegrees, awarenessRadius } = recording.perception;
-  const cone = visionCone(player.position, player.facing, viewDistance, fieldOfViewDegrees);
+  const cone = visionCone(player.position, player.look, viewDistance, fieldOfViewDegrees);
   context.fillStyle = COLORS.vision;
   context.beginPath();
   cone.forEach((point, index) => {

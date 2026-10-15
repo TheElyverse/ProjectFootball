@@ -112,7 +112,10 @@ validation leaves no file behind.
         "flightSeconds": 3.0,
         "contestMarginSeconds": 1.0,
         "directnessWeight": 0.5
-      }
+      },
+      "stuckSeconds": 3.0,
+      "clearTouchlineMargin": 5.0,
+      "clearGoalLineMargin": 10.0
     },
         "phases": { "intervalTicks": 10, "transitionSeconds": 4.0, "hysteresisMeters": 3.0 },
         "pitchControl": { "intervalTicks": 10, "cellSize": 2.0, "controlSeconds": 0.5 },
@@ -154,6 +157,8 @@ validation leaves no file behind.
             "coverDistance": 6.0,
       "pressRadius": 15.0,
       "pressDistance": 1.0,
+      "idleSeconds": 2.0,
+      "idlePressRadius": 3.0,
       "laneMinDistance": 2.0,
       "effortScale": 20.0,
       "holdResponsibility": 0.4,

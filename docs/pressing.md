@@ -31,6 +31,22 @@ Pressing and blocking weigh the `closePressingLine` responsibility; the phase's
 `pressingIntensity` and how close the player is urge them. Every candidate names
 its action, target and subject in the diagnostics.
 
+## A carrier who stands on the ball
+
+A side that does not press -- a deep block, a phase with a low
+`pressingIntensity` -- would otherwise let a carrier stand on the ball as long
+as he likes, even with a defender a step away. So the
+[tactical movement](desired-region.md) sends one player at him regardless:
+once the carrier has had the ball for more than `idleSeconds` (2 s) since his
+last touch, the nearest outfield player of the other side within
+`idlePressRadius` (3 m) of him -- the first in player order on a tie --
+decides `pressCarrier`, aimed `pressDistance` goal-side of him, whatever his
+phase's pressing. A role in a coordinated press comes first; a goalkeeper
+holding the ball in his hands is never pressed. His teammates react through
+the ordinary decisions: covering a teammate who presses, the block's shift
+toward the ball. The decision trace marks the action `idlePress`. Both
+values belong to `DefensiveConfig` ([defensive shape](defensive-shape.md)).
+
 ## Winning the ball
 
 Until the duels of the P3 baseline, a placeholder challenge lets a press win the

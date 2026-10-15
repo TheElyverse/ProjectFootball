@@ -175,7 +175,10 @@ using SimMatch::TeamSide;
             {"minLongDistance", distribution.minLongDistance},
             {"flightSeconds", distribution.flightSeconds},
             {"contestMarginSeconds", distribution.contestMarginSeconds},
-            {"directnessWeight", distribution.directnessWeight}}}};
+            {"directnessWeight", distribution.directnessWeight}}},
+          {"stuckSeconds", decisions.stuckSeconds},
+          {"clearTouchlineMargin", decisions.clearTouchlineMargin},
+          {"clearGoalLineMargin", decisions.clearGoalLineMargin}};
 }
 
 [[nodiscard]] Json positioningJson(const SimMatch::PositioningConfig& positioning) {
@@ -218,6 +221,8 @@ using SimMatch::TeamSide;
           {"coverDistance", defensive.coverDistance},
           {"pressRadius", defensive.pressRadius},
           {"pressDistance", defensive.pressDistance},
+          {"idleSeconds", defensive.idleSeconds},
+          {"idlePressRadius", defensive.idlePressRadius},
           {"laneMinDistance", defensive.laneMinDistance},
           {"effortScale", defensive.effortScale},
           {"holdResponsibility", defensive.holdResponsibility},
@@ -786,7 +791,10 @@ constexpr std::int64_t kMaxGoals = 1'000'000;
                        .minLongDistance = distribution.member("minLongDistance").number(),
                        .flightSeconds = distribution.member("flightSeconds").number(),
                        .contestMarginSeconds = distribution.member("contestMarginSeconds").number(),
-                       .directnessWeight = distribution.member("directnessWeight").number()}};
+                       .directnessWeight = distribution.member("directnessWeight").number()},
+      .stuckSeconds = field.member("stuckSeconds").number(),
+      .clearTouchlineMargin = field.member("clearTouchlineMargin").number(),
+      .clearGoalLineMargin = field.member("clearGoalLineMargin").number()};
 }
 
 [[nodiscard]] SimMatch::PhaseConfig readPhases(const Field& field) {
@@ -840,6 +848,8 @@ constexpr std::int64_t kMaxGoals = 1'000'000;
           .coverDistance = number("coverDistance"),
           .pressRadius = number("pressRadius"),
           .pressDistance = number("pressDistance"),
+          .idleSeconds = number("idleSeconds"),
+          .idlePressRadius = number("idlePressRadius"),
           .laneMinDistance = number("laneMinDistance"),
           .effortScale = number("effortScale"),
           .holdResponsibility = number("holdResponsibility"),

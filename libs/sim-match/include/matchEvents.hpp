@@ -323,6 +323,21 @@ enum class DecisionOutcome : std::uint8_t {
   kShot,
 };
 
+// How a carrier came to his decision (docs/pass-decisions.md): by choosing
+// among his valid options, the usual way, or -- without one -- by looking for
+// one on the first or the other side, or by playing the best rejected pass or
+// clearing the ball once he has looked for long enough.
+enum class OnBallReason : std::uint8_t {
+  kChoice,
+  kScanFirstSide,
+  kScanOtherSide,
+  kForcedRejected,
+  kForcedClear,
+};
+
+// "choice", "scanFirstSide", ...; "unknown" outside the enumerators.
+[[nodiscard]] std::string_view onBallReasonName(OnBallReason reason) noexcept;
+
 // Why a player on the ball decided as he did: what he remembered, every
 // option with its scores, and his choice. Debug output only -- collected on
 // request, never hashed, never read by a system, and building it draws no
@@ -348,6 +363,10 @@ struct DecisionDiagnostic {
   // Whether he held the ball in his hands: his passes are then throws, his
   // lofted passes punts (docs/goalkeeper-distribution.md).
   bool held = false;
+  // How he came to it, and where it points him: the point he looks at while
+  // he scans, the point he clears the ball to; empty otherwise.
+  OnBallReason reason = OnBallReason::kChoice;
+  std::optional<SimCore::Vec2> target = std::nullopt;
 
   friend bool operator==(const DecisionDiagnostic&, const DecisionDiagnostic&) = default;
 };
@@ -365,6 +384,9 @@ struct ActionDiagnostic {
   // him choosing among the candidates; then the candidates hold that one
   // action.
   bool assigned = false;
+  // Whether he was sent at a carrier standing on the ball
+  // (docs/pressing.md); then the candidates hold that one action.
+  bool idlePress = false;
 
   friend bool operator==(const ActionDiagnostic&, const ActionDiagnostic&) = default;
 };

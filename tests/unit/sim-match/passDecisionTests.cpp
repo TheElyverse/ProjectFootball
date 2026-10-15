@@ -7,6 +7,7 @@
 #include <utility>
 #include <vector>
 
+#include "carrierScan.hpp"
 #include "choicePolicy.hpp"
 #include "kickoffScenario.hpp"
 #include "matchCommand.hpp"
@@ -23,11 +24,13 @@ using ElyverseFootball::SimCore::PlayerId;
 using ElyverseFootball::SimCore::RandomNumberGenerator;
 using ElyverseFootball::SimCore::SimTick;
 using ElyverseFootball::SimCore::Vec2;
+using ElyverseFootball::SimMatch::activeScan;
 using ElyverseFootball::SimMatch::chooseOnBall;
 using ElyverseFootball::SimMatch::DecisionConfig;
 using ElyverseFootball::SimMatch::DecisionOutcome;
 using ElyverseFootball::SimMatch::GiveBallCommand;
 using ElyverseFootball::SimMatch::hashMatchState;
+using ElyverseFootball::SimMatch::lookDirection;
 using ElyverseFootball::SimMatch::makePassDecisionSystem;
 using ElyverseFootball::SimMatch::makeSevenASideKickoff;
 using ElyverseFootball::SimMatch::MatchConfig;
@@ -267,9 +270,11 @@ TEST_CASE("A pass is decided only by the player on the ball, once", "[passDecisi
   REQUIRE(kicks >= 3);
 }
 
-TEST_CASE("A player without a visible teammate keeps the ball", "[passDecision]") {
-  // Player 1, the home goalkeeper, looks at his own goal line: every
-  // teammate is behind him. Standing still, he keeps facing it.
+TEST_CASE("A player without a visible teammate looks round and passes", "[passDecision]") {
+  // Player 1, the home goalkeeper -- of a side without a tactic, so with the
+  // ball at his feet like anyone else -- looks at his own goal line: every
+  // teammate is behind him. He looks over his shoulder, up the pitch, while
+  // his body keeps facing the goal line, and plays to a teammate he finds.
   auto kickoff = makeSevenASideKickoff(Pitch(60.0, 40.0));
   REQUIRE(kickoff.has_value());
   MatchStateSpec spec{.pitch = kickoff->pitch(),
@@ -284,11 +289,35 @@ TEST_CASE("A player without a visible teammate keeps the ball", "[passDecision]"
   MatchSimulation simulation =
       startMatch({.initialState = *state, .config = {}, .seed = 1, .commands = {}});
 
-  for (int tick = 0; tick < 150; ++tick) {
+  bool lookedUp = false;
+  bool passed = false;
+  for (int tick = 0; tick < 30 && !passed; ++tick) {
     REQUIRE(simulation.step().has_value());
-    REQUIRE_FALSE(simulation.state().pendingPass().has_value());
-    REQUIRE(simulation.state().ball().owner == PlayerId(1));
+    const MatchState& current = simulation.state();
+    if (activeScan(current, 0) != nullptr) {
+      REQUIRE(current.players()[0].facing == Vec2{.x = -1.0, .y = 0.0});
+      lookedUp = lookedUp || lookDirection(current, 0).x > 0.0;
+    }
+    passed = current.pendingPass().has_value();
   }
+  REQUIRE(lookedUp);
+  REQUIRE(passed);
+  // Playing the ball ends his scan.
+  REQUIRE(simulation.state().tactical(0).scan == std::nullopt);
+}
+
+TEST_CASE("The decision system rejects a negative stuck time or margin", "[passDecision]") {
+  const auto rejects = [](const auto& change) {
+    DecisionConfig config;
+    change(config);
+    return throwsInvalidArgument(
+        [&config] { (void)makePassDecisionSystem(config, PassCandidateRules{}); });
+  };
+  REQUIRE(rejects([](DecisionConfig& config) { config.stuckSeconds = -1.0; }));
+  REQUIRE(rejects([](DecisionConfig& config) { config.clearTouchlineMargin = -1.0; }));
+  REQUIRE(rejects([](DecisionConfig& config) {
+    config.clearGoalLineMargin = std::numeric_limits<double>::infinity();
+  }));
 }
 
 TEST_CASE("The same seed makes the same choices", "[passDecision]") {

@@ -42,6 +42,7 @@ add_library(sim-match STATIC
         src/shotStopping.cpp
         src/aerialDuels.cpp
         src/distribution.cpp
+        src/carrierScan.cpp
 )
 add_library(ElyverseFootball::sim-match ALIAS sim-match)
 

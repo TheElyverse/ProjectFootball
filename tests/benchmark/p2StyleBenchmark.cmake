@@ -83,3 +83,24 @@ foreach(index RANGE ${lastPairing})
         endif()
     endforeach()
 endforeach()
+
+# Nobody stands on the ball (docs/pass-decisions.md, docs/pressing.md): in
+# every match no player of either side owns it longer than 30 s at a time. A
+# carrier without an option once kept it for up to 318 s against counter's
+# deep block; with looking round for one and the press on a carrier who
+# stands on the ball the longest is 4.4 s.
+set(maxOwnershipSeconds 30)
+foreach(index RANGE ${lastPairing})
+    string(JSON matches LENGTH "${json}" pairings ${index} results)
+    math(EXPR lastMatch "${matches} - 1")
+    foreach(match RANGE ${lastMatch})
+        foreach(side IN ITEMS home away)
+            string(JSON longest GET "${json}" pairings ${index} results ${match} stats ${side}
+                   longestOwnershipSeconds)
+            if(longest GREATER maxOwnershipSeconds)
+                message(FATAL_ERROR
+                        "Pairing ${index}, match ${match}: a ${side} player owned the ball for ${longest} s, more than ${maxOwnershipSeconds} s")
+            endif()
+        endforeach()
+    endforeach()
+endforeach()

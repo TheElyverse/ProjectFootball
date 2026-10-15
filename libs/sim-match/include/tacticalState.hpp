@@ -134,9 +134,23 @@ struct KeeperDive {
   friend bool operator==(const KeeperDive&, const KeeperDive&) = default;
 };
 
+// A carrier looking for an option he does not have (docs/pass-decisions.md):
+// since the decision that first found none, how many looks he has taken, and
+// where he looks now -- a unit vector perception uses instead of his facing,
+// while his body and the ball stay as they are. It belongs to his possession
+// of the ball: activeScan() (carrierScan.hpp) ignores it once he has lost
+// the ball or touched it again.
+struct CarrierScan {
+  SimCore::SimTick since;
+  int looks = 0;
+  SimCore::Vec2 gaze;
+
+  friend bool operator==(const CarrierScan&, const CarrierScan&) = default;
+};
+
 // A player's tactical runtime state, kept in the match state because
 // systems keep nothing between ticks. Empty for a player of a scripted side,
-// but for his last jump.
+// but for his last jump and his scan for an option.
 struct PlayerTacticalState {
   std::optional<DesiredRegion> region;
   std::optional<PlayerAction> action;
@@ -153,6 +167,8 @@ struct PlayerTacticalState {
   // (docs/goalkeeper-distribution.md): he may not take it in them again until
   // another player has touched it. Forgotten once one has.
   std::optional<SimCore::SimTick> handsReleased;
+  // A carrier's look around for an option, while he has none.
+  std::optional<CarrierScan> scan;
 
   friend bool operator==(const PlayerTacticalState&, const PlayerTacticalState&) = default;
 };

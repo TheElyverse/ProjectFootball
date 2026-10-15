@@ -146,6 +146,12 @@ void addTactical(StableHasher& hasher, const PlayerTacticalState& tactical) noex
   hasher.addI64(tactical.lastJump.value_or(SimCore::SimTick(0)).value());
   hasher.addBool(tactical.handsReleased.has_value());
   hasher.addI64(tactical.handsReleased.value_or(SimCore::SimTick(0)).value());
+  hasher.addBool(tactical.scan.has_value());
+  if (const auto& scan = tactical.scan) {
+    hasher.addI64(scan->since.value());
+    hasher.addI64(scan->looks);
+    addVec2(hasher, scan->gaze);
+  }
 }
 
 void addPress(StableHasher& hasher, const std::optional<TeamPress>& press) noexcept {

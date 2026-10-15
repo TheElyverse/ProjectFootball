@@ -18,6 +18,7 @@ using ElyverseFootball::SimCore::PlayerId;
 using ElyverseFootball::SimCore::SimTick;
 using ElyverseFootball::SimCore::Vec2;
 using ElyverseFootball::SimMatch::BallTouch;
+using ElyverseFootball::SimMatch::CarrierScan;
 using ElyverseFootball::SimMatch::GoalRecord;
 using ElyverseFootball::SimMatch::hashMatchState;
 using ElyverseFootball::SimMatch::KeeperDive;
@@ -66,7 +67,7 @@ TEST_CASE("Equal states hash equally", "[matchStateHash]") {
 TEST_CASE("The kickoff hash is pinned", "[matchStateHash]") {
   // Changes when the fixture, a state field or the hash encoding changes;
   // each of those invalidates recorded replays, so update it deliberately.
-  REQUIRE(hashOf(kickoffSpec()) == 0xa05200f2b2bc8a0cULL);
+  REQUIRE(hashOf(kickoffSpec()) == 0x2d1327973f7a522cULL);
 }
 
 // Guards against a field that is added to the state but forgotten here.
@@ -275,6 +276,18 @@ TEST_CASE("Pending actions, the last shot and a keeper's dive are part of the ha
        hashAfter([](MatchStateWriter& next) { next.tactical(7).handsReleased = SimTick(4); })},
       {"hands released tick",
        hashAfter([](MatchStateWriter& next) { next.tactical(7).handsReleased = SimTick(5); })},
+      {"carrier scan", hashAfter([](MatchStateWriter& next) {
+         next.tactical(3).scan =
+             CarrierScan{.since = SimTick(4), .looks = 1, .gaze = {.x = 1.0, .y = 0.0}};
+       })},
+      {"carrier scan looks", hashAfter([](MatchStateWriter& next) {
+         next.tactical(3).scan =
+             CarrierScan{.since = SimTick(4), .looks = 2, .gaze = {.x = 1.0, .y = 0.0}};
+       })},
+      {"carrier scan gaze", hashAfter([](MatchStateWriter& next) {
+         next.tactical(3).scan =
+             CarrierScan{.since = SimTick(4), .looks = 1, .gaze = {.x = 0.0, .y = 1.0}};
+       })},
       {"keeper dive target",
        hashAfter(dive(changed(aDive, [](KeeperDive& answer) { answer.target.across = 1.0; })))},
       {"keeper dive run",

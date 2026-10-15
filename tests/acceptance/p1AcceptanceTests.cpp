@@ -4,6 +4,7 @@
 // scenario is for, that possession stays consistent on every tick, that runs
 // and replay playback agree on state and event hashes, and pins the hashes.
 
+#include <algorithm>
 #include <array>
 #include <catch2/catch_test_macros.hpp>
 #include <cstddef>
@@ -24,9 +25,11 @@
 #include "replay.hpp"
 #include "replayJson.hpp"
 #include "scenarios.hpp"
+#include "vec2.hpp"
 
 using ElyverseFootball::SimCore::PlayerId;
 using ElyverseFootball::SimCore::SimTick;
+using ElyverseFootball::SimCore::Vec2;
 using ElyverseFootball::SimMatch::DecisionDiagnostic;
 using ElyverseFootball::SimMatch::DecisionOutcome;
 using ElyverseFootball::SimMatch::findNonFiniteValues;
@@ -38,6 +41,7 @@ using ElyverseFootball::SimMatch::MatchEvent;
 using ElyverseFootball::SimMatch::MatchSetup;
 using ElyverseFootball::SimMatch::MatchSimulation;
 using ElyverseFootball::SimMatch::MatchState;
+using ElyverseFootball::SimMatch::OnBallReason;
 using ElyverseFootball::SimMatch::PassAttempted;
 using ElyverseFootball::SimMatch::PassIntercepted;
 using ElyverseFootball::SimMatch::PassReceived;
@@ -261,30 +265,40 @@ TEST_CASE("P1: risky passes are mostly intercepted over many seeds", "[acceptanc
   REQUIRE(intercepted * 10 >= kSeedCount * 7);
 }
 
-TEST_CASE("P1: a player without a visible option keeps the ball", "[acceptance][p1]") {
+TEST_CASE("P1: a player without a visible option looks round and plays back", "[acceptance][p1]") {
   const CheckedRun run = runChecked("no-passing-option", kSeed);
   const MatchState initial = scenarioSetup("no-passing-option", kSeed).initialState;
 
-  for (const MatchEvent& event : run.events) {
-    REQUIRE_FALSE(std::holds_alternative<PassAttempted>(event));
-  }
-  for (const auto& owner : run.owners) {
-    REQUIRE(owner == kCarrier);
-  }
-  // He decides regularly, sees players and the ball, but no teammate.
-  REQUIRE(run.decisions.size() >= 10);
-  for (const DecisionDiagnostic& decision : run.decisions) {
-    REQUIRE(decision.player == kCarrier);
-    REQUIRE(decision.outcome == DecisionOutcome::kNoValidOption);
-    REQUIRE_FALSE(decision.chosen.has_value());
-    REQUIRE(decision.candidates.empty());
-    for (const auto& observation : decision.observations) {
-      if (!observation.entity.isBall()) {
-        REQUIRE(sideOf(initial, observation.entity.playerId()) == TeamSide::kAway);
-      }
+  // His first decision finds no teammate in sight: he sees only opponents,
+  // and looks over his shoulder toward his teammates behind him.
+  REQUIRE(run.decisions.size() >= 2);
+  const DecisionDiagnostic& first = run.decisions.front();
+  REQUIRE(first.player == kCarrier);
+  REQUIRE(first.outcome == DecisionOutcome::kNoValidOption);
+  REQUIRE(first.candidates.empty());
+  REQUIRE(first.reason == OnBallReason::kScanFirstSide);
+  REQUIRE(first.target.value_or(Vec2{.x = 60.0, .y = 0.0}).x < initial.ball().position.x);
+  for (const auto& observation : first.observations) {
+    if (!observation.entity.isBall()) {
+      REQUIRE(sideOf(initial, observation.entity.playerId()) == TeamSide::kAway);
     }
   }
-  REQUIRE_FALSE(run.decisions.back().observations.empty());
+  // Having looked, he passes back to a teammate within a second.
+  const DecisionDiagnostic& second = run.decisions.at(1);
+  REQUIRE(second.player == kCarrier);
+  REQUIRE(second.outcome == DecisionOutcome::kPassed);
+  REQUIRE(second.reason == OnBallReason::kChoice);
+  REQUIRE(second.tick.value() - first.tick.value() <= 30);
+  const auto attempted = std::ranges::find_if(run.events, [](const MatchEvent& event) {
+    return std::holds_alternative<PassAttempted>(event);
+  });
+  REQUIRE(attempted != run.events.end());
+  REQUIRE(std::get<PassAttempted>(*attempted).passer == kCarrier);
+  const std::vector<MatchEvent> claimed = claims(run.events);
+  REQUIRE_FALSE(claimed.empty());
+  const auto* received = std::get_if<PassReceived>(&claimed.front());
+  REQUIRE(received != nullptr);
+  REQUIRE(sideOf(initial, received->receiver) == TeamSide::kHome);
 }
 
 TEST_CASE("P1: runs and replay playback agree on state and event hashes", "[acceptance][p1]") {
@@ -322,14 +336,14 @@ TEST_CASE("P1: the final hashes are pinned", "[acceptance][p1]") {
   };
   const std::array<Pinned, 3> pinned{{
       {.name = "pass-chain",
-       .stateHash = 0xd75f0f8bac3ca48eULL,
+       .stateHash = 0xabb984263219175eULL,
        .eventHash = 0x998519c3360aaabbULL},
       {.name = "intercepted-pass",
-       .stateHash = 0x2bb9dd3ed4a012f9ULL,
+       .stateHash = 0xfc9b0ece49696791ULL,
        .eventHash = 0x22f2a2f2ddabf1e5ULL},
       {.name = "no-passing-option",
-       .stateHash = 0xa5cb00f93943cb47ULL,
-       .eventHash = 0x4c3da4b4c5ecf1a7ULL},
+       .stateHash = 0x22899d425d170102ULL,
+       .eventHash = 0x6b0a7335c6057c64ULL},
   }};
   for (const Pinned& expected : pinned) {
     CAPTURE(expected.name);
