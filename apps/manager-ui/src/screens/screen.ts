@@ -1,8 +1,12 @@
-import { createContext, useContext } from "react";
+import { type ComponentType, createContext, useContext } from "react";
 import { type ManagerViewId, managerViews } from "./Manager/views";
+import type { DevViewId } from "@/screens/dev";
+import type { MessageId } from "@/i18n";
 
 export type Screen =
-  { kind: "mainMenu" } | { kind: "manager"; view: ManagerViewId };
+  | { kind: "mainMenu" }
+  | { kind: "manager"; view: ManagerViewId }
+  | { kind: "dev"; view: DevViewId };
 
 export function parseScreen(route: string): Screen | undefined {
   if (route === "/") {
@@ -29,3 +33,8 @@ export function useScreenController(): ScreenController {
   }
   return controller;
 }
+export type ViewComponent = {
+  id: string;
+  title: MessageId;
+  Component: ComponentType;
+};

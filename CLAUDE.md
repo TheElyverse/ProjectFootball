@@ -213,4 +213,4 @@ if extending those specific documents. Code (identifiers, comments) is English.
 
 * Always keep the change as small as possible
 * Reuse existing code
-* Prefer extracting functions over redefining same or very similar logic
+* Prefer extracting functions over redefining the same or very similar logic

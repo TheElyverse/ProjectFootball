@@ -1,9 +1,14 @@
 {
+  "mainMenu.continueCareer": "Karriere fortsetzen",
+  "mainMenu.continueCareer.hint": "Frank Mustermann - VfB Stuttgart - Dienstag, 27. Okt. 2026",
   "mainMenu.newCareer": "Neue Karriere",
-  "mainMenu.startGame": "Spiel starten",
-  "mainMenu.loadGame": "Spiel laden",
+  "mainMenu.newCareer.hint": "Starte eine neue Karriere.",
+  "mainMenu.loadCareer": "Spiel laden",
+  "mainMenu.loadCareer.hint": "3 gespeicherte Spiele gefunden.",
   "mainMenu.settings": "Einstellungen",
+  "mainMenu.settings.hint": "Display, Sound, Controls, Sprache.",
   "mainMenu.quit": "Beenden",
+  "mainMenu.quit.hint": "Spiel schliessen und zurück zum Desktop.",
   "nav.menu": "Menü",
   "view.squad": "Kader",
   "status.unrealBridge": "Unreal-Bridge",
@@ -14,5 +19,6 @@
   "squad.age": "Alter",
   "squad.fitness": "Fitness",
   "squad.contract": "Vertrag",
-  "squad.value": "Marktwert"
+  "squad.value": "Marktwert",
+  "dev.components.overview.title": "Komponenten"
 }

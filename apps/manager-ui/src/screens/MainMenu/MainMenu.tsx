@@ -16,25 +16,37 @@ export function MainMenu() {
       <div className="flex h-full w-160 flex-col gap-16 px-16 py-20">
         <Brand />
         <nav className="flex flex-col gap-2">
+          {/* TODO: Later, only shown if there is a saved career. */}
           <MainMenuButton
             autoFocus
-            text={intl.formatMessage({ id: "mainMenu.newCareer" })}
+            text={intl.formatMessage({ id: "mainMenu.continueCareer" })}
+            hint={intl.formatMessage({ id: "mainMenu.continueCareer.hint" })}
             onClick={() =>
               navigate({ kind: "manager", view: managerViews[0].id })
             }
           />
           <MainMenuButton
-            text={intl.formatMessage({ id: "mainMenu.loadGame" })}
+            text={intl.formatMessage({ id: "mainMenu.newCareer" })}
+            hint={intl.formatMessage({ id: "mainMenu.newCareer.hint" })}
           />
           <MainMenuButton
-            text={intl.formatMessage({ id: "mainMenu.settings" })}
+            text={intl.formatMessage({ id: "mainMenu.loadCareer" })}
+            hint={intl.formatMessage({ id: "mainMenu.loadCareer.hint" })}
           />
-          {isUnrealHost() && (
-            <MainMenuButton
-              text={intl.formatMessage({ id: "mainMenu.quit" })}
-              onClick={() => void command("quit")}
-            />
-          )}
+          <hr className="m-4 ml-8 text-touchline" />
+          <MainMenuButton
+            level={2}
+            text={intl.formatMessage({ id: "mainMenu.settings" })}
+            hint={intl.formatMessage({ id: "mainMenu.settings.hint" })}
+          />
+          <MainMenuButton
+            level={2}
+            text={intl.formatMessage({ id: "mainMenu.quit" })}
+            hint={intl.formatMessage({ id: "mainMenu.quit.hint" })}
+            onClick={() => {
+              if (isUnrealHost()) void command("quit");
+            }}
+          />
         </nav>
       </div>
     </div>

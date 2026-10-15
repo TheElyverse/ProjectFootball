@@ -1,22 +1,46 @@
-import type { MouseEventHandler } from "react";
+import type { MouseEventHandler, ReactNode } from "react";
+import { clsx } from "clsx";
 
 type Props = {
   text: string;
   onClick?: MouseEventHandler<HTMLButtonElement>;
   autoFocus?: boolean;
+  /**
+   * @default 1
+   */
+  level?: 1 | 2;
+  hint?: ReactNode;
 };
 
 // Hovering focuses the button, so mouse and navigation inputs share one highlight.
-export function MainMenuButton({ text, onClick, autoFocus }: Props) {
+export function MainMenuButton({
+  text,
+  onClick,
+  autoFocus,
+  level = 1,
+  hint,
+}: Props) {
   return (
     <button
       type="button"
       autoFocus={autoFocus}
-      className="border-l-4 border-transparent py-3 pl-6 text-left text-2xl font-semibold tracking-wide text-slate-300 uppercase outline-none focus:border-shiny-elyverse-blue active:border-amber-400 focus:bg-white/5 focus:text-white"
+      className={clsx(
+        "flex flex-col border-l-4 border-transparent pt-2 pb-3 pl-8 text-left text-slate-300 outline-none",
+        "focus:border-volt focus:bg-linear-to-r focus:from-volt/20 focus:to-transparent",
+        "active:border-volt active:text-volt",
+      )}
       onClick={onClick}
       onMouseEnter={(event) => event.currentTarget.focus()}
     >
-      {text}
+      <span
+        className={clsx(
+          "font-label font-bold uppercase",
+          level === 1 ? "text-5xl italic" : "text-3xl",
+        )}
+      >
+        {text}
+      </span>
+      {hint && <span className="text-slate-400">{hint}</span>}
     </button>
   );
 }
