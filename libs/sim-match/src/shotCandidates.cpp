@@ -10,6 +10,7 @@
 #include <tuple>
 #include <utility>
 
+#include "carrierScan.hpp"
 #include "laneReach.hpp"
 #include "passCandidates.hpp"
 #include "pitch.hpp"
@@ -355,7 +356,10 @@ std::vector<ShotCandidate> generateShotCandidates(const MatchState& state,
     }
   }
 
-  const ShotRejection position = positionRejection(shooter, goal, candidates.front(), rules);
+  // He sees the goal, like everything else, along where he looks.
+  PlayerMatchState looking = shooter;
+  looking.facing = lookDirection(state, shooterIndex);
+  const ShotRejection position = positionRejection(looking, goal, candidates.front(), rules);
   if (position == ShotRejection::kValid) {
     // What becomes of a shot in each zone, from its center; where a shot may
     // end up is the same grid.

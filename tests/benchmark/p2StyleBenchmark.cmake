@@ -1,5 +1,5 @@
 # P2 acceptance, reduced for CI (docs/sim-benchmark.md): the three tactical
-# identities in a round robin of every pairing, six six-minute matches each.
+# identities in a round robin of every pairing, eight six-minute matches each.
 # The run must finish within its time budget without an invalid value, a
 # sampled match of every pairing must replay identically, and the styles must
 # separate where their identities promise. Invoked by CTest with
@@ -15,7 +15,7 @@ execute_process(
         --style "${DATA_DIR}/tactics/possession.json"
         --style "${DATA_DIR}/tactics/counter.json"
         --style "${DATA_DIR}/tactics/pressing.json"
-        --matches 6 --minutes 6 --seed 1 --jobs 2 --verify-replays 1
+        --matches 8 --minutes 6 --seed 1 --jobs 2 --verify-replays 1
         --max-seconds-per-match 5 --max-seconds-total 120
         --out "${results}"
         RESULT_VARIABLE result OUTPUT_VARIABLE output ERROR_VARIABLE error
