@@ -14,12 +14,12 @@ default is `replay.json` in the working directory, and `--play` plays one back. 
 before the terminal interface opens, so a run rejected by argument or terminal
 validation leaves no file behind.
 
-## Schema version 10
+## Schema version 11
 
 ```json
 {
-    "schemaVersion": 10,
-  "coreVersion": "0.26.0",
+    "schemaVersion": 11,
+  "coreVersion": "0.27.0",
   "createdAt": "2026-09-24T10:00:00Z",
   "seed": "18446744073709551615",
   "gameTime": 300,
@@ -347,7 +347,7 @@ player and the whole tactic.
 
 | Field           | JSON type | Meaning                                                       |
 |-----------------|-----------|---------------------------------------------------------------|
-| `schemaVersion` | number    | Version of this format. Currently `10`.                       |
+| `schemaVersion` | number    | Version of this format. Currently `11`.                       |
 | `coreVersion`   | string    | The `sim-core` version that recorded the match.               |
 | `createdAt`     | string    | Creation time in UTC, `%Y-%m-%dT%H:%M:%SZ`. Metadata only.    |
 | `seed`          | string    | Unsigned 64-bit master seed, in decimal.                      |
@@ -442,7 +442,7 @@ number`.
 |-----------------------------|------------------------------------------------------------------------|
 | `kIoError`                  | the file cannot be read or written                                     |
 | `kMalformed`                | not JSON, a missing or mistyped field, commands out of order           |
-| `kUnsupportedSchemaVersion` | a `schemaVersion` other than 10                                        |
+| `kUnsupportedSchemaVersion` | a `schemaVersion` other than 11                                        |
 | `kIncompatibleCoreVersion`  | recorded with another `coreVersion`                                    |
 | `kInvalidSetup`             | an invalid initial state, command or checkpoint list                   |
 | `kSimulationFailed`         | a step of the playback failed                                          |
@@ -516,3 +516,4 @@ recorded replays without changing the file format, and surfaces as a new
 | 8       | Players gain `keeperReflexes` and `keeperHandling`, and the configuration its `shotStopping` block ([shot stopping](shot-stopping.md)). Versions 2 to 7 are rejected with a message to record the scenario again with the same seed. |
 | 9       | Players gain `jumping`, `heading` and `strength`, and the configuration its `aerial` block ([aerial duels](aerial-duels.md)). Versions 2 to 8 are rejected with a message to record the scenario again with the same seed. |
 | 10      | The ball gains `held`, passing its `maxLoftedSpeed` and `loftedErrorFactor`, the pass scoring its `loftedBias`, and the decisions their `distribution` block ([goalkeeper distribution](goalkeeper-distribution.md)); tactics are files of tactic format version 3. Versions 2 to 9 are rejected with a message to record the scenario again with the same seed. |
+| 11      | The decisions gain `stuckSeconds`, `clearTouchlineMargin` and `clearGoalLineMargin` ([pass decisions](pass-decisions.md#without-a-valid-option)), the defensive configuration `idleSeconds` and `idlePressRadius` ([pressing](pressing.md#a-carrier-who-stands-on-the-ball)). Versions 2 to 10 are rejected with a message to record the scenario again with the same seed. |
