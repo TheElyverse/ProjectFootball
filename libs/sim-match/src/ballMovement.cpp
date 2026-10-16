@@ -331,13 +331,14 @@ void touchOn(const MatchState& current, const std::size_t index, const CarryInte
   run->touchedAt = context.tick();
 }
 
-// Plays the pending pass or shot, if its player owns the ball, and drops
-// every other; returns the ball as that leaves it. The action itself comes
-// from current, not next: one decided this same step is played next step, one
-// step of pending action being deliberate. The ball comes from next, and
-// next.pendingAction() is checked too, because a challenge earlier this same
-// step may have already taken the ball and dropped the action, and current
-// would still show the stale pre-step values.
+// Plays the pending pass, shot or touch, if its player has the ball at his
+// feet or in his hands -- one still rolling ahead of him after a touch is not
+// his to play yet --, and drops every other; returns the ball as that leaves
+// it. The action itself comes from current, not next: one decided this same
+// step is played next step, one step of pending action being deliberate. The
+// ball comes from next, and next.pendingAction() is checked too, because a
+// challenge earlier this same step may have already taken the ball and
+// dropped the action, and current would still show the stale pre-step values.
 [[nodiscard]] BallState playPendingAction(const BallRules& rules, const MatchStepContext& context,
                                           const MatchState& current, MatchStateWriter& next) {
   BallState ball = next.ball();
@@ -349,7 +350,7 @@ void touchOn(const MatchState& current, const std::size_t index, const CarryInte
       continue;
     }
     next.setPendingAction(index, std::nullopt);
-    if (current.players()[index].playerId == ball.owner) {
+    if (current.players()[index].playerId == ball.owner && !ball.touch) {
       owners = action;
       ownerIndex = index;
       // Played from his hands, the ball leaves them.
@@ -382,10 +383,7 @@ void touchOn(const MatchState& current, const std::size_t index, const CarryInte
     context.record(PossessionChanged{
         .tick = context.tick(), .previousOwner = intent->passer, .newOwner = std::nullopt});
   }
-  // A touch needs the ball at his feet: one still rolling ahead of him is not
-  // his to play yet.
-  if (const CarryIntent* carry = owners ? std::get_if<CarryIntent>(&*owners) : nullptr;
-      carry != nullptr && !ball.touch) {
+  if (const CarryIntent* carry = owners ? std::get_if<CarryIntent>(&*owners) : nullptr) {
     touchOn(current, ownerIndex, *carry, rules, context, next);
     ball = next.ball();
   }

@@ -54,6 +54,8 @@ using ElyverseFootball::SimMatch::MatchState;
 using ElyverseFootball::SimMatch::MatchStateWriter;
 using ElyverseFootball::SimMatch::MatchStepContext;
 using ElyverseFootball::SimMatch::MatchSystem;
+using ElyverseFootball::SimMatch::PassAttempted;
+using ElyverseFootball::SimMatch::PassIntent;
 using ElyverseFootball::SimMatch::Pitch;
 using ElyverseFootball::SimMatch::PlayerMatchState;
 using ElyverseFootball::SimMatch::PossessionChanged;
@@ -468,6 +470,33 @@ TEST_CASE("A dribble whose touch goes in is not lost", "[carrying]") {
   });
   REQUIRE(attempted);
   REQUIRE(scored);
+}
+
+TEST_CASE("A pass for the ball rolling ahead of its owner is dropped", "[carrying]") {
+  // Home 1 touches the ball ahead; while it rolls a pass to home 2 comes in.
+  const MatchState state = twoASide({.x = 55.0, .y = 5.0}, {.x = 55.0, .y = 35.0});
+  MatchSystem pass{.name = "pass",
+                   .update = [](const MatchStepContext& context, const MatchState& current,
+                                MatchStateWriter& next) {
+                     if (context.tick() == SimTick(4)) {
+                       REQUIRE(current.ball().touch.has_value());
+                       next.setPendingAction(0, PassIntent{.passer = PlayerId(1),
+                                                           .target = {.x = 3.0, .y = 20.0},
+                                                           .speed = 10.0,
+                                                           .receiver = PlayerId(2)});
+                     }
+                   }};
+  std::vector<MatchSystem> extra;
+  extra.push_back(std::move(pass));
+  playTouch(
+      state, touchAt({.x = 24.5, .y = 20.0}, 4.0, 0.4, {.x = 30.0, .y = 20.0}), 30,
+      [](const MatchSimulation& simulation) {
+        REQUIRE(simulation.state().ball().owner == PlayerId(1));
+        for (const MatchEvent& event : simulation.events()) {
+          REQUIRE_FALSE(std::holds_alternative<PassAttempted>(event));
+        }
+      },
+      std::move(extra));
 }
 
 TEST_CASE("A challenge cannot take a ball rolling ahead of its owner", "[carrying]") {

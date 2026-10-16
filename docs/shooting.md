@@ -15,7 +15,7 @@ ShotIntent   → strike        → flight → body · frame · keeper · line �
 ## The strike
 
 The ball system strikes a pending shot in the step after it was decided, if the
-shooter still has the ball. The ball leaves the grass at his feet on the flight
+shooter still has the ball at his feet. The ball leaves the grass at his feet on the flight
 that brings it to the aimed height at the aimed point of the goal line:
 `launchVerticalVelocity()` solves the closed-form flight of
 [ball movement](ball-movement.md) for the vertical speed that does it, at the
