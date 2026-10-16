@@ -974,12 +974,11 @@ void moveTouchedBall(const BallState& ball, const BallRules& rules, const MatchS
     return;
   }
   const PlayerMatchState& owner = current.players()[*ownerIndex];
-  const double sinceTouch = static_cast<double>(context.tick().value() - ball.touch->tick.value()) *
-                            context.secondsPerTick();
+  const bool reachable = ball.touch->hasPassed(context.tick(), context.secondsPerTick());
   std::vector<std::size_t> excluded;
   for (std::size_t index = 0; index < current.players().size(); ++index) {
     const bool teammate = index != *ownerIndex && current.players()[index].side == owner.side;
-    if (teammate || (index == *ownerIndex && sinceTouch < ball.touch->seconds)) {
+    if (teammate || (index == *ownerIndex && !reachable)) {
       excluded.push_back(index);
     }
   }

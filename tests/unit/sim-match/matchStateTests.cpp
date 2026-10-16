@@ -529,6 +529,16 @@ TEST_CASE("MatchState::create touches the ball on only at an owner's feet", "[ma
   REQUIRE(codesOf(held.error()) == std::vector{MatchStateErrorCode::kInvalidCarryTouch});
 }
 
+TEST_CASE("A touch has passed once its seconds have", "[matchState]") {
+  using ElyverseFootball::SimCore::SimTick;
+  using ElyverseFootball::SimMatch::CarryTouch;
+  const CarryTouch touch{.tick = SimTick(10), .seconds = 0.5};
+  REQUIRE_FALSE(touch.hasPassed(SimTick(10), 0.1));
+  REQUIRE_FALSE(touch.hasPassed(SimTick(14), 0.1));
+  REQUIRE(touch.hasPassed(SimTick(15), 0.1));
+  REQUIRE(touch.hasPassed(SimTick(20), 0.1));
+}
+
 TEST_CASE("MatchState::create holds the ball only in a goalkeeper's hands", "[matchState]") {
   MatchStateSpec spec = validSpec();
   spec.ball.owner = PlayerId(2);

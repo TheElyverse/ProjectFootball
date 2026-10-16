@@ -167,6 +167,13 @@ struct CarryTouch {
   SimCore::SimTick tick;
   double seconds = 0.0;
 
+  // Whether the touch's seconds have passed at `now`: from then on its owner
+  // may get to the ball again.
+  [[nodiscard]] bool hasPassed(const SimCore::SimTick now,
+                               const double secondsPerTick) const noexcept {
+    return static_cast<double>(now.value() - tick.value()) * secondsPerTick >= seconds;
+  }
+
   friend bool operator==(const CarryTouch&, const CarryTouch&) = default;
 };
 

@@ -324,12 +324,10 @@ void followTouch(const MatchStepContext& context, const MatchState& current,
     const double onward = ahead ? SimCore::distance(meet->point, run->target) : 0.0;
     next.setPlayerTarget(carrier, current.pitch().clamp(meet->point + (toward * onward)));
   }
-  const double sinceTouch = static_cast<double>(context.tick().value() - ball.touch->tick.value()) *
-                            context.secondsPerTick();
   SimCore::Vec2 lookAt = run->focus;
   if (!meet || meet->seconds <= scoring.lookBackSeconds) {
     lookAt = ball.position;
-  } else if (sinceTouch >= ball.touch->seconds) {
+  } else if (ball.touch->hasPassed(context.tick(), context.secondsPerTick())) {
     if (const std::vector<LookTarget> targets = lookTargets(current, carrier); !targets.empty()) {
       lookAt = targets.front().point;
     }
