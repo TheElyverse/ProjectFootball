@@ -86,16 +86,17 @@ double runningSpeed(const PlayerMatchState& player, const BallState& ball,
   return player.attributes.maxSpeed * factor;
 }
 
+PlayerMatchState atRunningSpeed(const PlayerMatchState& player, const BallState& ball,
+                                const BallPhysics& physics) noexcept {
+  PlayerMatchState runner = player;
+  runner.attributes.maxSpeed = runningSpeed(player, ball, physics);
+  return runner;
+}
+
 PlayerKinematics stepPlayerMovement(const PlayerMatchState& player, const BallState& ball,
                                     const BallPhysics& physics,
                                     const double secondsPerTick) noexcept {
-  const double speed = runningSpeed(player, ball, physics);
-  if (speed == player.attributes.maxSpeed) {
-    return stepPlayerMovement(player, secondsPerTick);
-  }
-  PlayerMatchState runner = player;
-  runner.attributes.maxSpeed = speed;
-  return stepPlayerMovement(runner, secondsPerTick);
+  return stepPlayerMovement(atRunningSpeed(player, ball, physics), secondsPerTick);
 }
 
 Vec2 facingAfterMove(const PlayerMatchState& player, const PlayerKinematics& moved,

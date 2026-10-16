@@ -308,8 +308,7 @@ void followTouch(const MatchStepContext& context, const MatchState& current,
   if (run == nullptr || !ball.touch) {
     return;
   }
-  PlayerMatchState runner = current.players()[carrier];
-  runner.attributes.maxSpeed = runningSpeed(runner, ball, rules.ball);
+  const PlayerMatchState runner = atRunningSpeed(current.players()[carrier], ball, rules.ball);
   const auto meet = findInterception(runner, ball, rules.ball, current.pitch(),
                                      {.intervalTicks = 1,
                                       .sampleSeconds = kSteerSampleSeconds,

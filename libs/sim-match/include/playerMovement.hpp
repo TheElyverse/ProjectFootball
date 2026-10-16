@@ -36,6 +36,11 @@ struct PlayerKinematics {
 [[nodiscard]] double runningSpeed(const PlayerMatchState& player, const BallState& ball,
                                   const BallPhysics& physics) noexcept;
 
+// The player with his runningSpeed() as his maxSpeed: as he runs, or plans to
+// run, with the ball.
+[[nodiscard]] PlayerMatchState atRunningSpeed(const PlayerMatchState& player, const BallState& ball,
+                                              const BallPhysics& physics) noexcept;
+
 // stepPlayerMovement() at the player's runningSpeed(): the one rule every
 // system that moves a player, or predicts his move, uses.
 [[nodiscard]] PlayerKinematics stepPlayerMovement(const PlayerMatchState& player,

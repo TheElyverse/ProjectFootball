@@ -144,8 +144,7 @@ constexpr double kCarryStep = 1.0;  // m
 // with it.
 [[nodiscard]] PlayerMatchState carrierRunning(const MatchState& state, const std::size_t index,
                                               const BallPhysics& physics) {
-  PlayerMatchState carrier = state.players()[index];
-  carrier.attributes.maxSpeed = runningSpeed(carrier, state.ball(), physics);
+  PlayerMatchState carrier = atRunningSpeed(state.players()[index], state.ball(), physics);
   carrier.target = std::nullopt;
   return carrier;
 }
