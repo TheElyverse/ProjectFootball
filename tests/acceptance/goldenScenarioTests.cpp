@@ -81,17 +81,30 @@ template <typename Event>
 
 TEST_CASE("Golden: in a 3v2 after a regain the carrier plays forward at once",
           "[acceptance][p2][golden]") {
-  using ElyverseFootball::SimMatch::PassAttempted;
-  // The first pass of the midfielder who won the ball goes forward to one of
-  // the three attackers within 1.5 s of the regain at tick 10.
+  using ElyverseFootball::SimMatch::DecisionDiagnostic;
+  using ElyverseFootball::SimMatch::DecisionOutcome;
+  // The first action of the midfielder who won the ball, within 1.5 s of the
+  // regain at tick 10, plays it forward: a pass to one of the three attackers,
+  // or a carry or a dribble up the pitch (docs/ball-carrying.md).
   const int forward =
       seedsWhere(&ElyverseFootball::SimMatch::makeTransitionThreeVersusTwo, 55,
                  [](const MatchSimulation& simulation) {
-                   const auto* pass = eventOf<PassAttempted>(simulation);
-                   return pass != nullptr && pass->passer == PlayerId(4) &&
-                          pass->intendedReceiver.value_or(PlayerId(0)).value() >= 5 &&
-                          pass->intendedReceiver.value_or(PlayerId(0)).value() <= 7 &&
-                          pass->target.x > pass->from.x + 3.0;
+                   const double from = simulation.previousState().ball().position.x;
+                   for (const DecisionDiagnostic& decision : simulation.diagnostics()) {
+                     if (decision.player != PlayerId(4) || !decision.chosen) {
+                       continue;
+                     }
+                     if (decision.outcome == DecisionOutcome::kPassed) {
+                       const auto& pass = decision.candidates.at(*decision.chosen);
+                       return pass.receiver.value() >= 5 && pass.receiver.value() <= 7 &&
+                              pass.target.x > from + 3.0;
+                     }
+                     if (decision.outcome == DecisionOutcome::kCarried ||
+                         decision.outcome == DecisionOutcome::kDribbled) {
+                       return decision.carries.at(*decision.chosen).target.x > from + 3.0;
+                     }
+                   }
+                   return false;
                  });
   CAPTURE(forward);
   REQUIRE(forward >= 16);

@@ -66,19 +66,19 @@ TEST_CASE("Documents that are not JSON objects are rejected", "[replayJson]") {
 }
 
 TEST_CASE("Other schema versions are rejected with the version found", "[replayJson]") {
-  requireRejected(validJsonWith("\"schemaVersion\": 11", "\"schemaVersion\": 1"),
+  requireRejected(validJsonWith("\"schemaVersion\": 12", "\"schemaVersion\": 1"),
                   ReplayErrorCode::kUnsupportedSchemaVersion,
                   "schema version 1 holds replay metadata only");
   // Older playable versions name the way to a current file.
-  for (const char* version : {"2", "3", "4", "5", "6", "7", "8", "9", "10"}) {
+  for (const char* version : {"2", "3", "4", "5", "6", "7", "8", "9", "10", "11"}) {
     requireRejected(
-        validJsonWith("\"schemaVersion\": 11", std::string("\"schemaVersion\": ") + version),
+        validJsonWith("\"schemaVersion\": 12", std::string("\"schemaVersion\": ") + version),
         ReplayErrorCode::kUnsupportedSchemaVersion,
         std::string("schema version ") + version +
-            " is no longer supported, expected 11; record the scenario again");
+            " is no longer supported, expected 12; record the scenario again");
   }
-  requireRejected(validJsonWith("\"schemaVersion\": 11", "\"schemaVersion\": 12"),
-                  ReplayErrorCode::kUnsupportedSchemaVersion, "unsupported schema version 12");
+  requireRejected(validJsonWith("\"schemaVersion\": 12", "\"schemaVersion\": 13"),
+                  ReplayErrorCode::kUnsupportedSchemaVersion, "unsupported schema version 13");
 }
 
 TEST_CASE("A replay from another core version is rejected", "[replayJson]") {
@@ -269,6 +269,25 @@ TEST_CASE("Loading a missing file is an I/O error", "[replayJson]") {
 
   REQUIRE_FALSE(replay.has_value());
   REQUIRE(replay.error().code == ReplayErrorCode::kIoError);
+}
+
+TEST_CASE("How players carry the ball is read from the initial state and the config",
+          "[replayJson]") {
+  const auto skilful =
+      parseReplayJson(validJsonWith("\"ballControl\": 0.5", "\"ballControl\": 0.8"));
+  REQUIRE(skilful.has_value());
+  REQUIRE(skilful->setup.initialState.players()[0].attributes.ballControl == 0.8);
+  requireRejected(validJsonWith("\"dribbling\": 0.5", "\"dribbling\": 2.0"),
+                  ReplayErrorCode::kInvalidSetup, "dribbling 2");
+  requireRejected(validJsonWith("\"carryTouch\"", "\"carryTouches\""), kMalformed,
+                  "initialState.ball.carryTouch: missing");
+
+  const auto patient =
+      parseReplayJson(validJsonWith("\"turnSeconds\": 0.5", "\"turnSeconds\": 0.7"));
+  REQUIRE(patient.has_value());
+  REQUIRE(patient->setup.config.decisions.carrying.turnSeconds == 0.7);
+  requireRejected(validJsonWith("\"minCarrySpeedFactor\"", "\"minCarrySpeedFactors\""), kMalformed,
+                  "config.ball.minCarrySpeedFactor: missing");
 }
 
 TEST_CASE("Tactics survive a round trip through the replay format", "[replayJson]") {

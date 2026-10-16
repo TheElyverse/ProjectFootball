@@ -57,6 +57,10 @@ test("describeOutcome names every decision outcome", () => {
   assert.equal(describeOutcome("passed"), "passed");
   assert.equal(describeOutcome("shot"), "shot");
   assert.equal(describeOutcome("noValidOption"), "no valid option");
+  assert.equal(describeOutcome("held"), "held the ball");
+  assert.equal(describeOutcome("turned"), "turned");
+  assert.equal(describeOutcome("carried"), "carried the ball");
+  assert.equal(describeOutcome("dribbled"), "dribbled");
 });
 
 test("latestActionDecision finds a decision without the ball", () => {
@@ -106,6 +110,14 @@ test("describeEvent names the players involved", () => {
     assert.equal(
     describeEvent({ tick: 0, type: "ballWon", winner: 9, loser: 4, position: [1, 2] }),
     "#9 wins the ball from #4",
+  );
+  assert.equal(
+    describeEvent({ tick: 0, type: "dribbleAttempted", carrier: 4, opponent: 9, from: [0, 0], target: [3, 1] }),
+    "#4 dribbles at #9",
+  );
+  assert.equal(
+    describeEvent({ tick: 0, type: "dribbleEnded", carrier: 4, opponent: 9, outcome: "beaten", position: [3, 1] }),
+    "#4's dribble at #9: beaten",
   );
     assert.equal(
     describeEvent({

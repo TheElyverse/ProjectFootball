@@ -32,7 +32,8 @@ inline constexpr std::string_view kChallengeSystemName = "ball challenge";
 // him and has not challenged for attemptSeconds, challenges once, in player
 // order: one draw from the kExecution stream, won below winChance. A carrier
 // who has had the ball for less than protectSeconds is not challenged, nor a
-// goalkeeper who holds it in his hands. The
+// goalkeeper who holds it in his hands, nor a carrier whose ball rolls ahead
+// of him after a touch (docs/ball-carrying.md). The
 // first won challenge takes the ball: the presser owns it and is its last
 // touch, and the step records BallWon and PossessionChanged. Writes the
 // ball's owner and last touch and players' last challenge, nothing else.

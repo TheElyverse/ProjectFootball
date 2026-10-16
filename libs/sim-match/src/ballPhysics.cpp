@@ -267,12 +267,15 @@ void validate(const BallPhysics& physics) {
       isFiniteNonNegative(physics.carryDistance) && isFiniteNonNegative(physics.airDrag) &&
       isFiniteNonNegative(physics.spinDecay) && isFiniteNonNegative(physics.restingVerticalSpeed) &&
       isShare(physics.bounceRestitution) && isShare(physics.bounceGrip) &&
-      isShare(physics.spinTransfer);
+      isShare(physics.spinTransfer) && physics.minCarrySpeedFactor > 0.0 &&
+      physics.minCarrySpeedFactor <= physics.maxCarrySpeedFactor &&
+      physics.maxCarrySpeedFactor <= 1.0;
   if (!valid) {
     throw std::invalid_argument(
         "ball physics: rolling deceleration and gravity must be positive and finite, carry "
-        "distance, air drag, spin decay and resting vertical speed finite and not negative, and "
-        "bounce restitution, bounce grip and spin transfer between 0 and 1");
+        "distance, air drag, spin decay and resting vertical speed finite and not negative, "
+        "bounce restitution, bounce grip and spin transfer between 0 and 1, and the carry speed "
+        "factors above 0 and at most 1, the minimum no greater than the maximum");
   }
 }
 

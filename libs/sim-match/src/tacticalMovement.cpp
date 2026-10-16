@@ -147,6 +147,18 @@ namespace {
                       .withBall = false};
 }
 
+// Where a player pressing the carrier runs while the carrier's ball rolls
+// ahead of him after a touch (docs/ball-carrying.md): at the ball, which is
+// there to be won, rather than at the carrier. His target otherwise.
+[[nodiscard]] SimCore::Vec2 onTheLooseTouch(const MatchState& current,
+                                            const std::optional<PlayerAction>& action,
+                                            const SimCore::Vec2 target) {
+  const BallState& ball = current.ball();
+  const bool pressing = action && action->type == ActionType::kPressCarrier && action->subject &&
+                        action->subject == ball.owner;
+  return pressing && ball.touch ? ball.position : target;
+}
+
 // The press on a carrier who stands on the ball (docs/pressing.md): once he
 // has had it for more than idleSeconds since his last touch, the nearest
 // outfield player of the other side within idlePressRadius goes at him,
@@ -280,7 +292,7 @@ MatchSystem makeTacticalMovementSystem(const TacticalMovementRules& rules) {
                       target = tactical.action->target;
                     }
                   }
-                  next.setPlayerTarget(index, target);
+                  next.setPlayerTarget(index, onTheLooseTouch(current, tactical.action, target));
                 }
               },
           .intervalTicks = rules.positioning.intervalTicks,

@@ -31,6 +31,10 @@ Pressing and blocking weigh the `closePressingLine` responsibility; the phase's
 `pressingIntensity` and how close the player is urge them. Every candidate names
 its action, target and subject in the diagnostics.
 
+While the carrier's ball rolls ahead of him after a touch
+([ball carrying](ball-carrying.md)), a player pressing him runs at the ball
+instead: it is there to be won by whoever gets to it first.
+
 ## A carrier who stands on the ball
 
 A side that does not press -- a deep block, a phase with a low
@@ -59,12 +63,15 @@ second, after the pass decision and before movement:
 2. A carrier who has had the ball for less than `protectSeconds` (0.5 s) -- since
    his last touch -- is not challenged: he is still settling it, and a winner is
    not robbed straight back. Nor is a goalkeeper who holds the ball in his
-   hands ([goalkeeper distribution](goalkeeper-distribution.md)).
+   hands ([goalkeeper distribution](goalkeeper-distribution.md)), nor a carrier
+   whose ball rolls ahead of him after a touch: there is nothing at his feet to
+   challenge for ([ball carrying](ball-carrying.md)).
 3. A challenge is one draw from the `kExecution` stream, won below `winChance`
    (0.2): the how-well half of the press, separate from the decision to press.
 4. The first won challenge in player order takes the ball: the presser owns it
    and is its last touch, a pass the carrier had just decided is dropped, and the
-   step records `BallWon` (winner, loser, position) and `PossessionChanged`.
+   step records `BallWon` (winner, loser, position, cause `challenge`) and
+   `PossessionChanged`.
 
 Each player's last challenge is part of his tactical state. `ChallengeConfig` is
 part of `MatchConfig` and of every replay.

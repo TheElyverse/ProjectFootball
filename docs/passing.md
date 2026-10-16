@@ -33,7 +33,9 @@ carry to its target stops short.
 In the next step it runs, the ball system plays the pending pass:
 
 1. **Only the owner passes.** If the passer does not own the ball — someone else
-   has it, or it is free — the intent is discarded and nothing happens.
+   has it, or it is free — or it still rolls ahead of him after a touch
+   ([ball carrying](ball-carrying.md)), the intent is discarded and nothing
+   happens.
 2. **Release.** The ball becomes free, and the passer becomes its `lastTouch`
    with the current tick.
 3. **Kick.** `executePass()` gives the ball its velocity: from where the ball is

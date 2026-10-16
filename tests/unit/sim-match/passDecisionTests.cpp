@@ -6,6 +6,7 @@
 #include <optional>
 #include <stdexcept>
 #include <utility>
+#include <variant>
 #include <vector>
 
 #include "carrierScan.hpp"
@@ -19,13 +20,17 @@
 #include "passCandidates.hpp"
 #include "passDecision.hpp"
 #include "random.hpp"
+#include "scenarios.hpp"
 #include "vec2.hpp"
 
 using ElyverseFootball::SimCore::PlayerId;
 using ElyverseFootball::SimCore::RandomNumberGenerator;
 using ElyverseFootball::SimCore::SimTick;
 using ElyverseFootball::SimCore::Vec2;
+using ElyverseFootball::SimMatch::activeCarry;
 using ElyverseFootball::SimMatch::activeScan;
+using ElyverseFootball::SimMatch::CarryCandidate;
+using ElyverseFootball::SimMatch::CarryKind;
 using ElyverseFootball::SimMatch::chooseOnBall;
 using ElyverseFootball::SimMatch::DecisionConfig;
 using ElyverseFootball::SimMatch::DecisionOutcome;
@@ -75,6 +80,13 @@ template <typename Function>
   return candidate;
 }
 
+[[nodiscard]] CarryCandidate carryOption(const CarryKind kind, const double utility) {
+  CarryCandidate candidate;
+  candidate.kind = kind;
+  candidate.utility = utility;
+  return candidate;
+}
+
 [[nodiscard]] ShotCandidate shotOption(const double utility,
                                        const ShotRejection rejection = ShotRejection::kValid) {
   ShotCandidate candidate;
@@ -84,6 +96,10 @@ template <typename Function>
 }
 
 // The kickoff fixture with player 4, the center midfielder, on the ball.
+// A carry this short never reaches the first point a carry is checked at: a
+// carrier plans none, not even a turn.
+constexpr double kNoCarrySeconds = 0.1;
+
 [[nodiscard]] MatchSimulation kickoffWithBall(MatchConfig config, const std::uint64_t seed = 42,
                                               const std::uint32_t carrier = 4) {
   auto state = makeSevenASideKickoff(Pitch(60.0, 40.0));
@@ -212,9 +228,11 @@ TEST_CASE("The decision system rejects invalid scoring", "[passDecision]") {
 }
 
 TEST_CASE("Decisions run at their configured frequency", "[passDecision]") {
+  // Without carrying, so no touch he gets back makes him decide in between.
   MatchConfig config;
   config.decisions.intervalTicks = 9;
   config.decisions.minHoldSeconds = 0.0;
+  config.decisions.carrying.enabled = false;
   MatchSimulation simulation = kickoffWithBall(config);
 
   int decisions = 0;
@@ -265,8 +283,15 @@ TEST_CASE("A pass is decided only by the player on the ball, once", "[passDecisi
     const bool kicked = !state.ball().owner && simulation.previousState().ball().owner;
     if (kicked) {
       ++kicks;
-      // A kick needs a decision in the step before.
-      REQUIRE(simulation.previousState().pendingPass().has_value());
+      // A kick -- a pass or a shot -- needs a decision in the step before.
+      const MatchState& before = simulation.previousState();
+      const auto kicker = ElyverseFootball::SimMatch::findPlayerIndex(
+          before, before.ball().owner.value_or(PlayerId::invalid()));
+      REQUIRE(kicker.has_value());
+      const auto& action = before.pendingAction(kicker.value_or(0));
+      REQUIRE(action.has_value());
+      REQUIRE_FALSE(std::holds_alternative<ElyverseFootball::SimMatch::CarryIntent>(
+          action.value_or(ElyverseFootball::SimMatch::PendingAction{})));
     }
   }
   REQUIRE(kicks >= 3);
@@ -275,8 +300,9 @@ TEST_CASE("A pass is decided only by the player on the ball, once", "[passDecisi
 TEST_CASE("A player without a visible teammate looks round and passes", "[passDecision]") {
   // Player 1, the home goalkeeper -- of a side without a tactic, so with the
   // ball at his feet like anyone else -- looks at his own goal line: every
-  // teammate is behind him. He looks over his shoulder, up the pitch, while
-  // his body keeps facing the goal line, and plays to a teammate he finds.
+  // teammate is behind him. Planning no carry -- not even a turn -- he looks
+  // over his shoulder, up the pitch, while his body keeps facing the goal
+  // line, and plays to a teammate he finds.
   auto kickoff = makeSevenASideKickoff(Pitch(60.0, 40.0));
   REQUIRE(kickoff.has_value());
   MatchStateSpec spec{.pitch = kickoff->pitch(),
@@ -288,8 +314,10 @@ TEST_CASE("A player without a visible teammate looks round and passes", "[passDe
   spec.ball.owner = PlayerId(1);
   const auto state = MatchState::create(spec);
   REQUIRE(state.has_value());
+  MatchConfig config;
+  config.decisions.carrying.horizonSeconds = kNoCarrySeconds;
   MatchSimulation simulation =
-      startMatch({.initialState = *state, .config = {}, .seed = 1, .commands = {}});
+      startMatch({.initialState = *state, .config = config, .seed = 1, .commands = {}});
 
   bool lookedUp = false;
   bool passed = false;
@@ -311,9 +339,10 @@ TEST_CASE("A player without a visible teammate looks round and passes", "[passDe
 TEST_CASE("A carrier without any pass clears the ball long after looking round", "[passDecision]") {
   // Player 5 stands 5 m inside the touchline and 10 m from the opponent's
   // goal line, so seeing next to nothing -- a view of a meter -- he has no
-  // pass and no shot. Looking round, he finds none either; once stuck he
-  // clears the ball: not on the spot at the near touchline, where the goal
-  // line's margin leaves him no room, but long across to the far one.
+  // pass and no shot, and he plans no carry. Looking round, he finds none
+  // either; once stuck he clears the ball: not on the spot at the near
+  // touchline, where the goal line's margin leaves him no room, but long
+  // across to the far one.
   auto kickoff = makeSevenASideKickoff(Pitch(60.0, 40.0));
   REQUIRE(kickoff.has_value());
   MatchStateSpec spec{.pitch = kickoff->pitch(),
@@ -330,6 +359,7 @@ TEST_CASE("A carrier without any pass clears the ball long after looking round",
   config.perception.viewDistance = 1.0;
   config.perception.awarenessRadius = 0.5;
   config.decisions.stuckSeconds = 1.0;
+  config.decisions.carrying.horizonSeconds = kNoCarrySeconds;
   MatchSimulation simulation =
       startMatch({.initialState = *state, .config = config, .seed = 1, .commands = {}});
 
@@ -441,4 +471,62 @@ TEST_CASE("A tactic's passing risk shifts how passes are scored", "[passDecision
   REQUIRE(safe.riskWeight == base.riskWeight * 1.5);
   REQUIRE(safe.minCompletion > base.minCompletion);
   REQUIRE(safe.minCompletion <= 1.0);
+}
+
+TEST_CASE("The best carry of each kind competes with the passes and the shot", "[passDecision]") {
+  // Two carries far better than anything else: only the first of them can be
+  // chosen. Holding the ball and the turn compete too, the second carry not.
+  const std::vector passes{option(PlayerId(2), 0.0)};
+  const std::vector carries{carryOption(CarryKind::kCarry, 1.0),
+                            carryOption(CarryKind::kCarry, 1.0), carryOption(CarryKind::kTurn, 0.5),
+                            carryOption(CarryKind::kHold, 0.5)};
+  int carried = 0;
+  for (std::uint64_t seed = 0; seed < 500; ++seed) {
+    RandomNumberGenerator random(seed);
+    const auto chosen = chooseOnBall(passes, {}, carries, 0.15, random);
+    REQUIRE(chosen.has_value());
+    const OnBallChoice choice = chosen.value_or(OnBallChoice{});
+    REQUIRE(choice.index != 1);
+    if (choice.outcome == DecisionOutcome::kCarried) {
+      REQUIRE(choice.index == 0);
+      ++carried;
+    }
+    if (choice.outcome == DecisionOutcome::kTurned) {
+      REQUIRE(choice.index == 2);
+    }
+    if (choice.outcome == DecisionOutcome::kHeld) {
+      REQUIRE(choice.index == 3);
+    }
+  }
+  // exp(0) against twice exp(-0.5 / 0.15) and exp(-1 / 0.15): about 93 %.
+  REQUIRE(carried > 440);
+}
+
+TEST_CASE("A carrier decides as soon as he has his touched ball back", "[passDecision]") {
+  // Decisions at the interval only every 1000 ticks: every decision after the
+  // first comes in the tick after he got his touched ball back.
+  const auto* scenario = ElyverseFootball::SimMatch::findScenario("carry-into-space");
+  REQUIRE(scenario != nullptr);
+  auto setup = scenario->make(1);
+  REQUIRE(setup.has_value());
+  setup->config.decisions.intervalTicks = 1000;
+  setup->config.decisions.minHoldSeconds = 0.0;
+  MatchSimulation simulation = startMatch(*setup);
+  simulation.setCollectDiagnostics(true);
+  int decisions = 0;
+  while (simulation.tick() < SimTick(150)) {
+    REQUIRE(simulation.step().has_value());
+    const MatchState& before = simulation.previousState();
+    for (const auto& decision : simulation.diagnostics()) {
+      ++decisions;
+      if (decision.tick == SimTick(0)) {
+        continue;
+      }
+      const auto* run = activeCarry(before, 0);
+      REQUIRE(run != nullptr);
+      REQUIRE(run->retakenAt.has_value());
+      REQUIRE(run->retakenAt.value_or(SimTick(0)).value() + 1 == decision.tick.value());
+    }
+  }
+  REQUIRE(decisions >= 3);
 }

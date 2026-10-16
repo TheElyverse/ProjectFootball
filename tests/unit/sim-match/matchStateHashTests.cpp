@@ -67,7 +67,7 @@ TEST_CASE("Equal states hash equally", "[matchStateHash]") {
 TEST_CASE("The kickoff hash is pinned", "[matchStateHash]") {
   // Changes when the fixture, a state field or the hash encoding changes;
   // each of those invalidates recorded replays, so update it deliberately.
-  REQUIRE(hashOf(kickoffSpec()) == 0x2d1327973f7a522cULL);
+  REQUIRE(hashOf(kickoffSpec()) == 0x928fecd6d27b54c4ULL);
 }
 
 // Guards against a field that is added to the state but forgotten here.
@@ -104,6 +104,8 @@ TEST_CASE("Every field of the state changes the hash", "[matchStateHash]") {
       {"jumping", [](auto& spec) { spec.players.at(2).attributes.jumping = 0.9; }},
       {"heading", [](auto& spec) { spec.players.at(2).attributes.heading = 0.9; }},
       {"strength", [](auto& spec) { spec.players.at(2).attributes.strength = 0.9; }},
+      {"ball control", [](auto& spec) { spec.players.at(2).attributes.ballControl = 0.9; }},
+      {"dribbling", [](auto& spec) { spec.players.at(2).attributes.dribbling = 0.9; }},
       {"score home", [](auto& spec) { spec.score.home = 1; }},
       {"score away", [](auto& spec) { spec.score.away = 1; }},
       {"target", [](auto& spec) { spec.players.at(9).target = Vec2{}; }},
@@ -114,6 +116,12 @@ TEST_CASE("Every field of the state changes the hash", "[matchStateHash]") {
       {"ball vertical velocity", [](auto& spec) { spec.ball.verticalVelocity = 5.0; }},
       {"ball spin", [](auto& spec) { spec.ball.spin = 20.0; }},
       {"ball owner", [](auto& spec) { spec.ball.owner = PlayerId(7); }},
+      {"carry touch",
+       [](auto& spec) {
+         spec.ball.owner = PlayerId(7);
+         spec.ball.touch =
+             ElyverseFootball::SimMatch::CarryTouch{.tick = SimTick(0), .seconds = 0.3};
+       }},
       {"last touch",
        [](auto& spec) {
          spec.ball.lastTouch = BallTouch{.playerId = PlayerId(7), .tick = SimTick(0)};

@@ -75,6 +75,30 @@ PlayerKinematics stepPlayerMovement(const PlayerMatchState& player,
   return {.position = player.position + displacement, .velocity = velocity};
 }
 
+double runningSpeed(const PlayerMatchState& player, const BallState& ball,
+                    const BallPhysics& physics) noexcept {
+  if (ball.owner != player.playerId || ball.held) {
+    return player.attributes.maxSpeed;
+  }
+  const double factor =
+      physics.minCarrySpeedFactor +
+      ((physics.maxCarrySpeedFactor - physics.minCarrySpeedFactor) * player.attributes.ballControl);
+  return player.attributes.maxSpeed * factor;
+}
+
+PlayerMatchState atRunningSpeed(const PlayerMatchState& player, const BallState& ball,
+                                const BallPhysics& physics) noexcept {
+  PlayerMatchState runner = player;
+  runner.attributes.maxSpeed = runningSpeed(player, ball, physics);
+  return runner;
+}
+
+PlayerKinematics stepPlayerMovement(const PlayerMatchState& player, const BallState& ball,
+                                    const BallPhysics& physics,
+                                    const double secondsPerTick) noexcept {
+  return stepPlayerMovement(atRunningSpeed(player, ball, physics), secondsPerTick);
+}
+
 Vec2 facingAfterMove(const PlayerMatchState& player, const PlayerKinematics& moved,
                      const Vec2 ballPosition) noexcept {
   const double speed = moved.velocity.length();
@@ -125,11 +149,12 @@ namespace {
 
 }  // namespace
 
-MatchSystem makePlayerMovementSystem(const ShotStoppingConfig& saves) {
+MatchSystem makePlayerMovementSystem(const ShotStoppingConfig& saves, const BallPhysics& physics) {
   validate(saves);
+  validate(physics);
   return {.name = std::string(kPlayerMovementSystemName),
-          .update = [saves](const MatchStepContext& context, const MatchState& current,
-                            MatchStateWriter& next) {
+          .update = [saves, physics](const MatchStepContext& context, const MatchState& current,
+                                     MatchStateWriter& next) {
             for (std::size_t index = 0; const PlayerMatchState& player : current.players()) {
               // A dive decided this very step counts.
               if (const auto& dive = next.tactical(index).dive) {
@@ -140,13 +165,18 @@ MatchSystem makePlayerMovementSystem(const ShotStoppingConfig& saves) {
                   continue;
                 }
               }
-              const PlayerKinematics moved = stepPlayerMovement(player, context.secondsPerTick());
+              const PlayerKinematics moved =
+                  stepPlayerMovement(player, current.ball(), physics, context.secondsPerTick());
               next.setPlayerPosition(index, moved.position);
               next.setPlayerVelocity(index, moved.velocity);
               next.setPlayerFacing(index, facingAfterMove(player, moved, current.ball()));
               ++index;
             }
           }};
+}
+
+MatchSystem makePlayerMovementSystem(const ShotStoppingConfig& saves) {
+  return makePlayerMovementSystem(saves, BallPhysics{});
 }
 
 MatchSystem makePlayerMovementSystem() {

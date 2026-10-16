@@ -74,6 +74,10 @@ inline constexpr double kDefaultKeeperHandling = 0.5;
 inline constexpr double kDefaultJumping = 0.5;
 inline constexpr double kDefaultHeading = 0.5;
 inline constexpr double kDefaultStrength = 0.5;
+// An average player's ball control and dribbling, on the scale of
+// ballControl and dribbling.
+inline constexpr double kDefaultBallControl = 0.5;
+inline constexpr double kDefaultDribbling = 0.5;
 
 // The foot a player strikes the ball with.
 enum class Foot : std::uint8_t {
@@ -100,7 +104,10 @@ enum class Foot : std::uint8_t {
 // (docs/shot-stopping.md). Only a goalkeeper uses them. jumping, in [0, 1],
 // is how high he gets off the ground, heading how well he times his jump and
 // directs a header, and strength how well he holds his own in a duel
-// (docs/aerial-duels.md).
+// (docs/aerial-duels.md). ballControl, in [0, 1], is how closely his touches
+// follow his intent and how fast he can run with the ball, dribbling, in
+// [0, 1], how cleanly and quickly he takes the ball past an opponent
+// (docs/ball-carrying.md).
 struct PlayerAttributes {
   double maxSpeed = kDefaultMaxSpeed;
   double acceleration = kDefaultAcceleration;
@@ -115,6 +122,8 @@ struct PlayerAttributes {
   double jumping = kDefaultJumping;
   double heading = kDefaultHeading;
   double strength = kDefaultStrength;
+  double ballControl = kDefaultBallControl;
+  double dribbling = kDefaultDribbling;
 
   friend bool operator==(const PlayerAttributes&, const PlayerAttributes&) = default;
 };
@@ -151,6 +160,23 @@ struct BallTouch {
   friend bool operator==(const BallTouch&, const BallTouch&) = default;
 };
 
+// A touch that plays the ball ahead of its carrier: in which tick, and how
+// many seconds later at the earliest he plays it again -- until then it rolls
+// on its own (docs/ball-carrying.md).
+struct CarryTouch {
+  SimCore::SimTick tick;
+  double seconds = 0.0;
+
+  // Whether the touch's seconds have passed at `now`: from then on its owner
+  // may get to the ball again.
+  [[nodiscard]] bool hasPassed(const SimCore::SimTick now,
+                               const double secondsPerTick) const noexcept {
+    return static_cast<double>(now.value() - tick.value()) * secondsPerTick >= seconds;
+  }
+
+  friend bool operator==(const CarryTouch&, const CarryTouch&) = default;
+};
+
 // owner is the player in control of the ball; empty while the ball is free.
 // One optional id rather than a flag per player, so the ball can never have
 // two owners. A controlled ball follows its owner, a free ball rolls, flies
@@ -171,6 +197,11 @@ struct BallTouch {
 // held is whether the owner holds the ball in his hands: a goalkeeper who
 // took it with them (docs/goalkeeper-distribution.md). Only an owned ball can
 // be held; a challenge cannot take it from him.
+//
+// touch is the owner's touch while the ball rolls ahead of him between two
+// touches (docs/ball-carrying.md): he keeps possession, but the ball moves on
+// its own until he or an opponent reaches it. Only an owned ball at his feet
+// can be touched on, and setting an owner leaves the ball at his feet.
 struct BallState {
   SimCore::Vec2 position;
   SimCore::Vec2 velocity;
@@ -180,8 +211,13 @@ struct BallState {
   double verticalVelocity = 0.0;
   double spin = 0.0;
   bool held = false;
+  std::optional<CarryTouch> touch = std::nullopt;
 
   [[nodiscard]] bool isControlled() const noexcept { return owner.has_value(); }
+
+  // Whether the owner has the ball at his feet or in his hands rather than
+  // rolling ahead of him after a touch.
+  [[nodiscard]] bool isAtFeet() const noexcept { return owner.has_value() && !touch; }
 
   // Whether the ball lies still on the grass: no velocity in any direction and
   // no height. A ball at the apex of its flight has no velocity in the pitch
@@ -245,6 +281,8 @@ enum class MatchStateErrorCode : std::uint8_t {
   kUnknownLastTouch,
   kHeldBallWithoutOwner,
   kHeldBallByOutfielder,
+  kTouchedBallWithoutOwner,
+  kInvalidCarryTouch,
   kTacticDoesNotFitSquad,
   kInvalidScore,
 };
@@ -397,10 +435,29 @@ struct ShotIntent {
   friend bool operator==(const ShotIntent&, const ShotIntent&) = default;
 };
 
+// A touch a player on the ball has decided on and not yet played: to turn,
+// carry the ball or dribble past an opponent (docs/ball-carrying.md). The ball
+// system plays it in the next step it runs, if he still has the ball at his
+// feet, and discards it otherwise.
+struct CarryIntent {
+  SimCore::PlayerId carrier;
+  // Where the touch should take the ball, in meters.
+  SimCore::Vec2 target;
+  // How fast the ball should leave the foot, in meters per second.
+  double speed = 0.0;
+  // When he plays it again at the earliest, in seconds after the touch.
+  double seconds = 0.0;
+  // The touch's error, as a factor on a pass's: his ball control and, for a
+  // dribble, his dribbling.
+  double errorFactor = 1.0;
+
+  friend bool operator==(const CarryIntent&, const CarryIntent&) = default;
+};
+
 // What a player has decided and not yet done: an action waiting for the
 // system that carries it out. Each player has his own; so far only the player
 // on the ball decides one.
-using PendingAction = std::variant<PassIntent, ShotIntent>;
+using PendingAction = std::variant<PassIntent, ShotIntent, CarryIntent>;
 
 class MatchSimulation;
 class MatchStateWriter;
@@ -582,14 +639,18 @@ class MatchStateWriter {
   }
   void setBallSpin(double spin) noexcept { state_->ball_.spin = spin; }
   // Hands the ball to a player, or frees it with std::nullopt -- at his feet
-  // either way: setBallHeld() puts it in his hands. Throws
+  // either way, ending any touch: setBallHeld() puts it in his hands. Throws
   // std::invalid_argument for an id no player in the state has, so the ball
   // can only ever belong to a player on the pitch.
   void setBallOwner(std::optional<SimCore::PlayerId> owner);
   // Puts the owned ball in its owner's hands, or back at his feet; throws
   // std::invalid_argument for holding a ball nobody owns or an outfield
-  // player owns.
+  // player owns, or one he has touched on.
   void setBallHeld(bool held);
+  // Plays the owned ball ahead of its owner with a touch, or ends the touch
+  // with std::nullopt once he has it at his feet again; throws
+  // std::invalid_argument for a ball nobody owns or one held in the hands.
+  void setBallTouch(std::optional<CarryTouch> touch);
   // Records who last played the ball; throws std::invalid_argument for a
   // player not in the state.
   void setBallLastTouch(std::optional<BallTouch> touch);

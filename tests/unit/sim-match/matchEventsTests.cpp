@@ -422,6 +422,7 @@ TEST_CASE("Decision diagnostics explain every decision", "[matchEvents]") {
   simulation.setCollectDiagnostics(true);
 
   int passes = 0;
+  int carries = 0;
   for (int step = 0; step < 300; ++step) {
     REQUIRE(simulation.step().has_value());
     for (const DecisionDiagnostic& diagnostic : simulation.diagnostics()) {
@@ -436,12 +437,21 @@ TEST_CASE("Decision diagnostics explain every decision", "[matchEvents]") {
         REQUIRE(pending.value_or(ElyverseFootball::SimMatch::PassIntent{}).receiver ==
                 diagnostic.candidates.at(chosen).receiver);
         ++passes;
-      } else {
+      } else if (diagnostic.outcome == DecisionOutcome::kShot) {
+        REQUIRE(diagnostic.chosen.value_or(diagnostic.shots.size()) < diagnostic.shots.size());
+      } else if (diagnostic.outcome == DecisionOutcome::kNoValidOption) {
         REQUIRE_FALSE(diagnostic.chosen.has_value());
+      } else {
+        // Held, turned, carried or dribbled: one of his carries.
+        const std::size_t chosen = diagnostic.chosen.value_or(diagnostic.carries.size());
+        REQUIRE(chosen < diagnostic.carries.size());
+        REQUIRE(diagnostic.carries.at(chosen).isValid());
+        ++carries;
       }
     }
   }
   REQUIRE(passes >= 2);
+  REQUIRE(carries >= 1);
 }
 
 TEST_CASE("Collecting diagnostics changes nothing in the match", "[matchEvents]") {

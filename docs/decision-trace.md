@@ -26,11 +26,18 @@ t=66 #4 pressCarrier #14 (utility 0.97: responsibility +0.60 region -0.47 space 
 t=81 #5 blockLane #12 (assigned by the team press)
 t=66 #9 pressCarrier #1 (idlePress: the carrier stands on the ball)
 t=18 #1 keeps the ball: no valid option (0 options, 8 observed; no shot: too far; scanFirstSide toward (12.0, 26.2))
+t=18 #1 carries to (33.0, 20.0) (utility 0.98: keep +0.80 progression +0.17 space +0.01 shot +0.00 bypassed +0.00 risk -0.00; estimated risk 0.00; 0 options, 8 observed; no shot: too far) because keep
+t=120 #1 dribbles past #8 to (40.4, 14.6) (utility 1.10: keep +0.74 progression +0.06 space -0.04 shot +0.00 bypassed +0.15 risk -0.03; estimated risk 0.08; 0 options, 9 observed; no shot: too far) because keep
 t=3 #8 sweeps (reaches the ball in 2.20 s, the first attacker in 4.20 s; misjudged by +0.00 s, needs +0.15 s)
 t=0 #1 kicks long to #5 (utility 1.24: completion +0.86 progression +0.42 pressure -0.00 risk -0.04 directness +0.00; estimated risk 0.14; 12 options, 13 observed) because completion -> pending
 ```
 
 - **Observations**: how many entities the player remembered when he decided.
+- **Carries**: holding, turning, carrying and dribbling read `holds the ball`,
+  `turns toward`, `carries to` and `dribbles past #n to`, with the parts of
+  `carryContributions()` -- a turn's time as `turn` -- and the estimated risk of
+  losing the touched ball ([ball carrying](ball-carrying.md)). Holding the ball
+  while he looks for an option reads as keeping it.
 - **Candidates**: how many passes he had, and the chosen option's utility split
   into its weighted parts — `passContributions()` for a pass
   ([pass candidates](pass-candidates.md)), `shotContributions()` for a shot

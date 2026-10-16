@@ -90,6 +90,44 @@ using SimMatch::MatchEvent;
                     context, SimMatch::dominantShotContribution(parts));
 }
 
+// What he does with the ball at his feet instead of passing or shooting
+// (docs/ball-carrying.md), with the parts of its utility.
+[[nodiscard]] std::string carryLine(const DecisionDiagnostic& decision, const std::size_t chosen,
+                                    const std::string& line, const std::string& context) {
+  const SimMatch::CarryCandidate& carry = decision.carries.at(chosen);
+  const SimMatch::CarryContributions parts =
+      SimMatch::carryContributions(carry, decision.carryScoring);
+  if (carry.kind == SimMatch::CarryKind::kHold) {
+    return line + std::format("holds the ball (utility {:.2f}: hold {}; pressure {:.2f}; {}{})",
+                              carry.utility, signedNumber(parts.hold), carry.risk, context,
+                              shotNote(decision));
+  }
+  std::string verb = carry.kind == SimMatch::CarryKind::kTurn ? "turns toward" : "carries to";
+  if (carry.kind == SimMatch::CarryKind::kDribble) {
+    verb = std::format("dribbles past {} to", playerText(carry.subject));
+  }
+  return line + std::format(
+                    "{} ({:.1f}, {:.1f}) (utility {:.2f}: keep {} progression {} space {} shot {} "
+                    "bypassed {} risk {}{}; estimated risk {:.2f}; {}{}) because {}",
+                    verb, carry.target.x, carry.target.y, carry.utility, signedNumber(parts.keep),
+                    signedNumber(parts.progression), signedNumber(parts.space),
+                    signedNumber(parts.shot), signedNumber(parts.bypassed),
+                    signedNumber(parts.risk),
+                    carry.kind == SimMatch::CarryKind::kTurn
+                        ? std::format(" turn {}", signedNumber(parts.turn))
+                        : std::string(),
+                    carry.risk, context, shotNote(decision), SimMatch::dominantContribution(parts));
+}
+
+// Whether the decision held, turned, carried or dribbled.
+[[nodiscard]] bool carried(const DecisionDiagnostic& decision) noexcept {
+  using SimMatch::DecisionOutcome;
+  return decision.outcome == DecisionOutcome::kHeld ||
+         decision.outcome == DecisionOutcome::kTurned ||
+         decision.outcome == DecisionOutcome::kCarried ||
+         decision.outcome == DecisionOutcome::kDribbled;
+}
+
 // How the ball goes: a pass along the ground or a long kick, from the hands
 // a throw or a punt (docs/goalkeeper-distribution.md).
 [[nodiscard]] std::string_view passVerb(const SimMatch::PassCandidate& pass, const bool held) {
@@ -109,6 +147,13 @@ using SimMatch::MatchEvent;
     return shotLine(decision, *decision.chosen, line, context);
   }
   const SimMatch::OnBallReason reason = decision.reason;
+  // Holding the ball while he looks for an option reads as keeping it.
+  const bool looking = decision.outcome == SimMatch::DecisionOutcome::kHeld &&
+                       reason != SimMatch::OnBallReason::kChoice;
+  if (carried(decision) && !looking && decision.chosen &&
+      *decision.chosen < decision.carries.size()) {
+    return carryLine(decision, *decision.chosen, line, context);
+  }
   if (reason == SimMatch::OnBallReason::kForcedClear && decision.target) {
     return line +
            std::format("clears the ball to ({:.1f}, {:.1f}): no pass to play ({}; {})",
@@ -116,7 +161,7 @@ using SimMatch::MatchEvent;
                        SimMatch::onBallReasonName(reason)) +
            outcomeText(trace.outcome);
   }
-  if (!decision.chosen || *decision.chosen >= decision.candidates.size()) {
+  if (!decision.chosen || looking || *decision.chosen >= decision.candidates.size()) {
     const std::string look = decision.target ? std::format("; {} toward ({:.1f}, {:.1f})",
                                                            SimMatch::onBallReasonName(reason),
                                                            decision.target->x, decision.target->y)

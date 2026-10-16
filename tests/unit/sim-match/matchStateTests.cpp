@@ -401,7 +401,9 @@ TEST_CASE("MatchState::create accepts a jump, heading and strength in [0, 1] onl
   const double value = GENERATE(0.0, 1.0, -0.01, 1.01, std::numeric_limits<double>::quiet_NaN());
   const auto [skill, name] = GENERATE(std::pair{&PlayerAttributes::jumping, "jumping"},
                                       std::pair{&PlayerAttributes::heading, "heading"},
-                                      std::pair{&PlayerAttributes::strength, "strength"});
+                                      std::pair{&PlayerAttributes::strength, "strength"},
+                                      std::pair{&PlayerAttributes::ballControl, "ball control"},
+                                      std::pair{&PlayerAttributes::dribbling, "dribbling"});
   CAPTURE(value, name);
   MatchStateSpec spec = validSpec();
   spec.players.at(5).attributes.*skill = value;
@@ -496,6 +498,45 @@ TEST_CASE("MatchState::create holds only an owned ball in the hands", "[matchSta
   const auto owned = MatchState::create(spec, {.home = referenceTactic(), .away = {}});
   REQUIRE(owned.has_value());
   REQUIRE(owned.value().ball().held);
+}
+
+TEST_CASE("MatchState::create touches the ball on only at an owner's feet", "[matchState]") {
+  using ElyverseFootball::SimCore::SimTick;
+  using ElyverseFootball::SimMatch::CarryTouch;
+  MatchStateSpec spec = validSpec();
+  spec.ball.touch = CarryTouch{.tick = SimTick(0), .seconds = 0.3};
+
+  const auto nobody = MatchState::create(spec);
+  REQUIRE_FALSE(nobody.has_value());
+  REQUIRE(codesOf(nobody.error()) == std::vector{MatchStateErrorCode::kTouchedBallWithoutOwner});
+
+  spec.ball.owner = PlayerId(2);
+  const auto owned = MatchState::create(spec);
+  REQUIRE(owned.has_value());
+  REQUIRE(owned.value().ball().isControlled());
+  REQUIRE_FALSE(owned.value().ball().isAtFeet());
+
+  spec.ball.touch = CarryTouch{.tick = SimTick(0), .seconds = -0.1};
+  const auto backwards = MatchState::create(spec);
+  REQUIRE_FALSE(backwards.has_value());
+  REQUIRE(codesOf(backwards.error()) == std::vector{MatchStateErrorCode::kInvalidCarryTouch});
+
+  spec.ball.owner = PlayerId(1);
+  spec.ball.touch = CarryTouch{.tick = SimTick(0), .seconds = 0.3};
+  spec.ball.held = true;
+  const auto held = MatchState::create(spec, {.home = referenceTactic(), .away = {}});
+  REQUIRE_FALSE(held.has_value());
+  REQUIRE(codesOf(held.error()) == std::vector{MatchStateErrorCode::kInvalidCarryTouch});
+}
+
+TEST_CASE("A touch has passed once its seconds have", "[matchState]") {
+  using ElyverseFootball::SimCore::SimTick;
+  using ElyverseFootball::SimMatch::CarryTouch;
+  const CarryTouch touch{.tick = SimTick(10), .seconds = 0.5};
+  REQUIRE_FALSE(touch.hasPassed(SimTick(10), 0.1));
+  REQUIRE_FALSE(touch.hasPassed(SimTick(14), 0.1));
+  REQUIRE(touch.hasPassed(SimTick(15), 0.1));
+  REQUIRE(touch.hasPassed(SimTick(20), 0.1));
 }
 
 TEST_CASE("MatchState::create holds the ball only in a goalkeeper's hands", "[matchState]") {

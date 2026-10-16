@@ -64,6 +64,11 @@ The same rule covers every way of getting the ball:
 Telling these apart is for match events; control itself does not care who
 kicked the ball.
 
+A ball its owner has touched on ([ball carrying](ball-carrying.md)) is won the
+same way, but is still his: he takes it back once the touch's seconds have
+passed, without the reclaim delay, his teammates leave it to him, and an
+opponent who reaches it first wins it from him.
+
 ## Going after the ball
 
 While the ball is free, the ball pursuit system sends one player per side after
@@ -119,6 +124,7 @@ is rejected.
 ## What this is not
 
 There is no first-touch quality, no deflection and no failed control: a player
-who reaches the ball at a height he can play has it. Heading a ball and
+who reaches the ball at a height he can play has it. A carrier's touches on are
+[ball carrying](ball-carrying.md#the-touchs-error). Heading a ball and
 jumping for one are [aerial duels](aerial-duels.md). Pressing a player on the ball, tackles and
 duels are out of scope.
