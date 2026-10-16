@@ -14,11 +14,13 @@
 #include "playerMovement.hpp"
 #include "shotCandidates.hpp"
 #include "spatialQueries.hpp"
+#include "stableMath.hpp"
 #include "zones.hpp"
 
 namespace ElyverseFootball::SimMatch {
 namespace {
 
+using SimCore::stableLerp;
 using SimCore::Vec2;
 
 using LaneReach::Lane;
@@ -29,10 +31,6 @@ constexpr double kCarryStep = 1.0;  // m
 
 [[nodiscard]] double cross(const Vec2 left, const Vec2 right) noexcept {
   return (left.x * right.y) - (left.y * right.x);
-}
-
-[[nodiscard]] double lerp(const double atZero, const double atOne, const double share) noexcept {
-  return atZero + ((atOne - atZero) * share);
 }
 
 // Which half of the turn a direction lies in, counterclockwise from +x: 0 for
@@ -280,9 +278,10 @@ void scoreCandidate(CarryCandidate& candidate, const MatchState& state, const Ve
 // dribbling.
 [[nodiscard]] double touchError(const PlayerAttributes& attributes, const bool dribble,
                                 const CarryScoringConfig& scoring) noexcept {
-  const double control = lerp(scoring.maxTouchError, scoring.minTouchError, attributes.ballControl);
-  return dribble ? control *
-                       lerp(scoring.maxDribbleError, scoring.minDribbleError, attributes.dribbling)
+  const double control =
+      stableLerp(scoring.maxTouchError, scoring.minTouchError, attributes.ballControl);
+  return dribble ? control * stableLerp(scoring.maxDribbleError, scoring.minDribbleError,
+                                        attributes.dribbling)
                  : control;
 }
 
@@ -354,9 +353,10 @@ void scoreCandidate(CarryCandidate& candidate, const MatchState& state, const Ve
                            .distance = SimCore::distance(carrier.position, target),
                            .errorFactor = touchError(carrier.attributes, true, scoring),
                            .subject = opponent.player.playerId};
-  planTouch(candidate, carrier, from, target,
-            lerp(scoring.slowDribbleShare, scoring.quickDribbleShare, carrier.attributes.dribbling),
-            state.pitch(), rules);
+  planTouch(
+      candidate, carrier, from, target,
+      stableLerp(scoring.slowDribbleShare, scoring.quickDribbleShare, carrier.attributes.dribbling),
+      state.pitch(), rules);
   scoreCandidate(candidate, state, from, carrier.side, opponents, rules);
   return candidate;
 }
