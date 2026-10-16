@@ -42,7 +42,7 @@ MatchSystem makeChallengeSystem(const ChallengeConfig& config) {
             // A keeper holding the ball in his hands is not challenged.
             // A ball rolling ahead of its owner after a touch is won by
             // getting to it, not in a challenge (docs/ball-carrying.md).
-            if (!ball.owner || ball.held || ball.touch) {
+            if (!ball.isAtFeet() || ball.held) {
               return;
             }
             const auto carrierIndex = findPlayerIndex(current, *ball.owner);
