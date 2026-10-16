@@ -250,7 +250,7 @@ gaining ground is never stopped, and one who goes round in circles is.
 | Event              | Fields                                   | Recorded when                        |
 |--------------------|------------------------------------------|--------------------------------------|
 | `DribbleAttempted` | `carrier`, `opponent`, `from`, `target`  | the first touch of a dribble leaves his foot |
-| `DribbleEnded`     | `carrier`, `opponent`, `outcome`, `position` | he gets the ball back -- `beaten` if it is then farther up the pitch than the opponent, `kept` otherwise -- or loses it: `lost` |
+| `DribbleEnded`     | `carrier`, `opponent`, `outcome`, `position` | he gets the ball back -- `beaten` if it is then farther up the pitch than the opponent, `kept` otherwise -- or loses it: `lost`; none if his touch goes in |
 | `BallWon`          | ... `cause`                              | `looseTouch` for an opponent who got to the touched ball |
 
 No event marks a single touch: there are hundreds a match, and the decision

@@ -19,6 +19,7 @@
 #include "perception.hpp"
 #include "playerMovement.hpp"
 #include "tacticalPhase.hpp"
+#include "tacticalState.hpp"
 #include "vec2.hpp"
 
 using Catch::Matchers::WithinAbs;
@@ -35,10 +36,14 @@ using ElyverseFootball::SimMatch::carryContributions;
 using ElyverseFootball::SimMatch::CarryIntent;
 using ElyverseFootball::SimMatch::CarryKind;
 using ElyverseFootball::SimMatch::CarryRejection;
+using ElyverseFootball::SimMatch::CarryRun;
 using ElyverseFootball::SimMatch::CarryScoringConfig;
 using ElyverseFootball::SimMatch::carryScoringForPhase;
 using ElyverseFootball::SimMatch::carryScoringForRisk;
+using ElyverseFootball::SimMatch::DribbleAttempted;
+using ElyverseFootball::SimMatch::DribbleEnded;
 using ElyverseFootball::SimMatch::generateCarryCandidates;
+using ElyverseFootball::SimMatch::GoalScored;
 using ElyverseFootball::SimMatch::makeBallMovementSystem;
 using ElyverseFootball::SimMatch::makeChallengeSystem;
 using ElyverseFootball::SimMatch::makePerceptionSystem;
@@ -426,6 +431,43 @@ TEST_CASE("A touched ball that leaves the pitch is nobody's", "[carrying]") {
               }
             });
   REQUIRE(freed);
+}
+
+TEST_CASE("A dribble whose touch goes in is not lost", "[carrying]") {
+  // Home 1 dribbles past away 3 and touches the ball into the empty goal; he
+  // does not follow.
+  const MatchState state = twoASide({.x = 55.0, .y = 5.0}, {.x = 55.0, .y = 35.0});
+  MatchSystem dribble{.name = "dribble",
+                      .update = [](const MatchStepContext& context, const MatchState& /*current*/,
+                                   MatchStateWriter& next) {
+                        if (context.tick() == SimTick(0)) {
+                          next.setPendingAction(0, CarryIntent{.carrier = PlayerId(1),
+                                                               .target = {.x = 60.0, .y = 20.0},
+                                                               .speed = 15.0,
+                                                               .seconds = 5.0,
+                                                               .errorFactor = 0.0});
+                          next.tactical(0).carry = CarryRun{.kind = CarryKind::kDribble,
+                                                            .target = {.x = 60.0, .y = 20.0},
+                                                            .subject = PlayerId(3),
+                                                            .since = context.tick(),
+                                                            .focus = {.x = 60.0, .y = 20.0},
+                                                            .gaze = {.x = 1.0, .y = 0.0},
+                                                            .touchedAt = std::nullopt,
+                                                            .retakenAt = std::nullopt,
+                                                            .dribbling = true};
+                        }
+                      }};
+  bool attempted = false;
+  bool scored = false;
+  playTouch(state, std::move(dribble), 150, [&](const MatchSimulation& simulation) {
+    for (const MatchEvent& event : simulation.events()) {
+      attempted = attempted || std::holds_alternative<DribbleAttempted>(event);
+      scored = scored || std::holds_alternative<GoalScored>(event);
+      REQUIRE_FALSE(std::holds_alternative<DribbleEnded>(event));
+    }
+  });
+  REQUIRE(attempted);
+  REQUIRE(scored);
 }
 
 TEST_CASE("A challenge cannot take a ball rolling ahead of its owner", "[carrying]") {

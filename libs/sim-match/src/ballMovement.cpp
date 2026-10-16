@@ -486,8 +486,8 @@ void takeBall(const FreeBall& free, const BallClaim& claim, const PlayerMatchSta
 // that left the pitch over a goal line, between the posts and under the
 // crossbar, is a goal; the line stops it flat, so the height it crossed at is
 // asked of the flight. And a shot that left the pitch or came to rest has
-// become what it will be.
-void settleFreeBall(const BallState& from, const FreeBall& free, const BallRules& rules,
+// become what it will be. Returns whether the ball went in.
+bool settleFreeBall(const BallState& from, const FreeBall& free, const BallRules& rules,
                     const MatchStepContext& context, const MatchState& current,
                     MatchStateWriter& next) {
   const Pitch& pitch = current.pitch();
@@ -511,6 +511,7 @@ void settleFreeBall(const BallState& from, const FreeBall& free, const BallRules
   if (free.shot && (left || moved.isAtRest())) {
     resolveShot(*free.shot, goal ? ShotOutcome::kGoal : missOutcome(*free.shot), context, next);
   }
+  return goal;
 }
 
 // The keeper who faces the free ball while it is still in front of him, and
@@ -1003,14 +1004,17 @@ void moveTouchedBall(const BallState& ball, const BallRules& rules, const MatchS
     return;
   }
   const BallState from = offTheFrame(free, 0.0, rules, context, current.pitch());
-  settleFreeBall(from, free, rules, context, current, next);
+  const bool goal = settleFreeBall(from, free, rules, context, current, next);
   BallState after = next.ball();
   after.owner.reset();
   if (isOutOfPlay(after, current.pitch())) {
     next.setBallOwner(std::nullopt);
     context.record(PossessionChanged{
         .tick = context.tick(), .previousOwner = owner.playerId, .newOwner = std::nullopt});
-    endDribble(current, *ownerIndex, DribbleOutcome::kLost, context, next);
+    // A dribble whose touch went in has not lost the ball.
+    if (!goal) {
+      endDribble(current, *ownerIndex, DribbleOutcome::kLost, context, next);
+    }
   }
 }
 
