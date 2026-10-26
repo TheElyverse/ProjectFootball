@@ -31,7 +31,7 @@ using SimCore::Vec2;
 
 // A touch never errs by so much in pace that pressure could stop it dead or
 // turn it round: under full pressure its speed error stays below 1.
-constexpr double kMaxTouchSpeedError = 0.45;
+constexpr double kMaxTouchSpread = 0.9;
 
 // The owner as the movement system leaves him after this tick: moved and
 // turned with the same pure functions, so ball and carrier stay together.
@@ -89,11 +89,13 @@ constexpr double kMaxTouchSpeedError = 0.45;
 }
 
 // The pass configuration a touch errs with: both errors errorFactor times a
-// pass's.
+// pass's, the speed error capped so that full pressure, which spoils it by
+// 1 + pressureErrorFactor, keeps it at kMaxTouchSpread.
 [[nodiscard]] PassConfig touchConfig(const PassConfig& passing, const double errorFactor) noexcept {
   PassConfig touch = passing;
   touch.directionError = passing.directionError * errorFactor;
-  touch.speedError = std::min(passing.speedError * errorFactor, kMaxTouchSpeedError);
+  touch.speedError = std::min(passing.speedError * errorFactor,
+                              kMaxTouchSpread / (1.0 + passing.pressureErrorFactor));
   return touch;
 }
 

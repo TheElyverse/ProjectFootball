@@ -50,8 +50,9 @@ dribble's again by a factor from `maxDribbleError` (1.5) at a `dribbling` of 0
 down to `minDribbleError` (0.5) at 1. A heavy touch -- too fast, or off line --
 leaves the ball farther from where he meets it, and an opponent may get there
 first: losing the ball is the same geometry as keeping it, never a roll of its
-own. The speed error stays below `0.45` however large the factor, so that
-pressure cannot stop the ball dead or turn it round.
+own. The speed error stays at most `0.9 / (1 + pressureErrorFactor)` (`0.45`
+by default) however large the factor, so that pressure cannot stop the ball
+dead or turn it round.
 
 ### Running with the ball
 
