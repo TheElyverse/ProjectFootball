@@ -315,12 +315,12 @@ void followTouch(const MatchStepContext& context, const MatchState& current,
                                       .horizonSeconds = scoring.horizonSeconds},
                                      rules.reception.controlHeight);
   // Where he meets the ball lies along his run, he runs on through it, as far
-  // again as his run still goes from there, rather than braking for it;
-  // elsewhere he brakes to take it.
+  // again as his run still goes beyond it -- not at all past its target --,
+  // rather than braking for it; elsewhere he brakes to take it.
   if (meet) {
     const SimCore::Vec2 toward = SimCore::unitOr(meet->point - runner.position, {});
     const bool ahead = toward.dot(SimCore::unitOr(runner.velocity, toward)) >= kRunThroughCosine;
-    const double onward = ahead ? SimCore::distance(meet->point, run->target) : 0.0;
+    const double onward = ahead ? std::max(0.0, (run->target - meet->point).dot(toward)) : 0.0;
     next.setPlayerTarget(carrier, current.pitch().clamp(meet->point + (toward * onward)));
   }
   SimCore::Vec2 lookAt = run->focus;

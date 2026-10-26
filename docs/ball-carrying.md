@@ -68,8 +68,9 @@ ball in his hands runs as fast as without it.
 While the ball rolls ahead of him, he runs after it every tick: to where he
 meets it, by `findInterception()` (`pursuit.hpp`) at his running speed with it.
 Where that point lies within 45 degrees of where he runs, he runs on through it,
-as far again as his run still goes from there, rather than braking for the
-ball; elsewhere he brakes to take it.
+as far again as his run still goes beyond it -- not at all where it lies past
+his run's target --, rather than braking for the ball; elsewhere he brakes to
+take it.
 
 ## The options
 
