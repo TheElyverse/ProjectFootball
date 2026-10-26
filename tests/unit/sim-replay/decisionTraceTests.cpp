@@ -252,6 +252,32 @@ TEST_CASE("A decision without a shot says why the goal was not on", "[decisionTr
   REQUIRE(traced().contains("; no shot: goal unseen)"));
 }
 
+TEST_CASE("Holding the ball to look around says whether he had a valid option", "[decisionTrace]") {
+  ShotCandidate shot;
+  shot.rejection = ShotRejection::kGoalUnseen;
+  DecisionDiagnostic decision{.tick = SimTick(18),
+                              .player = PlayerId(1),
+                              .observations = {},
+                              .candidates = {PassCandidate{}},
+                              .shots = {shot},
+                              .outcome = DecisionOutcome::kHeld,
+                              .chosen = 0,
+                              .scoring = {},
+                              .shotScoring = {},
+                              .carries = {ElyverseFootball::SimMatch::CarryCandidate{}},
+                              .carryScoring = {},
+                              .reason = ElyverseFootball::SimMatch::OnBallReason::kScanFirstSide,
+                              .target = Vec2{.x = 12.0, .y = 26.2}};
+  const auto traced = [&decision] {
+    return formatTrace(
+        std::vector<TraceEntry>{PassDecisionTrace{.decision = decision, .outcome = {}}});
+  };
+
+  REQUIRE(traced().contains("keeps the ball: looks for a better option (1 options"));
+  decision.candidates.front().rejection = ElyverseFootball::SimMatch::PassRejection::kUnlikely;
+  REQUIRE(traced().contains("keeps the ball: no valid option (1 options"));
+}
+
 TEST_CASE("A goalkeeper's call to come for a ball is traced with both arrivals",
           "[decisionTrace]") {
   const auto entries =

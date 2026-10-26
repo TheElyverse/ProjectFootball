@@ -1,5 +1,6 @@
 #include "decisionTrace.hpp"
 
+#include <algorithm>
 #include <cstddef>
 #include <format>
 #include <string>
@@ -128,6 +129,15 @@ using SimMatch::MatchEvent;
          decision.outcome == DecisionOutcome::kDribbled;
 }
 
+// Whether he had a valid pass or shot: holding the ball despite one, he
+// looks for a better option.
+[[nodiscard]] bool hadValidOption(const DecisionDiagnostic& decision) noexcept {
+  return std::ranges::any_of(decision.candidates,
+                             [](const SimMatch::PassCandidate& pass) { return pass.isValid(); }) ||
+         std::ranges::any_of(decision.shots,
+                             [](const SimMatch::ShotCandidate& shot) { return shot.isValid(); });
+}
+
 // How the ball goes: a pass along the ground or a long kick, from the hands
 // a throw or a punt (docs/goalkeeper-distribution.md).
 [[nodiscard]] std::string_view passVerb(const SimMatch::PassCandidate& pass, const bool held) {
@@ -166,8 +176,10 @@ using SimMatch::MatchEvent;
                                                            SimMatch::onBallReasonName(reason),
                                                            decision.target->x, decision.target->y)
                                              : std::string();
-    return line + std::format("keeps the ball: no valid option ({}{}{})", context,
-                              shotNote(decision), look);
+    return line +
+           std::format("keeps the ball: {} ({}{}{})",
+                       hadValidOption(decision) ? "looks for a better option" : "no valid option",
+                       context, shotNote(decision), look);
   }
   const SimMatch::PassCandidate& pass = decision.candidates.at(*decision.chosen);
   const SimMatch::PassContributions parts = SimMatch::passContributions(pass, decision.scoring);

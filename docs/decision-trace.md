@@ -37,7 +37,8 @@ t=0 #1 kicks long to #5 (utility 1.24: completion +0.86 progression +0.42 pressu
   `turns toward`, `carries to` and `dribbles past #n to`, with the parts of
   `carryContributions()` -- a turn's time as `turn` -- and the estimated risk of
   losing the touched ball ([ball carrying](ball-carrying.md)). Holding the ball
-  while he looks for an option reads as keeping it.
+  while he looks for an option reads as keeping it: `looks for a better option`
+  with a valid pass or shot, `no valid option` without.
 - **Candidates**: how many passes he had, and the chosen option's utility split
   into its weighted parts — `passContributions()` for a pass
   ([pass candidates](pass-candidates.md)), `shotContributions()` for a shot
