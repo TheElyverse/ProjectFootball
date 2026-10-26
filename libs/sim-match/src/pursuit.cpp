@@ -224,6 +224,35 @@ void turnBack(const MatchState& current, MatchStateWriter& next, const TeamSide 
   return call.coming;
 }
 
+// Whether the side leaves the ball alone: anyone's while a player controls
+// it, his own side's while he has touched it on ahead of him.
+[[nodiscard]] bool leavesBall(const MatchState& current, const TeamSide side) {
+  const BallState& ball = current.ball();
+  if (!ball.owner) {
+    return false;
+  }
+  const auto owner = findPlayerIndex(current, *ball.owner);
+  return !owner || !ball.touch || current.players()[*owner].side == side;
+}
+
+// Sends the side's player who reaches the ball first after it -- or, if he
+// is a goalkeeper who stays home, the next one.
+void chaseFor(const MatchStepContext& context, const MatchState& current, MatchStateWriter& next,
+              const TeamSide side, const std::vector<std::optional<Interception>>& interceptions,
+              const GoalkeeperConfig& goalkeeper) {
+  auto chaser = findChaser(current, interceptions, side);
+  if (chaser && isGoalkeeper(current, chaser->index) &&
+      behindDefence(current, side, chaser->interception.point) &&
+      !comesForBall(context, current, next, *chaser, interceptions, goalkeeper)) {
+    chaser = findChaser(current, interceptions, side, chaser->index);
+  }
+  turnBack(current, next, side, chaser ? std::optional(chaser->index) : std::nullopt);
+  handOver(current, next, side, chaser ? std::optional(chaser->playerId) : std::nullopt);
+  if (chaser) {
+    next.setPlayerTarget(chaser->index, chaser->interception.point);
+  }
+}
+
 }  // namespace
 
 MatchSystem makePursuitSystem(const BallPhysics& physics, const PursuitConfig& config,
@@ -237,10 +266,7 @@ MatchSystem makePursuitSystem(const BallPhysics& physics, const PursuitConfig& c
       .update =
           [physics, config, goalkeeper, reception](
               const MatchStepContext& context, const MatchState& current, MatchStateWriter& next) {
-            const BallState& ball = current.ball();
-            const auto owner = ball.owner ? findPlayerIndex(current, *ball.owner) : std::nullopt;
-            const bool touched = owner && ball.touch;
-            if (ball.owner && !touched) {
+            if (leavesBall(current, TeamSide::kHome) && leavesBall(current, TeamSide::kAway)) {
               for (const TeamSide side : {TeamSide::kHome, TeamSide::kAway}) {
                 handOver(current, next, side, std::nullopt);
               }
@@ -249,23 +275,10 @@ MatchSystem makePursuitSystem(const BallPhysics& physics, const PursuitConfig& c
             const auto interceptions =
                 findInterceptions(current, physics, config, reception, context);
             for (const TeamSide side : {TeamSide::kHome, TeamSide::kAway}) {
-              // A ball touched on ahead of its owner is his side's to leave to
-              // him.
-              if (touched && current.players()[*owner].side == side) {
+              if (leavesBall(current, side)) {
                 handOver(current, next, side, std::nullopt);
-                continue;
-              }
-              auto chaser = findChaser(current, interceptions, side);
-              if (chaser && isGoalkeeper(current, chaser->index) &&
-                  behindDefence(current, side, chaser->interception.point) &&
-                  !comesForBall(context, current, next, *chaser, interceptions, goalkeeper)) {
-                chaser = findChaser(current, interceptions, side, chaser->index);
-              }
-              turnBack(current, next, side, chaser ? std::optional(chaser->index) : std::nullopt);
-              handOver(current, next, side,
-                       chaser ? std::optional(chaser->playerId) : std::nullopt);
-              if (chaser) {
-                next.setPlayerTarget(chaser->index, chaser->interception.point);
+              } else {
+                chaseFor(context, current, next, side, interceptions, goalkeeper);
               }
             }
           },
