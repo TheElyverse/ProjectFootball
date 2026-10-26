@@ -83,8 +83,9 @@ std::optional<Interception> findInterception(const PlayerMatchState& player, con
 namespace {
 
 // Every player's interception of the free ball, by index; empty for one who
-// cannot reach it, for the last player to touch it while it still moves, and
-// for a keeper busy with a dive.
+// cannot reach it, for the last player to touch it while it still moves --
+// unless he touched it on ahead of him and still owns it --, and for a keeper
+// busy with a dive.
 // The goalkeeper reaches with his hands in his own penalty area.
 [[nodiscard]] std::vector<std::optional<Interception>> findInterceptions(
     const MatchState& current, const BallPhysics& physics, const PursuitConfig& config,
@@ -95,7 +96,9 @@ namespace {
   interceptions.reserve(current.players().size());
   for (std::size_t index = 0; index < current.players().size(); ++index) {
     const PlayerMatchState& player = current.players()[index];
-    const bool justPassed = moving && ball.lastTouch && ball.lastTouch->playerId == player.playerId;
+    const bool justPassed = moving && ball.lastTouch &&
+                            ball.lastTouch->playerId == player.playerId &&
+                            ball.owner != player.playerId;
     const bool down = isDiving(current, index, context.tick(), context.secondsPerTick());
     // His hands only while he may still use them, as when he claims it.
     const auto hands = isGoalkeeper(current, index) && !hasReleasedBall(current, index)
@@ -234,7 +237,10 @@ MatchSystem makePursuitSystem(const BallPhysics& physics, const PursuitConfig& c
       .update =
           [physics, config, goalkeeper, reception](
               const MatchStepContext& context, const MatchState& current, MatchStateWriter& next) {
-            if (current.ball().owner) {
+            const BallState& ball = current.ball();
+            const auto owner = ball.owner ? findPlayerIndex(current, *ball.owner) : std::nullopt;
+            const bool touched = owner && ball.touch;
+            if (ball.owner && !touched) {
               for (const TeamSide side : {TeamSide::kHome, TeamSide::kAway}) {
                 handOver(current, next, side, std::nullopt);
               }
@@ -243,6 +249,12 @@ MatchSystem makePursuitSystem(const BallPhysics& physics, const PursuitConfig& c
             const auto interceptions =
                 findInterceptions(current, physics, config, reception, context);
             for (const TeamSide side : {TeamSide::kHome, TeamSide::kAway}) {
+              // A ball touched on ahead of its owner is his side's to leave to
+              // him.
+              if (touched && current.players()[*owner].side == side) {
+                handOver(current, next, side, std::nullopt);
+                continue;
+              }
               auto chaser = findChaser(current, interceptions, side);
               if (chaser && isGoalkeeper(current, chaser->index) &&
                   behindDefence(current, side, chaser->interception.point) &&

@@ -32,8 +32,10 @@ Pressing and blocking weigh the `closePressingLine` responsibility; the phase's
 its action, target and subject in the diagnostics.
 
 While the carrier's ball rolls ahead of him after a touch
-([ball carrying](ball-carrying.md)), a player pressing him runs at the ball
-instead: it is there to be won by whoever gets to it first.
+([ball carrying](ball-carrying.md)), the ball pursuit system sends his
+opponents' earliest player after it, as after a free ball
+([reception](reception.md#going-after-the-ball)): it is there to be won by
+whoever gets to it first.
 
 ## A carrier who stands on the ball
 

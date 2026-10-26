@@ -18,6 +18,7 @@
 #include "matchState.hpp"
 #include "perception.hpp"
 #include "playerMovement.hpp"
+#include "pursuit.hpp"
 #include "tacticalPhase.hpp"
 #include "tacticalState.hpp"
 #include "vec2.hpp"
@@ -48,6 +49,7 @@ using ElyverseFootball::SimMatch::makeBallMovementSystem;
 using ElyverseFootball::SimMatch::makeChallengeSystem;
 using ElyverseFootball::SimMatch::makePerceptionSystem;
 using ElyverseFootball::SimMatch::makePlayerMovementSystem;
+using ElyverseFootball::SimMatch::makePursuitSystem;
 using ElyverseFootball::SimMatch::MatchEvent;
 using ElyverseFootball::SimMatch::MatchSimulation;
 using ElyverseFootball::SimMatch::MatchState;
@@ -59,6 +61,7 @@ using ElyverseFootball::SimMatch::PassIntent;
 using ElyverseFootball::SimMatch::Pitch;
 using ElyverseFootball::SimMatch::PlayerMatchState;
 using ElyverseFootball::SimMatch::PossessionChanged;
+using ElyverseFootball::SimMatch::PursuitConfig;
 using ElyverseFootball::SimMatch::runningSpeed;
 using ElyverseFootball::SimMatch::TeamSide;
 using ElyverseFootball::SimTactics::TacticalPhase;
@@ -449,6 +452,22 @@ TEST_CASE("A teammate leaves the touched ball to the carrier", "[carrying]") {
             [](const MatchSimulation& simulation) {
               REQUIRE(simulation.state().ball().owner == PlayerId(1));
             });
+}
+
+TEST_CASE("Only the other side chases a touched ball", "[carrying]") {
+  // Away 3 waits 10 m ahead of the carrier, who runs after his touch.
+  const MatchState state = twoASide({.x = 30.0, .y = 20.0}, {.x = 55.0, .y = 35.0});
+  bool chased = false;
+  playTouch(state, touchAt({.x = 24.5, .y = 20.0}, 4.0, 0.4, {.x = 30.0, .y = 20.0}), 30,
+            [&](const MatchSimulation& simulation) {
+              const MatchState& current = simulation.state();
+              if (current.ball().touch) {
+                REQUIRE_FALSE(current.chaser(TeamSide::kHome).has_value());
+                chased = chased || current.chaser(TeamSide::kAway) == PlayerId(3);
+              }
+            },
+            {makePursuitSystem(BallPhysics{}, PursuitConfig{})});
+  REQUIRE(chased);
 }
 
 TEST_CASE("A touched ball that leaves the pitch is nobody's", "[carrying]") {

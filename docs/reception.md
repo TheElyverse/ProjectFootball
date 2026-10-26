@@ -67,7 +67,8 @@ kicked the ball.
 A ball its owner has touched on ([ball carrying](ball-carrying.md)) is won the
 same way, but is still his: he takes it back once the touch's seconds have
 passed, without the reclaim delay, his teammates leave it to him, and an
-opponent who reaches it first wins it from him.
+opponent who reaches it first wins it from him. Pursuit sends only the other
+side after it, and a goalkeeper judges it against the carrier.
 
 ## Going after the ball
 
