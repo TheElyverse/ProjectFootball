@@ -129,7 +129,7 @@ block; since he [looks round for one](pass-decisions.md#without-a-valid-option),
 a carrier who stands on the ball [is gone at](pressing.md#a-carrier-who-stands-on-the-ball)
 and one who carries it about gets stuck as one who holds it does
 ([ball carrying](ball-carrying.md#holding-on-and-getting-stuck)), the longest
-is 12.7 s. The test is registered for Release
+is 10.4 s. The test is registered for Release
 builds only; in Debug it would take minutes.
 
 **The full run** is twenty 90-minute matches per pairing, the command above.

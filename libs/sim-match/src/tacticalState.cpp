@@ -44,4 +44,24 @@ std::string_view carryKindName(const CarryKind kind) noexcept {
   return "unknown";
 }
 
+std::string_view duelMoveName(const DuelMove move) noexcept {
+  switch (move) {
+    case DuelMove::kShield:
+      return "shield";
+    case DuelMove::kTurnAway:
+      return "turnAway";
+    case DuelMove::kAccelerate:
+      return "accelerate";
+    case DuelMove::kJockey:
+      return "jockey";
+    case DuelMove::kCommit:
+      return "commit";
+  }
+  return "unknown";
+}
+
+bool isStumbling(const PlayerTacticalState& tactical, const SimCore::SimTick now) noexcept {
+  return tactical.stumbledUntil && now < *tactical.stumbledUntil;
+}
+
 }  // namespace ElyverseFootball::SimMatch

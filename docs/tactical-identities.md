@@ -50,8 +50,8 @@ recognisable, over fixed seeds:
 - **Pressing wins the ball back higher.** Over sixty one-minute tactic
   matches against the reference tactic, pressing regains the ball more often
   than counter and at least one and a half times as often in the opponent's
-  half (at the time of writing 440 regains, 273 of them high, against 220 and
-  151). Twenty matches were too few: with the goalkeeper's own model they
+  half (at the time of writing 315 regains, 139 of them high, against 192 and
+  58). Twenty matches were too few: with the goalkeeper's own model they
   fell below the ratio by chance while sixty kept it.
 - **Counter plays forward after a regain.** A hand-placed moment: home's
   holding midfielder has just won the ball in midfield, the striker is ahead

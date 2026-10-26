@@ -5,8 +5,8 @@
 
 #include "aerialDuels.hpp"
 #include "ballMovement.hpp"
-#include "challenge.hpp"
 #include "desiredRegion.hpp"
+#include "duel.hpp"
 #include "goalFrame.hpp"
 #include "goalkeeper.hpp"
 #include "matchCommand.hpp"
@@ -44,7 +44,7 @@ struct MatchConfig {
   PositioningConfig positioning;
   OffBallConfig offBall;
   DefensiveConfig defensive;
-  ChallengeConfig challenge;
+  DuelConfig duels;
   PressingConfig pressing;
   RestartConfig restarts;
   ShotConfig shooting;
@@ -79,7 +79,7 @@ struct MatchSetup {
 //   5. tactical movement every positioning.intervalTicks ticks
 //   6. ball pursuit     every pursuit.intervalTicks ticks
 //   7. pass decision    every decisions.intervalTicks ticks
-//   8. ball challenge   every challenge.intervalTicks ticks
+//   8. duel             every duels.intervalTicks ticks
 //   9. shot stopping    every tick
 //  10. player movement  every tick
 //  11. ball movement    every tick

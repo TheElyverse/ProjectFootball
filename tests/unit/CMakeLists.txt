@@ -52,7 +52,7 @@ add_executable(sim-match-tests
         sim-match/offBallActionsTests.cpp
         sim-match/defensiveShapeTests.cpp
         sim-match/pressingActionsTests.cpp
-        sim-match/challengeTests.cpp
+        sim-match/duelTests.cpp
         sim-match/teamPressingTests.cpp
         sim-match/carrierScanTests.cpp
         sim-match/carryingTests.cpp

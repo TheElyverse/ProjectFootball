@@ -24,9 +24,9 @@
 using ElyverseFootball::SimCore::PlayerId;
 using ElyverseFootball::SimCore::SimTick;
 using ElyverseFootball::SimMatch::ActionDiagnostic;
-using ElyverseFootball::SimMatch::BallWon;
 using ElyverseFootball::SimMatch::DecisionDiagnostic;
 using ElyverseFootball::SimMatch::DecisionOutcome;
+using ElyverseFootball::SimMatch::DuelStarted;
 using ElyverseFootball::SimMatch::findScenario;
 using ElyverseFootball::SimMatch::hashMatchState;
 using ElyverseFootball::SimMatch::MatchEvent;
@@ -112,8 +112,8 @@ TEST_CASE("Stuck carrier: a side that does not press still goes at a carrier on 
     const MatchSetup setup = setupOf("idle-carrier-challenged", seed);
     MatchSimulation simulation = start(setup);
     std::optional<SimTick> idlePress;
-    std::optional<BallWon> won;
-    while (!won && simulation.tick() < SimTick(450)) {
+    std::optional<DuelStarted> duel;
+    while (!duel && simulation.tick() < SimTick(450)) {
       REQUIRE(simulation.step().has_value());
       for (const ActionDiagnostic& action : simulation.actionDiagnostics()) {
         if (action.idlePress && !idlePress) {
@@ -121,21 +121,21 @@ TEST_CASE("Stuck carrier: a side that does not press still goes at a carrier on 
         }
       }
       for (const MatchEvent& event : simulation.events()) {
-        if (const auto* ballWon = std::get_if<BallWon>(&event); ballWon != nullptr && !won) {
-          won = *ballWon;
+        if (const auto* started = std::get_if<DuelStarted>(&event); started != nullptr && !duel) {
+          duel = *started;
         }
       }
     }
     // Nobody goes at him before he has stood on the ball for idleSeconds;
-    // then the centre back does, and wins it.
+    // then the centre back does, and takes him on.
     REQUIRE(idlePress.has_value());
     REQUIRE(seconds(SimTick(0), idlePress.value_or(SimTick(0))) >
             setup.config.defensive.idleSeconds);
-    REQUIRE(won.has_value());
-    const BallWon ballWon = won.value_or(BallWon{});
-    REQUIRE(ballWon.loser == kCarrier);
-    REQUIRE(ballWon.winner == PlayerId(9));
-    REQUIRE(ballWon.tick > idlePress.value_or(SimTick(0)));
+    REQUIRE(duel.has_value());
+    const DuelStarted started = duel.value_or(DuelStarted{});
+    REQUIRE(started.carrier == kCarrier);
+    REQUIRE(started.defender == PlayerId(9));
+    REQUIRE(started.tick > idlePress.value_or(SimTick(0)));
     REQUIRE(simulation.state().players()[8].side == TeamSide::kAway);
   }
 }

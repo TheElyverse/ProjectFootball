@@ -123,7 +123,7 @@ of him and up to `handsHeight` (2.2 m), against the feet's `controlRadius` and
 passes and loose balls alike; a shot at his goal he meets with a dive instead
 ([shot stopping](shot-stopping.md)). Outside his area he plays as an outfield
 player, with his feet. A ball he takes with his hands he holds: nobody
-challenges him for it, he throws or punts it, and once it has left his hands
+takes him on for it in a [duel](duels.md), he throws or punts it, and once it has left his hands
 he may not take it in them again until another player has touched it
 ([distribution](goalkeeper-distribution.md)). There is no back-pass rule and
 no six-second rule yet.

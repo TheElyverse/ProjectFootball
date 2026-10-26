@@ -229,10 +229,10 @@ TEST_CASE("Initial possession is credited from tick zero and its loss is a turno
 }
 
 TEST_CASE("Each regain in a step matches its own control event", "[analytics]") {
-  // Two ownership changes in the same step: away wins a challenge in its
+  // Two ownership changes in the same step: away wins a duel in its
   // defensive third, then home immediately regains it from a command, whose
   // location analytics cannot know. The command's regain must not be
-  // assigned the challenge's position.
+  // assigned the duel's position.
   const MatchStats stats =
       analyze({{owner(0, std::nullopt, 1)},
                {won(10, 3, 1, {.x = 50.0, .y = 20.0}), owner(10, 1, 3), owner(10, 3, 2)}});
@@ -275,7 +275,7 @@ TEST_CASE("Presses count as pressures and regains", "[analytics]") {
 TEST_CASE("PPDA divides opponent build-up passes by defensive actions there", "[analytics]") {
   // Away's build-up zone is x >= 24 (its 60 % from its own goal line at
   // x = 60). Three away passes start there, one does not. Home defends there
-  // twice -- a won challenge and an interception -- and once outside it.
+  // twice -- a won duel and an interception -- and once outside it.
   const MatchStats stats = analyze({{pass(1, 3, {.x = 50.0, .y = 20.0}, {.x = 40.0, .y = 20.0})},
                                     {pass(2, 4, {.x = 30.0, .y = 20.0}, {.x = 20.0, .y = 20.0})},
                                     {pass(3, 3, {.x = 24.0, .y = 20.0}, {.x = 20.0, .y = 20.0})},

@@ -6,8 +6,8 @@
 #include <vector>
 
 #include "ballMovement.hpp"
-#include "challenge.hpp"
 #include "decisionTrace.hpp"
+#include "duel.hpp"
 #include "matchEvents.hpp"
 #include "matchSetup.hpp"
 #include "matchSimulation.hpp"
@@ -24,12 +24,12 @@ using ElyverseFootball::SimCore::Vec2;
 using ElyverseFootball::SimMatch::ActionType;
 using ElyverseFootball::SimMatch::BallPhysics;
 using ElyverseFootball::SimMatch::BallTouch;
-using ElyverseFootball::SimMatch::ChallengeConfig;
 using ElyverseFootball::SimMatch::DecisionDiagnostic;
 using ElyverseFootball::SimMatch::DecisionOutcome;
 using ElyverseFootball::SimMatch::DiagnosticsFilter;
+using ElyverseFootball::SimMatch::DuelConfig;
 using ElyverseFootball::SimMatch::makeBallMovementSystem;
-using ElyverseFootball::SimMatch::makeChallengeSystem;
+using ElyverseFootball::SimMatch::makeDuelSystem;
 using ElyverseFootball::SimMatch::MatchConfig;
 using ElyverseFootball::SimMatch::MatchSetup;
 using ElyverseFootball::SimMatch::MatchSimulation;
@@ -297,13 +297,15 @@ TEST_CASE("A goalkeeper's call to come for a ball is traced with both arrivals",
   REQUIRE(text.ends_with("; misjudged by +0.00 s, needs +0.15 s)\n"));
 }
 
-TEST_CASE("A pass challenged away the step it is decided is traced as not played",
+TEST_CASE("A pass lost in a duel the step it is decided is traced as not played",
           "[decisionTrace]") {
-  // Home's carrier (1) decides a pass at tick 0; away's presser (2), right
-  // at the ball, wins a guaranteed challenge the very same step. The
-  // pass-decision system runs before the challenge system in the standard
-  // pipeline, so both a kPassed diagnostic and the challenge's
-  // PossessionChanged fall in the same step's events and diagnostics.
+  // Away's presser (2), right at the ball, takes home's carrier (1) on at
+  // tick 1, while the carrier waits to play a pass; at tick 2 the carrier
+  // decides another, and the presser lunges with a foot that cannot miss the
+  // very same step. The
+  // pass-decision system runs before the duel system in the standard
+  // pipeline, so both a kPassed diagnostic and the duel's PossessionChanged
+  // fall in the same step's events and diagnostics.
   const auto player = [](const PlayerId::ValueType number, const TeamSide side,
                          const Vec2 position) {
     return PlayerMatchState{.playerId = PlayerId(number),
@@ -328,8 +330,8 @@ TEST_CASE("A pass challenged away the step it is decided is traced as not played
   const MatchSystem fakeDecide{
       .name = "fake-decide",
       .update = [](const MatchStepContext& context, const MatchState&, MatchStateWriter& next) {
-        // The presser's action must already be in current by the step it
-        // is meant to challenge on, since challenge reads current, not
+        // The presser's action must already be in current by the step he
+        // is meant to take the carrier on, since the duel reads current, not
         // this same step's writes; set it up one step ahead.
         if (context.tick() == SimTick(0)) {
           next.tactical(1).action = PlayerAction{.type = ActionType::kPressCarrier,
@@ -339,15 +341,14 @@ TEST_CASE("A pass challenged away the step it is decided is traced as not played
                                                  .withBall = false};
           return;
         }
-        if (context.tick() != SimTick(1)) {
-          return;
-        }
+        // Waiting to play a pass, he does not roll the ball away in the
+        // duel's first step.
         next.setPendingAction(0, PassIntent{.passer = PlayerId(1),
                                             .target = {.x = 40.0, .y = 20.0},
                                             .speed = 10.0,
                                             .receiver = std::nullopt});
-        if (context.collectsDiagnostics(PlayerId(1))) {
-          context.diagnose(DecisionDiagnostic{.tick = SimTick(1),
+        if (context.tick() == SimTick(2) && context.collectsDiagnostics(PlayerId(1))) {
+          context.diagnose(DecisionDiagnostic{.tick = SimTick(2),
                                               .player = PlayerId(1),
                                               .observations = {},
                                               .candidates = {},
@@ -360,22 +361,27 @@ TEST_CASE("A pass challenged away the step it is decided is traced as not played
                                               .carryScoring = {}});
         }
       }};
-  ChallengeConfig always;
-  always.intervalTicks = 1;
-  always.protectSeconds = 0.0;
-  always.winChance = 1.0;
+  // He always commits, and his foot lands on the ball.
+  DuelConfig sure;
+  sure.intervalTicks = 1;
+  sure.protectSeconds = 0.0;
+  sure.footError = 0.0;
+  sure.jockeyWeight = 0.0;
+  sure.commitWeight = 100.0;
+  sure.decisionTemperature = 0.01;
   MatchSimulation simulation(
       {.initialState = *std::move(initial),
        .seed = 1,
        .ticksPerSecond = 30,
-       .systems = {fakeDecide, makeChallengeSystem(always), makeBallMovementSystem(BallPhysics{})},
+       .systems = {fakeDecide, makeDuelSystem(sure), makeBallMovementSystem(BallPhysics{})},
        .commands = {}});
   simulation.setCollectDiagnostics(true);
   DecisionTracer tracer(MatchConfig{});
-  REQUIRE(simulation.step().has_value());
-  tracer.recordStep(simulation);
-  REQUIRE(simulation.step().has_value());
-  tracer.recordStep(simulation);
+  for (int step = 0; step < 3; ++step) {
+    REQUIRE(simulation.step().has_value());
+    tracer.recordStep(simulation);
+  }
+  REQUIRE(simulation.state().ball().owner == PlayerId(2));
 
   const auto passes = passesOf({tracer.entries().begin(), tracer.entries().end()});
   REQUIRE(passes.size() == 1);

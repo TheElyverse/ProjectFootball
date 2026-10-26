@@ -47,7 +47,7 @@ frame: from its own goal line toward the one it attacks.
 | `turnovers`, `regains` | `PossessionChanged` | the ball's owner changes from one side to the other; the first owner of the match is neither |
 | `regainsByThird` | `PassIntercepted`, `BallWon`, `LooseBallRecovered` | regains by the third of their position; a regain without such an event in its step, a command giving the ball away for instance, is counted in `regains` only |
 | `pressures`, `pressuresRegained` | `PressingStarted`, `PressingEnded` | coordinated presses and those that ended with `ballRegained` |
-| `ppda` | `PassAttempted`, `BallWon`, `PassIntercepted` | passes per defensive action: opponent passes from the opponent's build-up zone — the `ppdaZone` (60 %) of the pitch nearest its own goal — over the side's won challenges and interceptions in that zone |
+| `ppda` | `PassAttempted`, `BallWon`, `PassIntercepted` | passes per defensive action: opponent passes from the opponent's build-up zone — the `ppdaZone` (60 %) of the pitch nearest its own goal — over the side's balls won -- in duels or from a touch -- and interceptions in that zone |
 | `pitchControlShare` | `PitchControlSampled` | mean share of the pitch the side controls ([pitch control](pitch-control.md)) |
 | `attackingThirdShare` | `PitchControlSampled` | share of samples with the ball in the side's attacking third: territory |
 

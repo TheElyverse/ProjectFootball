@@ -34,8 +34,8 @@ tick of the touch and how many seconds after it he may play it again.
 - **It leaves the pitch.** A touched ball that leaves the pitch is nobody's, and
   the [restart](restarts.md) system settles who plays on.
 
-While the ball is ahead of him, no [challenge](pressing.md#winning-the-ball)
-can take it from him -- there is nothing at his feet to challenge for. An
+While the ball is ahead of him, nobody takes him on in a [duel](duels.md) --
+there is nothing at his feet to fight for -- and a duel he is in ends. An
 opponent wins it by getting to it: the earliest of those who get to it before
 him [chases it](reception.md#going-after-the-ball) to where he can intercept
 it. A touch he keeps, nobody chases.
@@ -318,7 +318,6 @@ covering defender and takes it past him on one side.
 ## What this is not
 
 Fatigue does not affect the touch yet: there is no energy model. There is no
-feint, no shielding, no tackle and no duel: an opponent wins a touched ball only
-by getting to it first, and a ball at the carrier's feet by the placeholder
-challenge of [pressing](pressing.md#winning-the-ball). A carry does not aim to
+feint: an opponent wins a touched ball only by getting to it first, and a ball
+at the carrier's feet in a [duel](duels.md). A carry does not aim to
 open a passing lane to a teammate, and nobody carries the ball for a cross.

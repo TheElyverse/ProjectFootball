@@ -31,7 +31,7 @@ a caught shot, a high ball he holds in the air) **holds** it: the ball's
   at the ball in his hands -- he would otherwise keep looking wherever he
   took it, at his own goal after a ball rolled back to him, see no one to
   play to and keep the ball for good;
-- nobody challenges him for it ([pressing](pressing.md));
+- nobody takes him on for it in a [duel](duels.md);
 - he keeps it at least `holdSeconds` (2 s) from the moment he took it, for
   his side to get into shape, against the half second (`minHoldSeconds`)
   anyone else keeps a ball he has just taken;
@@ -182,8 +182,8 @@ keeper and which is 0 in the configuration.
 target after the flight time, that the dial biases long balls either way, the
 rejections, that an opponent under a long ball in time makes it a fifty-fifty
 and one far off does not, and that the bias adds to the utility as
-`directness`. `challengeTests.cpp` checks that nobody challenges a keeper
-holding the ball, and `restartTests.cpp` where a goal kick is taken from.
+`directness`. `duelTests.cpp` checks that nobody takes on a keeper holding
+the ball, and `restartTests.cpp` where a goal kick is taken from.
 
 ## What this is not
 

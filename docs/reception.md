@@ -32,6 +32,8 @@ player against the ball:
 - **No instant reclaim.** The ball's last touch cannot take it back for
   `reclaimDelaySeconds` (0.3 s) after touching it, so a pass does not stick to
   the passer's foot.
+- **On his feet.** A player off his feet after a [duel](duels.md#off-his-feet)
+  takes no ball, also in the step he stumbled in.
 - **Not a fast shot.** A [shot](shooting.md) still fast comes off an outfield
   player in its way instead of being taken by him; `findBallContact()` looks
   for that body with its own reach. The keeper of the goal a shot attacks does
@@ -93,7 +95,8 @@ it, ten times a second:
    misjudged as his anticipation allows, against his tactic's sweeping dial. If
    he stays, his side's next earliest player chases it
    ([goalkeeper](goalkeeper.md)). A keeper busy with a dive chases nothing
-   ([shot stopping](shot-stopping.md)).
+   ([shot stopping](shot-stopping.md)), nor does a player off his feet after a
+   [duel](duels.md#off-his-feet).
 4. **Handing over.** A chaser's target belongs to pursuit. A player who stops
    being the chaser -- a teammate reaches the ball earlier, or anyone controls
    it -- has his target cleared and stops where he is, instead of running on to
@@ -129,5 +132,5 @@ is rejected.
 There is no first-touch quality, no deflection and no failed control: a player
 who reaches the ball at a height he can play has it. A carrier's touches on are
 [ball carrying](ball-carrying.md#the-touchs-error). Heading a ball and
-jumping for one are [aerial duels](aerial-duels.md). Pressing a player on the ball, tackles and
-duels are out of scope.
+jumping for one are [aerial duels](aerial-duels.md), fighting for one at a
+carrier's feet [duels](duels.md).

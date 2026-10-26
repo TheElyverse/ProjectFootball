@@ -12,7 +12,7 @@
 
 #include "ballMovement.hpp"
 #include "carrying.hpp"
-#include "challenge.hpp"
+#include "duel.hpp"
 #include "matchEvents.hpp"
 #include "matchSimulation.hpp"
 #include "matchState.hpp"
@@ -43,10 +43,11 @@ using ElyverseFootball::SimMatch::carryScoringForPhase;
 using ElyverseFootball::SimMatch::carryScoringForRisk;
 using ElyverseFootball::SimMatch::DribbleAttempted;
 using ElyverseFootball::SimMatch::DribbleEnded;
+using ElyverseFootball::SimMatch::DuelStarted;
 using ElyverseFootball::SimMatch::generateCarryCandidates;
 using ElyverseFootball::SimMatch::GoalScored;
 using ElyverseFootball::SimMatch::makeBallMovementSystem;
-using ElyverseFootball::SimMatch::makeChallengeSystem;
+using ElyverseFootball::SimMatch::makeDuelSystem;
 using ElyverseFootball::SimMatch::makePerceptionSystem;
 using ElyverseFootball::SimMatch::makePlayerMovementSystem;
 using ElyverseFootball::SimMatch::makePursuitSystem;
@@ -577,7 +578,7 @@ TEST_CASE("A pass for the ball rolling ahead of its owner is dropped", "[carryin
       std::move(extra));
 }
 
-TEST_CASE("A challenge cannot take a ball rolling ahead of its owner", "[carrying]") {
+TEST_CASE("Nobody takes on a carrier whose ball rolls ahead of him", "[carrying]") {
   // Away 3, pressing, right next to the carrier while his ball rolls.
   const MatchState state = twoASide({.x = 21.0, .y = 20.5}, {.x = 55.0, .y = 35.0});
   const MatchSystem pressing{.name = "press",
@@ -590,16 +591,15 @@ TEST_CASE("A challenge cannot take a ball rolling ahead of its owner", "[carryin
                                    .decidedAt = context.tick(),
                                    .withBall = false};
                              }};
-  ElyverseFootball::SimMatch::ChallengeConfig challenge;
-  challenge.winChance = 1.0;
-  challenge.protectSeconds = 0.0;
+  ElyverseFootball::SimMatch::DuelConfig duels;
+  duels.protectSeconds = 0.0;
   playTouch(state, touchAt({.x = 30.0, .y = 20.0}, 1.5, 5.0, {.x = 20.0, .y = 20.0}), 30,
             [](const MatchSimulation& simulation) {
               if (simulation.previousState().ball().touch) {
                 for (const MatchEvent& event : simulation.events()) {
-                  REQUIRE_FALSE(std::holds_alternative<BallWon>(event));
+                  REQUIRE_FALSE(std::holds_alternative<DuelStarted>(event));
                 }
               }
             },
-            {pressing, makeChallengeSystem(challenge)});
+            {pressing, makeDuelSystem(duels)});
 }

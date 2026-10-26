@@ -19,6 +19,8 @@ using ElyverseFootball::SimCore::SimTick;
 using ElyverseFootball::SimCore::Vec2;
 using ElyverseFootball::SimMatch::BallTouch;
 using ElyverseFootball::SimMatch::CarrierScan;
+using ElyverseFootball::SimMatch::Duel;
+using ElyverseFootball::SimMatch::DuelMove;
 using ElyverseFootball::SimMatch::GoalRecord;
 using ElyverseFootball::SimMatch::hashMatchState;
 using ElyverseFootball::SimMatch::KeeperDive;
@@ -67,7 +69,7 @@ TEST_CASE("Equal states hash equally", "[matchStateHash]") {
 TEST_CASE("The kickoff hash is pinned", "[matchStateHash]") {
   // Changes when the fixture, a state field or the hash encoding changes;
   // each of those invalidates recorded replays, so update it deliberately.
-  REQUIRE(hashOf(kickoffSpec()) == 0x928fecd6d27b54c4ULL);
+  REQUIRE(hashOf(kickoffSpec()) == 0x29bde0458969d424ULL);
 }
 
 // Guards against a field that is added to the state but forgotten here.
@@ -221,6 +223,10 @@ TEST_CASE("Pending actions, the last shot and a keeper's dive are part of the ha
   const auto dive = [](const KeeperDive& answer) {
     return [answer](MatchStateWriter& next) { next.tactical(7).dive = answer; };
   };
+  const Duel aDuel{.carrier = idOf(8), .since = SimTick(4)};
+  const auto duel = [](const Duel& fight) {
+    return [fight](MatchStateWriter& next) { next.tactical(3).duel = fight; };
+  };
   const auto goal = [](const GoalRecord& record) {
     return [record](MatchStateWriter& next) { next.addGoal(record); };
   };
@@ -296,6 +302,25 @@ TEST_CASE("Pending actions, the last shot and a keeper's dive are part of the ha
          next.tactical(3).scan =
              CarrierScan{.since = SimTick(4), .looks = 1, .gaze = {.x = 0.0, .y = 1.0}};
        })},
+      {"duel", hashAfter(duel(aDuel))},
+      {"duel carrier",
+       hashAfter(duel(changed(aDuel, [&](Duel& fight) { fight.carrier = idOf(5); })))},
+      {"duel since",
+       hashAfter(duel(changed(aDuel, [](Duel& fight) { fight.since = SimTick(5); })))},
+      {"duel carrier move",
+       hashAfter(
+           duel(changed(aDuel, [](Duel& fight) { fight.carrierMove = DuelMove::kTurnAway; })))},
+      {"duel defender move",
+       hashAfter(
+           duel(changed(aDuel, [](Duel& fight) { fight.defenderMove = DuelMove::kCommit; })))},
+      {"duel carrier balance",
+       hashAfter(duel(changed(aDuel, [](Duel& fight) { fight.carrierBalance = 0.5; })))},
+      {"duel defender balance",
+       hashAfter(duel(changed(aDuel, [](Duel& fight) { fight.defenderBalance = 0.5; })))},
+      {"stumbled",
+       hashAfter([](MatchStateWriter& next) { next.tactical(3).stumbledUntil = SimTick(4); })},
+      {"stumbled until",
+       hashAfter([](MatchStateWriter& next) { next.tactical(3).stumbledUntil = SimTick(5); })},
       {"keeper dive target",
        hashAfter(dive(changed(aDive, [](KeeperDive& answer) { answer.target.across = 1.0; })))},
       {"keeper dive run",

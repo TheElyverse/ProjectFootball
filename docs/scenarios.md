@@ -34,6 +34,9 @@ in `sim-match` (`scenarios.hpp`), and `sim-cli --scenario <name>` runs one.
 | `run-behind-line` | home's striker level with away's defensive line, space behind it |
 | `carry-into-space` | home player 1 on the ball, nobody to pass to, open space ahead ([ball carrying](ball-carrying.md)) |
 | `dribble-past-defender` | home player 1 carries the ball at a covering defender and past him |
+| `duel-ball-won` | a strong centre back takes on a weak carrier with his back to goal and wins the ball ([duels](duels.md)) |
+| `duel-ball-kept` | a strong carrier with his back to goal shields the ball from a weak centre back and gets away |
+| `duel-loose-ball` | an even duel knocks the ball loose, a teammate of each close by |
 
 All scenarios use the 60 × 40 m example pitch and the default `MatchConfig`
 (30 Hz) unless their section below says otherwise. `sim-cli --list-scenarios` prints the catalog.
@@ -257,7 +260,8 @@ in `no-option-forced` every decision before the last looks for an option,
 first side and other side in turn, and the last plays his best rejected pass
 between `stuckSeconds` and a quarter of a second more after the first; in
 `idle-carrier-challenged` nobody goes at him before `idleSeconds`, then player
-9 does and wins the ball. Both, and `no-passing-option`, run alike every time.
+9 does and takes him on in a [duel](duels.md). Both, and `no-passing-option`,
+run alike every time.
 
 ## The carry scenarios
 
@@ -282,6 +286,35 @@ after four seconds; and over twenty seeds that in `dribble-past-defender` he
 dribbles at player 8 in at least ten, every dribble ends, and at least half of
 those he attempts beat him, with the ball beyond the defender. Both run alike
 every time.
+
+## The duel scenarios
+
+They show a [duel](duels.md) on the ball and how the players' `strength` and
+`ballControl` tilt it. Each is `idle-carrier-challenged` with other players:
+home player 1 stands on the ball at (46, 20) with his back to away's goal, and
+once he has done so for `idleSeconds` away's centre back, player 9, takes him
+on. Home plays without a tactic.
+
+- **`duel-ball-won`**: a weak carrier with a poor touch (strength 0.1, ball
+  control 0.2) against a strong centre back (strength 1). Shielding the ball,
+  he is pushed off his feet and off it; turning away, he is tackled.
+- **`duel-ball-kept`**: a strong carrier with a fine touch (strength 1, ball
+  control 1) against a weak centre back (strength 0.1). He shields the ball,
+  pushes the defender off balance and gets away from him or plays it on.
+- **`duel-loose-ball`**: an even duel, the carrier with a fine touch (ball
+  control 1), so a foot on the ball seldom takes it cleanly. Home player 2
+  waits beyond the centre back, who stands in the way of a pass to him, and
+  away player 10 a few meters off on the other side: a ball knocked loose is
+  theirs to chase too.
+
+`tests/acceptance/duelScenarioTests.cpp` plays each over thirty seeds, nearly
+all of which have a duel; every duel ends after its first step, between the
+players who started it. Away has the ball after the first duel in at least 21
+of the `duel-ball-won` runs -- 25 at the time of writing --, home in at least
+12 of the `duel-ball-kept` runs -- 15 -- and three times as often as in
+`duel-ball-won`; in `duel-loose-ball` at least 8 duels -- 12 -- end with the
+ball loose, and a third player gets to it first after at least 2 of them -- 5.
+All three run alike every time.
 
 ## The tactic match
 

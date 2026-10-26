@@ -119,6 +119,14 @@ test("describeEvent names the players involved", () => {
     describeEvent({ tick: 0, type: "dribbleEnded", carrier: 4, opponent: 9, outcome: "beaten", position: [3, 1] }),
     "#4's dribble at #9: beaten",
   );
+  assert.equal(
+    describeEvent({ tick: 0, type: "duelStarted", carrier: 4, defender: 9, position: [3, 1] }),
+    "#9 takes on #4",
+  );
+  assert.equal(
+    describeEvent({ tick: 0, type: "duelEnded", carrier: 4, defender: 9, outcome: "loose", position: [3, 1] }),
+    "#9's duel with #4: loose",
+  );
     assert.equal(
     describeEvent({
       tick: 0,

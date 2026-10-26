@@ -134,7 +134,7 @@ a replay reproduces.
 
 `matchSetup.hpp` assembles the systems a real match runs. `MatchConfig` holds
 every tunable parameter of those systems — the tick rate, ball physics and
-perception, passing, reception, pursuit, decisions, phases, pitch control, positioning, off-ball and defensive decisions, challenges, presses and restarts so far — and `makeMatchSystems(config)` returns them in their fixed order:
+perception, passing, reception, pursuit, decisions, phases, pitch control, positioning, off-ball and defensive decisions, duels, presses and restarts so far — and `makeMatchSystems(config)` returns them in their fixed order:
 
 | Order | System          | Rate       | Writes                         |
 |-------|-----------------|------------|--------------------------------|
@@ -145,9 +145,9 @@ perception, passing, reception, pursuit, decisions, phases, pitch control, posit
 | 5     | tactical movement | 5 Hz     | movement targets, desired regions and actions -- off-ball and defensive -- of players of sides with a tactic, the goalkeepers' places ([goalkeeper](goalkeeper.md)) |
 | 6     | ball pursuit    | 10 Hz      | movement targets of the chasers, the chasers, the goalkeepers' judgements of a ball they could come for |
 | 7     | pass decision   | 5 Hz       | the carrier's pending pass or shot ([shot decisions](shot-decisions.md)) |
-| 8     | ball challenge  | 10 Hz      | ball owner and last touch after a won challenge, players' last challenge; clears the loser's pending pass or shot |
+| 8     | duel            | 10 Hz      | the duel on the ball, in the defender's tactical state, and who is off his feet; the carrier's and the defender's movement targets, the ball's position as the carrier rolls it round him, its owner, velocity and last touch once it is won or loose; clears the loser's pending pass or shot ([duels](duels.md)) |
 | 9     | shot stopping   | every tick | the dive of the keeper facing a shot, once he has reacted, in his tactical state ([shot stopping](shot-stopping.md)) |
-| 10    | player movement | every tick | player positions, velocities, facings; a keeper busy with a dive where it takes him |
+| 10    | player movement | every tick | player positions, velocities, facings -- toward the ball as the systems before it left it --; a keeper busy with a dive where it takes him, a player off his feet nowhere |
 | 11    | ball movement   | every tick | ball position, velocity, owner, last touch, last pass and shot, the score and the last goal, a keeper's dive once the ball passed him; plays the owner's pending pass or shot and clears every other ([shooting](shooting.md)) |
 | 12    | restart         | every tick | ball owner, position, velocity and last touch after the ball went out or into a goal or a goalkeeper held it too long, and for a kickoff both sides' line-up; only with `restarts.enabled` ([restarts](restarts.md)) |
 

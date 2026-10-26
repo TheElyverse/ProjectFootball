@@ -236,14 +236,18 @@ TEST_CASE("Players of a side with a tactic take up their regions", "[desiredRegi
   // it, and away is scripted.
   MatchSimulation simulation = holdingMatch(
       kickoff({.x = 30.0, .y = 20.0}, {.home = referenceTactic(), .away = {}}), PlayerId(14));
-  run(simulation, 300);
+  run(simulation, 360);
   const MatchState& state = simulation.state();
   for (std::size_t index = 0; index < 7; ++index) {
     CAPTURE(index);
     const auto& region = state.tactical(index).region;
     REQUIRE(region.has_value());
     // A player goes to his region's centre while he holds position, and to
-    // his action's target otherwise (docs/defensive-shape.md).
+    // his action's target otherwise (docs/defensive-shape.md) -- but where
+    // his duel takes him while he takes on the carrier (docs/duels.md).
+    if (state.tactical(index).duel) {
+      continue;
+    }
     const auto& action = state.tactical(index).action;
     const bool holds =
         !action || action->type == ElyverseFootball::SimMatch::ActionType::kHoldPosition;

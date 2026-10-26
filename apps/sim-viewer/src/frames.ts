@@ -188,6 +188,19 @@ export type MatchEvent = { readonly tick: number } & (
       readonly outcome: string;
       readonly position: Vec2;
     }
+  | {
+      readonly type: "duelStarted";
+      readonly carrier: number;
+      readonly defender: number;
+      readonly position: Vec2;
+    }
+  | {
+      readonly type: "duelEnded";
+      readonly carrier: number;
+      readonly defender: number;
+      readonly outcome: string;
+      readonly position: Vec2;
+    }
     | {
       readonly type: "pressingStarted";
       readonly side: TeamSide;
@@ -447,6 +460,10 @@ export function describeEvent(event: MatchEvent): string {
       return `#${event.carrier} dribbles at #${event.opponent}`;
     case "dribbleEnded":
       return `#${event.carrier}'s dribble at #${event.opponent}: ${event.outcome}`;
+    case "duelStarted":
+      return `#${event.defender} takes on #${event.carrier}`;
+    case "duelEnded":
+      return `#${event.defender}'s duel with #${event.carrier}: ${event.outcome}`;
     case "pressingStarted":
       return `${event.side} presses #${event.carrier} (${event.trigger ?? "pressing phase"}, ${event.assignments.length} players)`;
     case "pressingEnded":

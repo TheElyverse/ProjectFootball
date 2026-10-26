@@ -5,7 +5,9 @@ Players move toward targets assigned by commands. The movement model lives in
 as the system `makePlayerMovementSystem()`, which runs every tick and writes
 player positions, velocities and facings. A goalkeeper busy with a dive is the
 exception: the system puts him where his dive takes him, whatever his target
-([shot stopping](shot-stopping.md#his-body)).
+([shot stopping](shot-stopping.md#his-body)). A player off his feet after a
+[duel](duels.md#off-his-feet) moves as if he had no target, whatever his
+target: he slows to a stop (`asMoving()`).
 
 ## Targets
 
@@ -80,6 +82,8 @@ The movement system also turns players, with `facingAfterMove()`:
 - a player moving faster than `kFacingRunSpeed` (1 m/s) looks where he runs,
 - a slower or standing player looks at the ball -- a goalkeeper holding it up
   the pitch ([distribution](goalkeeper-distribution.md#the-ball-in-his-hands)),
+  and a carrier at the ball where the systems before movement left it: in a
+  [duel](duels.md) he rolls it round him, and turns with it,
 - a player standing exactly on the ball keeps his facing.
 
 He turns at once. A turning rate, and looking elsewhere than where he runs,

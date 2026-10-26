@@ -121,8 +121,15 @@ void addTactical(StableHasher& hasher, const PlayerTacticalState& tactical) noex
     hasher.addI64(tactical.action->decidedAt.value());
     hasher.addBool(tactical.action->withBall);
   }
-  hasher.addBool(tactical.lastChallenge.has_value());
-  hasher.addI64(tactical.lastChallenge.value_or(SimCore::SimTick(0)).value());
+  hasher.addBool(tactical.duel.has_value());
+  if (const auto& duel = tactical.duel) {
+    hasher.addU64(duel->carrier.value());
+    hasher.addI64(duel->since.value());
+    hasher.addU64(static_cast<std::uint64_t>(duel->carrierMove));
+    hasher.addU64(static_cast<std::uint64_t>(duel->defenderMove));
+    hasher.addDouble(duel->carrierBalance);
+    hasher.addDouble(duel->defenderBalance);
+  }
   hasher.addBool(tactical.sweep.has_value());
   if (tactical.sweep) {
     hasher.addU64(tactical.sweep->touchedBy.value());
@@ -169,6 +176,8 @@ void addTactical(StableHasher& hasher, const PlayerTacticalState& tactical) noex
     hasher.addI64(carry->retakenAt.value_or(SimCore::SimTick(0)).value());
     hasher.addBool(carry->dribbling);
   }
+  hasher.addBool(tactical.stumbledUntil.has_value());
+  hasher.addI64(tactical.stumbledUntil.value_or(SimCore::SimTick(0)).value());
 }
 
 void addPress(StableHasher& hasher, const std::optional<TeamPress>& press) noexcept {

@@ -110,13 +110,15 @@ constexpr double kPitchWidth = kSandboxWidthMeters;
 // the ball at kickoff and the standard systems -- perception, pass decisions,
 // execution, reception -- play on without further commands.
 
-// A hand-placed player: where he stands and which way he faces, a unit
-// vector: (+1, 0) toward the away goal, (-1, 0) toward the home goal.
+// A hand-placed player: where he stands, which way he faces, a unit vector:
+// (+1, 0) toward the away goal, (-1, 0) toward the home goal, and how good he
+// is.
 struct Placement {
   double x;
   double y;
   double facingX;
   double facingY = 0.0;
+  PlayerAttributes attributes = {};
 };
 
 using Side = std::array<Placement, kDefaultPlayersPerSide>;
@@ -147,7 +149,7 @@ constexpr double kCarryMarkDistance = 1.5;  // m
                          .side = side,
                          .position = {.x = placement.x, .y = placement.y},
                          .velocity = {},
-                         .attributes = {},
+                         .attributes = placement.attributes,
                          .target = std::nullopt,
                          .facing = {.x = placement.facingX, .y = placement.facingY}});
     }
@@ -263,31 +265,39 @@ constexpr double kCarryMarkDistance = 1.5;  // m
 
 // Player 1 stands with his back to away's goal, every teammate more than a
 // long pass away; he never acts on his own (stuckSeconds is out of reach).
-// Away plays the reference tactic without any pressing, a centre back a
-// meter and a half goal-side of him, its forwards far off in home's half:
-// after idleSeconds the centre back goes at him regardless.
-[[nodiscard]] std::expected<MatchSetup, std::string> idleCarrierChallenged(
-    const std::uint64_t seed) {
-  constexpr Side kHome{{{.x = 46.0, .y = 20.0, .facingX = -1.0},
-                        {.x = 8.0, .y = 10.0, .facingX = 1.0},
-                        {.x = 8.0, .y = 30.0, .facingX = 1.0},
-                        {.x = 6.0, .y = 20.0, .facingX = 1.0},
-                        {.x = 4.0, .y = 5.0, .facingX = 1.0},
-                        {.x = 4.0, .y = 35.0, .facingX = 1.0},
-                        {.x = 2.0, .y = 20.0, .facingX = 1.0}}};
-  constexpr Side kAway{{{.x = 58.0, .y = 20.0, .facingX = -1.0},
-                        {.x = 47.5, .y = 20.0, .facingX = -1.0},
-                        {.x = 48.0, .y = 28.0, .facingX = -1.0},
-                        {.x = 50.0, .y = 12.0, .facingX = -1.0},
-                        {.x = 15.0, .y = 4.0, .facingX = -1.0},
-                        {.x = 15.0, .y = 36.0, .facingX = -1.0},
-                        {.x = 12.0, .y = 20.0, .facingX = -1.0}}};
-  auto setup = placed(seed, kHome, kAway,
-                      {.home = std::nullopt, .away = goldenPressingTactic(0.0, {}, 0.6)});
+// Away plays the reference tactic without any pressing, a centre back -- the
+// second away player, 9 -- a meter and a half goal-side of him, its forwards
+// far off in home's half: after idleSeconds the centre back goes at him
+// regardless.
+constexpr Side kIdleHome{{{.x = 46.0, .y = 20.0, .facingX = -1.0},
+                          {.x = 8.0, .y = 10.0, .facingX = 1.0},
+                          {.x = 8.0, .y = 30.0, .facingX = 1.0},
+                          {.x = 6.0, .y = 20.0, .facingX = 1.0},
+                          {.x = 4.0, .y = 5.0, .facingX = 1.0},
+                          {.x = 4.0, .y = 35.0, .facingX = 1.0},
+                          {.x = 2.0, .y = 20.0, .facingX = 1.0}}};
+constexpr Side kIdleAway{{{.x = 58.0, .y = 20.0, .facingX = -1.0},
+                          {.x = 47.5, .y = 20.0, .facingX = -1.0},
+                          {.x = 48.0, .y = 28.0, .facingX = -1.0},
+                          {.x = 50.0, .y = 12.0, .facingX = -1.0},
+                          {.x = 15.0, .y = 4.0, .facingX = -1.0},
+                          {.x = 15.0, .y = 36.0, .facingX = -1.0},
+                          {.x = 12.0, .y = 20.0, .facingX = -1.0}}};
+
+[[nodiscard]] std::expected<MatchSetup, std::string> idleCarrier(const std::uint64_t seed,
+                                                                 const Side& home,
+                                                                 const Side& away) {
+  auto setup =
+      placed(seed, home, away, {.home = std::nullopt, .away = goldenPressingTactic(0.0, {}, 0.6)});
   if (setup) {
     setup->config.decisions.stuckSeconds = 1.0e6;
   }
   return setup;
+}
+
+[[nodiscard]] std::expected<MatchSetup, std::string> idleCarrierChallenged(
+    const std::uint64_t seed) {
+  return idleCarrier(seed, kIdleHome, kIdleAway);
 }
 
 // ---------------------------------------------------------------------------
@@ -689,6 +699,47 @@ constexpr Side kCarryHome{{{.x = 20.0, .y = 20.0, .facingX = 1.0},
   return carrying(seed, {.x = 38.0, .y = 20.0, .facingX = -1.0});
 }
 
+// ---------------------------------------------------------------------------
+// Duel scenarios (docs/duels.md): the idle carrier's fixture, in which the
+// centre back, player 9, takes player 1 on once he has stood on the ball for
+// idleSeconds. Who is stronger and better on the ball decides how the duel
+// tends to go; it is decided step by step all the same.
+
+// A weak carrier with a poor touch against a strong centre back: pushed off
+// his feet or tackled once he turns, he loses the ball.
+[[nodiscard]] std::expected<MatchSetup, std::string> duelBallWon(const std::uint64_t seed) {
+  Side home = kIdleHome;
+  Side away = kIdleAway;
+  home[0].attributes.strength = 0.1;
+  home[0].attributes.ballControl = 0.2;
+  away[1].attributes.strength = 1.0;
+  return idleCarrier(seed, home, away);
+}
+
+// A strong carrier with a fine touch against a weak centre back: he shields
+// the ball, pushes the defender off balance and gets away from him.
+[[nodiscard]] std::expected<MatchSetup, std::string> duelBallKept(const std::uint64_t seed) {
+  Side home = kIdleHome;
+  Side away = kIdleAway;
+  home[0].attributes.strength = 1.0;
+  home[0].attributes.ballControl = 1.0;
+  away[1].attributes.strength = 0.1;
+  return idleCarrier(seed, home, away);
+}
+
+// Two equally strong players, the carrier with a fine touch, so that a foot
+// on the ball rarely takes it cleanly; a teammate of each stands close by to
+// go after it when it runs loose: player 2 beyond the centre back, who
+// stands in the way of a pass to him, and player 10 on the near side.
+[[nodiscard]] std::expected<MatchSetup, std::string> duelLooseBall(const std::uint64_t seed) {
+  Side home = kIdleHome;
+  Side away = kIdleAway;
+  home[0].attributes.ballControl = 1.0;
+  home[1] = {.x = 53.0, .y = 21.0, .facingX = -1.0};
+  away[2] = {.x = 42.0, .y = 24.0, .facingX = -1.0};
+  return idleCarrier(seed, home, away);
+}
+
 constexpr std::array kScenarios{
     ScenarioDefinition{
         .name = "kickoff",
@@ -793,6 +844,18 @@ constexpr std::array kScenarios{
                        .description = "home player 1 carries the ball at a covering defender and "
                                       "past him",
                        .make = &dribblePastDefender},
+    ScenarioDefinition{.name = "duel-ball-won",
+                       .description = "a strong centre back takes on a weak carrier with his "
+                                      "back to goal and wins the ball",
+                       .make = &duelBallWon},
+    ScenarioDefinition{.name = "duel-ball-kept",
+                       .description = "a strong carrier with his back to goal shields the ball "
+                                      "from a weak centre back and gets away",
+                       .make = &duelBallKept},
+    ScenarioDefinition{.name = "duel-loose-ball",
+                       .description = "an even duel knocks the ball loose, a teammate of each "
+                                      "close by",
+                       .make = &duelLooseBall},
 };
 
 }  // namespace

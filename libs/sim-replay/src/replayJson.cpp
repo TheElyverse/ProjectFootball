@@ -276,6 +276,35 @@ using SimMatch::TeamSide;
           {"effortWeight", offBall.effortWeight}};
 }
 
+[[nodiscard]] Json duelsJson(const SimMatch::DuelConfig& duels) {
+  return {{"intervalTicks", duels.intervalTicks},
+          {"protectSeconds", duels.protectSeconds},
+          {"engageRadius", duels.engageRadius},
+          {"breakRadius", duels.breakRadius},
+          {"jockeyDistance", duels.jockeyDistance},
+          {"turnStep", duels.turnStep},
+          {"accelerateStep", duels.accelerateStep},
+          {"tackleReach", duels.tackleReach},
+          {"footRadius", duels.footRadius},
+          {"bodyRadius", duels.bodyRadius},
+          {"footError", duels.footError},
+          {"minHold", duels.minHold},
+          {"maxHold", duels.maxHold},
+          {"looseSpeed", duels.looseSpeed},
+          {"contactDistance", duels.contactDistance},
+          {"shovePerSecond", duels.shovePerSecond},
+          {"commitCost", duels.commitCost},
+          {"turnCost", duels.turnCost},
+          {"recoveryPerSecond", duels.recoveryPerSecond},
+          {"stumbleSeconds", duels.stumbleSeconds},
+          {"shieldWeight", duels.shieldWeight},
+          {"turnWeight", duels.turnWeight},
+          {"accelerateWeight", duels.accelerateWeight},
+          {"jockeyWeight", duels.jockeyWeight},
+          {"commitWeight", duels.commitWeight},
+          {"decisionTemperature", duels.decisionTemperature}};
+}
+
 [[nodiscard]] Json defensiveJson(const SimMatch::DefensiveConfig& defensive) {
   return {{"markRadius", defensive.markRadius},
           {"markDistance", defensive.markDistance},
@@ -444,12 +473,7 @@ using SimMatch::TeamSide;
       {"positioning", positioningJson(config.positioning)},
       {"offBall", offBallJson(config.offBall)},
       {"defensive", defensiveJson(config.defensive)},
-      {"challenge",
-       {{"intervalTicks", config.challenge.intervalTicks},
-        {"radius", config.challenge.radius},
-        {"winChance", config.challenge.winChance},
-        {"attemptSeconds", config.challenge.attemptSeconds},
-        {"protectSeconds", config.challenge.protectSeconds}}},
+      {"duels", duelsJson(config.duels)},
       {"pressing", pressingJson(config.pressing)},
       {"restarts",
        {{"enabled", config.restarts.enabled}, {"maxHoldSeconds", config.restarts.maxHoldSeconds}}},
@@ -994,12 +1018,34 @@ constexpr std::int64_t kMaxGoals = 1'000'000;
           .effortWeight = number("effortWeight")};
 }
 
-[[nodiscard]] SimMatch::ChallengeConfig readChallenge(const Field& field) {
+[[nodiscard]] SimMatch::DuelConfig readDuels(const Field& field) {
+  const auto number = [&field](const std::string_view key) { return field.member(key).number(); };
   return {.intervalTicks = static_cast<int>(field.member("intervalTicks").integerIn(1, 100000)),
-          .radius = field.member("radius").number(),
-          .winChance = field.member("winChance").number(),
-          .attemptSeconds = field.member("attemptSeconds").number(),
-          .protectSeconds = field.member("protectSeconds").number()};
+          .protectSeconds = number("protectSeconds"),
+          .engageRadius = number("engageRadius"),
+          .breakRadius = number("breakRadius"),
+          .jockeyDistance = number("jockeyDistance"),
+          .turnStep = number("turnStep"),
+          .accelerateStep = number("accelerateStep"),
+          .tackleReach = number("tackleReach"),
+          .footRadius = number("footRadius"),
+          .bodyRadius = number("bodyRadius"),
+          .footError = number("footError"),
+          .minHold = number("minHold"),
+          .maxHold = number("maxHold"),
+          .looseSpeed = number("looseSpeed"),
+          .contactDistance = number("contactDistance"),
+          .shovePerSecond = number("shovePerSecond"),
+          .commitCost = number("commitCost"),
+          .turnCost = number("turnCost"),
+          .recoveryPerSecond = number("recoveryPerSecond"),
+          .stumbleSeconds = number("stumbleSeconds"),
+          .shieldWeight = number("shieldWeight"),
+          .turnWeight = number("turnWeight"),
+          .accelerateWeight = number("accelerateWeight"),
+          .jockeyWeight = number("jockeyWeight"),
+          .commitWeight = number("commitWeight"),
+          .decisionTemperature = number("decisionTemperature")};
 }
 
 [[nodiscard]] SimMatch::PressingConfig readPressing(const Field& field) {
@@ -1152,7 +1198,7 @@ constexpr std::int64_t kMaxGoals = 1'000'000;
       .positioning = readPositioning(field.member("positioning")),
       .offBall = readOffBall(field.member("offBall")),
       .defensive = readDefensive(field.member("defensive")),
-      .challenge = readChallenge(field.member("challenge")),
+      .duels = readDuels(field.member("duels")),
       .pressing = readPressing(field.member("pressing")),
       .restarts = {.enabled = field.member("restarts").member("enabled").boolean(),
                    .maxHoldSeconds = field.member("restarts").member("maxHoldSeconds").number()},
