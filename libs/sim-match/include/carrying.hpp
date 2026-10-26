@@ -39,7 +39,8 @@ struct CarryCandidateRules {
 //     than pitchMargin inside the lines and short of where an opponent gets
 //     there within safetySeconds of him;
 //   - dribbling past each opponent within dribbleRadius in the direction he
-//     attacks, on his left and on his right -- not for a goalkeeper.
+//     attacks, on his left and on his right, to no closer than pitchMargin
+//     to the lines -- not for a goalkeeper.
 //
 // Nothing with carrying switched off, and nothing for a goalkeeper with the
 // ball in his hands. Ordered by

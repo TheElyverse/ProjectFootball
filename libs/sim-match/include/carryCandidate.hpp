@@ -41,7 +41,7 @@ struct CarryScoringConfig {
   double gapRadius = 20.0;  // m
   // Two directions whose unit vectors have at least this dot product are one.
   double sameDirection = 0.98;
-  // A carry ends this far inside the touchlines and goal lines.
+  // A carry or dribble ends this far inside the touchlines and goal lines.
   double pitchMargin = 1.0;  // m
   // A carry ends where an opponent would get there less than this after him.
   double safetySeconds = 0.3;

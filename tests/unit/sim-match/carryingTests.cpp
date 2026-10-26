@@ -296,6 +296,22 @@ TEST_CASE("He dribbles past an opponent ahead on either side", "[carrying]") {
   REQUIRE(sides == 0.0);
 }
 
+TEST_CASE("No dribble ends closer to the line than a carry would", "[carrying]") {
+  // Home 1 runs along the touchline 4.9 m from it, away 3 stands 4 m ahead:
+  // the dribble on that side would end 0.5 m inside the line.
+  auto spec = twoASide({.x = 24.5, .y = 4.9}, {.x = 55.0, .y = 35.0});
+  std::vector<PlayerMatchState> players(spec.players().begin(), spec.players().end());
+  players[0].position = {.x = 20.0, .y = 4.9};
+  auto ball = spec.ball();
+  ball.position = {.x = 20.5, .y = 4.9};
+  auto state = MatchState::create(
+      {.pitch = spec.pitch(), .players = std::move(players), .ball = ball, .playersPerSide = 2});
+  REQUIRE(state.has_value());
+  const auto dribbles = ofKind(candidatesOf(perceived(*std::move(state))), CarryKind::kDribble);
+  REQUIRE(dribbles.size() == 1);
+  REQUIRE(dribbles.front().target.y >= CarryScoringConfig{}.pitchMargin);
+}
+
 TEST_CASE("No dribble past an opponent behind, too far or right on him", "[carrying]") {
   for (const Vec2 opponent :
        {Vec2{.x = 14.0, .y = 20.0}, Vec2{.x = 30.0, .y = 20.0}, Vec2{.x = 21.5, .y = 20.0}}) {

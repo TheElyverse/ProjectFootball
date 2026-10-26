@@ -147,6 +147,12 @@ constexpr double kCarryStep = 1.0;  // m
   return carrier;
 }
 
+// Whether the point lies at least `margin` inside the lines.
+[[nodiscard]] bool insideBy(const Vec2 point, const Pitch& pitch, const double margin) noexcept {
+  return point.x >= margin && point.x <= pitch.lengthMeters() - margin && point.y >= margin &&
+         point.y <= pitch.widthMeters() - margin;
+}
+
 // How far he can carry the ball along `direction` within horizonSeconds:
 // short of the first point an opponent gets to within safetySeconds of him,
 // and no farther than pitchMargin inside the lines.
@@ -155,18 +161,13 @@ constexpr double kCarryStep = 1.0;  // m
                                   const CarryCandidateRules& rules) {
   const CarryScoringConfig& scoring = rules.scoring;
   const double horizon = carrier.attributes.maxSpeed * scoring.horizonSeconds;
-  const double margin = scoring.pitchMargin;
-  const auto inside = [&](const Vec2 point) {
-    return point.x >= margin && point.x <= pitch.lengthMeters() - margin && point.y >= margin &&
-           point.y <= pitch.widthMeters() - margin;
-  };
   double safe = 0.0;
   // The samples are the running sum of kCarryStep, deterministic on every
   // platform.
   // NOLINTNEXTLINE(bugprone-float-loop-counter)
   for (double along = kCarryStep; along <= horizon; along += kCarryStep) {
     const Vec2 point = carrier.position + (direction * along);
-    if (!inside(point)) {
+    if (!insideBy(point, pitch, scoring.pitchMargin)) {
       break;
     }
     const auto mine = estimateArrivalSeconds(carrier, point, pitch);
@@ -327,7 +328,7 @@ void scoreCandidate(CarryCandidate& candidate, const MatchState& state, const Ve
 
 // The dribble past `opponent` on the side `side` (+1 his left as the carrier
 // sees him, -1 his right), or none if he stands too close to go past or the
-// ball would leave the pitch.
+// ball would end up closer than pitchMargin to the lines, like a carry's.
 [[nodiscard]] std::optional<CarryCandidate> dribblePast(const MatchState& state,
                                                         const PlayerMatchState& carrier,
                                                         const Vec2 from, const Remembered& opponent,
@@ -349,7 +350,7 @@ void scoreCandidate(CarryCandidate& candidate, const MatchState& state, const Ve
       scoring.dribbleClearance * reach /
       std::sqrt((distance * distance) - (scoring.dribbleClearance * scoring.dribbleClearance));
   const Vec2 target = opponent.player.position + (along * scoring.dribbleBeyond) + (across * wide);
-  if (!state.pitch().contains(target)) {
+  if (!insideBy(target, state.pitch(), scoring.pitchMargin)) {
     return std::nullopt;
   }
   CarryCandidate candidate{.kind = CarryKind::kDribble,

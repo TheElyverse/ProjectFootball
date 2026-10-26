@@ -141,7 +141,8 @@ either side of him: two candidates per opponent. Not for a goalkeeper.
 The touch goes past the opponent: toward the point `dribbleBeyond` (1.5 m)
 behind him, as far to his side as makes the ball's way pass him at
 `dribbleClearance` -- for the opponent at distance `d`, `w = c·(d + b) /
-sqrt(d² − c²)` to the side. A point off the pitch gives no dribble. His
+sqrt(d² − c²)` to the side. A point less than `pitchMargin` inside the lines, as
+for a carry, gives no dribble. His
 `dribbling` shortens the time he plans to the ball, from `slowDribbleShare`
 (1.2) times a carry's at 0 to `quickDribbleShare` (0.8) at 1, so a good
 dribbler plays the ball past faster, and errs less.
@@ -279,7 +280,7 @@ every replay; `validate()` rejects values outside their ranges.
 | `minCarryDistance`  | 2 m     | a shorter carry is none                                |
 | `gapRadius`         | 20 m    | opponents this close make the gaps                     |
 | `sameDirection`     | 0.98    | directions this close are one                          |
-| `pitchMargin`       | 1 m     | carries end this far inside the lines                  |
+| `pitchMargin`       | 1 m     | carries and dribbles end this far inside the lines     |
 | `safetySeconds`     | 0.3 s   | a carry ends where an opponent gets there this soon after him |
 | `lossMarginSeconds` | 0.4 s   | the smoothing of the risk of losing the touched ball   |
 | `touchSeconds`      | 0.5 s   | the time to the ball a touch is planned for            |
