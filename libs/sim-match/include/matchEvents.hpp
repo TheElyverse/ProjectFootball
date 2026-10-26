@@ -379,6 +379,10 @@ enum class DecisionOutcome : std::uint8_t {
 // "dribbled"; "unknown" outside the enumerators.
 [[nodiscard]] std::string_view decisionOutcomeName(DecisionOutcome outcome) noexcept;
 
+// Whether the outcome plays the ball on with a touch (docs/ball-carrying.md):
+// turned, carried or dribbled.
+[[nodiscard]] bool isTouch(DecisionOutcome outcome) noexcept;
+
 // How a carrier came to his decision (docs/pass-decisions.md): by choosing
 // among his valid options, the usual way, or -- without one -- by looking for
 // one on the first or the other side, or by playing the best rejected pass or

@@ -276,6 +276,11 @@ std::string_view decisionOutcomeName(const DecisionOutcome outcome) noexcept {
   return "unknown";
 }
 
+bool isTouch(const DecisionOutcome outcome) noexcept {
+  return outcome == DecisionOutcome::kTurned || outcome == DecisionOutcome::kCarried ||
+         outcome == DecisionOutcome::kDribbled;
+}
+
 std::string_view eventName(const MatchEvent& event) {
   struct Names {
     std::string_view operator()(const PassAttempted& /*event*/) const noexcept {

@@ -246,14 +246,11 @@ struct ScanStep {
 // with a touch --; nullptr for any other choice.
 [[nodiscard]] const CarryCandidate* touchOf(const std::optional<OnBallChoice>& chosen,
                                             const std::span<const CarryCandidate> carries) {
-  const bool touching = chosen && (chosen->outcome == DecisionOutcome::kTurned ||
-                                   chosen->outcome == DecisionOutcome::kCarried ||
-                                   chosen->outcome == DecisionOutcome::kDribbled);
-  return touching ? &carries[chosen->index] : nullptr;
+  return chosen && isTouch(chosen->outcome) ? &carries[chosen->index] : nullptr;
 }
 
-// Whether a carry gains something: ground toward the goal line of at least
-// minCarryDistance, a better shot or an opponent bypassed.
+// Whether a carry gains something: ground toward the goal's centre of at
+// least minCarryDistance, a better shot or an opponent bypassed.
 [[nodiscard]] bool gains(const CarryCandidate& carry, const Pitch& pitch,
                          const CarryScoringConfig& scoring) noexcept {
   return carry.progression * pitch.lengthMeters() >= scoring.minCarryDistance || carry.shot > 0.0 ||

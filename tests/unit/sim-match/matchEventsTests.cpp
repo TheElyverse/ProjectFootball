@@ -591,3 +591,14 @@ TEST_CASE("An action's dominant score is its largest contribution", "[matchEvent
   REQUIRE(dominantScore(ActionScores{}) == "responsibility");
   REQUIRE(ActionScores{.responsibility = 1.0, .effort = -0.25}.total() == 0.75);
 }
+
+TEST_CASE("Turning, carrying and dribbling are the touches", "[matchEvents]") {
+  using ElyverseFootball::SimMatch::isTouch;
+  REQUIRE(isTouch(DecisionOutcome::kTurned));
+  REQUIRE(isTouch(DecisionOutcome::kCarried));
+  REQUIRE(isTouch(DecisionOutcome::kDribbled));
+  REQUIRE_FALSE(isTouch(DecisionOutcome::kHeld));
+  REQUIRE_FALSE(isTouch(DecisionOutcome::kPassed));
+  REQUIRE_FALSE(isTouch(DecisionOutcome::kShot));
+  REQUIRE_FALSE(isTouch(DecisionOutcome::kNoValidOption));
+}

@@ -122,11 +122,8 @@ using SimMatch::MatchEvent;
 
 // Whether the decision held, turned, carried or dribbled.
 [[nodiscard]] bool carried(const DecisionDiagnostic& decision) noexcept {
-  using SimMatch::DecisionOutcome;
-  return decision.outcome == DecisionOutcome::kHeld ||
-         decision.outcome == DecisionOutcome::kTurned ||
-         decision.outcome == DecisionOutcome::kCarried ||
-         decision.outcome == DecisionOutcome::kDribbled;
+  return decision.outcome == SimMatch::DecisionOutcome::kHeld ||
+         SimMatch::isTouch(decision.outcome);
 }
 
 // Whether he had a valid pass or shot: holding the ball despite one, he
