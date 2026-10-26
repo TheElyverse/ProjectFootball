@@ -36,8 +36,9 @@ tick of the touch and how many seconds after it he may play it again.
 
 While the ball is ahead of him, no [challenge](pressing.md#winning-the-ball)
 can take it from him -- there is nothing at his feet to challenge for. An
-opponent wins it by getting to it: the other side's earliest player
-[chases it](reception.md#going-after-the-ball) to where he can intercept it.
+opponent wins it by getting to it: the earliest of those who get to it before
+him [chases it](reception.md#going-after-the-ball) to where he can intercept
+it. A touch he keeps, nobody chases.
 
 ### The touch's error
 

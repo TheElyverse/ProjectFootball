@@ -67,7 +67,8 @@ inline constexpr std::string_view kPursuitSystemName = "ball pursuit";
 // point, overriding any assigned target; everyone else keeps his. The last
 // player to touch the ball does not chase it while it still moves -- he just
 // passed it. A ball its owner touched on ahead of him (docs/ball-carrying.md)
-// is chased the same way by the other side only: his own leaves it to him,
+// is chased the same way by the other side, but only by those who get to it
+// before him, at his running speed with it: everyone else leaves it to him,
 // and a goalkeeper judges it against him.
 //
 // The reach comes from the reception configuration: a chaser runs to where he

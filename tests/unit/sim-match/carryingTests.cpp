@@ -475,20 +475,27 @@ TEST_CASE("A teammate leaves the touched ball to the carrier", "[carrying]") {
             });
 }
 
-TEST_CASE("Only the other side chases a touched ball", "[carrying]") {
-  // Away 3 waits 10 m ahead of the carrier, who runs after his touch.
-  const MatchState state = twoASide({.x = 30.0, .y = 20.0}, {.x = 55.0, .y = 35.0});
-  bool chased = false;
-  playTouch(state, touchAt({.x = 24.5, .y = 20.0}, 4.0, 0.4, {.x = 30.0, .y = 20.0}), 30,
-            [&](const MatchSimulation& simulation) {
-              const MatchState& current = simulation.state();
-              if (current.ball().touch) {
-                REQUIRE_FALSE(current.chaser(TeamSide::kHome).has_value());
-                chased = chased || current.chaser(TeamSide::kAway) == PlayerId(3);
-              }
-            },
-            {makePursuitSystem(BallPhysics{}, PursuitConfig{})});
-  REQUIRE(chased);
+TEST_CASE("An opponent chases a touched ball only if he gets there first", "[carrying]") {
+  // Away 3 waits 14 m ahead of the carrier, who stays where he is: a heavy
+  // touch rolls on toward away 3, who gets to it first, a soft one stops at
+  // the carrier's feet.
+  const MatchState state = twoASide({.x = 34.0, .y = 20.0}, {.x = 55.0, .y = 35.0});
+  const auto chasers = [&state](const double speed, const Vec2 target) {
+    bool chased = false;
+    playTouch(state, touchAt(target, speed, 5.0, {.x = 20.0, .y = 20.0}), 30,
+              [&](const MatchSimulation& simulation) {
+                const MatchState& current = simulation.state();
+                if (current.ball().touch) {
+                  REQUIRE_FALSE(current.chaser(TeamSide::kHome).has_value());
+                  REQUIRE(current.chaser(TeamSide::kAway) != PlayerId(4));
+                  chased = chased || current.chaser(TeamSide::kAway) == PlayerId(3);
+                }
+              },
+              {makePursuitSystem(BallPhysics{}, PursuitConfig{})});
+    return chased;
+  };
+  REQUIRE(chasers(6.0, {.x = 32.0, .y = 20.0}));
+  REQUIRE_FALSE(chasers(2.0, {.x = 21.8, .y = 20.0}));
 }
 
 TEST_CASE("A touched ball that leaves the pitch is nobody's", "[carrying]") {
