@@ -64,9 +64,10 @@ struct PassConfig {
                                         SimCore::RandomNumberGenerator& random,
                                         double pressure = 0.0) noexcept;
 
-// How much pressure the passer at this index is under, in [0, 1]: 1 - d /
-// pressureRadius for the nearest opponent at distance d, 0 without one
-// within the radius. Pressure is physical, so it uses true positions.
+// How much pressure the passer at this index is under, in [0, 1]: one minus
+// the product of min(1, d / pressureRadius) over his opponents at distance d
+// -- 1 - d / pressureRadius for a lone opponent within the radius, more for
+// several, 0 without one. Pressure is physical, so it uses true positions.
 [[nodiscard]] double passPressure(const MatchState& state, std::size_t passerIndex,
                                   const PassConfig& config) noexcept;
 

@@ -45,6 +45,8 @@ void addPlayer(StableHasher& hasher, const PlayerMatchState& player) noexcept {
   hasher.addDouble(player.attributes.jumping);
   hasher.addDouble(player.attributes.heading);
   hasher.addDouble(player.attributes.strength);
+  hasher.addDouble(player.attributes.ballControl);
+  hasher.addDouble(player.attributes.dribbling);
   addOptionalVec2(hasher, player.target);
   addVec2(hasher, player.facing);
 }
@@ -152,6 +154,21 @@ void addTactical(StableHasher& hasher, const PlayerTacticalState& tactical) noex
     hasher.addI64(scan->looks);
     addVec2(hasher, scan->gaze);
   }
+  hasher.addBool(tactical.carry.has_value());
+  if (const auto& carry = tactical.carry) {
+    hasher.addU64(static_cast<std::uint64_t>(carry->kind));
+    addVec2(hasher, carry->target);
+    hasher.addBool(carry->subject.has_value());
+    hasher.addU64(carry->subject.value_or(SimCore::PlayerId::invalid()).value());
+    hasher.addI64(carry->since.value());
+    addVec2(hasher, carry->focus);
+    addVec2(hasher, carry->gaze);
+    hasher.addBool(carry->touchedAt.has_value());
+    hasher.addI64(carry->touchedAt.value_or(SimCore::SimTick(0)).value());
+    hasher.addBool(carry->retakenAt.has_value());
+    hasher.addI64(carry->retakenAt.value_or(SimCore::SimTick(0)).value());
+    hasher.addBool(carry->dribbling);
+  }
 }
 
 void addPress(StableHasher& hasher, const std::optional<TeamPress>& press) noexcept {
@@ -188,6 +205,13 @@ void addPendingAction(StableHasher& hasher, const PendingAction& action) noexcep
     hasher.addDouble(shot->height);
     hasher.addDouble(shot->speed);
   }
+  if (const auto* carry = std::get_if<CarryIntent>(&action)) {
+    hasher.addU64(carry->carrier.value());
+    addVec2(hasher, carry->target);
+    hasher.addDouble(carry->speed);
+    hasher.addDouble(carry->seconds);
+    hasher.addDouble(carry->errorFactor);
+  }
 }
 
 }  // namespace
@@ -209,6 +233,11 @@ std::uint64_t hashMatchState(const MatchState& state) noexcept {
   hasher.addBool(state.ball().owner.has_value());
   hasher.addU64(state.ball().owner.value_or(SimCore::PlayerId::invalid()).value());
   hasher.addBool(state.ball().held);
+  hasher.addBool(state.ball().touch.has_value());
+  if (const auto& carried = state.ball().touch) {
+    hasher.addI64(carried->tick.value());
+    hasher.addDouble(carried->seconds);
+  }
   const auto& touch = state.ball().lastTouch;
   hasher.addBool(touch.has_value());
   if (touch) {

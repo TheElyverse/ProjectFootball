@@ -5,6 +5,7 @@
 #include <span>
 #include <string_view>
 
+#include "carrying.hpp"
 #include "distribution.hpp"
 #include "matchSimulation.hpp"
 #include "passCandidates.hpp"
@@ -35,12 +36,16 @@ struct DecisionConfig {
   // goal line.
   double clearTouchlineMargin = 5.0;  // m
   double clearGoalLineMargin = 10.0;  // m
+  // How he weighs holding, turning, carrying and dribbling
+  // (docs/ball-carrying.md).
+  CarryScoringConfig carrying;
 
   friend bool operator==(const DecisionConfig&, const DecisionConfig&) = default;
 };
 
-// What the player on the ball chose: to pass or to shoot -- kPassed or kShot
-// -- and which, by its index in the list it comes from.
+// What the player on the ball chose: to pass, to shoot, to hold, turn, carry
+// or dribble -- kPassed, kShot, kHeld, kTurned, kCarried or kDribbled -- and
+// which, by its index in the list it comes from.
 struct OnBallChoice {
   DecisionOutcome outcome = DecisionOutcome::kPassed;
   std::size_t index = 0;
@@ -61,6 +66,16 @@ struct OnBallChoice {
                                                        double temperature,
                                                        SimCore::RandomNumberGenerator& random);
 
+// chooseOnBall() with his options with the ball at his feet competing too:
+// of the valid ones at the front of a list ordered like
+// generateCarryCandidates()'s, the first of each kind -- the best hold, turn,
+// carry and dribble compete, not every direction.
+[[nodiscard]] std::optional<OnBallChoice> chooseOnBall(std::span<const PassCandidate> passes,
+                                                       std::span<const ShotCandidate> shots,
+                                                       std::span<const CarryCandidate> carries,
+                                                       double temperature,
+                                                       SimCore::RandomNumberGenerator& random);
+
 // Scoring adjusted to how much risk a carrier's tactic accepts, passingRisk
 // in [0, 1] (docs/pass-decisions.md): progression counts (0.5 + risk) times
 // as much, interception risk (1.5 - risk) times, and the completion a pass
@@ -78,42 +93,57 @@ struct OnBallChoice {
 
 inline constexpr std::string_view kPassDecisionSystemName = "pass decision";
 
-// Every config.intervalTicks ticks, the player on the ball decides:
+// Every tick, while the ball rolls ahead of its owner after a touch, he runs
+// after it, to where findInterception() (pursuit.hpp) says he meets it at his
+// running speed with it, and looks about for his next decision
+// (docs/ball-carrying.md): at his run's focus until the touch's seconds have
+// passed, then at the first of his lookTargets() (carrierScan.hpp), and back
+// at the ball once he is lookBackSeconds from meeting it.
+//
+// With the ball at his feet or in his hands, every config.intervalTicks
+// ticks -- and in the tick after he got his touched ball back -- the player
+// on the ball decides:
 //
 //   1. Nothing to decide if the ball is free or its owner already has an
 //      action pending.
 //   2. He keeps a ball he took less than minHoldSeconds ago, and one he
-//      holds in his hands less than the distribution's holdSeconds.
-//   3. He lists and scores his options with generatePassCandidates() and
-//      generateShotCandidates(), from his perception only -- scored for the
-//      passing risk of his side's tactic in its current phase
-//      (scoringForRisk(), shotScoringForRisk()), if it has one. A
-//      goalkeeper adds his long balls (generateLongBallCandidates()), biased
-//      by his tactic's directness (directnessBias()), and from his hands
-//      throws no farther than the distribution's throwRange
-//      (docs/goalkeeper-distribution.md).
-//   4. He picks one of the valid passes and the best valid shot with
-//      chooseByUtility(), drawing from the kAi random stream, and writes it
-//      as his pending action -- the ball system plays it in the next step.
-//      Without a valid option he keeps the ball -- unless he is a goalkeeper
-//      who has held it in his hands for the distribution's clearSeconds: he
-//      then plays the pass with the highest utility of those rejected only
-//      as kUnlikely, drawing nothing more.
-//   5. Any other carrier without a valid option scans: each decision he
-//      looks at the next of his lookTargets() (carrierScan.hpp) until the
-//      next. stuckSeconds after the first decision without an option he
-//      plays the pass with the highest utility of all he rejected, and
-//      without any a lofted kick to clearanceTarget() at the speed that
-//      brings it down there after the distribution's flightSeconds, no
-//      farther than the passing's maxLoftedSpeed reaches. Neither draws a
-//      number.
+//      holds in his hands less than the distribution's holdSeconds. His own
+//      touches do not make him a new owner: not while his run is active
+//      (activeCarry()).
+//   3. He lists and scores his options with generatePassCandidates(),
+//      generateShotCandidates() and generateCarryCandidates(), from his
+//      perception only -- scored for the passing risk of his side's tactic in
+//      its current phase (scoringForRisk(), shotScoringForRisk(),
+//      carryScoringForRisk()) and his carries for the phase itself
+//      (carryScoringForPhase()), if it has one. A goalkeeper adds his long
+//      balls (generateLongBallCandidates()), biased by his tactic's
+//      directness (directnessBias()), and from his hands throws no farther
+//      than the distribution's throwRange (docs/goalkeeper-distribution.md).
+//   4. He picks one of the valid passes, the best valid shot and the valid
+//      carries with chooseByUtility(), drawing from the kAi random stream,
+//      and writes it as his pending action -- the ball system plays it in
+//      the next step. A turn, carry or dribble also starts or continues his
+//      run (CarryRun) and sends him toward his touch; holding the ball stops
+//      him. Without a valid option he keeps the ball -- unless he is a
+//      goalkeeper who has held it in his hands for the distribution's
+//      clearSeconds: he then plays the pass with the highest utility of
+//      those rejected only as kUnlikely, drawing nothing more.
+//   5. Any other carrier without a valid pass or shot who holds the ball
+//      scans: each decision he looks at the next of his lookTargets()
+//      (carrierScan.hpp) until the next. stuckSeconds after the first
+//      decision without an option he plays the pass with the highest utility
+//      of all he rejected, and without any a lofted kick to
+//      clearanceTarget() at the speed that brings it down there after the
+//      distribution's flightSeconds, no farther than the passing's
+//      maxLoftedSpeed reaches. Neither draws a number.
 //
-// Writes the carrier's pending action and his scan (CarrierScan) only; a
-// carrier who acts ends his scan. Throws std::invalid_argument for an
-// interval below one tick, a negative or non-finite hold time, stuck time or
-// margin, a temperature that is not positive and finite, or invalid scoring
-// or distribution (validate(PassScoringConfig), validate(ShotScoringConfig),
-// validate(DistributionConfig)).
+// Writes the carrier's pending action, movement target, scan (CarrierScan)
+// and run (CarryRun) only; a carrier who acts ends his scan. Throws
+// std::invalid_argument for an interval below one tick, a negative or
+// non-finite hold time, stuck time or margin, a temperature that is not
+// positive and finite, or invalid scoring or distribution
+// (validate(PassScoringConfig), validate(ShotScoringConfig),
+// validate(CarryScoringConfig), validate(DistributionConfig)).
 [[nodiscard]] MatchSystem makePassDecisionSystem(const DecisionConfig& config,
                                                  const PassCandidateRules& rules);
 

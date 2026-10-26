@@ -159,6 +159,8 @@ void appendAttributeErrors(const std::size_t index, const PlayerMatchState& play
   appendShareError(attributes.jumping, "jumping");
   appendShareError(attributes.heading, "heading");
   appendShareError(attributes.strength, "strength");
+  appendShareError(attributes.ballControl, "ball control");
+  appendShareError(attributes.dribbling, "dribbling");
   if (attributes.strongFoot != Foot::kLeft && attributes.strongFoot != Foot::kRight) {
     errors.push_back({.code = MatchStateErrorCode::kInvalidPlayerAttributes,
                       .message = describePlayer(index, player) +
@@ -301,6 +303,17 @@ void validateBall(const MatchStateSpec& spec, std::vector<MatchStateError>& erro
     errors.push_back({.code = MatchStateErrorCode::kHeldBallWithoutOwner,
                       .message = "the ball is held in the hands of nobody"});
   }
+  if (spec.ball.touch && !spec.ball.owner) {
+    errors.push_back({.code = MatchStateErrorCode::kTouchedBallWithoutOwner,
+                      .message = "the ball was touched on by nobody"});
+  }
+  if (const auto& touch = spec.ball.touch;
+      touch && (spec.ball.held || !(touch->seconds >= 0.0) || !isFinite(touch->seconds))) {
+    errors.push_back({.code = MatchStateErrorCode::kInvalidCarryTouch,
+                      .message = "the ball was touched on for " + formatNumber(touch->seconds) +
+                                 " s" + (spec.ball.held ? " and is held in the hands" : "") +
+                                 ", expected a ball at the feet and finite, non-negative seconds"});
+  }
 }
 
 void validateTactics(const MatchStateSpec& spec, const TeamTactics& tactics,
@@ -422,6 +435,7 @@ void MatchStateWriter::setBallOwner(const std::optional<SimCore::PlayerId> owner
   }
   state_->ball_.owner = owner;
   state_->ball_.held = false;
+  state_->ball_.touch.reset();
 }
 
 void MatchStateWriter::setBallHeld(const bool held) {
@@ -434,8 +448,21 @@ void MatchStateWriter::setBallHeld(const bool held) {
       throw std::invalid_argument(std::format(
           "MatchStateWriter: player {} is no goalkeeper and cannot hold the ball", owner->value()));
     }
+    if (state_->ball_.touch) {
+      throw std::invalid_argument("MatchStateWriter: the ball rolls ahead of its owner to hold it");
+    }
   }
   state_->ball_.held = held;
+}
+
+void MatchStateWriter::setBallTouch(const std::optional<CarryTouch> touch) {
+  if (touch && !state_->ball_.owner) {
+    throw std::invalid_argument("MatchStateWriter: nobody owns the ball to touch it on");
+  }
+  if (touch && state_->ball_.held) {
+    throw std::invalid_argument("MatchStateWriter: a ball held in the hands is not touched on");
+  }
+  state_->ball_.touch = touch;
 }
 
 void MatchStateWriter::requirePlayer(const SimCore::PlayerId playerId,
@@ -471,6 +498,12 @@ void MatchStateWriter::setPendingAction(const std::size_t playerIndex,
     throw std::invalid_argument(
         std::format("MatchStateWriter: player {} cannot wait to take a shot of player {}",
                     player.value(), shot->shooter.value()));
+  }
+  if (const CarryIntent* carry = action ? std::get_if<CarryIntent>(&*action) : nullptr;
+      carry != nullptr && carry->carrier != player) {
+    throw std::invalid_argument(
+        std::format("MatchStateWriter: player {} cannot wait to play a touch of player {}",
+                    player.value(), carry->carrier.value()));
   }
   state_->pendingActions_[playerIndex] = action;
 }

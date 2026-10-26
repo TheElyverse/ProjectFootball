@@ -8,6 +8,7 @@
 #include <string>
 
 #include "responsibility.hpp"
+#include "stableMath.hpp"
 #include "tactic.hpp"
 #include "teamFrame.hpp"
 #include "zones.hpp"
@@ -15,6 +16,7 @@
 namespace ElyverseFootball::SimMatch {
 namespace {
 
+using SimCore::stableLerp;
 using SimCore::Vec2;
 using SimTactics::Responsibility;
 using SimTactics::TacticalPhase;
@@ -89,10 +91,6 @@ struct ShapeSpan {
   return max > min ? (value - min) / (max - min) : 0.5;
 }
 
-[[nodiscard]] double lerp(const double from, const double toward, const double amount) noexcept {
-  return from + (amount * (toward - from));
-}
-
 // The tactic of the player's side; throws std::invalid_argument for a
 // scripted side, which has none to position by.
 [[nodiscard]] const SimTactics::Tactic& tacticOf(const MatchState& state, const TeamSide side) {
@@ -112,7 +110,8 @@ double defensiveLineDepth(const MatchState& state, const TeamSide side, const Ta
   const double ballDepth = depthOf(side, state.ball().position, state.pitch());
   const double blockLength = instruction.blockLength * length;
   const double nominalCentre = (instruction.lineHeight * length) + (blockLength / 2.0);
-  const double centre = lerp(nominalCentre, ballDepth, kVerticalFollow * instruction.ballShift);
+  const double centre =
+      stableLerp(nominalCentre, ballDepth, kVerticalFollow * instruction.ballShift);
   return std::clamp(centre - (blockLength / 2.0), 0.0, length - blockLength);
 }
 
@@ -142,7 +141,7 @@ Vec2 tacticalTarget(const MatchState& state, const std::size_t playerIndex,
   double depth = line + (fraction(slot.position.depth, span.minDepth, span.maxDepth) * blockLength);
 
   // Across: the block's width, centred between the pitch centre and the ball.
-  const double centreY = lerp(width / 2.0, ball.y, instruction.ballShift);
+  const double centreY = stableLerp(width / 2.0, ball.y, instruction.ballShift);
   const double offset = fraction(slot.position.width, span.minWidth, span.maxWidth) - 0.5;
   double lateral = centreY + (offset * instruction.blockWidth * width);
 
@@ -152,15 +151,15 @@ Vec2 tacticalTarget(const MatchState& state, const std::size_t playerIndex,
   const auto laneY = [&](const double fromTouchline) {
     return lowSide ? fromTouchline * width : (1.0 - fromTouchline) * width;
   };
-  lateral = lerp(lateral, laneY(kWingCentre),
-                 tactic.responsibilityWeight(slotNumber, Responsibility::kProvideWidth));
-  lateral = lerp(lateral, laneY(kHalfspaceCentre),
-                 tactic.responsibilityWeight(slotNumber, Responsibility::kOccupyHalfspace));
+  lateral = stableLerp(lateral, laneY(kWingCentre),
+                       tactic.responsibilityWeight(slotNumber, Responsibility::kProvideWidth));
+  lateral = stableLerp(lateral, laneY(kHalfspaceCentre),
+                       tactic.responsibilityWeight(slotNumber, Responsibility::kOccupyHalfspace));
   if (SimTactics::isInPossession(phase)) {
     const double far = std::max(0.0, ballDepth - kRestDefenceFar);
     const double near = std::max(0.0, ballDepth - kRestDefenceNear);
-    depth = lerp(depth, std::clamp(depth, far, near),
-                 tactic.responsibilityWeight(slotNumber, Responsibility::kHoldRestDefence));
+    depth = stableLerp(depth, std::clamp(depth, far, near),
+                       tactic.responsibilityWeight(slotNumber, Responsibility::kHoldRestDefence));
   }
   return pitch.clamp({.x = xAtDepth(side, depth, pitch), .y = lateral});
 }

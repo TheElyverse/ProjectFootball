@@ -18,8 +18,8 @@ the ball is free; `isControlled()` tells the two apart.
 
 ## A controlled ball follows its carrier
 
-A controlled ball sits `carryDistance` (0.5 m) ahead of its carrier along his
-facing and moves with his velocity:
+A controlled ball at its carrier's feet sits `carryDistance` (0.5 m) ahead of
+him along his facing and moves with his velocity:
 
 ```text
 ball.position = carrier.position + carrier.facing · carryDistance, moved onto the pitch
@@ -48,7 +48,15 @@ the ball where the carrier would have gone. Systems read the state from before
 the step and cannot see what another system writes, so the ball cannot simply
 follow the carrier's committed position instead.
 
-Because the ball's velocity is the carrier's in every tick it is controlled, no
+**Touched on.** A carrier who turns, carries or dribbles plays the ball ahead
+of him with a touch ([ball carrying](ball-carrying.md)): it stays his --
+`owner` does not change -- but rolls on its own until he or an opponent gets to
+it, and `BallState::touch` records the touch's tick and how many seconds after
+it he may take the ball again. `isAtFeet()` tells a ball at his feet from one
+touched on. Only an owned ball at the feet can be touched on, never one held in
+the hands, and giving the ball to anyone ends the touch.
+
+Because the ball's velocity is the carrier's in every tick it is at his feet, no
 velocity from before survives a change of possession: a player who takes a rolling
 ball stands with it at his feet, at his own speed. When a ball is released — by a
 pass, for example — whoever releases it sets its new velocity.
@@ -60,6 +68,7 @@ pass, for example — whoever releases it sets its new velocity.
 | a scenario or test gives the ball to a player | `GiveBallCommand{playerId}`                    |
 | a player receives, intercepts or recovers it  | the first to reach a free ball takes it; see [reception](reception.md) |
 | a player passes         | pass execution releases it with the pass velocity; see [passing](passing.md) |
+| an opponent gets to a touched ball | he wins it; see [ball carrying](ball-carrying.md) |
 
 A `GiveBallCommand` applies at the start of its tick; the ball is at the new
 owner's feet at the end of that tick. Possession changes are state changes like
@@ -73,11 +82,13 @@ every replay. It must be finite and not negative.
 ## Last touch
 
 `BallState::lastTouch` records who last played the ball and in which tick: the
-passer when a pass is kicked, the new owner when a `GiveBallCommand` hands him
-the ball. It is empty until someone has touched the ball, and like the owner it
-can only name a player in the state (`kUnknownLastTouch`).
+passer when a pass is kicked, the carrier when he touches the ball on, the new
+owner when a `GiveBallCommand` hands him the ball. It is empty until someone
+has touched the ball, and like the owner it can only name a player in the state
+(`kUnknownLastTouch`).
 
 ## What this is not
 
-There is no dribbling skill, no loss of control and no tackling: a carrier keeps
-the ball until something takes it from him deliberately.
+There is no tackling and no shielding: a carrier loses a ball at his feet only
+to a [challenge](pressing.md#winning-the-ball), and one he touched on to an
+opponent who gets to it first ([ball carrying](ball-carrying.md)).

@@ -8,6 +8,7 @@
 #include "desiredRegion.hpp"
 #include "pitch.hpp"
 #include "randomDraws.hpp"
+#include "stableMath.hpp"
 #include "tacticalPhases.hpp"
 #include "teamFrame.hpp"
 
@@ -15,6 +16,7 @@ namespace ElyverseFootball::SimMatch {
 namespace {
 
 using RandomDraws::symmetricTriangular;
+using SimCore::stableLerp;
 using SimCore::Vec2;
 
 [[nodiscard]] bool isFiniteNonNegative(const double value) noexcept {
@@ -23,10 +25,6 @@ using SimCore::Vec2;
 
 [[nodiscard]] bool isFinite(const double value) noexcept {
   return std::abs(value) <= std::numeric_limits<double>::max();
-}
-
-[[nodiscard]] double lerp(const double from, const double toward, const double amount) noexcept {
-  return from + (amount * (toward - from));
 }
 
 // The unit vector from the side's goal line into the pitch.
@@ -103,8 +101,8 @@ Vec2 goalkeeperTarget(const MatchState& state, const std::size_t playerIndex,
   const double highDepth =
       std::max(config.lineDepth, std::min(share * line, area.max.x - area.min.x));
   const double fromGoal = (ball - goal.center).length();
-  double depth =
-      lerp(config.lineDepth, highDepth, line > 0.0 ? std::clamp(fromGoal / line, 0.0, 1.0) : 1.0);
+  double depth = stableLerp(config.lineDepth, highDepth,
+                            line > 0.0 ? std::clamp(fromGoal / line, 0.0, 1.0) : 1.0);
   if (fromGoal <= shotRange && opponentOnTheBall(state, side)) {
     depth = config.lineDepth;
   }
@@ -136,7 +134,7 @@ DesiredRegion goalkeeperRegion(const MatchState& state, const std::size_t player
 }
 
 double sweepThreshold(const double sweeping, const GoalkeeperConfig& config) noexcept {
-  return lerp(config.cautiousMargin, config.boldMargin, sweeping);
+  return stableLerp(config.cautiousMargin, config.boldMargin, sweeping);
 }
 
 double drawMisjudgement(const double anticipation, const GoalkeeperConfig& config,

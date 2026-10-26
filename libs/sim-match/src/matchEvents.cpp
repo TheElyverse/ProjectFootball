@@ -54,6 +54,24 @@ void addFields(StableHasher& hasher, const BallWon& event) noexcept {
   hasher.addU64(event.loser.value());
   hasher.addDouble(event.position.x);
   hasher.addDouble(event.position.y);
+  hasher.addU64(static_cast<std::uint64_t>(event.cause));
+}
+
+void addFields(StableHasher& hasher, const DribbleAttempted& event) noexcept {
+  hasher.addU64(event.carrier.value());
+  hasher.addU64(event.opponent.value());
+  hasher.addDouble(event.from.x);
+  hasher.addDouble(event.from.y);
+  hasher.addDouble(event.target.x);
+  hasher.addDouble(event.target.y);
+}
+
+void addFields(StableHasher& hasher, const DribbleEnded& event) noexcept {
+  hasher.addU64(event.carrier.value());
+  hasher.addU64(event.opponent.value());
+  hasher.addU64(static_cast<std::uint64_t>(event.outcome));
+  hasher.addDouble(event.position.x);
+  hasher.addDouble(event.position.y);
 }
 
 void addFields(StableHasher& hasher, const PressingStarted& event) noexcept {
@@ -216,6 +234,53 @@ std::string_view onBallReasonName(const OnBallReason reason) noexcept {
   return "unknown";
 }
 
+std::string_view ballWonCauseName(const BallWonCause cause) noexcept {
+  switch (cause) {
+    case BallWonCause::kChallenge:
+      return "challenge";
+    case BallWonCause::kLooseTouch:
+      return "looseTouch";
+  }
+  return "unknown";
+}
+
+std::string_view dribbleOutcomeName(const DribbleOutcome outcome) noexcept {
+  switch (outcome) {
+    case DribbleOutcome::kBeaten:
+      return "beaten";
+    case DribbleOutcome::kKept:
+      return "kept";
+    case DribbleOutcome::kLost:
+      return "lost";
+  }
+  return "unknown";
+}
+
+std::string_view decisionOutcomeName(const DecisionOutcome outcome) noexcept {
+  switch (outcome) {
+    case DecisionOutcome::kPassed:
+      return "passed";
+    case DecisionOutcome::kNoValidOption:
+      return "noValidOption";
+    case DecisionOutcome::kShot:
+      return "shot";
+    case DecisionOutcome::kHeld:
+      return "held";
+    case DecisionOutcome::kTurned:
+      return "turned";
+    case DecisionOutcome::kCarried:
+      return "carried";
+    case DecisionOutcome::kDribbled:
+      return "dribbled";
+  }
+  return "unknown";
+}
+
+bool isTouch(const DecisionOutcome outcome) noexcept {
+  return outcome == DecisionOutcome::kTurned || outcome == DecisionOutcome::kCarried ||
+         outcome == DecisionOutcome::kDribbled;
+}
+
 std::string_view eventName(const MatchEvent& event) {
   struct Names {
     std::string_view operator()(const PassAttempted& /*event*/) const noexcept {
@@ -272,6 +337,12 @@ std::string_view eventName(const MatchEvent& event) {
     }
     std::string_view operator()(const AerialContest& /*event*/) const noexcept {
       return "aerial contest";
+    }
+    std::string_view operator()(const DribbleAttempted& /*event*/) const noexcept {
+      return "dribble attempted";
+    }
+    std::string_view operator()(const DribbleEnded& /*event*/) const noexcept {
+      return "dribble ended";
     }
   };
   return std::visit(Names{}, event);

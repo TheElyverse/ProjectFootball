@@ -219,6 +219,23 @@ void addEventFields(Json& json, const SimMatch::BallWon& event) {
   json["winner"] = event.winner.value();
   json["loser"] = event.loser.value();
   json["position"] = vec2Json(event.position);
+  json["cause"] = SimMatch::ballWonCauseName(event.cause);
+}
+
+void addEventFields(Json& json, const SimMatch::DribbleAttempted& event) {
+  json["type"] = "dribbleAttempted";
+  json["carrier"] = event.carrier.value();
+  json["opponent"] = event.opponent.value();
+  json["from"] = vec2Json(event.from);
+  json["target"] = vec2Json(event.target);
+}
+
+void addEventFields(Json& json, const SimMatch::DribbleEnded& event) {
+  json["type"] = "dribbleEnded";
+  json["carrier"] = event.carrier.value();
+  json["opponent"] = event.opponent.value();
+  json["outcome"] = SimMatch::dribbleOutcomeName(event.outcome);
+  json["position"] = vec2Json(event.position);
 }
 
 void addEventFields(Json& json, const SimMatch::PressingStarted& event) {
@@ -360,23 +377,11 @@ void addEventFields(Json& json, const SimMatch::GoalScored& event) {
   return json;
 }
 
-[[nodiscard]] std::string_view outcomeName(const SimMatch::DecisionOutcome outcome) noexcept {
-  switch (outcome) {
-    case SimMatch::DecisionOutcome::kPassed:
-      return "passed";
-    case SimMatch::DecisionOutcome::kNoValidOption:
-      return "noValidOption";
-    case SimMatch::DecisionOutcome::kShot:
-      return "shot";
-  }
-  return "unknown";
-}
-
 [[nodiscard]] Json decisionJson(const SimMatch::DecisionDiagnostic& decision) {
   Json json;
   json["tick"] = decision.tick.value();
   json["player"] = decision.player.value();
-  json["outcome"] = outcomeName(decision.outcome);
+  json["outcome"] = SimMatch::decisionOutcomeName(decision.outcome);
   json["held"] = decision.held;
   json["reason"] = SimMatch::onBallReasonName(decision.reason);
   json["target"] = decision.target ? vec2Json(*decision.target) : Json(nullptr);

@@ -36,6 +36,13 @@ One acceleration limits speeding up, slowing down and turning alike. The values
 describe the predefined test players of the sandbox; generated players will
 derive theirs from capabilities.
 
+**With the ball** at his feet or rolling ahead of him after a touch, a player
+runs no faster than `runningSpeed()`: his `maxSpeed` times a share between
+`BallPhysics::minCarrySpeedFactor` (0.8) and `maxCarrySpeedFactor` (0.95) by
+his `ballControl` ([ball carrying](ball-carrying.md#running-with-the-ball)). The
+movement system and every prediction of his move use `stepPlayerMovement()` at
+that speed.
+
 ## One tick of movement
 
 `stepPlayerMovement(player, secondsPerTick)` is a pure function of the player and

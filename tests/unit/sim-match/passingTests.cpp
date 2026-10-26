@@ -321,7 +321,7 @@ TEST_CASE("Pressure widens the execution error", "[passing]") {
   REQUIRE(pressed > 1.5 * calm);
 }
 
-TEST_CASE("The nearest opponent sets the pressure on a passer", "[passing]") {
+TEST_CASE("Opponents close to a passer put him under pressure", "[passing]") {
   using ElyverseFootball::SimMatch::MatchState;
   using ElyverseFootball::SimMatch::passPressure;
   auto state = makeSevenASideKickoff(Pitch(60.0, 40.0));
@@ -335,6 +335,12 @@ TEST_CASE("The nearest opponent sets the pressure on a passer", "[passing]") {
       {.pitch = state->pitch(), .players = players, .ball = state->ball(), .playersPerSide = 7});
   REQUIRE(pressed.has_value());
   REQUIRE(passPressure(*pressed, 6, PassConfig{}) == 0.5);
+  // A second one as close adds to the first: each leaves him half free.
+  players.at(12).position = players.at(6).position + Vec2{.x = 0.0, .y = 1.5};
+  const auto doubled = MatchState::create(
+      {.pitch = state->pitch(), .players = players, .ball = state->ball(), .playersPerSide = 7});
+  REQUIRE(doubled.has_value());
+  REQUIRE(passPressure(*doubled, 6, PassConfig{}) == 0.75);
 }
 
 TEST_CASE("A kick under full pressure must keep some speed", "[passing]") {

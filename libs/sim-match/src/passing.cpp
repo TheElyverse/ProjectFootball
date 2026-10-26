@@ -64,14 +64,17 @@ PassConfig loftedPassConfig(const PassConfig& config) noexcept {
 double passPressure(const MatchState& state, const std::size_t passerIndex,
                     const PassConfig& config) noexcept {
   const PlayerMatchState& passer = state.players()[passerIndex];
-  double pressure = 0.0;
+  // Each opponent's pressure leaves him that much less free; the pressures
+  // combine like independent chances, so a second opponent close by adds to
+  // the first without ever pushing the pressure past 1.
+  double free = 1.0;
   for (const PlayerMatchState& other : state.players()) {
     if (other.side != passer.side) {
       const double distance = std::sqrt((other.position - passer.position).lengthSquared());
-      pressure = std::max(pressure, 1.0 - (distance / config.pressureRadius));
+      free *= std::min(1.0, distance / config.pressureRadius);
     }
   }
-  return pressure;
+  return 1.0 - free;
 }
 
 void validate(const PassConfig& config) {

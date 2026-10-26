@@ -77,7 +77,7 @@ std::optional<BallClaim> findFirstReach(
     if (!reach) {
       continue;
     }
-    const PlayerKinematics stepped = stepPlayerMovement(player, secondsPerTick);
+    const PlayerKinematics stepped = stepPlayerMovement(player, ball, physics, secondsPerTick);
     const auto contact = findContact(player.position, stepped.position, ball.position,
                                      moved.ball.position, reach->radius);
     if (!contact) {

@@ -15,6 +15,12 @@ inline constexpr double kDefaultRollingDeceleration = 1.5;  // m/s²
 // How far ahead of his feet a player carries a controlled ball.
 inline constexpr double kDefaultCarryDistance = 0.5;  // m
 
+// How fast a player runs with the ball at his feet, as a share of his
+// maxSpeed: at the lowest ball control and at the highest, linear in between
+// (docs/ball-carrying.md).
+inline constexpr double kDefaultMinCarrySpeedFactor = 0.8;
+inline constexpr double kDefaultMaxCarrySpeedFactor = 0.95;
+
 // Standard gravity. The simulation is otherwise flat, so this is the only
 // place it appears.
 inline constexpr double kDefaultGravity = 9.81;  // m/s²
@@ -53,7 +59,8 @@ inline constexpr double kBallRadius = 0.11;  // m
 // The physical constants of the ball model (docs/ball-movement.md). The
 // rolling deceleration and gravity must be positive and finite, the carry
 // distance, the drag, the spin decay and the resting speed finite and not
-// negative, and the three shares between 0 and 1.
+// negative, the three shares between 0 and 1, and the carry speed factors
+// above 0 and at most 1, the minimum no greater than the maximum.
 struct BallPhysics {
   double rollingDeceleration = kDefaultRollingDeceleration;
   double carryDistance = kDefaultCarryDistance;
@@ -64,6 +71,8 @@ struct BallPhysics {
   double spinTransfer = kDefaultSpinTransfer;
   double spinDecay = kDefaultSpinDecay;
   double restingVerticalSpeed = kDefaultRestingVerticalSpeed;
+  double minCarrySpeedFactor = kDefaultMinCarrySpeedFactor;
+  double maxCarrySpeedFactor = kDefaultMaxCarrySpeedFactor;
 
   friend bool operator==(const BallPhysics&, const BallPhysics&) = default;
 };

@@ -172,6 +172,21 @@ export type MatchEvent = { readonly tick: number } & (
       readonly winner: number;
       readonly loser: number;
       readonly position: Vec2;
+      readonly cause: string;
+    }
+  | {
+      readonly type: "dribbleAttempted";
+      readonly carrier: number;
+      readonly opponent: number;
+      readonly from: Vec2;
+      readonly target: Vec2;
+    }
+  | {
+      readonly type: "dribbleEnded";
+      readonly carrier: number;
+      readonly opponent: number;
+      readonly outcome: string;
+      readonly position: Vec2;
     }
     | {
       readonly type: "pressingStarted";
@@ -218,7 +233,14 @@ export interface Decision {
   // The tick decided on: the step's, one before the frame's.
   readonly tick: number;
   readonly player: number;
-  readonly outcome: "passed" | "shot" | "noValidOption";
+  readonly outcome:
+    | "passed"
+    | "shot"
+    | "noValidOption"
+    | "held"
+    | "turned"
+    | "carried"
+    | "dribbled";
   // Index into candidates of the chosen pass; null for a shot.
   readonly chosen: number | null;
   // How he came to it: "choice", or without a valid option "scanFirstSide",
@@ -389,6 +411,14 @@ export function describeOutcome(outcome: Decision["outcome"]): string {
       return "shot";
     case "noValidOption":
       return "no valid option";
+    case "held":
+      return "held the ball";
+    case "turned":
+      return "turned";
+    case "carried":
+      return "carried the ball";
+    case "dribbled":
+      return "dribbled";
   }
 }
 
@@ -413,6 +443,10 @@ export function describeEvent(event: MatchEvent): string {
       return `${event.side}: ${event.phase}`;
         case "ballWon":
       return `#${event.winner} wins the ball from #${event.loser}`;
+    case "dribbleAttempted":
+      return `#${event.carrier} dribbles at #${event.opponent}`;
+    case "dribbleEnded":
+      return `#${event.carrier}'s dribble at #${event.opponent}: ${event.outcome}`;
     case "pressingStarted":
       return `${event.side} presses #${event.carrier} (${event.trigger ?? "pressing phase"}, ${event.assignments.length} players)`;
     case "pressingEnded":

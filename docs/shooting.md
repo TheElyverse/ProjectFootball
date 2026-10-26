@@ -15,7 +15,7 @@ ShotIntent   → strike        → flight → body · frame · keeper · line �
 ## The strike
 
 The ball system strikes a pending shot in the step after it was decided, if the
-shooter still has the ball. The ball leaves the grass at his feet on the flight
+shooter still has the ball at his feet. The ball leaves the grass at his feet on the flight
 that brings it to the aimed height at the aimed point of the goal line:
 `launchVerticalVelocity()` solves the closed-form flight of
 [ball movement](ball-movement.md) for the vertical speed that does it, at the
@@ -65,7 +65,7 @@ ball:
 
 | Condition   | What it is                                                                 | At its worst |
 |-------------|----------------------------------------------------------------------------|--------------|
-| `pressure`  | the nearest opponent, as for a pass (`passPressure()`)                     | × (1 + `pressureErrorFactor`) |
+| `pressure`  | the opponents close to him, as for a pass (`passPressure()`)               | × (1 + `pressureErrorFactor`) |
 | `imbalance` | how much of his top speed the shooter moves at across or away from his shot | × (1 + `balanceErrorFactor`) |
 | `weakFoot`  | the target lies on the side of his weaker foot                             | × (1 + `weakFootErrorFactor` · (1 − `weakFootAccuracy`)) |
 | `unsettled` | he has only just received the ball, and it came fast                       | × (1 + `unsettledErrorFactor`) |

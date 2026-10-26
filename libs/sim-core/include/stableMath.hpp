@@ -154,4 +154,13 @@ namespace Detail {
   return sign * Detail::arcTangentAtMostOne(magnitude);
 }
 
+// The value `amount` of the way from `from` toward `toward`: from + amount ×
+// (toward − from), always this one expression. std::lerp is not: it picks
+// among formulas to be exact at the ends and monotonic, and libstdc++, MSVC
+// and libc++ need not pick alike.
+[[nodiscard]] inline double stableLerp(const double from, const double toward,
+                                       const double amount) noexcept {
+  return from + (amount * (toward - from));
+}
+
 }  // namespace ElyverseFootball::SimCore

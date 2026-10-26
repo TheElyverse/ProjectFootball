@@ -30,4 +30,18 @@ std::string_view actionName(const ActionType type) noexcept {
   return "unknown";
 }
 
+std::string_view carryKindName(const CarryKind kind) noexcept {
+  switch (kind) {
+    case CarryKind::kHold:
+      return "hold";
+    case CarryKind::kTurn:
+      return "turn";
+    case CarryKind::kCarry:
+      return "carry";
+    case CarryKind::kDribble:
+      return "dribble";
+  }
+  return "unknown";
+}
+
 }  // namespace ElyverseFootball::SimMatch

@@ -47,7 +47,10 @@ along his run while running, toward the ball otherwise.
 The perception system looks along `lookDirection()` (`carrierScan.hpp`)
 instead: the facing, except for a carrier who looks over his shoulder for a
 passing option -- then along his scan's gaze, while his body and the ball
-stay as they are ([pass decisions](pass-decisions.md#without-a-valid-option)).
+stay as they are ([pass decisions](pass-decisions.md#without-a-valid-option)) --
+and for a carrier whose ball rolls ahead of him after a touch, who looks about
+for his next decision along his run's gaze
+([ball carrying](ball-carrying.md#looking-ahead)).
 
 The cone compares against `cos(fov / 2) − 10⁻⁹`. The cosine does not come from
 `std::cos`: the standard does not require it to be correctly rounded, and

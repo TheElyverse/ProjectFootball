@@ -9,6 +9,7 @@
 using ElyverseFootball::SimCore::stableArcTangent;
 using ElyverseFootball::SimCore::stableExp;
 using ElyverseFootball::SimCore::stableHypot;
+using ElyverseFootball::SimCore::stableLerp;
 
 TEST_CASE("stableExp agrees with std::exp to the last bits", "[stableMath]") {
   REQUIRE(stableExp(0.0) == 1.0);
@@ -133,4 +134,12 @@ TEST_CASE("stableHypot handles non-finite components like std::hypot", "[stableM
   REQUIRE(stableHypot(kNaN, -kInfinity) == kInfinity);
   REQUIRE(std::isnan(stableHypot(kNaN, 1.0)));
   REQUIRE(std::isnan(stableHypot(0.0, kNaN)));
+}
+
+TEST_CASE("stableLerp goes the amount of the way from one value toward the other", "[stableMath]") {
+  REQUIRE(stableLerp(2.0, 6.0, 0.0) == 2.0);
+  REQUIRE(stableLerp(2.0, 6.0, 0.25) == 3.0);
+  REQUIRE(stableLerp(2.0, 6.0, 1.0) == 6.0);
+  REQUIRE(stableLerp(6.0, 2.0, 0.25) == 5.0);
+  REQUIRE(stableLerp(2.0, 6.0, 1.5) == 8.0);
 }

@@ -4,6 +4,7 @@
 #include <array>
 #include <cmath>
 
+#include "carrying.hpp"
 #include "responsibility.hpp"
 #include "teamFrame.hpp"
 
@@ -25,14 +26,21 @@ using SimCore::Vec2;
 const CarrierScan* activeScan(const MatchState& state, const std::size_t playerIndex) {
   const auto& scan = state.tactical(playerIndex).scan;
   const BallState& ball = state.ball();
-  const bool carrying = ball.owner == state.players()[playerIndex].playerId;
-  if (!scan || !carrying || (ball.lastTouch && ball.lastTouch->tick > scan->since)) {
+  if (!scan || ball.owner != state.players()[playerIndex].playerId) {
+    return nullptr;
+  }
+  // His own touches carrying the ball on do not end it.
+  if (ball.lastTouch && ball.lastTouch->tick > scan->since &&
+      activeCarry(state, playerIndex) == nullptr) {
     return nullptr;
   }
   return &*scan;
 }
 
 Vec2 lookDirection(const MatchState& state, const std::size_t playerIndex) {
+  if (const CarryRun* run = state.ball().touch ? activeCarry(state, playerIndex) : nullptr) {
+    return run->gaze;
+  }
   const CarrierScan* scan = activeScan(state, playerIndex);
   return scan != nullptr ? scan->gaze : state.players()[playerIndex].facing;
 }

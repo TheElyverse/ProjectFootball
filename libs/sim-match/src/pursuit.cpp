@@ -10,6 +10,7 @@
 #include <vector>
 
 #include "desiredRegion.hpp"
+#include "playerMovement.hpp"
 #include "shotStopping.hpp"
 #include "spatialQueries.hpp"
 #include "teamFrame.hpp"
@@ -82,9 +83,31 @@ std::optional<Interception> findInterception(const PlayerMatchState& player, con
 
 namespace {
 
+// A ball its owner touched on ahead of him is left to him by everyone who
+// does not get to it before him, as a defender steps in only to a touch too
+// heavy for its owner: their interceptions are emptied.
+void leaveToOwner(const MatchState& current,
+                  std::vector<std::optional<Interception>>& interceptions) {
+  const BallState& ball = current.ball();
+  const auto owner = ball.owner ? findPlayerIndex(current, *ball.owner) : std::nullopt;
+  if (!owner || !ball.touch) {
+    return;
+  }
+  const std::optional<Interception>& his = interceptions[*owner];
+  const double ownerSeconds = his ? his->seconds : std::numeric_limits<double>::infinity();
+  for (std::size_t index = 0; index < interceptions.size(); ++index) {
+    std::optional<Interception>& interception = interceptions[index];
+    if (index != *owner && (!interception || interception->seconds >= ownerSeconds)) {
+      interception.reset();
+    }
+  }
+}
+
 // Every player's interception of the free ball, by index; empty for one who
-// cannot reach it, for the last player to touch it while it still moves, and
-// for a keeper busy with a dive.
+// cannot reach it, for the last player to touch it while it still moves --
+// unless he touched it on ahead of him and still owns it: he runs after it at
+// his running speed with it --, for a keeper busy with a dive, and as
+// leaveToOwner() leaves a touched ball.
 // The goalkeeper reaches with his hands in his own penalty area.
 [[nodiscard]] std::vector<std::optional<Interception>> findInterceptions(
     const MatchState& current, const BallPhysics& physics, const PursuitConfig& config,
@@ -95,18 +118,22 @@ namespace {
   interceptions.reserve(current.players().size());
   for (std::size_t index = 0; index < current.players().size(); ++index) {
     const PlayerMatchState& player = current.players()[index];
-    const bool justPassed = moving && ball.lastTouch && ball.lastTouch->playerId == player.playerId;
+    const bool owns = ball.owner == player.playerId;
+    const bool justPassed =
+        moving && ball.lastTouch && ball.lastTouch->playerId == player.playerId && !owns;
     const bool down = isDiving(current, index, context.tick(), context.secondsPerTick());
     // His hands only while he may still use them, as when he claims it.
     const auto hands = isGoalkeeper(current, index) && !hasReleasedBall(current, index)
                            ? std::optional(HandsReach{.end = ownGoalEnd(player.side),
                                                       .height = reception.handsHeight})
                            : std::nullopt;
-    interceptions.push_back(justPassed || down
-                                ? std::nullopt
-                                : findInterception(player, ball, physics, current.pitch(), config,
-                                                   reception.controlHeight, hands));
+    interceptions.push_back(
+        justPassed || down
+            ? std::nullopt
+            : findInterception(owns ? atRunningSpeed(player, ball, physics) : player, ball, physics,
+                               current.pitch(), config, reception.controlHeight, hands));
   }
+  leaveToOwner(current, interceptions);
   return interceptions;
 }
 
@@ -221,6 +248,35 @@ void turnBack(const MatchState& current, MatchStateWriter& next, const TeamSide 
   return call.coming;
 }
 
+// Whether the side leaves the ball alone: anyone's while a player controls
+// it, his own side's while he has touched it on ahead of him.
+[[nodiscard]] bool leavesBall(const MatchState& current, const TeamSide side) {
+  const BallState& ball = current.ball();
+  if (!ball.owner) {
+    return false;
+  }
+  const auto owner = findPlayerIndex(current, *ball.owner);
+  return !owner || !ball.touch || current.players()[*owner].side == side;
+}
+
+// Sends the side's player who reaches the ball first after it -- or, if he
+// is a goalkeeper who stays home, the next one.
+void chaseFor(const MatchStepContext& context, const MatchState& current, MatchStateWriter& next,
+              const TeamSide side, const std::vector<std::optional<Interception>>& interceptions,
+              const GoalkeeperConfig& goalkeeper) {
+  auto chaser = findChaser(current, interceptions, side);
+  if (chaser && isGoalkeeper(current, chaser->index) &&
+      behindDefence(current, side, chaser->interception.point) &&
+      !comesForBall(context, current, next, *chaser, interceptions, goalkeeper)) {
+    chaser = findChaser(current, interceptions, side, chaser->index);
+  }
+  turnBack(current, next, side, chaser ? std::optional(chaser->index) : std::nullopt);
+  handOver(current, next, side, chaser ? std::optional(chaser->playerId) : std::nullopt);
+  if (chaser) {
+    next.setPlayerTarget(chaser->index, chaser->interception.point);
+  }
+}
+
 }  // namespace
 
 MatchSystem makePursuitSystem(const BallPhysics& physics, const PursuitConfig& config,
@@ -234,7 +290,7 @@ MatchSystem makePursuitSystem(const BallPhysics& physics, const PursuitConfig& c
       .update =
           [physics, config, goalkeeper, reception](
               const MatchStepContext& context, const MatchState& current, MatchStateWriter& next) {
-            if (current.ball().owner) {
+            if (leavesBall(current, TeamSide::kHome) && leavesBall(current, TeamSide::kAway)) {
               for (const TeamSide side : {TeamSide::kHome, TeamSide::kAway}) {
                 handOver(current, next, side, std::nullopt);
               }
@@ -243,17 +299,10 @@ MatchSystem makePursuitSystem(const BallPhysics& physics, const PursuitConfig& c
             const auto interceptions =
                 findInterceptions(current, physics, config, reception, context);
             for (const TeamSide side : {TeamSide::kHome, TeamSide::kAway}) {
-              auto chaser = findChaser(current, interceptions, side);
-              if (chaser && isGoalkeeper(current, chaser->index) &&
-                  behindDefence(current, side, chaser->interception.point) &&
-                  !comesForBall(context, current, next, *chaser, interceptions, goalkeeper)) {
-                chaser = findChaser(current, interceptions, side, chaser->index);
-              }
-              turnBack(current, next, side, chaser ? std::optional(chaser->index) : std::nullopt);
-              handOver(current, next, side,
-                       chaser ? std::optional(chaser->playerId) : std::nullopt);
-              if (chaser) {
-                next.setPlayerTarget(chaser->index, chaser->interception.point);
+              if (leavesBall(current, side)) {
+                handOver(current, next, side, std::nullopt);
+              } else {
+                chaseFor(context, current, next, side, interceptions, goalkeeper);
               }
             }
           },

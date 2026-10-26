@@ -139,13 +139,50 @@ struct KeeperDive {
 // where he looks now -- a unit vector perception uses instead of his facing,
 // while his body and the ball stay as they are. It belongs to his possession
 // of the ball: activeScan() (carrierScan.hpp) ignores it once he has lost
-// the ball or touched it again.
+// the ball or touched it again other than to carry it on.
 struct CarrierScan {
   SimCore::SimTick since;
   int looks = 0;
   SimCore::Vec2 gaze;
 
   friend bool operator==(const CarrierScan&, const CarrierScan&) = default;
+};
+
+// What a player on the ball does besides passing and shooting
+// (docs/ball-carrying.md).
+enum class CarryKind : std::uint8_t {
+  // Keep the ball at his feet where he is.
+  kHold,
+  // Turn with the ball, away from where he faces.
+  kTurn,
+  // Run with the ball into space.
+  kCarry,
+  // Take the ball past an opponent.
+  kDribble,
+};
+
+// "hold", "turn", "carry", "dribble"; "unknown" outside the enumerators.
+[[nodiscard]] std::string_view carryKindName(CarryKind kind) noexcept;
+
+// A carrier's run with the ball (docs/ball-carrying.md): what he chose and
+// where it takes him, whom he dribbles past, when he chose it, where he looks
+// first while the ball rolls ahead of him -- his best option when he chose --
+// and where he looks now, his last touch and when he last had the ball at his
+// feet again. dribbling is whether the dribble's outcome is still open. It
+// belongs to his possession: activeCarry() (carrying.hpp) ignores it once he
+// has lost the ball or anyone else has touched it.
+struct CarryRun {
+  CarryKind kind = CarryKind::kCarry;
+  SimCore::Vec2 target;
+  std::optional<SimCore::PlayerId> subject;
+  SimCore::SimTick since;
+  SimCore::Vec2 focus;
+  SimCore::Vec2 gaze;
+  std::optional<SimCore::SimTick> touchedAt;
+  std::optional<SimCore::SimTick> retakenAt;
+  bool dribbling = false;
+
+  friend bool operator==(const CarryRun&, const CarryRun&) = default;
 };
 
 // A player's tactical runtime state, kept in the match state because
@@ -169,6 +206,8 @@ struct PlayerTacticalState {
   std::optional<SimCore::SimTick> handsReleased;
   // A carrier's look around for an option, while he has none.
   std::optional<CarrierScan> scan;
+  // A carrier's run with the ball, while he turns, carries or dribbles.
+  std::optional<CarryRun> carry = std::nullopt;
 
   friend bool operator==(const PlayerTacticalState&, const PlayerTacticalState&) = default;
 };
