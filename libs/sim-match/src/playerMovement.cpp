@@ -8,6 +8,7 @@
 
 #include "passCandidates.hpp"
 #include "shotStopping.hpp"
+#include "stableMath.hpp"
 
 namespace ElyverseFootball::SimMatch {
 namespace {
@@ -80,10 +81,9 @@ double runningSpeed(const PlayerMatchState& player, const BallState& ball,
   if (ball.owner != player.playerId || ball.held) {
     return player.attributes.maxSpeed;
   }
-  const double factor =
-      physics.minCarrySpeedFactor +
-      ((physics.maxCarrySpeedFactor - physics.minCarrySpeedFactor) * player.attributes.ballControl);
-  return player.attributes.maxSpeed * factor;
+  return player.attributes.maxSpeed * SimCore::stableLerp(physics.minCarrySpeedFactor,
+                                                          physics.maxCarrySpeedFactor,
+                                                          player.attributes.ballControl);
 }
 
 PlayerMatchState atRunningSpeed(const PlayerMatchState& player, const BallState& ball,
