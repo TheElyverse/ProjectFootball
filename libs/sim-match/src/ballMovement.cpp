@@ -423,12 +423,12 @@ struct FreeBall {
 }
 
 // Gives the free ball to the player who reached it, as `taker` is when he has
-// it, and records what that was: a pass received or intercepted or a loose
-// ball recovered, and the outcome of a shot. A goalkeeper who takes it with
-// his hands (hasHands()) holds it, and stands where he took it.
-void takeBall(const FreeBall& free, const BallClaim& claim, const PlayerMatchState& taker,
-              const BallRules& rules, const MatchStepContext& context, const MatchState& current,
-              MatchStateWriter& next) {
+// it, and returns where he touched it. A goalkeeper who takes it with his
+// hands (hasHands()) holds it, and stands where he took it.
+[[nodiscard]] Vec2 gainBall(const FreeBall& free, const BallClaim& claim,
+                            const PlayerMatchState& taker, const BallRules& rules,
+                            const MatchStepContext& context, const MatchState& current,
+                            MatchStateWriter& next) {
   const BallState& ball = free.ball;
   next.setBallOwner(claim.playerId);
   next.setBallLastTouch(BallTouch{.playerId = claim.playerId, .tick = context.tick()});
@@ -439,6 +439,17 @@ void takeBall(const FreeBall& free, const BallClaim& claim, const PlayerMatchSta
     next.setBallHeld(true);
     next.setPlayerTarget(claim.playerIndex, std::nullopt);
   }
+  return contactPosition;
+}
+
+// Gives the free ball to the player who reached it, as gainBall() does, and
+// records what that was: a pass received or intercepted or a loose ball
+// recovered, and the outcome of a shot.
+void takeBall(const FreeBall& free, const BallClaim& claim, const PlayerMatchState& taker,
+              const BallRules& rules, const MatchStepContext& context, const MatchState& current,
+              MatchStateWriter& next) {
+  const BallState& ball = free.ball;
+  const Vec2 contactPosition = gainBall(free, claim, taker, rules, context, current, next);
   const MatchEvent event =
       controlEvent(current, ball, next.lastPass(), claim, contactPosition, context.tick());
   const auto* received = std::get_if<PassReceived>(&event);
@@ -938,17 +949,8 @@ void loseTouch(const FreeBall& free, const BallClaim& claim, const std::size_t o
                const BallRules& rules, const MatchStepContext& context, const MatchState& current,
                MatchStateWriter& next) {
   const PlayerId owner = current.players()[ownerIndex].playerId;
-  const PlayerMatchState& taker = current.players()[claim.playerIndex];
-  next.setBallOwner(claim.playerId);
-  next.setBallLastTouch(BallTouch{.playerId = claim.playerId, .tick = context.tick()});
-  carryBy(taker, rules, context, current, next);
   const Vec2 contactPosition =
-      free.ball.position +
-      ((free.step.ball.position - free.ball.position) * claim.contact.contactFraction);
-  if (hasHands(current, claim.playerIndex, taker.position, contactPosition)) {
-    next.setBallHeld(true);
-    next.setPlayerTarget(claim.playerIndex, std::nullopt);
-  }
+      gainBall(free, claim, current.players()[claim.playerIndex], rules, context, current, next);
   next.setLastReception(ReceptionRecord{.player = claim.playerId,
                                         .tick = context.tick(),
                                         .ballSpeed = free.ball.velocity.length(),
