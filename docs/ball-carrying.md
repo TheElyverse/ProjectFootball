@@ -124,7 +124,9 @@ of running at his speed with the ball ahead of him, between `minTouchDistance`
 (1 m) and `maxTouchDistance` (5 m), and no farther than the carry. Its speed is
 the one that rolls it there in the time he needs to get there
 (`estimateArrivalSeconds()`), from `d = v·t − a·t²/2`, at most the passing's
-`maxSpeed`; he may play it again after `touchShare` (0.5) of that time. Each
+`maxSpeed`. A ball that would stop before then -- a slow turn, `d < a·t²/2` --
+is played to stop where he meets it, `v² = 2·a·d`, rather than to roll past.
+He may play it again after `touchShare` (0.5) of that time. Each
 later touch is decided anew when he has the ball back.
 
 ### Dribble

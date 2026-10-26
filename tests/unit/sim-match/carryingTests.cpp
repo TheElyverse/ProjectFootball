@@ -80,14 +80,16 @@ constexpr double kSecondsPerTick = 1.0 / 30.0;
 }
 
 // Two a side on a 60 x 40 pitch. Home 1 has the ball at his feet at (20, 20),
-// facing `facing`; home 2 stands far back, away 3 and 4 where the test puts
-// them.
+// facing `facing` and running at `velocity`; home 2 stands far back, away 3
+// and 4 where the test puts them.
 [[nodiscard]] MatchState twoASide(const Vec2 away3, const Vec2 away4,
-                                  const Vec2 facing = {.x = 1.0, .y = 0.0}) {
+                                  const Vec2 facing = {.x = 1.0, .y = 0.0},
+                                  const Vec2 velocity = {}) {
+  PlayerMatchState carrier = playerAt(1, TeamSide::kHome, {.x = 20.0, .y = 20.0}, facing);
+  carrier.velocity = velocity;
   auto state =
       MatchState::create({.pitch = Pitch(60.0, 40.0),
-                          .players = {playerAt(1, TeamSide::kHome, {.x = 20.0, .y = 20.0}, facing),
-                                      playerAt(2, TeamSide::kHome, {.x = 3.0, .y = 20.0}),
+                          .players = {carrier, playerAt(2, TeamSide::kHome, {.x = 3.0, .y = 20.0}),
                                       playerAt(3, TeamSide::kAway, away3, {.x = -1.0, .y = 0.0}),
                                       playerAt(4, TeamSide::kAway, away4, {.x = -1.0, .y = 0.0})},
                           .ball = {.position = Vec2{.x = 20.0, .y = 20.0} + (facing * 0.5),
@@ -241,6 +243,35 @@ TEST_CASE("A carry away from where he faces is a turn", "[carrying]") {
     REQUIRE(turn.distance <= CarryScoringConfig{}.turnDistance);
     REQUIRE(turn.target.x >= 20.0);
   }
+}
+
+TEST_CASE("A touch does not roll past where he meets it before he gets there", "[carrying]") {
+  // Running toward his own goal, so the touches toward the other are turns
+  // that take him long enough for the ball to stop first.
+  const MatchState state = perceived(twoASide({.x = 55.0, .y = 5.0}, {.x = 55.0, .y = 35.0},
+                                              {.x = -1.0, .y = 0.0}, {.x = -6.0, .y = 0.0}));
+  const double deceleration = BallPhysics{}.rollingDeceleration;
+  bool stops = false;
+  for (const CarryCandidate& candidate : candidatesOf(state)) {
+    if (candidate.kind != CarryKind::kCarry && candidate.kind != CarryKind::kTurn) {
+      continue;
+    }
+    const double distance = (candidate.touchTarget - state.ball().position).length();
+    const double speed = candidate.touchSpeed;
+    const double seconds = candidate.touchSeconds / CarryScoringConfig{}.touchShare;
+    const double rolls = speed * speed / (2.0 * deceleration);
+    CAPTURE(candidate.target.x, candidate.target.y, distance, speed, seconds);
+    if (rolls > distance + 1e-9) {
+      // Still rolling at the meet point: it gets there when he does.
+      const double reached =
+          (speed - std::sqrt((speed * speed) - (2.0 * deceleration * distance))) / deceleration;
+      REQUIRE(reached >= seconds - 1e-6);
+    } else {
+      REQUIRE_THAT(rolls, WithinAbs(distance, 1e-9));
+      stops = true;
+    }
+  }
+  REQUIRE(stops);
 }
 
 TEST_CASE("He dribbles past an opponent ahead on either side", "[carrying]") {

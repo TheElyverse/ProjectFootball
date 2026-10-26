@@ -197,11 +197,15 @@ void planTouch(CarryCandidate& candidate, const PlayerMatchState& carrier, const
       std::max(estimateArrivalSeconds(carrier, meet, pitch).value_or(0.0) * planShare,
                std::numeric_limits<double>::min());
   const double distance = SimCore::distance(from, meet);
+  const double deceleration = rules.ball.rollingDeceleration;
   candidate.touchTarget = meet;
-  // d = v·t − a·t²/2 for the rolling ball.
-  candidate.touchSpeed =
-      std::min((distance / seconds) + (rules.ball.rollingDeceleration * seconds / 2.0),
-               rules.passing.maxSpeed);
+  // d = v·t − a·t²/2 for the rolling ball, while it still rolls at t; a ball
+  // that would stop sooner is played to stop at the meet point, v² = 2·a·d,
+  // rather than to roll past it.
+  const double rolling = distance >= deceleration * seconds * seconds / 2.0
+                             ? (distance / seconds) + (deceleration * seconds / 2.0)
+                             : std::sqrt(2.0 * deceleration * distance);
+  candidate.touchSpeed = std::min(rolling, rules.passing.maxSpeed);
   candidate.touchSeconds = seconds * rules.scoring.touchShare;
 }
 
