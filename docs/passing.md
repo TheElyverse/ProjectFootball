@@ -45,9 +45,10 @@ In the next step it runs, the ball system plays the pending pass:
       - speed: up to `speedError` (5 %) harder or softer, uniformly distributed,
    - both grown by pressure: with an opponent within `pressureRadius` (3 m)
      of the passer, the errors are multiplied by `1 + pressureErrorFactor ×
-     pressure`, where pressure is 1 − distance / `pressureRadius` for the
-     nearest opponent (`passPressure()`, from true positions: pressure is
-     physical). At full pressure the default factor of 1 doubles them; an
+     pressure`, where pressure is one minus the product of
+     min(1, distance / `pressureRadius`) over the opponents -- 1 − distance /
+     `pressureRadius` for a lone opponent, more for several close by
+     (`passPressure()`, from true positions: pressure is physical). At full pressure the default factor of 1 doubles them; an
      unpressed pass is exactly as before,
    - never faster than `maxSpeed`.
 

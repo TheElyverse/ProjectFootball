@@ -88,7 +88,7 @@ struct ShotConditions {
 
 // The conditions of a shot by the player at this index, struck from `from`
 // at the intent's target in the step of tick now. Physical, so from true
-// positions: the pressure of the nearest opponent, the shooter's own motion,
+// positions: the pressure of the opponents close to him, the shooter's own motion,
 // which foot the target asks for -- left is the side of growing pitch y for
 // a player facing growing pitch x -- and the ball he last received.
 [[nodiscard]] ShotConditions shotConditions(const MatchState& state, std::size_t shooterIndex,
