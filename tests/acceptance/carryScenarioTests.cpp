@@ -109,11 +109,15 @@ TEST_CASE("Carry: he dribbles past a covering defender", "[acceptance][carry]") 
       REQUIRE(simulation.step().has_value());
       checkTouch(simulation.state());
       for (const MatchEvent& event : simulation.events()) {
-        if (const auto* started = std::get_if<DribbleAttempted>(&event)) {
+        // His dribbles only: a shot instead and the restart after it can give
+        // away the ball, and their dribbles are not this scenario's.
+        const auto* started = std::get_if<DribbleAttempted>(&event);
+        if (started != nullptr && started->carrier == kCarrier) {
           REQUIRE_FALSE(attempt.has_value());
           attempt = *started;
         }
-        if (const auto* over = std::get_if<DribbleEnded>(&event)) {
+        const auto* over = std::get_if<DribbleEnded>(&event);
+        if (over != nullptr && over->carrier == kCarrier) {
           // Every dribble that ends was attempted first, by the same players.
           REQUIRE(attempt.has_value());
           REQUIRE(over->carrier == attempt.value_or(DribbleAttempted{}).carrier);
@@ -126,7 +130,6 @@ TEST_CASE("Carry: he dribbles past a covering defender", "[acceptance][carry]") 
       continue;
     }
     ++attempted;
-    REQUIRE(attempt->carrier == kCarrier);
     REQUIRE(attempt->opponent == kDefender);
     // The touch goes past him, toward the goal.
     REQUIRE(attempt->target.x > attempt->from.x);
@@ -140,7 +143,7 @@ TEST_CASE("Carry: he dribbles past a covering defender", "[acceptance][carry]") 
     }
   }
   CAPTURE(attempted, beaten);
-  // At the time of writing 14 attempts out of twenty, every one beating him.
+  // At the time of writing 11 attempts out of twenty, ten beating him.
   REQUIRE(attempted >= 10);
   REQUIRE(beaten * 2 >= attempted);
 }
