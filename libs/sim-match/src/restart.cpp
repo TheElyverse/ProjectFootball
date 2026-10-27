@@ -271,6 +271,7 @@ MatchSystem makeRestartSystem(const RestartConfig& config, const BallPhysics& ba
               next.setBallHeight(0.0);
               next.setBallVerticalVelocity(0.0);
               next.tactical(plan.playerIndex).handsReleased.reset();
+              next.tactical(plan.playerIndex).stumbledUntil.reset();
               placeTaker(
                   next, plan.playerIndex, taker, spot,
                   SimCore::unitOr(current.pitch().center() - spot, kickoffFacing(taker.side)), ball,
@@ -293,8 +294,10 @@ MatchSystem makeRestartSystem(const RestartConfig& config, const BallPhysics& ba
             next.setBallOwner(taker.playerId);
             next.setBallLastTouch(BallTouch{.playerId = taker.playerId, .tick = context.tick()});
             next.setBallVelocity({});
-            // A restart starts afresh: a keeper takes a goal kick with his feet.
+            // A restart starts afresh: a keeper takes a goal kick with his feet,
+            // and a taker who stumbled in a duel is up again.
             next.tactical(plan->playerIndex).handsReleased.reset();
+            next.tactical(plan->playerIndex).stumbledUntil.reset();
             if (plan->kind == RestartKind::kGoalKick) {
               // The taker stands behind the ball in his goal area, facing up
               // the pitch.

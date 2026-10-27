@@ -18,7 +18,7 @@
 using ElyverseFootball::SimCore::PlayerId;
 using ElyverseFootball::SimCore::SimTick;
 using ElyverseFootball::SimMatch::kBallMovementSystemName;
-using ElyverseFootball::SimMatch::kChallengeSystemName;
+using ElyverseFootball::SimMatch::kDuelSystemName;
 using ElyverseFootball::SimMatch::kPassDecisionSystemName;
 using ElyverseFootball::SimMatch::kPerceptionSystemName;
 using ElyverseFootball::SimMatch::kPhaseSystemName;
@@ -63,7 +63,7 @@ TEST_CASE("The standard systems run in their documented order", "[matchSetup]") 
                        std::string(kPerceptionSystemName), std::string(kPhaseSystemName),
                        std::string(kPitchControlSystemName), std::string(kPressingSystemName),
                        std::string(kTacticalMovementSystemName), std::string(kPursuitSystemName),
-                       std::string(kPassDecisionSystemName), std::string(kChallengeSystemName),
+                       std::string(kPassDecisionSystemName), std::string(kDuelSystemName),
                        std::string(kShotStoppingSystemName), std::string(kPlayerMovementSystemName),
                        std::string(kBallMovementSystemName)});
 }

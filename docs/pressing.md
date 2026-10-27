@@ -2,8 +2,8 @@
 
 Pressing is built from individual defensive actions (PF-012) that players of a
 side with a [tactic](tactics.md) choose in their
-[defensive decisions](defensive-shape.md), from a challenge that can win the
-ball, and from what pressure does to the carrier's pass.
+[defensive decisions](defensive-shape.md), from the duel a presser takes the
+carrier on in, and from what pressure does to the carrier's pass.
 
 ## The actions
 
@@ -56,28 +56,12 @@ values belong to `DefensiveConfig` ([defensive shape](defensive-shape.md)).
 
 ## Winning the ball
 
-Until the duels of the P3 baseline, a placeholder challenge lets a press win the
-ball at all. The "ball challenge" system (`challenge.hpp`) runs ten times a
-second, after the pass decision and before movement:
-
-1. A player whose decided action is `pressCarrier`, who stands within `radius`
-   (1.2 m) of the carrier and has not challenged for `attemptSeconds` (0.5 s),
-   challenges.
-2. A carrier who has had the ball for less than `protectSeconds` (0.5 s) -- since
-   his last touch -- is not challenged: he is still settling it, and a winner is
-   not robbed straight back. Nor is a goalkeeper who holds the ball in his
-   hands ([goalkeeper distribution](goalkeeper-distribution.md)), nor a carrier
-   whose ball rolls ahead of him after a touch: there is nothing at his feet to
-   challenge for ([ball carrying](ball-carrying.md)).
-3. A challenge is one draw from the `kExecution` stream, won below `winChance`
-   (0.2): the how-well half of the press, separate from the decision to press.
-4. The first won challenge in player order takes the ball: the presser owns it
-   and is its last touch, a pass the carrier had just decided is dropped, and the
-   step records `BallWon` (winner, loser, position, cause `challenge`) and
-   `PossessionChanged`.
-
-Each player's last challenge is part of his tactical state. `ChallengeConfig` is
-part of `MatchConfig` and of every replay.
+A presser who gets close to a carrier with the ball at his feet takes him on in
+a [duel](duels.md#who-duels), which the carrier keeps or the presser wins,
+knocks loose or fouls. Only a player whose decided action is `pressCarrier` --
+his own, an assigned role in a coordinated press, or the
+[idle press](#a-carrier-who-stands-on-the-ball) -- takes a carrier on, so a
+side wins the ball at the carrier's feet only by pressing him.
 
 ## Pressure spoils passes
 
@@ -156,4 +140,4 @@ reference tactic with home pressing high on four triggers: once at intensity
 ball in a clearly larger share of its presses -- the lone presser leaves the
 carrier's lanes open and is passed around more often, and the teammates close
 to the carrier spoil the passes he does play. Over forty seeds the coordinated
-press regains the ball in 0.43 of its presses, the lone presser in 0.33.
+press regains the ball in 0.36 of its presses, the lone presser in 0.30.

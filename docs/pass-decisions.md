@@ -181,6 +181,6 @@ second tuning surface next to the scoring itself.
 ## What this is not
 
 A player on the ball kicks long only as a goalkeeper or when he has nothing
-else. Where he looks ignores the opponents around him: shielding the ball from
-a challenger comes with the duels. Off-ball players do not decide here; see
+else. Where he looks ignores the opponents around him; shielding the ball from
+a presser is his move in a [duel](duels.md). Off-ball players do not decide here; see
 [off-ball movement](off-ball-movement.md) and [reception](reception.md).

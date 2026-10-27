@@ -238,6 +238,21 @@ void addEventFields(Json& json, const SimMatch::DribbleEnded& event) {
   json["position"] = vec2Json(event.position);
 }
 
+void addEventFields(Json& json, const SimMatch::DuelStarted& event) {
+  json["type"] = "duelStarted";
+  json["carrier"] = event.carrier.value();
+  json["defender"] = event.defender.value();
+  json["position"] = vec2Json(event.position);
+}
+
+void addEventFields(Json& json, const SimMatch::DuelEnded& event) {
+  json["type"] = "duelEnded";
+  json["carrier"] = event.carrier.value();
+  json["defender"] = event.defender.value();
+  json["outcome"] = SimMatch::duelOutcomeName(event.outcome);
+  json["position"] = vec2Json(event.position);
+}
+
 void addEventFields(Json& json, const SimMatch::PressingStarted& event) {
   json["type"] = "pressingStarted";
   json["side"] = SimMatch::teamSideName(event.side);

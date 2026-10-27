@@ -76,7 +76,7 @@ MatchAnalyzer::MatchAnalyzer(MatchContext context, const AnalyticsConfig config)
 }
 
 void MatchAnalyzer::observeStep(const std::span<const SimMatch::MatchEvent> events) {
-  // Each control event (an interception, a won challenge, a loose-ball
+  // Each control event (an interception, a won duel, a loose-ball
   // recovery) is recorded immediately before the PossessionChanged it
   // caused; carrying its position only until that next PossessionChanged
   // keeps a step with more than one ownership change from assigning one

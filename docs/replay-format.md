@@ -14,12 +14,12 @@ default is `replay.json` in the working directory, and `--play` plays one back. 
 before the terminal interface opens, so a run rejected by argument or terminal
 validation leaves no file behind.
 
-## Schema version 12
+## Schema version 13
 
 ```json
 {
-    "schemaVersion": 12,
-  "coreVersion": "0.28.0",
+    "schemaVersion": 13,
+  "coreVersion": "0.29.0",
   "createdAt": "2026-09-24T10:00:00Z",
   "seed": "18446744073709551615",
   "gameTime": 300,
@@ -215,12 +215,33 @@ validation leaves no file behind.
             "urgencyWeight": 0.8,
       "effortWeight": 0.3
     },
-    "challenge": {
+    "duels": {
       "intervalTicks": 3,
-      "radius": 1.2,
-      "winChance": 0.2,
-      "attemptSeconds": 0.5,
-            "protectSeconds": 0.5
+      "protectSeconds": 0.5,
+      "engageRadius": 1.5,
+      "breakRadius": 3.0,
+      "jockeyDistance": 1.0,
+      "turnStep": 2.0,
+      "accelerateStep": 4.0,
+      "tackleReach": 1.8,
+      "footRadius": 0.3,
+      "bodyRadius": 0.35,
+      "footError": 0.3,
+      "minHold": 0.3,
+      "maxHold": 0.9,
+      "looseSpeed": 5.0,
+      "contactDistance": 1.2,
+      "shovePerSecond": 1.0,
+      "commitCost": 0.3,
+      "turnCost": 0.2,
+      "recoveryPerSecond": 0.5,
+      "stumbleSeconds": 0.5,
+      "shieldWeight": 0.8,
+      "turnWeight": 0.4,
+      "accelerateWeight": 0.6,
+      "jockeyWeight": 0.3,
+      "commitWeight": 1.0,
+      "decisionTemperature": 0.2
     },
     "pressing": {
       "intervalTicks": 6,
@@ -396,7 +417,7 @@ player and the whole tactic.
 
 | Field           | JSON type | Meaning                                                       |
 |-----------------|-----------|---------------------------------------------------------------|
-| `schemaVersion` | number    | Version of this format. Currently `12`.                       |
+| `schemaVersion` | number    | Version of this format. Currently `13`.                       |
 | `coreVersion`   | string    | The `sim-core` version that recorded the match.               |
 | `createdAt`     | string    | Creation time in UTC, `%Y-%m-%dT%H:%M:%SZ`. Metadata only.    |
 | `seed`          | string    | Unsigned 64-bit master seed, in decimal.                      |
@@ -493,7 +514,7 @@ number`.
 |-----------------------------|------------------------------------------------------------------------|
 | `kIoError`                  | the file cannot be read or written                                     |
 | `kMalformed`                | not JSON, a missing or mistyped field, commands out of order           |
-| `kUnsupportedSchemaVersion` | a `schemaVersion` other than 12                                        |
+| `kUnsupportedSchemaVersion` | a `schemaVersion` other than 13                                        |
 | `kIncompatibleCoreVersion`  | recorded with another `coreVersion`                                    |
 | `kInvalidSetup`             | an invalid initial state, command or checkpoint list                   |
 | `kSimulationFailed`         | a step of the playback failed                                          |
@@ -569,3 +590,4 @@ recorded replays without changing the file format, and surfaces as a new
 | 10      | The ball gains `held`, passing its `maxLoftedSpeed` and `loftedErrorFactor`, the pass scoring its `loftedBias`, and the decisions their `distribution` block ([goalkeeper distribution](goalkeeper-distribution.md)); tactics are files of tactic format version 3. Versions 2 to 9 are rejected with a message to record the scenario again with the same seed. |
 | 11      | The decisions gain `stuckSeconds`, `clearTouchlineMargin` and `clearGoalLineMargin` ([pass decisions](pass-decisions.md#without-a-valid-option)), the defensive configuration `idleSeconds` and `idlePressRadius` ([pressing](pressing.md#a-carrier-who-stands-on-the-ball)). Versions 2 to 10 are rejected with a message to record the scenario again with the same seed. |
 | 12      | Players gain `ballControl` and `dribbling`, the ball `carryTouch`, the ball physics `minCarrySpeedFactor` and `maxCarrySpeedFactor`, and the decisions their `carrying` block ([ball carrying](ball-carrying.md)). Versions 2 to 11 are rejected with a message to record the scenario again with the same seed. |
+| 13      | The configuration's `challenge` block becomes its `duels` block ([duels](duels.md)). Versions 2 to 12 are rejected with a message to record the scenario again with the same seed. |

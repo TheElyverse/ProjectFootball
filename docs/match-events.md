@@ -23,7 +23,7 @@ Every event carries the `tick` of its step and the players involved:
 | `LooseBallRecovered` | `player`, `position`                                         | someone takes a ball nobody played, or the passer takes his own pass back |
 | `PossessionChanged`  | `previousOwner`, `newOwner`                                  | the ball's owner changes; either may be empty |
 | `PhaseChanged`       | `side`, `previous`, `phase`                                  | a side with a tactic enters another [tactical phase](match-phases.md); `previous` is empty for its first |
-| `BallWon`            | `winner`, `loser`, `position`, `cause`                       | an opponent wins the ball from its owner: `challenge`, a presser in a [challenge](pressing.md), or `looseTouch`, he got to the ball rolling ahead of its owner after a touch ([ball carrying](ball-carrying.md)); `PossessionChanged` follows |
+| `BallWon`            | `winner`, `loser`, `position`, `cause`                       | an opponent wins the ball from its owner: `duel`, a presser in a [duel](duels.md), or `looseTouch`, he got to the ball rolling ahead of its owner after a touch ([ball carrying](ball-carrying.md)); `PossessionChanged` follows |
 | `PressingStarted`    | `side`, `carrier`, `trigger`, `assignments`                  | a side starts a [coordinated press](pressing.md); `trigger` is empty for a press of the pressing phase |
 | `PressingEnded`      | `side`, `outcome`                                            | the press ends: `ballRegained`, `passedOut` or `carrierEscaped` |
 | `PitchControlSampled` | `homeShare`, `ball`                                         | the [pitch control](pitch-control.md) grid is updated: home's share of the pitch and the ball's position, a regular sample for [analytics](match-analytics.md) |
@@ -38,6 +38,8 @@ Every event carries the `tick` of its step and the players involved:
 | `AerialContest`      | `position`, `height`, `contestants`, `winner`, `play`        | players go up for a high ball where the first of them gets to it: each contestant's `player`, `reach` and whether he `reached` it, the `winner` — empty if nobody did — and his `play`: `shot`, `pass`, `knockDown`, `clearance`, `caught` or `punched` ([aerial duels](aerial-duels.md)). A header shot's `ShotAttempted` or a header pass's `PassAttempted` follows |
 | `DribbleAttempted`   | `carrier`, `opponent`, `from`, `target`                      | the first touch of a [dribble](ball-carrying.md#dribble) past `opponent` leaves the carrier's foot toward `target` |
 | `DribbleEnded`       | `carrier`, `opponent`, `outcome`, `position`                 | the dribble is over: `beaten`, he has the ball back farther up the pitch than the opponent, `kept`, he has it back short of him, or `lost`, to an opponent or out of play |
+| `DuelStarted`        | `carrier`, `defender`, `position`                            | a presser takes on the carrier for the ball at his feet ([duels](duels.md)) |
+| `DuelEnded`          | `carrier`, `defender`, `outcome`, `position`                 | the duel is over: `kept` by the carrier, `won` by the defender -- `BallWon` and `PossessionChanged` follow --, the ball knocked `loose` -- `PossessionChanged` to nobody follows --, or a `foul` |
 
 The shot events name their shot by its `shooter` and `shotTick`, the tick of its
 `ShotAttempted`; see [shooting](shooting.md) and [shot stopping](shot-stopping.md)

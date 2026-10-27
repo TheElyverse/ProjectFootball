@@ -85,7 +85,9 @@ state created from a spec and kept up to date by the tactical phase system; see
 player each side has sent after a free ball ([reception](reception.md)), and
 `tactical(playerIndex)` holds each player's tactical runtime state, such as his
 [desired region](desired-region.md), a goalkeeper's
-[dive](shot-stopping.md) or when a player last [jumped](aerial-duels.md), and `press(side)` the side's
+[dive](shot-stopping.md), when a player last [jumped](aerial-duels.md), the
+[duel](duels.md) a defender fights and until when a player is off his feet
+after one, and `press(side)` the side's
 [press](pressing.md) in progress. `lastPass()`, `lastShot()` and
 `lastReception()` record the last pass kicked, the last shot taken — with the
 player it last came off, whether its outcome is recorded, and the keeper's

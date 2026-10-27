@@ -74,6 +74,21 @@ void addFields(StableHasher& hasher, const DribbleEnded& event) noexcept {
   hasher.addDouble(event.position.y);
 }
 
+void addFields(StableHasher& hasher, const DuelStarted& event) noexcept {
+  hasher.addU64(event.carrier.value());
+  hasher.addU64(event.defender.value());
+  hasher.addDouble(event.position.x);
+  hasher.addDouble(event.position.y);
+}
+
+void addFields(StableHasher& hasher, const DuelEnded& event) noexcept {
+  hasher.addU64(event.carrier.value());
+  hasher.addU64(event.defender.value());
+  hasher.addU64(static_cast<std::uint64_t>(event.outcome));
+  hasher.addDouble(event.position.x);
+  hasher.addDouble(event.position.y);
+}
+
 void addFields(StableHasher& hasher, const PressingStarted& event) noexcept {
   hasher.addU64(static_cast<std::uint64_t>(event.side));
   hasher.addU64(event.carrier.value());
@@ -236,8 +251,8 @@ std::string_view onBallReasonName(const OnBallReason reason) noexcept {
 
 std::string_view ballWonCauseName(const BallWonCause cause) noexcept {
   switch (cause) {
-    case BallWonCause::kChallenge:
-      return "challenge";
+    case BallWonCause::kDuel:
+      return "duel";
     case BallWonCause::kLooseTouch:
       return "looseTouch";
   }
@@ -252,6 +267,20 @@ std::string_view dribbleOutcomeName(const DribbleOutcome outcome) noexcept {
       return "kept";
     case DribbleOutcome::kLost:
       return "lost";
+  }
+  return "unknown";
+}
+
+std::string_view duelOutcomeName(const DuelOutcome outcome) noexcept {
+  switch (outcome) {
+    case DuelOutcome::kKept:
+      return "kept";
+    case DuelOutcome::kWon:
+      return "won";
+    case DuelOutcome::kLoose:
+      return "loose";
+    case DuelOutcome::kFoul:
+      return "foul";
   }
   return "unknown";
 }
@@ -344,6 +373,10 @@ std::string_view eventName(const MatchEvent& event) {
     std::string_view operator()(const DribbleEnded& /*event*/) const noexcept {
       return "dribble ended";
     }
+    std::string_view operator()(const DuelStarted& /*event*/) const noexcept {
+      return "duel started";
+    }
+    std::string_view operator()(const DuelEnded& /*event*/) const noexcept { return "duel ended"; }
   };
   return std::visit(Names{}, event);
 }

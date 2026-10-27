@@ -10,6 +10,7 @@
 
 #include "aerialDuels.hpp"
 #include "carrying.hpp"
+#include "duel.hpp"
 #include "goalFrame.hpp"
 #include "matchEvents.hpp"
 #include "passCandidates.hpp"
@@ -280,12 +281,14 @@ void scoreGoal(const MatchState& state, const GoalEnd end, const BallState& ball
                             .score = score});
 }
 
-// Leaves the ball with this player, at his feet as he ends the tick: on the
-// ground, since that is where a player keeps a ball he has.
-void carryBy(const PlayerMatchState& player, const BallRules& rules,
+// Leaves the ball with the player at this index, at his feet as he ends the
+// tick: on the ground, since that is where a player keeps a ball he has. He
+// moves as the movement system moved him, which saw the ball as `seen`.
+void carryBy(const std::size_t index, const BallState& seen, const BallRules& rules,
              const MatchStepContext& context, const MatchState& current, MatchStateWriter& next) {
   const PlayerMatchState owner =
-      ownerAfterMove(player, current.ball(), rules.physics, context.secondsPerTick());
+      ownerAfterMove(asMoving(current.players()[index], next.tactical(index), context.tick()), seen,
+                     rules.physics, context.secondsPerTick());
   next.setBallPosition(carriedBallPosition(owner, rules.physics, current.pitch()));
   next.setBallVelocity(owner.velocity);
   next.setBallHeight(0.0);
@@ -339,7 +342,7 @@ void touchOn(const MatchState& current, const std::size_t index, const CarryInte
 // it. The action itself comes from current, not next: one decided this same
 // step is played next step, one step of pending action being deliberate. The
 // ball comes from next, and next.pendingAction() is checked too, because a
-// challenge earlier this same step may have already taken the ball and
+// duel earlier this same step may have already taken the ball and
 // dropped the action, and current would still show the stale pre-step values.
 [[nodiscard]] BallState playPendingAction(const BallRules& rules, const MatchStepContext& context,
                                           const MatchState& current, MatchStateWriter& next) {
@@ -432,7 +435,7 @@ struct FreeBall {
   const BallState& ball = free.ball;
   next.setBallOwner(claim.playerId);
   next.setBallLastTouch(BallTouch{.playerId = claim.playerId, .tick = context.tick()});
-  carryBy(taker, rules, context, current, next);
+  carryBy(claim.playerIndex, current.ball(), rules, context, current, next);
   const Vec2 contactPosition =
       ball.position + ((free.step.ball.position - ball.position) * claim.contact.contactFraction);
   if (hasHands(current, claim.playerIndex, taker.position, contactPosition)) {
@@ -528,7 +531,8 @@ bool settleFreeBall(const BallState& from, const FreeBall& free, const BallRules
 // The keeper who faces the free ball while it is still in front of him, and
 // his answer to its flight: the dive he decided on against it, or standing
 // set where he is while he has not reacted yet or left it. A keeper still busy
-// with a dive against another flight faces nothing.
+// with a dive against another flight faces nothing, nor does one off his feet
+// after a duel (docs/duels.md).
 struct FacingKeeper {
   std::size_t index = 0;
   ShotRecord shot;
@@ -541,7 +545,7 @@ struct FacingKeeper {
                                                        const MatchState& current,
                                                        MatchStateWriter& next) {
   const auto index = facingKeeper(current, free.ball, free.shot, rules.physics, rules.saves);
-  if (!index || !free.shot) {
+  if (!index || !free.shot || isStumbling(next.tactical(*index), context.tick())) {
     return std::nullopt;
   }
   FacingKeeper keeper{.index = *index, .shot = *free.shot, .dive = {}, .dived = false};
@@ -822,6 +826,17 @@ void playHeader(const HeaderIntent& intent, const BallClaim& claim, const Aerial
   return true;
 }
 
+// Adds everyone off his feet after a duel to those who take no ball -- one
+// who stumbled earlier this same step too (docs/duels.md).
+void excludeStumbling(const MatchStepContext& context, const MatchState& current,
+                      MatchStateWriter& next, std::vector<std::size_t>& excluded) {
+  for (std::size_t index = 0; index < current.players().size(); ++index) {
+    if (isStumbling(next.tactical(index), context.tick())) {
+      excluded.push_back(index);
+    }
+  }
+}
+
 // A free ball rolls, flies and bounces, and the first player to reach it on
 // its way takes it. A shot still fast comes off an outfield player's body
 // rather than to his feet, the keeper it faces meets it where it passes him,
@@ -842,6 +857,7 @@ void moveFreeBall(const BallState& ball, const BallRules& rules, const MatchStep
   if (keeper) {
     excluded.push_back(keeper->index);
   }
+  excludeStumbling(context, current, next, excluded);
   const bool deflects = free.shot && ball.velocity.length() >= rules.shooting.deflectionSpeed;
   const auto contactOf = [&] {
     return deflects ? findBallContact(current, ball, free.step, rules.physics, context.tick(),
@@ -926,7 +942,7 @@ void retake(const MatchState& current, const std::size_t index, const BallRules&
             const MatchStepContext& context, MatchStateWriter& next) {
   const PlayerMatchState& carrier = current.players()[index];
   next.setBallTouch(std::nullopt);
-  carryBy(carrier, rules, context, current, next);
+  carryBy(index, current.ball(), rules, context, current, next);
   auto& run = next.tactical(index).carry;
   if (!run) {
     return;
@@ -986,6 +1002,7 @@ void moveTouchedBall(const BallState& ball, const BallRules& rules, const MatchS
       excluded.push_back(index);
     }
   }
+  excludeStumbling(context, current, next, excluded);
   // It rolls, leaves the pitch and goes in as a ball of nobody's would. Who
   // gets to it is asked with its owner, who runs as fast as the ball lets
   // him, but without its last touch: his own touch does not keep him off it.
@@ -1034,7 +1051,7 @@ void moveBall(const BallRules& rules, const MatchStepContext& context, const Mat
   }
   if (ball.owner) {
     if (const auto index = findPlayerIndex(current, *ball.owner)) {
-      carryBy(current.players()[*index], rules, context, current, next);
+      carryBy(*index, ball, rules, context, current, next);
     }
     return;
   }

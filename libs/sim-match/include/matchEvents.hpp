@@ -130,15 +130,15 @@ struct RestartTaken {
   friend bool operator==(const RestartTaken&, const RestartTaken&) = default;
 };
 
-// How a player lost the ball he owned to an opponent: in a challenge
-// (docs/pressing.md), or the opponent got to it while it rolled ahead of him
+// How a player lost the ball he owned to an opponent: in a duel
+// (docs/duels.md), or the opponent got to it while it rolled ahead of him
 // after a touch (docs/ball-carrying.md).
 enum class BallWonCause : std::uint8_t {
-  kChallenge,
+  kDuel,
   kLooseTouch,
 };
 
-// "challenge", "looseTouch"; "unknown" outside the enumerators.
+// "duel", "looseTouch"; "unknown" outside the enumerators.
 [[nodiscard]] std::string_view ballWonCauseName(BallWonCause cause) noexcept;
 
 // An opponent won the ball from its owner, at the ball's position, and how.
@@ -147,7 +147,7 @@ struct BallWon {
   SimCore::PlayerId winner;
   SimCore::PlayerId loser;
   SimCore::Vec2 position;
-  BallWonCause cause = BallWonCause::kChallenge;
+  BallWonCause cause = BallWonCause::kDuel;
 
   friend bool operator==(const BallWon&, const BallWon&) = default;
 };
@@ -346,13 +346,48 @@ struct DribbleEnded {
   friend bool operator==(const DribbleEnded&, const DribbleEnded&) = default;
 };
 
+// A defender took the carrier on for the ball at his feet (docs/duels.md),
+// where the ball was.
+struct DuelStarted {
+  SimCore::SimTick tick;
+  SimCore::PlayerId carrier;
+  SimCore::PlayerId defender;
+  SimCore::Vec2 position;
+
+  friend bool operator==(const DuelStarted&, const DuelStarted&) = default;
+};
+
+// What became of a duel: the carrier kept the ball -- he played it on, got
+// away or the defender let him go --, the defender won it cleanly, knocked it
+// loose, or fouled the carrier.
+enum class DuelOutcome : std::uint8_t {
+  kKept,
+  kWon,
+  kLoose,
+  kFoul,
+};
+
+// "kept", "won", "loose", "foul"; "unknown" outside the enumerators.
+[[nodiscard]] std::string_view duelOutcomeName(DuelOutcome outcome) noexcept;
+
+// A duel ended, where the ball was.
+struct DuelEnded {
+  SimCore::SimTick tick;
+  SimCore::PlayerId carrier;
+  SimCore::PlayerId defender;
+  DuelOutcome outcome = DuelOutcome::kKept;
+  SimCore::Vec2 position;
+
+  friend bool operator==(const DuelEnded&, const DuelEnded&) = default;
+};
+
 // New alternatives go last: an event's index is part of its hash.
 using MatchEvent =
     std::variant<PassAttempted, PassReceived, PassIntercepted, LooseBallRecovered,
                  PossessionChanged, PhaseChanged, BallWon, PressingStarted, PressingEnded,
                  TacticChanged, PitchControlSampled, RestartTaken, ShotAttempted, ShotDeflected,
                  ShotHitWoodwork, ShotResolved, GoalScored, SaveAttempted, AerialContest,
-                 DribbleAttempted, DribbleEnded>;
+                 DribbleAttempted, DribbleEnded, DuelStarted, DuelEnded>;
 
 // "pass attempted", "pass received", ... for logs and diagnostics.
 [[nodiscard]] std::string_view eventName(const MatchEvent& event);

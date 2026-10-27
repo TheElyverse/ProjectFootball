@@ -185,14 +185,43 @@ struct CarryRun {
   friend bool operator==(const CarryRun&, const CarryRun&) = default;
 };
 
+// What a player does in a duel for the ball at the carrier's feet
+// (docs/duels.md): the carrier shields the ball, turns away with it or
+// accelerates past; the defender jockeys or commits to a lunge at the ball.
+enum class DuelMove : std::uint8_t {
+  kShield,
+  kTurnAway,
+  kAccelerate,
+  kJockey,
+  kCommit,
+};
+
+// "shield", "turnAway", "accelerate", "jockey", "commit"; "unknown" outside
+// the enumerators.
+[[nodiscard]] std::string_view duelMoveName(DuelMove move) noexcept;
+
+// A duel a defender fights with the carrier (docs/duels.md): with whom, since
+// when, what each of them did last, and how well balanced each is -- from 0,
+// off his feet, to 1, square on them.
+struct Duel {
+  SimCore::PlayerId carrier;
+  SimCore::SimTick since;
+  DuelMove carrierMove = DuelMove::kShield;
+  DuelMove defenderMove = DuelMove::kJockey;
+  double carrierBalance = 1.0;
+  double defenderBalance = 1.0;
+
+  friend bool operator==(const Duel&, const Duel&) = default;
+};
+
 // A player's tactical runtime state, kept in the match state because
 // systems keep nothing between ticks. Empty for a player of a scripted side,
 // but for his last jump and his scan for an option.
 struct PlayerTacticalState {
   std::optional<DesiredRegion> region;
   std::optional<PlayerAction> action;
-  // When he last challenged the carrier for the ball (docs/pressing.md).
-  std::optional<SimCore::SimTick> lastChallenge;
+  // The duel he fights as the defender, with the carrier (docs/duels.md).
+  std::optional<Duel> duel;
   // A goalkeeper's judgement of the last free ball he could come for.
   std::optional<SweepJudgement> sweep;
   // A goalkeeper's answer to the last shot he faced, until he is up again.
@@ -208,8 +237,16 @@ struct PlayerTacticalState {
   std::optional<CarrierScan> scan;
   // A carrier's run with the ball, while he turns, carries or dribbles.
   std::optional<CarryRun> carry = std::nullopt;
+  // The tick he is back on his feet after stumbling in a duel: until then he
+  // takes no ball and starts no duel (docs/duels.md).
+  std::optional<SimCore::SimTick> stumbledUntil = std::nullopt;
 
   friend bool operator==(const PlayerTacticalState&, const PlayerTacticalState&) = default;
 };
+
+// Whether a player who stumbled in a duel is still off his feet at the start
+// of tick now: he stands, takes no ball, chases none and starts no duel
+// (docs/duels.md).
+[[nodiscard]] bool isStumbling(const PlayerTacticalState& tactical, SimCore::SimTick now) noexcept;
 
 }  // namespace ElyverseFootball::SimMatch

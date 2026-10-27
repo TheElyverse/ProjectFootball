@@ -99,6 +99,15 @@ PlayerKinematics stepPlayerMovement(const PlayerMatchState& player, const BallSt
   return stepPlayerMovement(atRunningSpeed(player, ball, physics), secondsPerTick);
 }
 
+PlayerMatchState asMoving(const PlayerMatchState& player, const PlayerTacticalState& tactical,
+                          const SimCore::SimTick now) noexcept {
+  PlayerMatchState moving = player;
+  if (isStumbling(tactical, now)) {
+    moving.target.reset();
+  }
+  return moving;
+}
+
 Vec2 facingAfterMove(const PlayerMatchState& player, const PlayerKinematics& moved,
                      const Vec2 ballPosition) noexcept {
   const double speed = moved.velocity.length();
@@ -165,11 +174,15 @@ MatchSystem makePlayerMovementSystem(const ShotStoppingConfig& saves, const Ball
                   continue;
                 }
               }
+              // The ball as the systems before this one left it: a carrier
+              // who rolled it round him in a duel looks at it there.
+              const BallState& ball = next.ball();
               const PlayerKinematics moved =
-                  stepPlayerMovement(player, current.ball(), physics, context.secondsPerTick());
+                  stepPlayerMovement(asMoving(player, next.tactical(index), context.tick()), ball,
+                                     physics, context.secondsPerTick());
               next.setPlayerPosition(index, moved.position);
               next.setPlayerVelocity(index, moved.velocity);
-              next.setPlayerFacing(index, facingAfterMove(player, moved, current.ball()));
+              next.setPlayerFacing(index, facingAfterMove(player, moved, ball));
               ++index;
             }
           }};

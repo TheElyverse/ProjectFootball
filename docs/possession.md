@@ -89,6 +89,5 @@ has touched the ball, and like the owner it can only name a player in the state
 
 ## What this is not
 
-There is no tackling and no shielding: a carrier loses a ball at his feet only
-to a [challenge](pressing.md#winning-the-ball), and one he touched on to an
-opponent who gets to it first ([ball carrying](ball-carrying.md)).
+A carrier loses a ball at his feet only in a [duel](duels.md), and one he
+touched on to an opponent who gets to it first ([ball carrying](ball-carrying.md)).

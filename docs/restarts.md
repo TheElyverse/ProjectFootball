@@ -58,7 +58,8 @@ seconds earlier; there is no visible count.
 
 ## What happens
 
-The taker gets the ball at his feet, at rest, with the last touch his. For a
+The taker gets the ball at his feet, at rest, with the last touch his; one
+who stumbled in a [duel](duels.md#off-his-feet) is up again. For a
 throw-in and a corner he is not moved. A goal kick is taken from the goal
 area: the ball lies on `goalKickSpot()`, the front edge of the goal area level
 with where it went out but no wider than the goal area, and the taker stands

@@ -196,7 +196,7 @@ struct CarryTouch {
 //
 // held is whether the owner holds the ball in his hands: a goalkeeper who
 // took it with them (docs/goalkeeper-distribution.md). Only an owned ball can
-// be held; a challenge cannot take it from him.
+// be held; nobody takes him on for it in a duel.
 //
 // touch is the owner's touch while the ball rolls ahead of him between two
 // touches (docs/ball-carrying.md): he keeps possession, but the ball moves on
@@ -621,7 +621,8 @@ class MatchStateWriter {
   // The ball as every system so far this step has left it, unlike
   // MatchState::ball(), which stays frozen at the step's start for every
   // system's current parameter; the ball-state writer reads this to see an
-  // owner a challenge already assigned this same step.
+  // owner a duel already assigned this same step, and the movement system
+  // where a duel rolled the ball.
   [[nodiscard]] const BallState& ball() const noexcept { return state_->ball_; }
   // The action the player at this index waits to do, as this step has left
   // it so far; see ball() for why this differs from

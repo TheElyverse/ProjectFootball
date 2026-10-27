@@ -47,6 +47,13 @@ struct PlayerKinematics {
                                                   const BallState& ball, const BallPhysics& physics,
                                                   double secondsPerTick) noexcept;
 
+// The player as the movement system moves him at the start of tick now:
+// without a target while he is off his feet after a duel (isStumbling()), so
+// he slows to a stop wherever he was going.
+[[nodiscard]] PlayerMatchState asMoving(const PlayerMatchState& player,
+                                        const PlayerTacticalState& tactical,
+                                        SimCore::SimTick now) noexcept;
+
 // Speed above which a player looks where he runs.
 inline constexpr double kFacingRunSpeed = 1.0;  // m/s
 
@@ -72,7 +79,8 @@ inline constexpr std::string_view kPlayerMovementSystemName = "player movement";
 struct ShotStoppingConfig;
 
 // Moves every player one tick with stepPlayerMovement() at his
-// runningSpeed() and turns him with facingAfterMove() -- except a goalkeeper
+// runningSpeed(), as asMoving() has him, and turns him with facingAfterMove()
+// toward the ball as the systems before it left it -- except a goalkeeper
 // busy with a dive, whom it puts where his dive takes him, under his hands
 // (bodyAt(), docs/shot-stopping.md), whatever his target, without turning
 // him. Writes player positions, velocities and facings, every tick. Throws
