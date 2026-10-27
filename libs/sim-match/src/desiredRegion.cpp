@@ -7,6 +7,7 @@
 #include <stdexcept>
 #include <string>
 
+#include "configChecks.hpp"
 #include "responsibility.hpp"
 #include "stableMath.hpp"
 #include "tactic.hpp"
@@ -16,6 +17,9 @@
 namespace ElyverseFootball::SimMatch {
 namespace {
 
+using ConfigChecks::isFiniteNonNegative;
+using ConfigChecks::isPositiveFinite;
+using ConfigChecks::isShare;
 using SimCore::stableLerp;
 using SimCore::Vec2;
 using SimTactics::Responsibility;
@@ -24,13 +28,11 @@ using SimTactics::TacticalPhase;
 }  // namespace
 
 void validate(const PositioningConfig& config) {
-  constexpr double kMax = std::numeric_limits<double>::max();
-  const auto positive = [](const double value) { return value > 0.0 && value <= kMax; };
-  const bool valid = config.intervalTicks >= 1 && positive(config.candidateSpacing) &&
-                     positive(config.targetDistanceScale) && positive(config.spacingRadius) &&
-                     positive(config.pressureRadius) && config.minConfidence >= 0.0 &&
-                     config.minConfidence <= 1.0 && config.hysteresisCost >= 0.0 &&
-                     config.hysteresisCost <= kMax && positive(config.maxShiftMeters);
+  const bool valid =
+      config.intervalTicks >= 1 && isPositiveFinite(config.candidateSpacing) &&
+      isPositiveFinite(config.targetDistanceScale) && isPositiveFinite(config.spacingRadius) &&
+      isPositiveFinite(config.pressureRadius) && isShare(config.minConfidence) &&
+      isFiniteNonNegative(config.hysteresisCost) && isPositiveFinite(config.maxShiftMeters);
   if (!valid) {
     throw std::invalid_argument("tactical movement: invalid configuration");
   }

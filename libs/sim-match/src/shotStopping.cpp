@@ -6,6 +6,7 @@
 #include <stdexcept>
 #include <string>
 
+#include "configChecks.hpp"
 #include "randomDraws.hpp"
 #include "shooting.hpp"
 #include "stableMath.hpp"
@@ -15,21 +16,12 @@
 namespace ElyverseFootball::SimMatch {
 namespace {
 
+using ConfigChecks::isFiniteNonNegative;
+using ConfigChecks::isPositiveFinite;
+using ConfigChecks::isShare;
 using RandomDraws::symmetricTriangular;
 using RandomDraws::symmetricUniform;
 using SimCore::Vec2;
-
-[[nodiscard]] bool isFiniteNonNegative(const double value) noexcept {
-  return value >= 0.0 && value <= std::numeric_limits<double>::max();
-}
-
-[[nodiscard]] bool isPositiveFinite(const double value) noexcept {
-  return value > 0.0 && value <= std::numeric_limits<double>::max();
-}
-
-[[nodiscard]] bool isShare(const double value) noexcept {
-  return value >= 0.0 && value <= 1.0;
-}
 
 // Across a plane square to this way along the ground: its left.
 [[nodiscard]] Vec2 acrossOf(const Vec2 normal) noexcept {

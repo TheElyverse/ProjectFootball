@@ -2,9 +2,9 @@
 
 #include <algorithm>
 #include <cmath>
-#include <limits>
 #include <stdexcept>
 
+#include "configChecks.hpp"
 #include "desiredRegion.hpp"
 #include "pitch.hpp"
 #include "randomDraws.hpp"
@@ -15,17 +15,11 @@
 namespace ElyverseFootball::SimMatch {
 namespace {
 
+using ConfigChecks::isFinite;
+using ConfigChecks::isFiniteNonNegative;
 using RandomDraws::symmetricTriangular;
 using SimCore::stableLerp;
 using SimCore::Vec2;
-
-[[nodiscard]] bool isFiniteNonNegative(const double value) noexcept {
-  return value >= 0.0 && value <= std::numeric_limits<double>::max();
-}
-
-[[nodiscard]] bool isFinite(const double value) noexcept {
-  return std::abs(value) <= std::numeric_limits<double>::max();
-}
 
 // The unit vector from the side's goal line into the pitch.
 [[nodiscard]] Vec2 intoPitch(const TeamSide side, const Pitch& pitch) noexcept {

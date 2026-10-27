@@ -9,6 +9,7 @@
 #include <string>
 
 #include "choicePolicy.hpp"
+#include "configChecks.hpp"
 #include "matchEvents.hpp"
 #include "pressingActions.hpp"
 #include "randomDraws.hpp"
@@ -17,6 +18,8 @@
 namespace ElyverseFootball::SimMatch {
 namespace {
 
+using ConfigChecks::isFiniteNonNegative;
+using ConfigChecks::isPositiveFinite;
 using RandomDraws::symmetricTriangular;
 using SimCore::unitOr;
 using SimCore::Vec2;
@@ -61,23 +64,21 @@ using SimCore::Vec2;
 }  // namespace
 
 void validate(const DuelConfig& config) {
-  constexpr double kMax = std::numeric_limits<double>::max();
-  const auto positive = [](const double value) { return value > 0.0 && value <= kMax; };
-  const auto nonNegative = [](const double value) { return value >= 0.0 && value <= kMax; };
   const bool valid =
-      config.intervalTicks >= 1 && nonNegative(config.protectSeconds) &&
-      positive(config.engageRadius) && positive(config.breakRadius) &&
-      config.engageRadius <= config.breakRadius && positive(config.jockeyDistance) &&
-      positive(config.turnStep) && positive(config.accelerateStep) &&
-      positive(config.tackleReach) && positive(config.footRadius) && positive(config.bodyRadius) &&
-      nonNegative(config.footError) && config.minHold >= 0.0 && config.minHold <= config.maxHold &&
-      config.maxHold <= 1.0 && nonNegative(config.looseSpeed) && positive(config.contactDistance) &&
-      config.contactDistance < config.breakRadius && nonNegative(config.shovePerSecond) &&
-      nonNegative(config.commitCost) && nonNegative(config.turnCost) &&
-      nonNegative(config.recoveryPerSecond) && nonNegative(config.stumbleSeconds) &&
-      nonNegative(config.shieldWeight) && nonNegative(config.turnWeight) &&
-      nonNegative(config.accelerateWeight) && nonNegative(config.jockeyWeight) &&
-      nonNegative(config.commitWeight) && positive(config.decisionTemperature);
+      config.intervalTicks >= 1 && isFiniteNonNegative(config.protectSeconds) &&
+      isPositiveFinite(config.engageRadius) && isPositiveFinite(config.breakRadius) &&
+      config.engageRadius <= config.breakRadius && isPositiveFinite(config.jockeyDistance) &&
+      isPositiveFinite(config.turnStep) && isPositiveFinite(config.accelerateStep) &&
+      isPositiveFinite(config.tackleReach) && isPositiveFinite(config.footRadius) &&
+      isPositiveFinite(config.bodyRadius) && isFiniteNonNegative(config.footError) &&
+      config.minHold >= 0.0 && config.minHold <= config.maxHold && config.maxHold <= 1.0 &&
+      isFiniteNonNegative(config.looseSpeed) && isPositiveFinite(config.contactDistance) &&
+      config.contactDistance < config.breakRadius && isFiniteNonNegative(config.shovePerSecond) &&
+      isFiniteNonNegative(config.commitCost) && isFiniteNonNegative(config.turnCost) &&
+      isFiniteNonNegative(config.recoveryPerSecond) && isFiniteNonNegative(config.stumbleSeconds) &&
+      isFiniteNonNegative(config.shieldWeight) && isFiniteNonNegative(config.turnWeight) &&
+      isFiniteNonNegative(config.accelerateWeight) && isFiniteNonNegative(config.jockeyWeight) &&
+      isFiniteNonNegative(config.commitWeight) && isPositiveFinite(config.decisionTemperature);
   if (!valid) {
     throw std::invalid_argument("duel: invalid configuration");
   }

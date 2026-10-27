@@ -2,10 +2,10 @@
 
 #include <algorithm>
 #include <cmath>
-#include <limits>
 #include <stdexcept>
 #include <tuple>
 
+#include "configChecks.hpp"
 #include "playerMovement.hpp"
 #include "shotStopping.hpp"
 #include "teamFrame.hpp"
@@ -14,11 +14,8 @@
 namespace ElyverseFootball::SimMatch {
 namespace {
 
+using ConfigChecks::isFiniteNonNegative;
 using SimCore::Vec2;
-
-[[nodiscard]] bool isFiniteNonNegative(const double value) noexcept {
-  return value >= 0.0 && value <= std::numeric_limits<double>::max();
-}
 
 // How far and how high the player at this index reaches the ball: with his
 // hands if hasHands(), at his feet otherwise.

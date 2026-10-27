@@ -11,6 +11,7 @@
 #include <utility>
 
 #include "carrierScan.hpp"
+#include "configChecks.hpp"
 #include "laneReach.hpp"
 #include "passCandidates.hpp"
 #include "pitch.hpp"
@@ -21,6 +22,10 @@
 namespace ElyverseFootball::SimMatch {
 namespace {
 
+using ConfigChecks::isFiniteNonNegative;
+using ConfigChecks::isPositiveFinite;
+using ConfigChecks::isShare;
+using ConfigChecks::isWithin;
 using LaneReach::Lane;
 using LaneReach::Remembered;
 using SimCore::Vec2;
@@ -281,28 +286,21 @@ std::string_view dominantShotContribution(const ShotContributions& parts) noexce
 }
 
 void validate(const ShotScoringConfig& config) {
-  const auto finiteIn = [](const double value, const double min, const double max) {
-    return value >= min && value <= max;  // false for NaN
-  };
-  const auto positive = [](const double value) {
-    return value > 0.0 && value <= std::numeric_limits<double>::max();  // false for NaN
-  };
-  constexpr double kMax = std::numeric_limits<double>::max();
   const bool valid =
-      finiteIn(config.minConfidence, 0.0, 1.0) && finiteIn(config.minOpening, 0.0, 2.0) &&
-      finiteIn(config.reboundShare, 0.0, 1.0) && finiteIn(config.maxBlockRisk, 0.0, 1.0) &&
-      finiteIn(config.minGoalChance, 0.0, 1.0) && config.zoneColumns >= 2 &&
+      isShare(config.minConfidence) && isWithin(config.minOpening, 0.0, 2.0) &&
+      isShare(config.reboundShare) && isShare(config.maxBlockRisk) &&
+      isShare(config.minGoalChance) && config.zoneColumns >= 2 &&
       config.zoneColumns <= kMaxShotZones && config.zoneRows >= 1 &&
-      config.zoneRows <= kMaxShotZones && positive(config.maxShotDistance) &&
-      positive(config.shotSpeed) && positive(config.keeperDiveReach) &&
-      positive(config.keeperJumpReach) && positive(config.keeperDiveSeconds) &&
-      positive(config.blockReach) && positive(config.blockMarginSeconds) &&
-      positive(config.saveMarginSeconds) && positive(config.spreadAtZero) &&
-      finiteIn(config.spreadPerMeter, 0.0, kMax) && positive(config.pressureRadius) &&
-      finiteIn(config.pressureSpread, 0.0, kMax) && finiteIn(config.frameMargin, 0.0, kMax) &&
-      finiteIn(config.goalWeight, 0.0, kMaxScoringWeight) &&
-      finiteIn(config.secondBallWeight, 0.0, kMaxScoringWeight) &&
-      finiteIn(config.lossWeight, 0.0, kMaxScoringWeight);
+      config.zoneRows <= kMaxShotZones && isPositiveFinite(config.maxShotDistance) &&
+      isPositiveFinite(config.shotSpeed) && isPositiveFinite(config.keeperDiveReach) &&
+      isPositiveFinite(config.keeperJumpReach) && isPositiveFinite(config.keeperDiveSeconds) &&
+      isPositiveFinite(config.blockReach) && isPositiveFinite(config.blockMarginSeconds) &&
+      isPositiveFinite(config.saveMarginSeconds) && isPositiveFinite(config.spreadAtZero) &&
+      isFiniteNonNegative(config.spreadPerMeter) && isPositiveFinite(config.pressureRadius) &&
+      isFiniteNonNegative(config.pressureSpread) && isFiniteNonNegative(config.frameMargin) &&
+      isWithin(config.goalWeight, 0.0, kMaxScoringWeight) &&
+      isWithin(config.secondBallWeight, 0.0, kMaxScoringWeight) &&
+      isWithin(config.lossWeight, 0.0, kMaxScoringWeight);
   if (!valid) {
     throw std::invalid_argument("shot scoring: invalid configuration");
   }

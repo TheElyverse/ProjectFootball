@@ -7,18 +7,18 @@
 #include <stdexcept>
 #include <string>
 
+#include "configChecks.hpp"
 #include "teamFrame.hpp"
 
 namespace ElyverseFootball::SimMatch {
 namespace {
 
+using ConfigChecks::isFiniteNonNegative;
 using SimTactics::TacticalPhase;
 
 void validate(const PhaseConfig& config) {
-  constexpr double kMax = std::numeric_limits<double>::max();
-  const bool valid = config.intervalTicks >= 1 && config.transitionSeconds >= 0.0 &&
-                     config.transitionSeconds <= kMax && config.hysteresisMeters >= 0.0 &&
-                     config.hysteresisMeters <= kMax;
+  const bool valid = config.intervalTicks >= 1 && isFiniteNonNegative(config.transitionSeconds) &&
+                     isFiniteNonNegative(config.hysteresisMeters);
   if (!valid) {
     throw std::invalid_argument("tactical phase: invalid configuration");
   }

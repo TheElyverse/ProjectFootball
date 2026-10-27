@@ -2,22 +2,19 @@
 
 #include <algorithm>
 #include <cmath>
-#include <limits>
 #include <numbers>
 #include <stdexcept>
 #include <string>
 
 #include "carrierScan.hpp"
+#include "configChecks.hpp"
 
 namespace ElyverseFootball::SimMatch {
 namespace {
 
+using ConfigChecks::isFiniteNonNegative;
 using SimCore::SimTick;
 using SimCore::Vec2;
-
-[[nodiscard]] bool isFiniteNonNegative(const double value) noexcept {
-  return value >= 0.0 && value <= std::numeric_limits<double>::max();
-}
 
 void validate(const PerceptionConfig& config) {
   const bool valid = config.intervalTicks >= 1 && isFiniteNonNegative(config.viewDistance) &&

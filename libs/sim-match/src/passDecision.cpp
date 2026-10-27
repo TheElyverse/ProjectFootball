@@ -13,6 +13,7 @@
 #include "carrierScan.hpp"
 #include "carrying.hpp"
 #include "choicePolicy.hpp"
+#include "configChecks.hpp"
 #include "distribution.hpp"
 #include "passCandidates.hpp"
 #include "playerMovement.hpp"
@@ -23,14 +24,15 @@
 namespace ElyverseFootball::SimMatch {
 namespace {
 
+using ConfigChecks::isFiniteNonNegative;
+using ConfigChecks::isPositiveFinite;
+
 void validate(const DecisionConfig& config) {
-  constexpr double kMax = std::numeric_limits<double>::max();
-  const bool valid = config.intervalTicks >= 1 && config.minHoldSeconds >= 0.0 &&
-                     config.minHoldSeconds <= kMax && config.temperature > 0.0 &&
-                     config.temperature <= kMax && config.stuckSeconds >= 0.0 &&
-                     config.stuckSeconds <= kMax && config.clearTouchlineMargin >= 0.0 &&
-                     config.clearTouchlineMargin <= kMax && config.clearGoalLineMargin >= 0.0 &&
-                     config.clearGoalLineMargin <= kMax;
+  const bool valid = config.intervalTicks >= 1 && isFiniteNonNegative(config.minHoldSeconds) &&
+                     isPositiveFinite(config.temperature) &&
+                     isFiniteNonNegative(config.stuckSeconds) &&
+                     isFiniteNonNegative(config.clearTouchlineMargin) &&
+                     isFiniteNonNegative(config.clearGoalLineMargin);
   if (!valid) {
     throw std::invalid_argument("pass decision: invalid configuration");
   }

@@ -9,6 +9,7 @@
 #include <stdexcept>
 
 #include "actionGeometry.hpp"
+#include "configChecks.hpp"
 #include "passCandidates.hpp"
 #include "responsibility.hpp"
 #include "tactic.hpp"
@@ -18,6 +19,9 @@
 namespace ElyverseFootball::SimMatch {
 namespace {
 
+using ConfigChecks::isFiniteNonNegative;
+using ConfigChecks::isPositiveFinite;
+using ConfigChecks::isShare;
 using SimCore::Vec2;
 using SimTactics::Responsibility;
 
@@ -229,18 +233,16 @@ class Scorer {
 }  // namespace
 
 void validate(const OffBallConfig& config) {
-  constexpr double kMax = std::numeric_limits<double>::max();
-  const auto positive = [](const double value) { return value > 0.0 && value <= kMax; };
-  const auto weight = [](const double value) { return value >= 0.0 && value <= kMax; };
-  const bool valid = positive(config.nearBallRadius) && config.nearIntervalTicks >= 1 &&
-                     config.farIntervalTicks >= 1 && positive(config.supportDistance) &&
-                     positive(config.spaceSearchRadius) && positive(config.runDepth) &&
-                     positive(config.laneRadius) && positive(config.pressedRadius) &&
-                     positive(config.effortScale) && config.holdResponsibility >= 0.0 &&
-                     config.holdResponsibility <= 1.0 && positive(config.temperature) &&
-                     weight(config.responsibilityWeight) && weight(config.regionWeight) &&
-                     weight(config.spaceWeight) && weight(config.laneWeight) &&
-                     weight(config.urgencyWeight) && weight(config.effortWeight);
+  const bool valid =
+      isPositiveFinite(config.nearBallRadius) && config.nearIntervalTicks >= 1 &&
+      config.farIntervalTicks >= 1 && isPositiveFinite(config.supportDistance) &&
+      isPositiveFinite(config.spaceSearchRadius) && isPositiveFinite(config.runDepth) &&
+      isPositiveFinite(config.laneRadius) && isPositiveFinite(config.pressedRadius) &&
+      isPositiveFinite(config.effortScale) && isShare(config.holdResponsibility) &&
+      isPositiveFinite(config.temperature) && isFiniteNonNegative(config.responsibilityWeight) &&
+      isFiniteNonNegative(config.regionWeight) && isFiniteNonNegative(config.spaceWeight) &&
+      isFiniteNonNegative(config.laneWeight) && isFiniteNonNegative(config.urgencyWeight) &&
+      isFiniteNonNegative(config.effortWeight);
   if (!valid) {
     throw std::invalid_argument("off-ball decisions: invalid configuration");
   }

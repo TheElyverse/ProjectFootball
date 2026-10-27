@@ -5,7 +5,6 @@
 #include <cstddef>
 #include <format>
 #include <iterator>
-#include <limits>
 #include <optional>
 #include <span>
 #include <stdexcept>
@@ -15,8 +14,13 @@
 #include <utility>
 #include <variant>
 
+#include "configChecks.hpp"
+
 namespace ElyverseFootball::SimMatch {
 namespace {
+
+using ConfigChecks::isFinite;
+using ConfigChecks::isPositiveFinite;
 
 // Shortest representation that parses back to the same double -- what
 // std::format prints for "{}" with no precision. A fixed precision would hide
@@ -110,16 +114,6 @@ void appendNonFinitePlayerErrors(const std::size_t index, const PlayerMatchState
   }
 }
 
-// Positive and finite: a player who cannot move or speed up is not a slow
-// player but a broken fixture, and would make every arrival time infinite.
-[[nodiscard]] bool isPositiveFinite(const double value) noexcept {
-  return value > 0.0 && value <= std::numeric_limits<double>::max();
-}
-
-[[nodiscard]] bool isFinite(const double value) noexcept {
-  return std::abs(value) <= std::numeric_limits<double>::max();
-}
-
 void appendFacingErrors(const std::size_t index, const PlayerMatchState& player,
                         std::vector<MatchStateError>& errors) {
   const double lengthSquared = player.facing.lengthSquared();
@@ -134,6 +128,8 @@ void appendFacingErrors(const std::size_t index, const PlayerMatchState& player,
 void appendAttributeErrors(const std::size_t index, const PlayerMatchState& player,
                            std::vector<MatchStateError>& errors) {
   const PlayerAttributes& attributes = player.attributes;
+  // A player who cannot move or speed up is not a slow player but a broken
+  // fixture, and would make every arrival time infinite.
   if (!isPositiveFinite(attributes.maxSpeed) || !isPositiveFinite(attributes.acceleration)) {
     errors.push_back({.code = MatchStateErrorCode::kInvalidPlayerAttributes,
                       .message = describePlayer(index, player) + " has max speed " +

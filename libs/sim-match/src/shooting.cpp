@@ -2,30 +2,21 @@
 
 #include <algorithm>
 #include <cmath>
-#include <limits>
 #include <stdexcept>
 
+#include "configChecks.hpp"
 #include "randomDraws.hpp"
 
 namespace ElyverseFootball::SimMatch {
 namespace {
 
+using ConfigChecks::isFiniteNonNegative;
+using ConfigChecks::isPositiveFinite;
+using ConfigChecks::isShare;
 using RandomDraws::symmetricTriangular;
 using RandomDraws::symmetricUniform;
 using SimCore::unitOr;
 using SimCore::Vec2;
-
-[[nodiscard]] bool isFiniteNonNegative(const double value) noexcept {
-  return value >= 0.0 && value <= std::numeric_limits<double>::max();
-}
-
-[[nodiscard]] bool isPositiveFinite(const double value) noexcept {
-  return value > 0.0 && value <= std::numeric_limits<double>::max();
-}
-
-[[nodiscard]] bool isShare(const double value) noexcept {
-  return value >= 0.0 && value <= 1.0;
-}
 
 // However badly a ball is struck, it leaves the foot at no less than half and
 // no more than one and a half times the intended speed.

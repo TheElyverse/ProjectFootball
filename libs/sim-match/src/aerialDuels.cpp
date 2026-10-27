@@ -6,6 +6,7 @@
 #include <stdexcept>
 
 #include "choicePolicy.hpp"
+#include "configChecks.hpp"
 #include "passCandidates.hpp"
 #include "playerMovement.hpp"
 #include "randomDraws.hpp"
@@ -17,18 +18,12 @@
 namespace ElyverseFootball::SimMatch {
 namespace {
 
+using ConfigChecks::isFiniteNonNegative;
+using ConfigChecks::isPositiveFinite;
 using RandomDraws::symmetricTriangular;
 using RandomDraws::symmetricUniform;
 using SimCore::unitOr;
 using SimCore::Vec2;
-
-[[nodiscard]] bool isFiniteNonNegative(const double value) noexcept {
-  return value >= 0.0 && value <= std::numeric_limits<double>::max();
-}
-
-[[nodiscard]] bool isPositiveFinite(const double value) noexcept {
-  return value > 0.0 && value <= std::numeric_limits<double>::max();
-}
 
 // How high he stands to the ball, and with what: his hands or his head.
 [[nodiscard]] double standingReach(const bool hands, const ReceptionConfig& reception,

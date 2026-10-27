@@ -3,16 +3,19 @@
 #include <algorithm>
 #include <array>
 #include <cmath>
-#include <limits>
 #include <ranges>
 #include <span>
 #include <stdexcept>
 
+#include "configChecks.hpp"
 #include "stableMath.hpp"
 
 namespace ElyverseFootball::SimMatch {
 namespace {
 
+using ConfigChecks::isFiniteNonNegative;
+using ConfigChecks::isPositiveFinite;
+using ConfigChecks::isShare;
 using SimCore::Vec2;
 
 // Halvings of the interval a landing is searched in. The interval shrinks by a
@@ -30,18 +33,6 @@ inline constexpr int kMaxHorizonDoublings = 20;
 // thirtieth of a second has all but stopped hopping, and the bound keeps a
 // wildly tuned configuration from making a step run long.
 inline constexpr int kMaxBouncesPerTick = 8;
-
-[[nodiscard]] bool isFiniteNonNegative(const double value) noexcept {
-  return value >= 0.0 && value <= std::numeric_limits<double>::max();
-}
-
-[[nodiscard]] bool isPositiveFinite(const double value) noexcept {
-  return value > 0.0 && value <= std::numeric_limits<double>::max();
-}
-
-[[nodiscard]] bool isShare(const double value) noexcept {
-  return value >= 0.0 && value <= 1.0;
-}
 
 // Below this much drag over a span the closed forms below are all cancellation
 // and their Taylor series has long converged, so the two meet with no seam.
