@@ -408,9 +408,11 @@ MatchSystem makeShotStoppingSystem(const ShotStoppingConfig& config, const BallP
             if (!keeper) {
               return;
             }
+            // A keeper off his feet after a duel dives for nothing.
             const auto& answered = current.tactical(*keeper).dive;
             if ((answered && answers(*answered, ball)) ||
-                isDiving(current, *keeper, context.tick(), context.secondsPerTick())) {
+                isDiving(current, *keeper, context.tick(), context.secondsPerTick()) ||
+                isStumbling(next.tactical(*keeper), context.tick())) {
               return;
             }
             // A facing keeper faces a ball with a last touch.

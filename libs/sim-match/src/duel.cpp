@@ -227,39 +227,6 @@ void endDuel(const MatchStepContext& context, const MatchState& current,
                            .position = current.ball().position});
 }
 
-// The carrier, unless he is about to play the ball, decides his move: he
-// rolls the ball round him that way, which costs balance by how far he turns
-// it, and runs to the move's target. The defender jockeys -- once he is back
-// on his feet. The duel is stored as it stands after both.
-void moveOn(const MatchStepContext& context, const MatchState& current,
-            const std::size_t carrierIndex, const std::size_t defenderIndex, Duel duel,
-            const DuelRules& rules, MatchStateWriter& next) {
-  const DuelConfig& config = rules.config;
-  const DuelGeometry geometry = geometryOf(current, carrierIndex, defenderIndex);
-  const Pitch& pitch = current.pitch();
-  if (!next.pendingAction(carrierIndex)) {
-    // A defender off his feet threatens nothing.
-    Duel seen = duel;
-    if (isStumbling(next.tactical(defenderIndex), context.tick())) {
-      seen.defenderBalance = 0.0;
-    }
-    const auto utilities = carrierUtilities(geometry, seen, config);
-    duel.carrierMove = kCarrierMoves.at(
-        chooseByUtility(utilities, config.decisionTemperature, context.random(kDecisions))
-            .value_or(0));
-    const PlayerMatchState& carrier = current.players()[carrierIndex];
-    const Vec2 direction = moveDirection(duel.carrierMove, geometry);
-    duel.carrierBalance = std::max(
-        0.0, duel.carrierBalance - (config.turnCost * (1.0 - carrier.facing.dot(direction)) / 2.0));
-    next.setBallPosition(pitch.clamp(carrier.position + (direction * rules.physics.carryDistance)));
-    const Vec2 target = pitch.clamp(moveTarget(duel.carrierMove, geometry, config));
-    next.setPlayerTarget(
-        carrierIndex, duel.carrierMove == DuelMove::kShield ? std::nullopt : std::optional(target));
-  }
-  next.setPlayerTarget(defenderIndex, pitch.clamp(moveTarget(DuelMove::kJockey, geometry, config)));
-  next.tactical(defenderIndex).duel = duel;
-}
-
 // The defender takes the ball at the carrier's feet.
 void winBall(const MatchStepContext& context, const MatchState& current,
              const std::size_t carrierIndex, const std::size_t defenderIndex,
@@ -302,6 +269,45 @@ void loosenBall(const MatchStepContext& context, const MatchState& current,
   const Vec2 lunge = unitOr(ball - current.players()[defenderIndex].position, {});
   loseBall(context, current, carrierIndex, defenderIndex,
            unitOr(ball - foot, lunge) * config.looseSpeed, config, next);
+}
+
+// The carrier, unless he is about to play the ball, decides his move: he
+// rolls the ball round him that way, which costs balance by how far he turns
+// it, and runs to the move's target -- or, turned off his feet by it, loses
+// the ball where he rolled it, and the duel ends. The defender jockeys --
+// once he is back on his feet. The duel is stored as it stands after both.
+void moveOn(const MatchStepContext& context, const MatchState& current,
+            const std::size_t carrierIndex, const std::size_t defenderIndex, Duel duel,
+            const DuelRules& rules, MatchStateWriter& next) {
+  const DuelConfig& config = rules.config;
+  const DuelGeometry geometry = geometryOf(current, carrierIndex, defenderIndex);
+  const Pitch& pitch = current.pitch();
+  if (!next.pendingAction(carrierIndex)) {
+    // A defender off his feet threatens nothing.
+    Duel seen = duel;
+    if (isStumbling(next.tactical(defenderIndex), context.tick())) {
+      seen.defenderBalance = 0.0;
+    }
+    const auto utilities = carrierUtilities(geometry, seen, config);
+    duel.carrierMove = kCarrierMoves.at(
+        chooseByUtility(utilities, config.decisionTemperature, context.random(kDecisions))
+            .value_or(0));
+    const PlayerMatchState& carrier = current.players()[carrierIndex];
+    const Vec2 direction = moveDirection(duel.carrierMove, geometry);
+    duel.carrierBalance = std::max(
+        0.0, duel.carrierBalance - (config.turnCost * (1.0 - carrier.facing.dot(direction)) / 2.0));
+    next.setBallPosition(pitch.clamp(carrier.position + (direction * rules.physics.carryDistance)));
+    if (duel.carrierBalance == 0.0) {
+      endDuel(context, current, defenderIndex, duel, DuelOutcome::kLoose, next);
+      loseBall(context, current, carrierIndex, carrierIndex, {}, config, next);
+      return;
+    }
+    const Vec2 target = pitch.clamp(moveTarget(duel.carrierMove, geometry, config));
+    next.setPlayerTarget(
+        carrierIndex, duel.carrierMove == DuelMove::kShield ? std::nullopt : std::optional(target));
+  }
+  next.setPlayerTarget(defenderIndex, pitch.clamp(moveTarget(DuelMove::kJockey, geometry, config)));
+  next.tactical(defenderIndex).duel = duel;
 }
 
 // The defender's lunge, decided and landed in this step: what it did.
@@ -359,17 +365,12 @@ void stepDuel(const MatchStepContext& context, const MatchState& current,
                                         defender.attributes, contact && !defenderDown);
   stepped.defenderBalance =
       balanceAfter(duel.defenderBalance, defender.attributes, carrier.attributes, contact);
-  // Off his feet, he loses the ball: pushed off it, to the defender against
-  // him; turned off it, where it lies.
+  // Off his feet -- only a push can take him there while he regains balance
+  // -- he loses the ball to the defender against him.
   if (stepped.carrierBalance == 0.0) {
-    if (contact && !defenderDown) {
-      endDuel(context, current, defenderIndex, duel, DuelOutcome::kWon, next);
-      winBall(context, current, *carrierIndex, defenderIndex, next);
-      stumble(context, *carrierIndex, config, next);
-    } else {
-      endDuel(context, current, defenderIndex, duel, DuelOutcome::kLoose, next);
-      loseBall(context, current, *carrierIndex, *carrierIndex, {}, config, next);
-    }
+    endDuel(context, current, defenderIndex, duel, DuelOutcome::kWon, next);
+    winBall(context, current, *carrierIndex, defenderIndex, next);
+    stumble(context, *carrierIndex, config, next);
     return;
   }
   stepped.defenderMove = DuelMove::kJockey;

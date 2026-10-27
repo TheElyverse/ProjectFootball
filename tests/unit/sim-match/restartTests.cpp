@@ -36,13 +36,19 @@ using ElyverseFootball::SimMatch::goalKickSpot;
 using ElyverseFootball::SimMatch::isOutOfPlay;
 using ElyverseFootball::SimMatch::KickoffLineUp;
 using ElyverseFootball::SimMatch::lineUpForKickoff;
+using ElyverseFootball::SimMatch::makeRestartSystem;
 using ElyverseFootball::SimMatch::MatchConfig;
 using ElyverseFootball::SimMatch::MatchEvent;
+using ElyverseFootball::SimMatch::MatchSimulation;
 using ElyverseFootball::SimMatch::MatchState;
+using ElyverseFootball::SimMatch::MatchStateWriter;
+using ElyverseFootball::SimMatch::MatchStepContext;
+using ElyverseFootball::SimMatch::MatchSystem;
 using ElyverseFootball::SimMatch::Pitch;
 using ElyverseFootball::SimMatch::PitchCircle;
 using ElyverseFootball::SimMatch::planRestart;
 using ElyverseFootball::SimMatch::PlayerMatchState;
+using ElyverseFootball::SimMatch::RestartConfig;
 using ElyverseFootball::SimMatch::RestartKind;
 using ElyverseFootball::SimMatch::RestartPlan;
 using ElyverseFootball::SimMatch::RestartTaken;
@@ -282,6 +288,28 @@ TEST_CASE("A player on an out-of-play ball does not receive it before the restar
   REQUIRE(restarts == 1);
   REQUIRE(possessionChanges == 1);
   REQUIRE(simulation.state().ball().owner == PlayerId(3));
+}
+
+TEST_CASE("A restart gets a taker who stumbled in a duel up again", "[restart]") {
+  // The ball rests on the touchline, home touched it last, and away's 3, who
+  // stands on it, went down in a duel just before.
+  const MatchSystem down{
+      .name = "down",
+      .update = [](const MatchStepContext& /*context*/, const MatchState& /*state*/,
+                   MatchStateWriter& next) { next.tactical(2).stumbledUntil = SimTick(15); }};
+  MatchSimulation simulation(
+      {.initialState = sceneOf({{{.x = 2.0, .y = 20.0},
+                                 {.x = 20.0, .y = 30.0},
+                                 {.x = 30.0, .y = 40.0},
+                                 {.x = 58.0, .y = 20.0}}},
+                               ballAt({.x = 30.0, .y = 40.0}, 2)),
+       .seed = 1,
+       .ticksPerSecond = 30,
+       .systems = {down, makeRestartSystem(RestartConfig{.enabled = true}, BallPhysics{})},
+       .commands = {}});
+  REQUIRE(simulation.step().has_value());
+  REQUIRE(simulation.state().ball().owner == PlayerId(3));
+  REQUIRE_FALSE(simulation.state().tactical(2).stumbledUntil.has_value());
 }
 
 TEST_CASE("A kickoff lines both sides up in their formations, in their own halves", "[restart]") {

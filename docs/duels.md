@@ -13,9 +13,10 @@ challenge pressing used to win the ball with ([pressing](pressing.md#winning-the
 
 ```text
 presser within engageRadius → DuelStarted, the defender sizes the carrier up
-every step: ends? (kept) → balance: recovery, shoving, off his feet? (won / loose)
+every step: ends? (kept) → balance: recovery, shoving, pushed off his feet? (won)
           → defender: jockey | commit → the lunge lands: won | loose | foul | missed
           → carrier: shield | turn away | accelerate → rolls the ball, runs
+                                                       or turned off his feet (loose)
 ```
 
 ## Who duels
@@ -45,15 +46,16 @@ the carrier, when it began, both players' last moves and their balance.
    presses him, or they stand more than `breakRadius` (3 m) apart: the carrier
    got away.
 2. **Balance.** Both regain some, and bodies in contact push each other off it
-   (see [balance](#balance)). A carrier off his feet loses the ball.
+   (see [balance](#balance)). A carrier pushed off his feet loses the ball.
 3. **The defender** decides, unless he is off his feet: jockey or commit. A
    lunge lands at once ([the lunge](#the-lunge)); won, loose and foul end the
    duel.
 4. **The carrier** decides, unless he is about to play the ball -- a pass,
    shot or touch his decision chose this step --: shield, turn away or
    accelerate. He rolls the ball round him along the move's direction, so it
-   lies `carryDistance` from him that way, and runs to the move's target. The
-   defender jockeys.
+   lies `carryDistance` from him that way, and runs to the move's target --
+   unless the turn took the last of his balance: then he loses the ball where
+   he rolled it. The defender jockeys.
 
 Both decide from the true state, without a second look -- a duel is too quick
 for perception -- by `chooseByUtility()` at `decisionTemperature` (0.2), one
@@ -153,7 +155,8 @@ hold weaker; a balanced defender threatens more.
 
 A carrier whose balance reaches 0 is **off his feet** and loses the ball: to a
 defender in contact with him, who pushed him off it -- **won** --, or, turned
-off his feet by his own turns, where it lies -- **loose**, at rest.
+off his feet by his own turn, where he rolled it -- **loose**, at rest -- in
+the very step of that turn.
 
 ## Off his feet
 
@@ -164,10 +167,12 @@ tactical state as `stumbledUntil` (`isStumbling()`). Until then he
 - stands: the [movement](player-movement.md) system ignores his target,
 - takes no ball: [ball movement](ball-movement.md) leaves him out of who gets
   to a free or touched ball, also in the step he stumbled in, and a keeper
-  faces no shot,
+  neither dives for a shot nor faces one,
 - chases none: [pursuit](reception.md#going-after-the-ball) sends a teammate,
 - starts no duel, and in one he is in he only jockeys, pushes nobody and wins
   no ball by pushing the carrier off his feet.
+
+A restart gets its taker up again ([restarts](restarts.md)).
 
 So a loose ball is scrappy: the carrier is down, the defender cannot take back
 his own touch for the reclaim delay, and whoever is quickest to it gets it. A

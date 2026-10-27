@@ -153,9 +153,8 @@ inline constexpr std::string_view kDuelSystemName = "duel";
 //      feet, the defender no longer presses him (ActionType::kPressCarrier)
 //      or they stand more than breakRadius apart.
 //   2. Both regain balance; bodies within contactDistance push each other off
-//      it, by their strength. A carrier off his feet stumbles and loses the
-//      ball: won by a defender in contact with him, who pushed him off it,
-//      otherwise loose where it lies.
+//      it, by their strength -- a defender off his feet nobody. A carrier
+//      pushed off his feet stumbles and loses the ball to the defender.
 //   3. The defender, on his feet, decides by chooseByUtility() -- one draw
 //      from the kAi stream. A lunge lands at once, on the ball where the
 //      carrier's last move left it, off by a triangular error from the
@@ -166,8 +165,10 @@ inline constexpr std::string_view kDuelSystemName = "duel";
 //      stumbles. Won, loose and foul end the duel.
 //   4. The carrier decides -- one draw from kAi; none while he is about to
 //      play the ball -- rolls the ball round him along moveDirection(),
-//      carryDistance from him, and runs to the move's target. The defender
-//      jockeys, or stands while he is off his feet.
+//      carryDistance from him, and runs to the move's target; a turn that
+//      takes the last of his balance leaves the ball loose there, he
+//      stumbles, and the duel ends. The defender jockeys, or stands while he
+//      is off his feet.
 //
 // Without a duel, the nearest player of the other side whose decided action
 // is to press the carrier, within engageRadius and on his feet, takes on a

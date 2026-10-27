@@ -399,6 +399,27 @@ TEST_CASE("Nobody takes a ball knocked loose while he is off his feet", "[duel]"
   REQUIRE(loose > 0);
 }
 
+TEST_CASE("A carrier who turns himself off his feet loses the ball loose at once", "[duel]") {
+  // Shielding, he turns from the defender he faces to the far side: the whole
+  // turnCost, here all his balance, in the duel's first step.
+  DuelConfig dizzy;
+  dizzy.turnCost = 1.0;
+  dizzy.shieldWeight = 10.0;
+  dizzy.turnWeight = 0.0;
+  dizzy.accelerateWeight = 0.0;
+  dizzy.decisionTemperature = 0.01;
+  const Played played = play(oneOnOne({.x = 31.5, .y = 20.0}), 1, dizzy);
+  REQUIRE(played.started.has_value());
+  REQUIRE(played.ended.has_value());
+  const DuelEnded ended = played.ended.value_or(DuelEnded{});
+  REQUIRE(ended.outcome == DuelOutcome::kLoose);
+  REQUIRE(ended.tick == SimTick(15));
+  REQUIRE(std::ranges::any_of(played.events, [](const MatchEvent& event) {
+    const auto* changed = std::get_if<PossessionChanged>(&event);
+    return changed != nullptr && !changed->newOwner;
+  }));
+}
+
 TEST_CASE("A defender off his feet pushes nobody off the ball", "[duel]") {
   // A defender far stronger than the carrier, in contact with him, pushes him
   // off his feet within two seconds -- but not while he is off his own feet,

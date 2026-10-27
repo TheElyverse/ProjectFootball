@@ -168,6 +168,8 @@ struct Chance {
   double handling = kDefaultKeeperHandling;
   ShotStoppingConfig saves;
   bool restarts = false;
+  // Whether the keeper is off his feet after a duel the whole time.
+  bool keeperDown = false;
   std::uint64_t seed = 1;
 };
 
@@ -219,6 +221,14 @@ struct Chance {
                              WoodworkConfig{}, chance.saves)};
   if (chance.restarts) {
     systems.push_back(makeRestartSystem(restarts, BallPhysics{}));
+  }
+  if (chance.keeperDown) {
+    systems.insert(systems.begin(),
+                   MatchSystem{.name = "keeper down",
+                               .update = [](const MatchStepContext& /*context*/,
+                                            const MatchState& /*state*/, MatchStateWriter& next) {
+                                 next.tactical(7).stumbledUntil = SimTick(1000000);
+                               }});
   }
   return MatchSimulation({.initialState = chanceState(chance),
                           .seed = chance.seed,
@@ -542,6 +552,16 @@ TEST_CASE("A central shot is saved", "[shotStopping]") {
     REQUIRE(save.result != SaveResult::kOutOfReach);
     REQUIRE(eventsOf<GoalScored>(events).empty());
   }
+}
+
+TEST_CASE("A keeper off his feet after a duel neither dives nor saves", "[shotStopping]") {
+  Chance chance;
+  chance.keeperDown = true;
+  MatchSimulation simulation = shotMatch(chance, shotAt(goal().center, 1.0, 25.0));
+  const auto events = play(simulation, 3 * kTicksPerSecond);
+  REQUIRE_FALSE(diveOf(simulation).has_value());
+  REQUIRE(eventsOf<SaveAttempted>(events).empty());
+  REQUIRE(eventsOf<GoalScored>(events).size() == 1);
 }
 
 TEST_CASE("A shot into the top corner is out of the keeper's reach", "[shotStopping]") {
