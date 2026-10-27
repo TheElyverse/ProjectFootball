@@ -68,16 +68,10 @@ struct ShapeSpan {
   double maxWidth = -std::numeric_limits<double>::infinity();
 };
 
-[[nodiscard]] bool guardsGoal(const SimTactics::TacticSlot& slot) noexcept {
-  return std::ranges::any_of(slot.responsibilities, [](const auto& entry) {
-    return entry.responsibility == Responsibility::kGuardGoal;
-  });
-}
-
 [[nodiscard]] ShapeSpan outfieldSpan(const SimTactics::Tactic& tactic) noexcept {
   ShapeSpan span;
   for (const SimTactics::TacticSlot& slot : tactic.slots()) {
-    if (guardsGoal(slot)) {
+    if (slot.guardsGoal()) {
       continue;
     }
     span.minDepth = std::min(span.minDepth, slot.position.depth);
@@ -124,7 +118,7 @@ Vec2 tacticalTarget(const MatchState& state, const std::size_t playerIndex,
   const SimTactics::Tactic& tactic = tacticOf(state, side);
   const std::size_t slotNumber = slotIndex(state, playerIndex);
   const SimTactics::TacticSlot& slot = tactic.slots()[slotNumber];
-  if (guardsGoal(slot)) {
+  if (slot.guardsGoal()) {
     throw std::invalid_argument("desired region: the goalkeeper keeps goal by goalkeeperTarget()");
   }
 

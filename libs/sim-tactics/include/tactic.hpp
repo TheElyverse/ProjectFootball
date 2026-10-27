@@ -37,6 +37,9 @@ struct TacticSlot {
   ShapePosition position;
   std::vector<SlotResponsibility> responsibilities;
 
+  // Whether the player here guards the goal: the side's goalkeeper.
+  [[nodiscard]] bool guardsGoal() const noexcept;
+
   friend bool operator==(const TacticSlot&, const TacticSlot&) = default;
 };
 
