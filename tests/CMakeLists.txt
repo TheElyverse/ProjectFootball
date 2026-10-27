@@ -9,6 +9,10 @@ list(APPEND CMAKE_MODULE_PATH ${Catch2_SOURCE_DIR}/extras)
 include(CTest)
 include(Catch)
 
+# Fixtures the unit and acceptance tests share, header-only.
+add_library(pf_test_support INTERFACE)
+target_include_directories(pf_test_support INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}/support)
+
 # Unit tests, one executable per library.
 add_subdirectory(unit)
 # Acceptance scenarios: whole matches, determinism and stability.

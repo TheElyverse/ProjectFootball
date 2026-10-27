@@ -14,6 +14,7 @@
 #include "carrying.hpp"
 #include "duel.hpp"
 #include "matchEvents.hpp"
+#include "matchFixtures.hpp"
 #include "matchSimulation.hpp"
 #include "matchState.hpp"
 #include "perception.hpp"
@@ -36,7 +37,6 @@ using ElyverseFootball::SimMatch::CarryCandidateRules;
 using ElyverseFootball::SimMatch::carryContributions;
 using ElyverseFootball::SimMatch::CarryIntent;
 using ElyverseFootball::SimMatch::CarryKind;
-using ElyverseFootball::SimMatch::CarryRejection;
 using ElyverseFootball::SimMatch::CarryRun;
 using ElyverseFootball::SimMatch::CarryScoringConfig;
 using ElyverseFootball::SimMatch::carryScoringForPhase;
@@ -66,22 +66,11 @@ using ElyverseFootball::SimMatch::PursuitConfig;
 using ElyverseFootball::SimMatch::runningSpeed;
 using ElyverseFootball::SimMatch::TeamSide;
 using ElyverseFootball::SimTactics::TacticalPhase;
+using ElyverseFootball::TestSupport::playerAt;
 
 namespace {
 
 constexpr double kSecondsPerTick = 1.0 / 30.0;
-
-[[nodiscard]] PlayerMatchState playerAt(const std::uint32_t playerId, const TeamSide side,
-                                        const Vec2 position,
-                                        const Vec2 facing = {.x = 1.0, .y = 0.0}) {
-  return {.playerId = PlayerId(playerId),
-          .side = side,
-          .position = position,
-          .velocity = {},
-          .attributes = {},
-          .target = std::nullopt,
-          .facing = facing};
-}
 
 // Two a side on a 60 x 40 pitch. Home 1 has the ball at his feet at (20, 20),
 // facing `facing`; home 2 stands far back, away 3 and 4 where the test puts

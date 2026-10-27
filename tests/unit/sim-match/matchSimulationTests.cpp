@@ -13,6 +13,7 @@
 #include <vector>
 
 #include "kickoffScenario.hpp"
+#include "matchFixtures.hpp"
 #include "matchSimulation.hpp"
 #include "matchState.hpp"
 #include "random.hpp"
@@ -36,6 +37,7 @@ using ElyverseFootball::SimMatch::MatchSystem;
 using ElyverseFootball::SimMatch::PassIntent;
 using ElyverseFootball::SimMatch::Pitch;
 using ElyverseFootball::SimMatch::PlayerMatchState;
+using ElyverseFootball::TestSupport::stepTimes;
 
 namespace {
 
@@ -55,12 +57,6 @@ constexpr std::uint64_t kSeed = 42;
                           .ticksPerSecond = kDefaultTicksPerSecond,
                           .systems = std::move(systems),
                           .commands = {}});
-}
-
-void stepTimes(MatchSimulation& simulation, const int steps) {
-  for (int step = 0; step < steps; ++step) {
-    REQUIRE(simulation.step().has_value());
-  }
 }
 
 // For tests that expect step() to throw: reaching the end is a failure.

@@ -11,6 +11,7 @@
 
 #include "ballMovement.hpp"
 #include "matchCommand.hpp"
+#include "matchFixtures.hpp"
 #include "matchSetup.hpp"
 #include "matchSimulation.hpp"
 #include "matchState.hpp"
@@ -42,18 +43,17 @@ using ElyverseFootball::SimMatch::MatchState;
 using ElyverseFootball::SimMatch::MatchStateWriter;
 using ElyverseFootball::SimMatch::MatchStepContext;
 using ElyverseFootball::SimMatch::MatchSystem;
-using ElyverseFootball::SimMatch::MovePlayerCommand;
 using ElyverseFootball::SimMatch::PassCommand;
 using ElyverseFootball::SimMatch::Pitch;
 using ElyverseFootball::SimMatch::planPassSpeed;
 using ElyverseFootball::SimMatch::PlayerMatchState;
 using ElyverseFootball::SimMatch::PursuitConfig;
 using ElyverseFootball::SimMatch::ReceptionConfig;
-using ElyverseFootball::SimMatch::ScheduledCommand;
 using ElyverseFootball::SimMatch::startMatch;
 using ElyverseFootball::SimMatch::stepFreeBall;
 using ElyverseFootball::SimMatch::stepFreeBallTimed;
 using ElyverseFootball::SimMatch::TeamSide;
+using ElyverseFootball::TestSupport::playerAt;
 
 namespace {
 
@@ -67,17 +67,6 @@ constexpr double kReach = ReceptionConfig{}.controlHeight;
 [[nodiscard]] const Pitch& pitch() {
   static const Pitch kPitch(60.0, 40.0);
   return kPitch;
-}
-
-[[nodiscard]] PlayerMatchState playerAt(const std::uint32_t playerId, const TeamSide side,
-                                        const Vec2 position) {
-  return {.playerId = PlayerId(playerId),
-          .side = side,
-          .position = position,
-          .velocity = {},
-          .attributes = {},
-          .target = std::nullopt,
-          .facing = {.x = 1.0, .y = 0.0}};
 }
 
 // The step a tick makes of the ball: the same ball, moved to where it ends up,

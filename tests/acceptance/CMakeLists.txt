@@ -14,6 +14,7 @@ add_executable(sim-acceptance-tests
 target_link_libraries(sim-acceptance-tests PRIVATE
         ElyverseFootball::sim-replay
         Catch2::Catch2WithMain
+        pf_test_support
         pf_compiler_warnings
 )
 # The tactic files the identity tests load live in the source tree.

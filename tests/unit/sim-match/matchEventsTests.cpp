@@ -11,6 +11,7 @@
 #include "kickoffScenario.hpp"
 #include "matchCommand.hpp"
 #include "matchEvents.hpp"
+#include "matchFixtures.hpp"
 #include "matchSetup.hpp"
 #include "matchSimulation.hpp"
 #include "matchState.hpp"
@@ -41,7 +42,6 @@ using ElyverseFootball::SimMatch::LooseBallRecovered;
 using ElyverseFootball::SimMatch::makeSevenASideKickoff;
 using ElyverseFootball::SimMatch::MatchConfig;
 using ElyverseFootball::SimMatch::MatchEvent;
-using ElyverseFootball::SimMatch::MatchSetup;
 using ElyverseFootball::SimMatch::MatchSimulation;
 using ElyverseFootball::SimMatch::MatchState;
 using ElyverseFootball::SimMatch::PassAttempted;
@@ -51,23 +51,13 @@ using ElyverseFootball::SimMatch::PassReceived;
 using ElyverseFootball::SimMatch::Pitch;
 using ElyverseFootball::SimMatch::PitchControlSampled;
 using ElyverseFootball::SimMatch::planPassSpeed;
-using ElyverseFootball::SimMatch::PlayerMatchState;
 using ElyverseFootball::SimMatch::PossessionChanged;
 using ElyverseFootball::SimMatch::startMatch;
 using ElyverseFootball::SimMatch::TeamSide;
+using ElyverseFootball::TestSupport::eventsOf;
+using ElyverseFootball::TestSupport::playerAt;
 
 namespace {
-
-[[nodiscard]] PlayerMatchState playerAt(const std::uint32_t playerId, const TeamSide side,
-                                        const Vec2 position) {
-  return {.playerId = PlayerId(playerId),
-          .side = side,
-          .position = position,
-          .velocity = {},
-          .attributes = {},
-          .target = std::nullopt,
-          .facing = {.x = 1.0, .y = 0.0}};
-}
 
 // Two a side: player 1 passes to (30, 20) in tick 1; player 2 waits there,
 // player 3 stands where the test puts him. Carriers never decide on their
@@ -103,7 +93,7 @@ namespace {
 
 // Every event of the next `steps` steps, in order, without the pitch control
 // system's regular samples.
-[[nodiscard]] std::vector<MatchEvent> eventsOf(MatchSimulation& simulation, const int steps) {
+[[nodiscard]] std::vector<MatchEvent> eventsOver(MatchSimulation& simulation, const int steps) {
   std::vector<MatchEvent> events;
   for (int step = 0; step < steps; ++step) {
     REQUIRE(simulation.step().has_value());
@@ -116,28 +106,17 @@ namespace {
   return events;
 }
 
-template <typename Event>
-[[nodiscard]] std::vector<Event> only(const std::vector<MatchEvent>& events) {
-  std::vector<Event> matching;
-  for (const MatchEvent& event : events) {
-    if (const auto* typed = std::get_if<Event>(&event)) {
-      matching.push_back(*typed);
-    }
-  }
-  return matching;
-}
-
 }  // namespace
 
 TEST_CASE("A completed pass records attempt, reception and possession", "[matchEvents]") {
   MatchSimulation simulation = passScene({.x = 45.0, .y = 35.0});
-  const std::vector<MatchEvent> events = eventsOf(simulation, 120);
+  const std::vector<MatchEvent> events = eventsOver(simulation, 120);
 
   REQUIRE(events.size() == 5);
   REQUIRE(events.at(0) ==
           MatchEvent{PossessionChanged{
               .tick = SimTick(0), .previousOwner = std::nullopt, .newOwner = PlayerId(1)}});
-  const auto attempts = only<PassAttempted>(events);
+  const auto attempts = eventsOf<PassAttempted>(events);
   REQUIRE(attempts.size() == 1);
   const PassAttempted& attempt = attempts.front();
   REQUIRE(attempt.tick == SimTick(1));
@@ -149,7 +128,7 @@ TEST_CASE("A completed pass records attempt, reception and possession", "[matchE
           MatchEvent{PossessionChanged{
               .tick = SimTick(1), .previousOwner = PlayerId(1), .newOwner = std::nullopt}});
 
-  const auto received = only<PassReceived>(events);
+  const auto received = eventsOf<PassReceived>(events);
   REQUIRE(received.size() == 1);
   REQUIRE(received.front().receiver == PlayerId(2));
   REQUIRE(received.front().passer == PlayerId(1));
@@ -181,16 +160,16 @@ TEST_CASE("Pitch control is sampled at every update of its grid", "[matchEvents]
 
 TEST_CASE("An intercepted pass records the interceptor", "[matchEvents]") {
   MatchSimulation simulation = passScene({.x = 20.0, .y = 20.5});
-  const std::vector<MatchEvent> events = eventsOf(simulation, 120);
+  const std::vector<MatchEvent> events = eventsOver(simulation, 120);
 
-  const auto intercepted = only<PassIntercepted>(events);
+  const auto intercepted = eventsOf<PassIntercepted>(events);
   REQUIRE(intercepted.size() == 1);
   REQUIRE(intercepted.front().interceptor == PlayerId(3));
   REQUIRE(intercepted.front().passer == PlayerId(1));
   // Where the ball was taken: on the lane from player 1 toward player 2.
   REQUIRE(intercepted.front().position.x > 10.0);
   REQUIRE(intercepted.front().position.x < 30.0);
-  REQUIRE(only<PassReceived>(events).empty());
+  REQUIRE(eventsOf<PassReceived>(events).empty());
 }
 
 TEST_CASE("A ball nobody played is a loose ball when recovered", "[matchEvents]") {
@@ -199,9 +178,9 @@ TEST_CASE("A ball nobody played is a loose ball when recovered", "[matchEvents]"
   MatchSimulation simulation =
       startMatch({.initialState = *std::move(state), .config = {}, .seed = 1, .commands = {}});
 
-  const std::vector<MatchEvent> events = eventsOf(simulation, 60);
+  const std::vector<MatchEvent> events = eventsOver(simulation, 60);
 
-  const auto recovered = only<LooseBallRecovered>(events);
+  const auto recovered = eventsOf<LooseBallRecovered>(events);
   REQUIRE(recovered.size() == 1);
   // The two forwards are equally close; the lower id wins.
   REQUIRE(recovered.front().player == PlayerId(7));

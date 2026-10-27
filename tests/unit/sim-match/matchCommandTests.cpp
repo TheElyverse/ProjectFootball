@@ -10,6 +10,7 @@
 #include "kickoffScenario.hpp"
 #include "matchCommand.hpp"
 #include "matchEvents.hpp"
+#include "matchFixtures.hpp"
 #include "matchSetup.hpp"
 #include "matchSimulation.hpp"
 #include "matchState.hpp"
@@ -38,6 +39,7 @@ using ElyverseFootball::SimMatch::TacticChanged;
 using ElyverseFootball::SimMatch::TeamSide;
 using ElyverseFootball::SimTactics::referenceTacticSpec;
 using ElyverseFootball::SimTactics::Tactic;
+using ElyverseFootball::TestSupport::stepTimes;
 
 namespace {
 
@@ -68,12 +70,6 @@ constexpr std::uint64_t kSeed = 7;
 [[nodiscard]] std::optional<Vec2> targetOf(const MatchSimulation& simulation,
                                            const std::uint32_t playerId) {
   return simulation.state().players()[playerId - 1].target;
-}
-
-void stepTimes(MatchSimulation& simulation, const int steps) {
-  for (int step = 0; step < steps; ++step) {
-    REQUIRE(simulation.step().has_value());
-  }
 }
 
 }  // namespace

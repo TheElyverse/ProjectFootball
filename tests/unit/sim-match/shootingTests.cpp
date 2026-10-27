@@ -10,6 +10,7 @@
 
 #include "ballPhysics.hpp"
 #include "ids.hpp"
+#include "matchFixtures.hpp"
 #include "matchSimulation.hpp"
 #include "matchState.hpp"
 #include "passing.hpp"
@@ -48,6 +49,7 @@ using ElyverseFootball::SimMatch::ShotIntent;
 using ElyverseFootball::SimMatch::ShotStrike;
 using ElyverseFootball::SimMatch::skillErrorFactor;
 using ElyverseFootball::SimMatch::TeamSide;
+using ElyverseFootball::TestSupport::playerAt;
 
 namespace {
 
@@ -62,17 +64,6 @@ constexpr Vec2 kFrom{.x = 48.0, .y = 20.0};
   config.speedError = 0.0;
   config.spinError = 0.0;
   return config;
-}
-
-[[nodiscard]] PlayerMatchState playerAt(const std::uint32_t playerId, const TeamSide side,
-                                        const Vec2 position) {
-  return {.playerId = PlayerId(playerId),
-          .side = side,
-          .position = position,
-          .velocity = {},
-          .attributes = {},
-          .target = std::nullopt,
-          .facing = {.x = 1.0, .y = 0.0}};
 }
 
 [[nodiscard]] ShotIntent shotAt(const Vec2 target, const double height = 1.0) {

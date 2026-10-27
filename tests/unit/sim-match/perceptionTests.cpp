@@ -11,6 +11,7 @@
 #include <utility>
 #include <vector>
 
+#include "matchFixtures.hpp"
 #include "matchSimulation.hpp"
 #include "matchState.hpp"
 #include "observation.hpp"
@@ -37,23 +38,12 @@ using ElyverseFootball::SimMatch::Pitch;
 using ElyverseFootball::SimMatch::PlayerMatchState;
 using ElyverseFootball::SimMatch::PlayerPerception;
 using ElyverseFootball::SimMatch::TeamSide;
+using ElyverseFootball::TestSupport::playerAt;
 
 namespace {
 
 constexpr double kSecondsPerTick = 1.0 / 30.0;
 const PerceptionConfig kConfig{};
-
-[[nodiscard]] PlayerMatchState playerAt(const std::uint32_t playerId, const TeamSide side,
-                                        const Vec2 position,
-                                        const Vec2 facing = {.x = 1.0, .y = 0.0}) {
-  return {.playerId = PlayerId(playerId),
-          .side = side,
-          .position = position,
-          .velocity = {},
-          .attributes = {},
-          .target = std::nullopt,
-          .facing = facing};
-}
 
 // Observer 1 at (20, 20) looking along +x. Player 2 ahead, player 3 behind at
 // 10 m, player 4 behind at 2 m; the ball ahead at 10 m.

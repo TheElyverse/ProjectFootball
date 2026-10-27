@@ -17,6 +17,7 @@
 
 #include "ids.hpp"
 #include "matchEvents.hpp"
+#include "matchFixtures.hpp"
 #include "matchSetup.hpp"
 #include "matchSimulation.hpp"
 #include "matchState.hpp"
@@ -40,7 +41,6 @@ using ElyverseFootball::SimMatch::BallState;
 using ElyverseFootball::SimMatch::BallTouch;
 using ElyverseFootball::SimMatch::DecisionDiagnostic;
 using ElyverseFootball::SimMatch::DecisionOutcome;
-using ElyverseFootball::SimMatch::findScenario;
 using ElyverseFootball::SimMatch::GoalEnd;
 using ElyverseFootball::SimMatch::goalKickSpot;
 using ElyverseFootball::SimMatch::hasReleasedBall;
@@ -59,6 +59,7 @@ using ElyverseFootball::SimMatch::PlayerMatchState;
 using ElyverseFootball::SimMatch::RestartKind;
 using ElyverseFootball::SimMatch::RestartTaken;
 using ElyverseFootball::SimMatch::startMatch;
+using ElyverseFootball::TestSupport::setupOf;
 
 namespace {
 
@@ -66,14 +67,6 @@ constexpr std::uint64_t kSeeds = 10;
 constexpr PlayerId kHomeKeeper{1};
 constexpr PlayerId kAwayKeeper{8};
 constexpr std::size_t kAwayKeeperIndex = 7;
-
-[[nodiscard]] MatchSetup setupOf(const std::string_view scenario, const std::uint64_t seed) {
-  const auto* definition = findScenario(scenario);
-  REQUIRE(definition != nullptr);
-  auto setup = definition->make(seed);
-  REQUIRE(setup.has_value());
-  return *std::move(setup);
-}
 
 [[nodiscard]] MatchSimulation start(const MatchSetup& setup) {
   MatchSimulation simulation = startMatch(setup);

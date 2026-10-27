@@ -11,6 +11,7 @@
 
 #include "ballPhysics.hpp"
 #include "distribution.hpp"
+#include "matchFixtures.hpp"
 #include "matchSimulation.hpp"
 #include "matchState.hpp"
 #include "passCandidates.hpp"
@@ -41,21 +42,11 @@ using ElyverseFootball::SimMatch::Pitch;
 using ElyverseFootball::SimMatch::PlayerMatchState;
 using ElyverseFootball::SimMatch::predictBallLanding;
 using ElyverseFootball::SimMatch::TeamSide;
+using ElyverseFootball::TestSupport::playerAt;
 
 namespace {
 
 constexpr double kSecondsPerTick = 1.0 / 30.0;
-
-[[nodiscard]] PlayerMatchState playerAt(const std::uint32_t playerId, const TeamSide side,
-                                        const Vec2 position) {
-  return {.playerId = PlayerId(playerId),
-          .side = side,
-          .position = position,
-          .velocity = {},
-          .attributes = {},
-          .target = std::nullopt,
-          .facing = {.x = 1.0, .y = 0.0}};
-}
 
 // Three a side. Home 1 has the ball at (5, 20) and looks up the pitch; home 2
 // stands 10 m ahead of him, home 3 at `three`. Away stands at `away`.
