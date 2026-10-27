@@ -56,16 +56,10 @@ values belong to `DefensiveConfig` ([defensive shape](defensive-shape.md)).
 
 ## Winning the ball
 
-A presser who gets within `engageRadius` (1.5 m) of a carrier with the ball at
-his feet takes him on in a [duel](duels.md): a sequence of steps, ten times a
-second, in which the carrier shields the ball, turns away or accelerates and
-the presser jockeys or lunges, until the carrier keeps the ball, the presser
-wins it cleanly, knocks it loose or fouls him. A carrier still settling the
-ball -- for `protectSeconds` (0.5 s) since his last touch --, a goalkeeper
-holding it in his hands and a carrier whose ball rolls ahead of him after a
-touch ([ball carrying](ball-carrying.md)) are not taken on. A won duel records
-`BallWon` with the cause `duel`. Only a player whose decided action is
-`pressCarrier` -- his own, an assigned role in a coordinated press, or the
+A presser who gets close to a carrier with the ball at his feet takes him on in
+a [duel](duels.md#who-duels), which the carrier keeps or the presser wins,
+knocks loose or fouls. Only a player whose decided action is `pressCarrier` --
+his own, an assigned role in a coordinated press, or the
 [idle press](#a-carrier-who-stands-on-the-ball) -- takes a carrier on, so a
 side wins the ball at the carrier's feet only by pressing him.
 

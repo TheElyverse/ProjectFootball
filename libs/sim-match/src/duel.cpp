@@ -47,6 +47,12 @@ using SimCore::Vec2;
   return unitOr(geometry.goal - geometry.carrier, {});
 }
 
+// How squarely the defender stands in the carrier's way to goal: 1 straight
+// goal-side of him, 0 level, -1 behind him.
+[[nodiscard]] double goalSidedness(const DuelGeometry& geometry) noexcept {
+  return unitOr(geometry.defender - geometry.carrier, {}).dot(towardGoal(geometry));
+}
+
 [[nodiscard]] double secondsSince(const SimCore::SimTick earlier, const SimCore::SimTick now,
                                   const double secondsPerTick) noexcept {
   return static_cast<double>(now.value() - earlier.value()) * secondsPerTick;
@@ -87,8 +93,7 @@ double threat(const DuelGeometry& geometry, const double defenderBalance,
   const double apart = SimCore::distance(geometry.carrier, geometry.defender);
   const double closeness =
       clamp01((config.breakRadius - apart) / (config.breakRadius - config.contactDistance));
-  const double goalSide =
-      (1.0 + unitOr(geometry.defender - geometry.carrier, {}).dot(towardGoal(geometry))) / 2.0;
+  const double goalSide = (1.0 + goalSidedness(geometry)) / 2.0;
   return closeness * goalSide * defenderBalance;
 }
 
@@ -122,11 +127,8 @@ Vec2 moveDirection(const DuelMove move, const DuelGeometry& geometry) noexcept {
       return away;
     case DuelMove::kTurnAway:
       return side;
-    case DuelMove::kAccelerate: {
-      const double inTheWay =
-          std::max(0.0, unitOr(geometry.defender - geometry.carrier, {}).dot(goal));
-      return unitOr(goal + (side * inTheWay), side);
-    }
+    case DuelMove::kAccelerate:
+      return unitOr(goal + (side * std::max(0.0, goalSidedness(geometry))), side);
     case DuelMove::kJockey:
     case DuelMove::kCommit:
       return {};
@@ -199,6 +201,12 @@ struct DuelRules {
   DuelConfig config;
   BallPhysics physics;
 };
+
+// Whether there is a ball at its owner's feet to fight for: not one rolling
+// ahead of him after a touch, nor one a goalkeeper holds in his hands.
+[[nodiscard]] bool canBeTakenOn(const BallState& ball) noexcept {
+  return ball.isAtFeet() && !ball.held;
+}
 
 [[nodiscard]] DuelGeometry geometryOf(const MatchState& state, const std::size_t carrierIndex,
                                       const std::size_t defenderIndex) {
@@ -302,30 +310,38 @@ void moveOn(const MatchStepContext& context, const MatchState& current,
       loseBall(context, current, carrierIndex, carrierIndex, {}, config, next);
       return;
     }
-    const Vec2 target = pitch.clamp(moveTarget(duel.carrierMove, geometry, config));
+    // Shielding, he stands rather than runs back to where he stood.
     next.setPlayerTarget(
-        carrierIndex, duel.carrierMove == DuelMove::kShield ? std::nullopt : std::optional(target));
+        carrierIndex,
+        duel.carrierMove == DuelMove::kShield
+            ? std::nullopt
+            : std::optional(pitch.clamp(moveTarget(duel.carrierMove, geometry, config))));
   }
   next.setPlayerTarget(defenderIndex, pitch.clamp(moveTarget(DuelMove::kJockey, geometry, config)));
   next.tactical(defenderIndex).duel = duel;
 }
 
-// The defender's lunge, decided and landed in this step: what it did.
-[[nodiscard]] LungeResult lunge(const MatchStepContext& context, const MatchState& current,
-                                const std::size_t carrierIndex, const std::size_t defenderIndex,
-                                const Duel& duel, const DuelConfig& config, Vec2& foot) {
-  const DuelGeometry geometry = geometryOf(current, carrierIndex, defenderIndex);
+// Where the defender's lunge landed and what it did.
+struct Lunge {
+  Vec2 foot;
+  LungeResult result = LungeResult::kMissed;
+};
+
+// The defender's lunge, decided and landed in this step.
+[[nodiscard]] Lunge lunge(const MatchStepContext& context, const DuelGeometry& geometry,
+                          const Duel& duel, const double ballControl, const DuelConfig& config) {
   auto& random = context.random(SimCore::RandomNumberGeneratorDomain::kExecution);
   const double spread = config.footError * (2.0 - duel.defenderBalance);
-  const double across = symmetricTriangular(random) * spread;
-  const Vec2 aimed = geometry.ball + Vec2{.x = across, .y = symmetricTriangular(random) * spread};
+  const Vec2 aimed = geometry.ball + Vec2{.x = symmetricTriangular(random) * spread,
+                                          .y = symmetricTriangular(random) * spread};
   // A lunge reaches no farther than tackleReach.
   const Vec2 reach = aimed - geometry.defender;
   const double length = reach.length();
-  foot = length > config.tackleReach ? geometry.defender + (reach * (config.tackleReach / length))
-                                     : aimed;
-  return resolveLunge(geometry, foot, duel.carrierBalance,
-                      current.players()[carrierIndex].attributes.ballControl, config);
+  const Vec2 foot = length > config.tackleReach
+                        ? geometry.defender + (reach * (config.tackleReach / length))
+                        : aimed;
+  return {.foot = foot,
+          .result = resolveLunge(geometry, foot, duel.carrierBalance, ballControl, config)};
 }
 
 // One step of the duel the defender at this index fights.
@@ -337,19 +353,18 @@ void stepDuel(const MatchStepContext& context, const MatchState& current,
   const PlayerMatchState& defender = current.players()[defenderIndex];
   const auto carrierIndex = findPlayerIndex(current, duel.carrier);
   const auto& action = current.tactical(defenderIndex).action;
-  const bool onTheBall =
-      carrierIndex && ball.owner == duel.carrier && ball.isAtFeet() && !ball.held;
+  const bool onTheBall = carrierIndex && ball.owner == duel.carrier && canBeTakenOn(ball);
   const bool pressing = action && action->type == ActionType::kPressCarrier;
-  if (!onTheBall || !pressing ||
-      SimCore::distance(defender.position, current.players()[*carrierIndex].position) >
-          config.breakRadius) {
+  const double apart =
+      carrierIndex ? SimCore::distance(defender.position, current.players()[*carrierIndex].position)
+                   : 0.0;
+  if (!onTheBall || !pressing || apart > config.breakRadius) {
     endDuel(context, current, defenderIndex, duel, DuelOutcome::kKept, next);
     return;
   }
   const PlayerMatchState& carrier = current.players()[*carrierIndex];
   const double seconds = config.intervalTicks * context.secondsPerTick();
-  const bool contact =
-      SimCore::distance(defender.position, carrier.position) < config.contactDistance;
+  const bool contact = apart < config.contactDistance;
   // A defender off his feet pushes nobody and wins nothing.
   const bool defenderDown = isStumbling(current.tactical(defenderIndex), context.tick());
   // Both regain balance, and in contact each is pushed off it the more, the
@@ -375,22 +390,22 @@ void stepDuel(const MatchStepContext& context, const MatchState& current,
   }
   stepped.defenderMove = DuelMove::kJockey;
   if (!defenderDown) {
-    const std::vector<double> utilities = defenderUtilities(
-        geometryOf(current, *carrierIndex, defenderIndex), stepped.defenderBalance, config);
+    const DuelGeometry geometry = geometryOf(current, *carrierIndex, defenderIndex);
+    const std::vector<double> utilities =
+        defenderUtilities(geometry, stepped.defenderBalance, config);
     if (chooseByUtility(utilities, config.decisionTemperature, context.random(kDecisions)) == 1) {
       stepped.defenderMove = DuelMove::kCommit;
-      Vec2 foot;
-      const LungeResult result =
-          lunge(context, current, *carrierIndex, defenderIndex, stepped, config, foot);
+      const Lunge landed =
+          lunge(context, geometry, stepped, carrier.attributes.ballControl, config);
       stepped.defenderBalance = std::max(0.0, stepped.defenderBalance - config.commitCost);
-      switch (result) {
+      switch (landed.result) {
         case LungeResult::kWon:
           endDuel(context, current, defenderIndex, duel, DuelOutcome::kWon, next);
           winBall(context, current, *carrierIndex, defenderIndex, next);
           return;
         case LungeResult::kLoose:
           endDuel(context, current, defenderIndex, duel, DuelOutcome::kLoose, next);
-          loosenBall(context, current, *carrierIndex, defenderIndex, foot, config, next);
+          loosenBall(context, current, *carrierIndex, defenderIndex, landed.foot, config, next);
           return;
         case LungeResult::kFoul:
           endDuel(context, current, defenderIndex, duel, DuelOutcome::kFoul, next);
@@ -414,15 +429,15 @@ void stepDuel(const MatchStepContext& context, const MatchState& current,
                                                       const DuelConfig& config) {
   const PlayerMatchState& carrier = current.players()[carrierIndex];
   std::optional<std::size_t> nearest;
-  double nearestDistance = config.engageRadius;
+  double nearestDistance = 0.0;
   for (std::size_t index = 0; index < current.players().size(); ++index) {
     const PlayerMatchState& player = current.players()[index];
     const PlayerTacticalState& tactical = current.tactical(index);
     const bool pressing = player.side != carrier.side && tactical.action &&
                           tactical.action->type == ActionType::kPressCarrier;
     const double distance = SimCore::distance(player.position, carrier.position);
-    if (pressing && !isStumbling(tactical, context.tick()) &&
-        (distance < nearestDistance || (!nearest && distance == nearestDistance))) {
+    if (pressing && !isStumbling(tactical, context.tick()) && distance <= config.engageRadius &&
+        (!nearest || distance < nearestDistance)) {
       nearest = index;
       nearestDistance = distance;
     }
@@ -436,7 +451,7 @@ void startDuel(const MatchStepContext& context, const MatchState& current, const
                MatchStateWriter& next) {
   const DuelConfig& config = rules.config;
   const BallState& ball = current.ball();
-  if (!ball.owner || !ball.isAtFeet() || ball.held) {
+  if (!ball.owner || !canBeTakenOn(ball)) {
     return;
   }
   const SimCore::PlayerId owner = *ball.owner;

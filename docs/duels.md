@@ -46,7 +46,8 @@ the carrier, when it began, both players' last moves and their balance.
    presses him, or they stand more than `breakRadius` (3 m) apart: the carrier
    got away.
 2. **Balance.** Both regain some, and bodies in contact push each other off it
-   (see [balance](#balance)). A carrier pushed off his feet loses the ball.
+   (see [balance](#balance)). A carrier pushed off his feet loses the ball:
+   the defender against him has **won** it.
 3. **The defender** decides, unless he is off his feet: jockey or commit. A
    lunge lands at once ([the lunge](#the-lunge)); won, loose and foul end the
    duel.
@@ -54,8 +55,9 @@ the carrier, when it began, both players' last moves and their balance.
    shot or touch his decision chose this step --: shield, turn away or
    accelerate. He rolls the ball round him along the move's direction, so it
    lies `carryDistance` from him that way, and runs to the move's target --
-   unless the turn took the last of his balance: then he loses the ball where
-   he rolled it. The defender jockeys.
+   unless the turn took the last of his balance: then he loses the ball
+   **loose**, at rest where he rolled it, in that very step. The defender
+   jockeys.
 
 Both decide from the true state, without a second look -- a duel is too quick
 for perception -- by `chooseByUtility()` at `decisionTemperature` (0.2), one
@@ -151,17 +153,14 @@ Both start square on their feet, at 1. Every step
 
 and a lunge or rolling the ball round costs what is said above. Balance makes
 the defender's foot less accurate, a lunge less tempting and the carrier's
-hold weaker; a balanced defender threatens more.
-
-A carrier whose balance reaches 0 is **off his feet** and loses the ball: to a
-defender in contact with him, who pushed him off it -- **won** --, or, turned
-off his feet by his own turn, where he rolled it -- **loose**, at rest -- in
-the very step of that turn.
+hold weaker; a balanced defender threatens more. A carrier whose balance
+reaches 0 is off his feet and loses the ball ([a step](#a-step)).
 
 ## Off his feet
 
 A player who stumbles -- the defender whose lunge misses or fouls, the carrier
-who loses the ball -- is off his feet for `stumbleSeconds` (0.5 s), in his
+pushed off the ball, turned off his feet or whose ball is knocked loose, not
+one tackled cleanly -- is off his feet for `stumbleSeconds` (0.5 s), in his
 tactical state as `stumbledUntil` (`isStumbling()`). Until then he
 
 - stands: the [movement](player-movement.md) system ignores his target,

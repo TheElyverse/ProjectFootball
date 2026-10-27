@@ -6,8 +6,8 @@ as the system `makePlayerMovementSystem()`, which runs every tick and writes
 player positions, velocities and facings. A goalkeeper busy with a dive is the
 exception: the system puts him where his dive takes him, whatever his target
 ([shot stopping](shot-stopping.md#his-body)). A player off his feet after a
-[duel](duels.md#off-his-feet) moves as if he had no target, whatever his
-target: he slows to a stop (`asMoving()`).
+[duel](duels.md#off-his-feet) moves as if he had no target: he slows to a
+stop (`asMoving()`).
 
 ## Targets
 

@@ -56,7 +56,8 @@ struct DuelConfig {
   double turnCost = 0.2;
   double recoveryPerSecond = 0.5;
   // A player who stumbles -- the defender whose lunge misses or fouls, the
-  // carrier who loses the ball -- is off his feet this long.
+  // carrier pushed off the ball, turned off his feet or whose ball is knocked
+  // loose -- is off his feet this long.
   double stumbleSeconds = 0.5;  // s
   // The moves' utilities and the temperature they are chosen at.
   double shieldWeight = 0.8;

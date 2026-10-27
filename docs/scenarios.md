@@ -308,8 +308,8 @@ on. Home plays without a tactic.
   theirs to chase too.
 
 `tests/acceptance/duelScenarioTests.cpp` plays each over thirty seeds, nearly
-all of which have a duel; every duel ends after its first step, between the
-players who started it. Away has the ball after the first duel in at least 21
+all of which have a duel; no duel ends in the step it starts in, and each ends
+between the players who started it. Away has the ball after the first duel in at least 21
 of the `duel-ball-won` runs -- 25 at the time of writing --, home in at least
 12 of the `duel-ball-kept` runs -- 15 -- and three times as often as in
 `duel-ball-won`; in `duel-loose-ball` at least 8 duels -- 12 -- end with the
