@@ -414,6 +414,8 @@ TEST_CASE("A carrier who turns himself off his feet loses the ball loose at once
   const DuelEnded ended = played.ended.value_or(DuelEnded{});
   REQUIRE(ended.outcome == DuelOutcome::kLoose);
   REQUIRE(ended.tick == SimTick(15));
+  // Where he rolled it, carryDistance behind him, not where it lay before.
+  REQUIRE(ended.position == Vec2{.x = 29.5, .y = 20.0});
   REQUIRE(std::ranges::any_of(played.events, [](const MatchEvent& event) {
     const auto* changed = std::get_if<PossessionChanged>(&event);
     return changed != nullptr && !changed->newOwner;

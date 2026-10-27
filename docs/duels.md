@@ -191,7 +191,8 @@ the defender off his feet. Whistling it, the free kick and cards come with the
 fouls of the P3 rules baseline. A won or loose ball drops
 the carrier's pending pass, shot or touch, as the ball system would discard
 it anyway ([ball movement](ball-movement.md)). `DuelStarted` and `DuelEnded`
-name the carrier and the defender and where the ball was ([match events](match-events.md)).
+name the carrier and the defender and where the ball was -- for a carrier who
+turned himself off his feet, where he rolled it ([match events](match-events.md)).
 
 ## Configuration
 

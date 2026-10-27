@@ -224,6 +224,8 @@ void stumble(const MatchStepContext& context, const std::size_t index, const Due
   next.tactical(index).stumbledUntil = SimCore::SimTick(context.tick().value() + ticks);
 }
 
+// Ends the defender's duel where the ball lies now: where the carrier rolled
+// it, if he turned himself off his feet this step.
 void endDuel(const MatchStepContext& context, const MatchState& current,
              const std::size_t defenderIndex, const Duel& duel, const DuelOutcome outcome,
              MatchStateWriter& next) {
@@ -232,7 +234,7 @@ void endDuel(const MatchStepContext& context, const MatchState& current,
                            .carrier = duel.carrier,
                            .defender = current.players()[defenderIndex].playerId,
                            .outcome = outcome,
-                           .position = current.ball().position});
+                           .position = next.ball().position});
 }
 
 // The defender takes the ball at the carrier's feet.
