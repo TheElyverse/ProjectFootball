@@ -46,9 +46,6 @@ struct ShotContributions {
 // "secondBall" or "possession". Ties go to the one listed first.
 [[nodiscard]] std::string_view dominantShotContribution(const ShotContributions& parts) noexcept;
 
-// The goal a side attacks: the one at the end attackingDirection() points to.
-[[nodiscard]] Goal attackedGoal(const Pitch& pitch, TeamSide side) noexcept;
-
 // How wide a goal looks from a point: the distance between the directions to
 // its two posts as unit vectors, 2·sin(angle / 2), in [0, 2]; about the angle
 // in radians for a narrow one. No trigonometry, so it is the same on every

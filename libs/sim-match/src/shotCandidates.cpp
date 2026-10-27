@@ -17,6 +17,7 @@
 #include "pitch.hpp"
 #include "shooting.hpp"
 #include "spatialQueries.hpp"
+#include "teamFrame.hpp"
 #include "zones.hpp"
 
 namespace ElyverseFootball::SimMatch {
@@ -226,10 +227,6 @@ struct AxisAim {
 }
 
 }  // namespace
-
-Goal attackedGoal(const Pitch& pitch, const TeamSide side) noexcept {
-  return pitch.goal(attackingDirection(side) > 0.0 ? GoalEnd::kMaxX : GoalEnd::kMinX);
-}
 
 double goalOpening(const Vec2 from, const Goal& goal) noexcept {
   const Vec2 toMin = goal.postAtMinY() - from;

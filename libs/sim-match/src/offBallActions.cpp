@@ -10,7 +10,6 @@
 
 #include "actionGeometry.hpp"
 #include "configChecks.hpp"
-#include "passCandidates.hpp"
 #include "responsibility.hpp"
 #include "tactic.hpp"
 #include "tacticalPhases.hpp"

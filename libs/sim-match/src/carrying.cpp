@@ -16,6 +16,7 @@
 #include "shotCandidates.hpp"
 #include "spatialQueries.hpp"
 #include "stableMath.hpp"
+#include "teamFrame.hpp"
 #include "zones.hpp"
 
 namespace ElyverseFootball::SimMatch {

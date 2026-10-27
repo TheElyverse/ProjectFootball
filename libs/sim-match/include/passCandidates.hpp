@@ -90,9 +90,4 @@ void scorePassCandidate(PassCandidate& candidate, SimCore::Vec2 from, TeamSide s
 // receiver id, a ground pass before a lofted one to the same receiver.
 void orderPassCandidates(std::vector<PassCandidate>& candidates);
 
-// The direction along x a side attacks: +1 for home, -1 for away. Fixed in
-// the sandbox, which has no halves and in which every scenario places home at
-// x = 0; the one place to change once rules let teams switch ends.
-[[nodiscard]] double attackingDirection(TeamSide side) noexcept;
-
 }  // namespace ElyverseFootball::SimMatch

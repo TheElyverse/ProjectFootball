@@ -13,7 +13,7 @@
 #include "matchEvents.hpp"
 #include "pressingActions.hpp"
 #include "randomDraws.hpp"
-#include "shotCandidates.hpp"
+#include "teamFrame.hpp"
 
 namespace ElyverseFootball::SimMatch {
 namespace {

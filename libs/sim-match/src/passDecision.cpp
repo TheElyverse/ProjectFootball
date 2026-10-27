@@ -19,6 +19,7 @@
 #include "playerMovement.hpp"
 #include "pursuit.hpp"
 #include "shotCandidates.hpp"
+#include "teamFrame.hpp"
 #include "zones.hpp"
 
 namespace ElyverseFootball::SimMatch {

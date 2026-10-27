@@ -12,6 +12,7 @@
 #include "configChecks.hpp"
 #include "laneReach.hpp"
 #include "spatialQueries.hpp"
+#include "teamFrame.hpp"
 
 namespace ElyverseFootball::SimMatch {
 namespace {
@@ -136,10 +137,6 @@ void validate(const PassScoringConfig& config) {
   if (!valid) {
     throw std::invalid_argument("pass scoring: invalid configuration");
   }
-}
-
-double attackingDirection(const TeamSide side) noexcept {
-  return side == TeamSide::kHome ? 1.0 : -1.0;
 }
 
 std::vector<PassCandidate> generatePassCandidates(const MatchState& state,

@@ -13,17 +13,12 @@
 
 #include "ballMovement.hpp"
 #include "matchEvents.hpp"
-#include "passCandidates.hpp"
 #include "teamFrame.hpp"
 #include "vec2.hpp"
 #include "zones.hpp"
 
 namespace ElyverseFootball::SimMatch {
 namespace {
-
-[[nodiscard]] TeamSide otherSide(const TeamSide side) noexcept {
-  return side == TeamSide::kHome ? TeamSide::kAway : TeamSide::kHome;
-}
 
 // The side of the player who touched the ball last, if anyone did.
 [[nodiscard]] std::optional<TeamSide> lastTouchSide(const MatchState& state) {
@@ -112,7 +107,7 @@ namespace {
   const SimCore::Vec2 corner{
       .x = side == TeamSide::kHome ? 0.0 : pitch.lengthMeters(),
       .y = ball.position.y < pitch.widthMeters() / 2.0 ? 0.0 : pitch.widthMeters()};
-  const auto taker = takerOf(state, otherSide(side), false, corner);
+  const auto taker = takerOf(state, opponentOf(side), false, corner);
   if (!taker) {
     return std::nullopt;
   }
@@ -179,7 +174,7 @@ std::optional<RestartPlan> planRestart(const MatchState& state) {
   if (const auto& goal = state.lastGoal();
       goal && (!ball.lastTouch || goal->tick >= ball.lastTouch->tick)) {
     const auto taker =
-        takerOf(state, otherSide(goal->side), false, pitch.center(), formationPositions(state));
+        takerOf(state, opponentOf(goal->side), false, pitch.center(), formationPositions(state));
     return taker ? std::optional(RestartPlan{.kind = RestartKind::kKickoff, .playerIndex = *taker})
                  : std::nullopt;
   }
@@ -189,7 +184,7 @@ std::optional<RestartPlan> planRestart(const MatchState& state) {
     // Nobody touched it: the side whose half it lies in throws it in.
     const TeamSide halfOwner =
         ball.position.x < pitch.lengthMeters() / 2.0 ? TeamSide::kHome : TeamSide::kAway;
-    const TeamSide thrower = touched ? otherSide(*touched) : halfOwner;
+    const TeamSide thrower = touched ? opponentOf(*touched) : halfOwner;
     const auto taker = takerOf(state, thrower, false, ball.position);
     return taker ? std::optional(RestartPlan{.kind = RestartKind::kThrowIn, .playerIndex = *taker})
                  : std::nullopt;
@@ -197,7 +192,7 @@ std::optional<RestartPlan> planRestart(const MatchState& state) {
   // Home defends x = 0, away x = length.
   const TeamSide defender = ball.position.x == 0.0 ? TeamSide::kHome : TeamSide::kAway;
   const bool corner = touched == defender;
-  const TeamSide restarter = corner ? otherSide(defender) : defender;
+  const TeamSide restarter = corner ? opponentOf(defender) : defender;
   const auto taker = takerOf(state, restarter, !corner, ball.position);
   if (!taker) {
     return std::nullopt;

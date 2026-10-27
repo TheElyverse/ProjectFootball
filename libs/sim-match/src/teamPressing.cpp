@@ -10,7 +10,6 @@
 
 #include "actionGeometry.hpp"
 #include "matchEvents.hpp"
-#include "passCandidates.hpp"
 #include "pressingActions.hpp"
 #include "tactic.hpp"
 #include "teamFrame.hpp"

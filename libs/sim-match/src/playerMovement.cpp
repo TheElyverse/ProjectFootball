@@ -6,9 +6,9 @@
 #include <optional>
 #include <string>
 
-#include "passCandidates.hpp"
 #include "shotStopping.hpp"
 #include "stableMath.hpp"
+#include "teamFrame.hpp"
 
 namespace ElyverseFootball::SimMatch {
 namespace {
