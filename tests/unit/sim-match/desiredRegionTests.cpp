@@ -236,7 +236,7 @@ TEST_CASE("Players of a side with a tactic take up their regions", "[desiredRegi
   // it, and away is scripted.
   MatchSimulation simulation = holdingMatch(
       kickoff({.x = 30.0, .y = 20.0}, {.home = referenceTactic(), .away = {}}), PlayerId(14));
-  run(simulation, 360);
+  run(simulation, 450);
   const MatchState& state = simulation.state();
   for (std::size_t index = 0; index < 7; ++index) {
     CAPTURE(index);

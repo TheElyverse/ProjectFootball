@@ -163,9 +163,11 @@ tactical state as `stumbledUntil` (`isStumbling()`). Until then he
 
 - stands: the [movement](player-movement.md) system ignores his target,
 - takes no ball: [ball movement](ball-movement.md) leaves him out of who gets
-  to a free or touched ball, also in the step he stumbled in,
+  to a free or touched ball, also in the step he stumbled in, and a keeper
+  faces no shot,
 - chases none: [pursuit](reception.md#going-after-the-ball) sends a teammate,
-- starts no duel, and in one he is in he only jockeys.
+- starts no duel, and in one he is in he only jockeys, pushes nobody and wins
+  no ball by pushing the carrier off his feet.
 
 So a loose ball is scrappy: the carrier is down, the defender cannot take back
 his own touch for the reclaim delay, and whoever is quickest to it gets it. A

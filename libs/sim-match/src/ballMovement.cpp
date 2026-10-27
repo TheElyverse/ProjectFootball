@@ -531,7 +531,8 @@ bool settleFreeBall(const BallState& from, const FreeBall& free, const BallRules
 // The keeper who faces the free ball while it is still in front of him, and
 // his answer to its flight: the dive he decided on against it, or standing
 // set where he is while he has not reacted yet or left it. A keeper still busy
-// with a dive against another flight faces nothing.
+// with a dive against another flight faces nothing, nor does one off his feet
+// after a duel (docs/duels.md).
 struct FacingKeeper {
   std::size_t index = 0;
   ShotRecord shot;
@@ -544,7 +545,7 @@ struct FacingKeeper {
                                                        const MatchState& current,
                                                        MatchStateWriter& next) {
   const auto index = facingKeeper(current, free.ball, free.shot, rules.physics, rules.saves);
-  if (!index || !free.shot) {
+  if (!index || !free.shot || isStumbling(next.tactical(*index), context.tick())) {
     return std::nullopt;
   }
   FacingKeeper keeper{.index = *index, .shot = *free.shot, .dive = {}, .dived = false};
@@ -825,13 +826,6 @@ void playHeader(const HeaderIntent& intent, const BallClaim& claim, const Aerial
   return true;
 }
 
-// A free ball rolls, flies and bounces, and the first player to reach it on
-// its way takes it. A shot still fast comes off an outfield player's body
-// rather than to his feet, the keeper it faces meets it where it passes him,
-// a high ball is contested in the air, and any ball comes off the goal
-// frame; either way it flies on for the rest of the tick, and nothing else
-// gets to it before the next. A high ball nobody won flies on past everyone
-// who went up for it, to the keeper and to whoever else gets to it.
 // Adds everyone off his feet after a duel to those who take no ball -- one
 // who stumbled earlier this same step too (docs/duels.md).
 void excludeStumbling(const MatchStepContext& context, const MatchState& current,
@@ -843,6 +837,13 @@ void excludeStumbling(const MatchStepContext& context, const MatchState& current
   }
 }
 
+// A free ball rolls, flies and bounces, and the first player to reach it on
+// its way takes it. A shot still fast comes off an outfield player's body
+// rather than to his feet, the keeper it faces meets it where it passes him,
+// a high ball is contested in the air, and any ball comes off the goal
+// frame; either way it flies on for the rest of the tick, and nothing else
+// gets to it before the next. A high ball nobody won flies on past everyone
+// who went up for it, to the keeper and to whoever else gets to it.
 void moveFreeBall(const BallState& ball, const BallRules& rules, const MatchStepContext& context,
                   const MatchState& current, MatchStateWriter& next) {
   const Pitch& pitch = current.pitch();

@@ -56,6 +56,7 @@ using ElyverseFootball::SimMatch::PassAttempted;
 using ElyverseFootball::SimMatch::PassIntent;
 using ElyverseFootball::SimMatch::Pitch;
 using ElyverseFootball::SimMatch::PlayerAction;
+using ElyverseFootball::SimMatch::PlayerAttributes;
 using ElyverseFootball::SimMatch::PlayerMatchState;
 using ElyverseFootball::SimMatch::PossessionChanged;
 using ElyverseFootball::SimMatch::resolveLunge;
@@ -84,11 +85,12 @@ constexpr Vec2 kBeside{.x = 30.0, .y = 20.5};
 
 // One a side: home's carrier 1 at (30, 20) facing `facing`, the ball at his
 // feet, touched at tick 0 -- in his hands if `held` --, and away's player 2
-// at `defender`. Only a goalkeeper holds the ball, so a held ball makes the
-// carrier home's keeper in the reference tactic, with six idle players a side
-// by the touchline to fill the squads.
+// at `defender`, as strong as `defenderStrength`. Only a goalkeeper holds the
+// ball, so a held ball makes the carrier home's keeper in the reference
+// tactic, with six idle players a side by the touchline to fill the squads.
 [[nodiscard]] MatchState oneOnOne(const Vec2 defender, const Vec2 facing = {.x = 1.0, .y = 0.0},
-                                  const bool held = false) {
+                                  const bool held = false,
+                                  const double defenderStrength = PlayerAttributes{}.strength) {
   const auto player = [](const PlayerId::ValueType number, const TeamSide side, const Vec2 position,
                          const Vec2 facingAlong) {
     return PlayerMatchState{.playerId = PlayerId(number),
@@ -102,6 +104,7 @@ constexpr Vec2 kBeside{.x = 30.0, .y = 20.5};
   std::vector<PlayerMatchState> players{
       player(1, TeamSide::kHome, {.x = 30.0, .y = 20.0}, facing),
       player(2, TeamSide::kAway, defender, {.x = -1.0, .y = 0.0})};
+  players[1].attributes.strength = defenderStrength;
   std::optional<Tactic> tactic;
   if (held) {
     for (PlayerId::ValueType number = 3; number < 15; ++number) {
@@ -394,6 +397,42 @@ TEST_CASE("Nobody takes a ball knocked loose while he is off his feet", "[duel]"
     }
   }
   REQUIRE(loose > 0);
+}
+
+TEST_CASE("A defender off his feet pushes nobody off the ball", "[duel]") {
+  // A defender far stronger than the carrier, in contact with him, pushes him
+  // off his feet within two seconds -- but not while he is off his own feet,
+  // as he is from the duel's first step on. The carrier stands, his turns
+  // costing nothing.
+  DuelConfig standing;
+  standing.turnStep = 1e-6;
+  standing.accelerateStep = 1e-6;
+  standing.turnCost = 0.0;
+  const MatchSystem down{.name = "down",
+                         .update = [](const MatchStepContext& context, const MatchState& current,
+                                      MatchStateWriter& next) {
+                           if (current.tactical(1).duel) {
+                             next.tactical(1).stumbledUntil = SimTick(context.tick().value() + 2);
+                           }
+                         }};
+  for (std::uint64_t seed = 1; seed <= 20; ++seed) {
+    CAPTURE(seed);
+    MatchSimulation simulation(
+        {.initialState = oneOnOne({.x = 31.0, .y = 20.0}, {.x = 1.0, .y = 0.0}, false, 1.0),
+         .seed = seed,
+         .ticksPerSecond = 30,
+         .systems = {decide(ActionType::kPressCarrier), down, makeDuelSystem(standing),
+                     makePlayerMovementSystem(), makeBallMovementSystem(BallPhysics{})},
+         .commands = {}});
+    while (simulation.tick() < SimTick(150)) {
+      REQUIRE(simulation.step().has_value());
+      for (const MatchEvent& event : simulation.events()) {
+        REQUIRE_FALSE(std::holds_alternative<BallWon>(event));
+      }
+    }
+    REQUIRE(simulation.state().tactical(1).duel.has_value());
+    REQUIRE(simulation.state().ball().owner == PlayerId(1));
+  }
 }
 
 TEST_CASE("A ball won in a duel survives ball movement in the same step", "[duel]") {

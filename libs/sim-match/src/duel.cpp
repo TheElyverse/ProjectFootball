@@ -342,25 +342,27 @@ void stepDuel(const MatchStepContext& context, const MatchState& current,
   }
   const PlayerMatchState& carrier = current.players()[*carrierIndex];
   const double seconds = config.intervalTicks * context.secondsPerTick();
-  const double apart = SimCore::distance(defender.position, carrier.position);
+  const bool contact =
+      SimCore::distance(defender.position, carrier.position) < config.contactDistance;
+  // A defender off his feet pushes nobody and wins nothing.
+  const bool defenderDown = isStumbling(current.tactical(defenderIndex), context.tick());
   // Both regain balance, and in contact each is pushed off it the more, the
   // stronger the other is.
   const auto balanceAfter = [&](const double balance, const PlayerAttributes& own,
-                                const PlayerAttributes& other) {
-    const double push = apart < config.contactDistance
-                            ? config.shovePerSecond * clamp01(0.5 + other.strength - own.strength)
-                            : 0.0;
+                                const PlayerAttributes& other, const bool pushed) {
+    const double push =
+        pushed ? config.shovePerSecond * clamp01(0.5 + other.strength - own.strength) : 0.0;
     return clamp01(balance + ((config.recoveryPerSecond - push) * seconds));
   };
   Duel stepped = duel;
-  stepped.carrierBalance =
-      balanceAfter(duel.carrierBalance, carrier.attributes, defender.attributes);
+  stepped.carrierBalance = balanceAfter(duel.carrierBalance, carrier.attributes,
+                                        defender.attributes, contact && !defenderDown);
   stepped.defenderBalance =
-      balanceAfter(duel.defenderBalance, defender.attributes, carrier.attributes);
+      balanceAfter(duel.defenderBalance, defender.attributes, carrier.attributes, contact);
   // Off his feet, he loses the ball: pushed off it, to the defender against
   // him; turned off it, where it lies.
   if (stepped.carrierBalance == 0.0) {
-    if (apart < config.contactDistance) {
+    if (contact && !defenderDown) {
       endDuel(context, current, defenderIndex, duel, DuelOutcome::kWon, next);
       winBall(context, current, *carrierIndex, defenderIndex, next);
       stumble(context, *carrierIndex, config, next);
@@ -371,7 +373,7 @@ void stepDuel(const MatchStepContext& context, const MatchState& current,
     return;
   }
   stepped.defenderMove = DuelMove::kJockey;
-  if (!isStumbling(current.tactical(defenderIndex), context.tick())) {
+  if (!defenderDown) {
     const std::vector<double> utilities = defenderUtilities(
         geometryOf(current, *carrierIndex, defenderIndex), stepped.defenderBalance, config);
     if (chooseByUtility(utilities, config.decisionTemperature, context.random(kDecisions)) == 1) {
