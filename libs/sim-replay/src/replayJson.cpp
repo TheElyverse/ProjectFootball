@@ -135,365 +135,6 @@ using SimMatch::TeamSide;
   return json;
 }
 
-[[nodiscard]] Json carryFactorsJson(const SimMatch::CarryPhaseFactors& factors) {
-  return {{"progression", factors.progression},
-          {"space", factors.space},
-          {"shot", factors.shot},
-          {"bypassed", factors.bypassed},
-          {"risk", factors.risk}};
-}
-
-[[nodiscard]] Json carryingJson(const SimMatch::CarryScoringConfig& carrying) {
-  return {{"enabled", carrying.enabled},
-          {"minConfidence", carrying.minConfidence},
-          {"horizonSeconds", carrying.horizonSeconds},
-          {"minCarryDistance", carrying.minCarryDistance},
-          {"gapRadius", carrying.gapRadius},
-          {"sameDirection", carrying.sameDirection},
-          {"pitchMargin", carrying.pitchMargin},
-          {"safetySeconds", carrying.safetySeconds},
-          {"lossMarginSeconds", carrying.lossMarginSeconds},
-          {"touchSeconds", carrying.touchSeconds},
-          {"minTouchDistance", carrying.minTouchDistance},
-          {"maxTouchDistance", carrying.maxTouchDistance},
-          {"touchShare", carrying.touchShare},
-          {"lookBackSeconds", carrying.lookBackSeconds},
-          {"turnDistance", carrying.turnDistance},
-          {"dribbleRadius", carrying.dribbleRadius},
-          {"dribbleCone", carrying.dribbleCone},
-          {"dribbleClearance", carrying.dribbleClearance},
-          {"dribbleBeyond", carrying.dribbleBeyond},
-          {"maxTouchError", carrying.maxTouchError},
-          {"minTouchError", carrying.minTouchError},
-          {"maxDribbleError", carrying.maxDribbleError},
-          {"minDribbleError", carrying.minDribbleError},
-          {"slowDribbleShare", carrying.slowDribbleShare},
-          {"quickDribbleShare", carrying.quickDribbleShare},
-          {"shotDistance", carrying.shotDistance},
-          {"fullOpening", carrying.fullOpening},
-          {"minKeepChance", carrying.minKeepChance},
-          {"pressureRadius", carrying.pressureRadius},
-          {"keepWeight", carrying.keepWeight},
-          {"progressionWeight", carrying.progressionWeight},
-          {"spaceWeight", carrying.spaceWeight},
-          {"shotWeight", carrying.shotWeight},
-          {"bypassWeight", carrying.bypassWeight},
-          {"riskWeight", carrying.riskWeight},
-          {"holdWeight", carrying.holdWeight},
-          {"turnCost", carrying.turnCost},
-          {"turnSeconds", carrying.turnSeconds},
-          {"buildUpFactors", carryFactorsJson(carrying.buildUp)},
-          {"progressionFactors", carryFactorsJson(carrying.progression)},
-          {"finalThirdFactors", carryFactorsJson(carrying.finalThird)},
-          {"attackingTransitionFactors", carryFactorsJson(carrying.attackingTransition)}};
-}
-
-[[nodiscard]] Json decisionsJson(const SimMatch::DecisionConfig& decisions) {
-  const SimMatch::PassScoringConfig& scoring = decisions.scoring;
-  const SimMatch::ShotScoringConfig& shooting = decisions.shooting;
-  const SimMatch::DistributionConfig& distribution = decisions.distribution;
-  return {{"intervalTicks", decisions.intervalTicks},
-          {"minHoldSeconds", decisions.minHoldSeconds},
-          {"temperature", decisions.temperature},
-          {"scoring",
-           {{"minConfidence", scoring.minConfidence},
-            {"minPassDistance", scoring.minPassDistance},
-            {"maxPassDistance", scoring.maxPassDistance},
-            {"interceptionMarginSeconds", scoring.interceptionMarginSeconds},
-            {"pressureRadius", scoring.pressureRadius},
-            {"minCompletion", scoring.minCompletion},
-            {"completionWeight", scoring.completionWeight},
-            {"progressionWeight", scoring.progressionWeight},
-            {"pressureWeight", scoring.pressureWeight},
-            {"riskWeight", scoring.riskWeight},
-            {"loftedBias", scoring.loftedBias}}},
-          {"shooting",
-           {{"minConfidence", shooting.minConfidence},
-            {"maxShotDistance", shooting.maxShotDistance},
-            {"minOpening", shooting.minOpening},
-            {"zoneColumns", shooting.zoneColumns},
-            {"zoneRows", shooting.zoneRows},
-            {"shotSpeed", shooting.shotSpeed},
-            {"keeperDiveReach", shooting.keeperDiveReach},
-            {"keeperJumpReach", shooting.keeperJumpReach},
-            {"keeperDiveSeconds", shooting.keeperDiveSeconds},
-            {"blockReach", shooting.blockReach},
-            {"blockMarginSeconds", shooting.blockMarginSeconds},
-            {"saveMarginSeconds", shooting.saveMarginSeconds},
-            {"spreadAtZero", shooting.spreadAtZero},
-            {"spreadPerMeter", shooting.spreadPerMeter},
-            {"pressureRadius", shooting.pressureRadius},
-            {"pressureSpread", shooting.pressureSpread},
-            {"frameMargin", shooting.frameMargin},
-            {"reboundShare", shooting.reboundShare},
-            {"maxBlockRisk", shooting.maxBlockRisk},
-            {"minGoalChance", shooting.minGoalChance},
-            {"goalWeight", shooting.goalWeight},
-            {"secondBallWeight", shooting.secondBallWeight},
-            {"lossWeight", shooting.lossWeight}}},
-          {"distribution",
-           {{"holdSeconds", distribution.holdSeconds},
-            {"clearSeconds", distribution.clearSeconds},
-            {"throwRange", distribution.throwRange},
-            {"minLongDistance", distribution.minLongDistance},
-            {"flightSeconds", distribution.flightSeconds},
-            {"contestMarginSeconds", distribution.contestMarginSeconds},
-            {"directnessWeight", distribution.directnessWeight}}},
-          {"stuckSeconds", decisions.stuckSeconds},
-          {"clearTouchlineMargin", decisions.clearTouchlineMargin},
-          {"clearGoalLineMargin", decisions.clearGoalLineMargin},
-          {"carrying", carryingJson(decisions.carrying)}};
-}
-
-[[nodiscard]] Json positioningJson(const SimMatch::PositioningConfig& positioning) {
-  return {{"intervalTicks", positioning.intervalTicks},
-          {"candidateSpacing", positioning.candidateSpacing},
-          {"targetDistanceScale", positioning.targetDistanceScale},
-          {"spacingRadius", positioning.spacingRadius},
-          {"pressureRadius", positioning.pressureRadius},
-          {"minConfidence", positioning.minConfidence},
-          {"hysteresisCost", positioning.hysteresisCost},
-          {"maxShiftMeters", positioning.maxShiftMeters}};
-}
-
-[[nodiscard]] Json offBallJson(const SimMatch::OffBallConfig& offBall) {
-  return {{"nearBallRadius", offBall.nearBallRadius},
-          {"nearIntervalTicks", offBall.nearIntervalTicks},
-          {"farIntervalTicks", offBall.farIntervalTicks},
-          {"supportDistance", offBall.supportDistance},
-          {"spaceSearchRadius", offBall.spaceSearchRadius},
-          {"runDepth", offBall.runDepth},
-          {"laneRadius", offBall.laneRadius},
-          {"pressedRadius", offBall.pressedRadius},
-          {"effortScale", offBall.effortScale},
-          {"holdResponsibility", offBall.holdResponsibility},
-          {"temperature", offBall.temperature},
-          {"responsibilityWeight", offBall.responsibilityWeight},
-          {"regionWeight", offBall.regionWeight},
-          {"spaceWeight", offBall.spaceWeight},
-          {"laneWeight", offBall.laneWeight},
-          {"urgencyWeight", offBall.urgencyWeight},
-          {"effortWeight", offBall.effortWeight}};
-}
-
-[[nodiscard]] Json duelsJson(const SimMatch::DuelConfig& duels) {
-  return {{"intervalTicks", duels.intervalTicks},
-          {"protectSeconds", duels.protectSeconds},
-          {"engageRadius", duels.engageRadius},
-          {"breakRadius", duels.breakRadius},
-          {"jockeyDistance", duels.jockeyDistance},
-          {"turnStep", duels.turnStep},
-          {"accelerateStep", duels.accelerateStep},
-          {"tackleReach", duels.tackleReach},
-          {"footRadius", duels.footRadius},
-          {"bodyRadius", duels.bodyRadius},
-          {"footError", duels.footError},
-          {"minHold", duels.minHold},
-          {"maxHold", duels.maxHold},
-          {"looseSpeed", duels.looseSpeed},
-          {"contactDistance", duels.contactDistance},
-          {"shovePerSecond", duels.shovePerSecond},
-          {"commitCost", duels.commitCost},
-          {"turnCost", duels.turnCost},
-          {"recoveryPerSecond", duels.recoveryPerSecond},
-          {"stumbleSeconds", duels.stumbleSeconds},
-          {"shieldWeight", duels.shieldWeight},
-          {"turnWeight", duels.turnWeight},
-          {"accelerateWeight", duels.accelerateWeight},
-          {"jockeyWeight", duels.jockeyWeight},
-          {"commitWeight", duels.commitWeight},
-          {"decisionTemperature", duels.decisionTemperature}};
-}
-
-[[nodiscard]] Json defensiveJson(const SimMatch::DefensiveConfig& defensive) {
-  return {{"markRadius", defensive.markRadius},
-          {"markDistance", defensive.markDistance},
-          {"trackRadius", defensive.trackRadius},
-          {"runnerSpeed", defensive.runnerSpeed},
-          {"trackLeadSeconds", defensive.trackLeadSeconds},
-          {"coverDistance", defensive.coverDistance},
-          {"pressRadius", defensive.pressRadius},
-          {"pressDistance", defensive.pressDistance},
-          {"idleSeconds", defensive.idleSeconds},
-          {"idlePressRadius", defensive.idlePressRadius},
-          {"laneMinDistance", defensive.laneMinDistance},
-          {"effortScale", defensive.effortScale},
-          {"holdResponsibility", defensive.holdResponsibility},
-          {"temperature", defensive.temperature},
-          {"responsibilityWeight", defensive.responsibilityWeight},
-          {"regionWeight", defensive.regionWeight},
-          {"spaceWeight", defensive.spaceWeight},
-          {"urgencyWeight", defensive.urgencyWeight},
-          {"effortWeight", defensive.effortWeight}};
-}
-
-[[nodiscard]] Json pressingJson(const SimMatch::PressingConfig& pressing) {
-  return {
-      {"intervalTicks", pressing.intervalTicks},    {"triggerRadius", pressing.triggerRadius},
-      {"recentSeconds", pressing.recentSeconds},    {"heavyTouchSpeed", pressing.heavyTouchSpeed},
-      {"slowPassSpeed", pressing.slowPassSpeed},    {"isolationRadius", pressing.isolationRadius},
-      {"facingOwnGoal", pressing.facingOwnGoal},    {"backPassMeters", pressing.backPassMeters},
-      {"maxJoiners", pressing.maxJoiners},          {"phaseIntensity", pressing.phaseIntensity},
-      {"maxPressSeconds", pressing.maxPressSeconds}};
-}
-
-[[nodiscard]] Json aerialJson(const SimMatch::AerialConfig& aerial) {
-  return {{"headHeight", aerial.headHeight},
-          {"headRadius", aerial.headRadius},
-          {"lowestJump", aerial.lowestJump},
-          {"highestJump", aerial.highestJump},
-          {"timingError", aerial.timingError},
-          {"attemptMargin", aerial.attemptMargin},
-          {"contestRadius", aerial.contestRadius},
-          {"landingSeconds", aerial.landingSeconds},
-          {"reachWeight", aerial.reachWeight},
-          {"reachCap", aerial.reachCap},
-          {"arrivalWeight", aerial.arrivalWeight},
-          {"strengthWeight", aerial.strengthWeight},
-          {"bodyWeight", aerial.bodyWeight},
-          {"keeperAdvantage", aerial.keeperAdvantage},
-          {"duelTemperature", aerial.duelTemperature},
-          {"contestedDrop", aerial.contestedDrop},
-          {"shotRange", aerial.shotRange},
-          {"shotSpeed", aerial.shotSpeed},
-          {"shotHeight", aerial.shotHeight},
-          {"shotInside", aerial.shotInside},
-          {"passRange", aerial.passRange},
-          {"knockDownRange", aerial.knockDownRange},
-          {"passSeconds", aerial.passSeconds},
-          {"openDistance", aerial.openDistance},
-          {"passWeight", aerial.passWeight},
-          {"clearanceZone", aerial.clearanceZone},
-          {"clearanceDistance", aerial.clearanceDistance},
-          {"maxHeaderSpeed", aerial.maxHeaderSpeed},
-          {"decisionTemperature", aerial.decisionTemperature},
-          {"directionError", aerial.directionError},
-          {"speedError", aerial.speedError},
-          {"mistimedErrorFactor", aerial.mistimedErrorFactor}};
-}
-
-[[nodiscard]] Json shotStoppingJson(const SimMatch::ShotStoppingConfig& saves) {
-  return {{"slowestReaction", saves.slowestReaction},
-          {"quickestReaction", saves.quickestReaction},
-          {"readError", saves.readError},
-          {"readyHeight", saves.readyHeight},
-          {"diveReach", saves.diveReach},
-          {"jumpReach", saves.jumpReach},
-          {"diveSpeed", saves.diveSpeed},
-          {"bodyReach", saves.bodyReach},
-          {"catchableSpeed", saves.catchableSpeed},
-          {"minParrySpeed", saves.minParrySpeed},
-          {"maxParrySpeed", saves.maxParrySpeed},
-          {"parryTilt", saves.parryTilt},
-          {"parrySpread", saves.parrySpread},
-          {"carelessTryMargin", saves.carelessTryMargin},
-          {"carefulTryMargin", saves.carefulTryMargin},
-          {"wideMargin", saves.wideMargin},
-          {"diveBelowSpeed", saves.diveBelowSpeed},
-          {"standingRecovery", saves.standingRecovery},
-          {"stretchRecovery", saves.stretchRecovery},
-          {"reflexRecoveryShare", saves.reflexRecoveryShare}};
-}
-
-[[nodiscard]] Json shootingJson(const SimMatch::ShotConfig& shooting) {
-  return {{"spreadAtZero", shooting.spreadAtZero},
-          {"spreadPerMeter", shooting.spreadPerMeter},
-          {"speedError", shooting.speedError},
-          {"maxLaunchSlope", shooting.maxLaunchSlope},
-          {"topspin", shooting.topspin},
-          {"spinError", shooting.spinError},
-          {"pressureErrorFactor", shooting.pressureErrorFactor},
-          {"balanceErrorFactor", shooting.balanceErrorFactor},
-          {"weakFootErrorFactor", shooting.weakFootErrorFactor},
-          {"unsettledErrorFactor", shooting.unsettledErrorFactor},
-          {"weakFootSide", shooting.weakFootSide},
-          {"unsettledSeconds", shooting.unsettledSeconds},
-          {"unsettledBallSpeed", shooting.unsettledBallSpeed},
-          {"deflectionSpeed", shooting.deflectionSpeed},
-          {"blockRadius", shooting.blockRadius},
-          {"blockReach", shooting.blockReach},
-          {"minDeflectedSpeed", shooting.minDeflectedSpeed},
-          {"maxDeflectedSpeed", shooting.maxDeflectedSpeed},
-          {"blockedBelow", shooting.blockedBelow},
-          {"deflectionSpread", shooting.deflectionSpread},
-          {"deflectionLift", shooting.deflectionLift}};
-}
-
-[[nodiscard]] Json configJson(const MatchConfig& config) {
-  const SimMatch::PerceptionConfig& perception = config.perception;
-  return {
-      {"ticksPerSecond", config.ticksPerSecond},
-      {"ball",
-       {{"rollingDeceleration", config.ball.rollingDeceleration},
-        {"carryDistance", config.ball.carryDistance},
-        {"minCarrySpeedFactor", config.ball.minCarrySpeedFactor},
-        {"maxCarrySpeedFactor", config.ball.maxCarrySpeedFactor},
-        {"gravity", config.ball.gravity},
-        {"airDrag", config.ball.airDrag},
-        {"bounceRestitution", config.ball.bounceRestitution},
-        {"bounceGrip", config.ball.bounceGrip},
-        {"spinTransfer", config.ball.spinTransfer},
-        {"spinDecay", config.ball.spinDecay},
-        {"restingVerticalSpeed", config.ball.restingVerticalSpeed}}},
-      {"perception",
-       {{"intervalTicks", perception.intervalTicks},
-        {"viewDistance", perception.viewDistance},
-        {"fieldOfViewDegrees", perception.fieldOfViewDegrees},
-        {"awarenessRadius", perception.awarenessRadius},
-        {"memorySeconds", perception.memorySeconds},
-        {"extrapolationSeconds", perception.extrapolationSeconds}}},
-      {"passing",
-       {{"arrivalSpeed", config.passing.arrivalSpeed},
-        {"maxSpeed", config.passing.maxSpeed},
-        {"directionError", config.passing.directionError},
-        {"speedError", config.passing.speedError},
-        {"pressureRadius", config.passing.pressureRadius},
-        {"pressureErrorFactor", config.passing.pressureErrorFactor},
-        {"maxLoftedSpeed", config.passing.maxLoftedSpeed},
-        {"loftedErrorFactor", config.passing.loftedErrorFactor}}},
-      {"reception",
-       {{"controlRadius", config.reception.controlRadius},
-        {"reclaimDelaySeconds", config.reception.reclaimDelaySeconds},
-        {"controlHeight", config.reception.controlHeight},
-        {"handsRadius", config.reception.handsRadius},
-        {"handsHeight", config.reception.handsHeight}}},
-      {"pursuit",
-       {{"intervalTicks", config.pursuit.intervalTicks},
-        {"sampleSeconds", config.pursuit.sampleSeconds},
-        {"horizonSeconds", config.pursuit.horizonSeconds}}},
-      {"decisions", decisionsJson(config.decisions)},
-      {"phases",
-       {{"intervalTicks", config.phases.intervalTicks},
-        {"transitionSeconds", config.phases.transitionSeconds},
-        {"hysteresisMeters", config.phases.hysteresisMeters}}},
-      {"pitchControl",
-       {{"intervalTicks", config.pitchControl.intervalTicks},
-        {"cellSize", config.pitchControl.cellSize},
-        {"controlSeconds", config.pitchControl.controlSeconds}}},
-      {"positioning", positioningJson(config.positioning)},
-      {"offBall", offBallJson(config.offBall)},
-      {"defensive", defensiveJson(config.defensive)},
-      {"duels", duelsJson(config.duels)},
-      {"pressing", pressingJson(config.pressing)},
-      {"restarts",
-       {{"enabled", config.restarts.enabled}, {"maxHoldSeconds", config.restarts.maxHoldSeconds}}},
-      {"shooting", shootingJson(config.shooting)},
-      {"woodwork",
-       {{"radius", config.woodwork.radius}, {"restitution", config.woodwork.restitution}}},
-      {"goalkeeper",
-       {{"lineDepth", config.goalkeeper.lineDepth},
-        {"highDepthShare", config.goalkeeper.highDepthShare},
-        {"possessionDepthShare", config.goalkeeper.possessionDepthShare},
-        {"positionErrorAlong", config.goalkeeper.positionErrorAlong},
-        {"positionErrorAcross", config.goalkeeper.positionErrorAcross},
-        {"cautiousMargin", config.goalkeeper.cautiousMargin},
-        {"boldMargin", config.goalkeeper.boldMargin},
-        {"sweepHysteresis", config.goalkeeper.sweepHysteresis},
-        {"misjudgement", config.goalkeeper.misjudgement}}},
-      {"shotStopping", shotStoppingJson(config.shotStopping)},
-      {"aerial", aerialJson(config.aerial)}};
-}
-
 void addCommandFields(Json& json, const MovePlayerCommand& command) {
   json["type"] = "movePlayer";
   json["playerId"] = command.playerId.value();
@@ -816,398 +457,504 @@ constexpr std::int64_t kMaxGoals = 1'000'000;
   return *std::move(state);
 }
 
-[[nodiscard]] SimMatch::PerceptionConfig readPerception(const Field& field) {
-  return {.intervalTicks = static_cast<int>(field.member("intervalTicks").integerIn(1, 100000)),
-          .viewDistance = field.member("viewDistance").number(),
-          .fieldOfViewDegrees = field.member("fieldOfViewDegrees").number(),
-          .awarenessRadius = field.member("awarenessRadius").number(),
-          .memorySeconds = field.member("memorySeconds").number(),
-          .extrapolationSeconds = field.member("extrapolationSeconds").number()};
+// ---------------------------------------------------------------------------
+// Configuration
+//
+// Each configuration lists its fields once, in the order the file holds them.
+// ConfigWriter writes them and ConfigReader reads them back, so the two
+// directions cannot disagree about a field.
+
+// Interval and tick-rate fields hold at most this many ticks.
+constexpr std::int64_t kMaxIntervalTicks = 100000;
+
+template <typename Visitor>
+void fieldsOf(Visitor& visit, SimMatch::BallPhysics& ball) {
+  visit.number("rollingDeceleration", ball.rollingDeceleration);
+  visit.number("carryDistance", ball.carryDistance);
+  visit.number("minCarrySpeedFactor", ball.minCarrySpeedFactor);
+  visit.number("maxCarrySpeedFactor", ball.maxCarrySpeedFactor);
+  visit.number("gravity", ball.gravity);
+  visit.number("airDrag", ball.airDrag);
+  visit.number("bounceRestitution", ball.bounceRestitution);
+  visit.number("bounceGrip", ball.bounceGrip);
+  visit.number("spinTransfer", ball.spinTransfer);
+  visit.number("spinDecay", ball.spinDecay);
+  visit.number("restingVerticalSpeed", ball.restingVerticalSpeed);
 }
 
-[[nodiscard]] SimMatch::PassConfig readPassing(const Field& field) {
-  return {.arrivalSpeed = field.member("arrivalSpeed").number(),
-          .maxSpeed = field.member("maxSpeed").number(),
-          .directionError = field.member("directionError").number(),
-          .speedError = field.member("speedError").number(),
-          .pressureRadius = field.member("pressureRadius").number(),
-          .pressureErrorFactor = field.member("pressureErrorFactor").number(),
-          .maxLoftedSpeed = field.member("maxLoftedSpeed").number(),
-          .loftedErrorFactor = field.member("loftedErrorFactor").number()};
+template <typename Visitor>
+void fieldsOf(Visitor& visit, SimMatch::PerceptionConfig& perception) {
+  visit.integer("intervalTicks", perception.intervalTicks, 1, kMaxIntervalTicks);
+  visit.number("viewDistance", perception.viewDistance);
+  visit.number("fieldOfViewDegrees", perception.fieldOfViewDegrees);
+  visit.number("awarenessRadius", perception.awarenessRadius);
+  visit.number("memorySeconds", perception.memorySeconds);
+  visit.number("extrapolationSeconds", perception.extrapolationSeconds);
 }
 
-[[nodiscard]] SimMatch::PursuitConfig readPursuit(const Field& field) {
-  return {.intervalTicks = static_cast<int>(field.member("intervalTicks").integerIn(1, 100000)),
-          .sampleSeconds = field.member("sampleSeconds").number(),
-          .horizonSeconds = field.member("horizonSeconds").number()};
+template <typename Visitor>
+void fieldsOf(Visitor& visit, SimMatch::PassConfig& passing) {
+  visit.number("arrivalSpeed", passing.arrivalSpeed);
+  visit.number("maxSpeed", passing.maxSpeed);
+  visit.number("directionError", passing.directionError);
+  visit.number("speedError", passing.speedError);
+  visit.number("pressureRadius", passing.pressureRadius);
+  visit.number("pressureErrorFactor", passing.pressureErrorFactor);
+  visit.number("maxLoftedSpeed", passing.maxLoftedSpeed);
+  visit.number("loftedErrorFactor", passing.loftedErrorFactor);
 }
 
-[[nodiscard]] SimMatch::CarryPhaseFactors readCarryFactors(const Field& field) {
-  const auto number = [&field](const std::string_view key) { return field.member(key).number(); };
-  return {.progression = number("progression"),
-          .space = number("space"),
-          .shot = number("shot"),
-          .bypassed = number("bypassed"),
-          .risk = number("risk")};
+template <typename Visitor>
+void fieldsOf(Visitor& visit, SimMatch::ReceptionConfig& reception) {
+  visit.number("controlRadius", reception.controlRadius);
+  visit.number("reclaimDelaySeconds", reception.reclaimDelaySeconds);
+  visit.number("controlHeight", reception.controlHeight);
+  visit.number("handsRadius", reception.handsRadius);
+  visit.number("handsHeight", reception.handsHeight);
 }
 
-[[nodiscard]] SimMatch::CarryScoringConfig readCarrying(const Field& field) {
-  const auto number = [&field](const std::string_view key) { return field.member(key).number(); };
-  return {.enabled = field.member("enabled").boolean(),
-          .minConfidence = number("minConfidence"),
-          .horizonSeconds = number("horizonSeconds"),
-          .minCarryDistance = number("minCarryDistance"),
-          .gapRadius = number("gapRadius"),
-          .sameDirection = number("sameDirection"),
-          .pitchMargin = number("pitchMargin"),
-          .safetySeconds = number("safetySeconds"),
-          .lossMarginSeconds = number("lossMarginSeconds"),
-          .touchSeconds = number("touchSeconds"),
-          .minTouchDistance = number("minTouchDistance"),
-          .maxTouchDistance = number("maxTouchDistance"),
-          .touchShare = number("touchShare"),
-          .lookBackSeconds = number("lookBackSeconds"),
-          .turnDistance = number("turnDistance"),
-          .dribbleRadius = number("dribbleRadius"),
-          .dribbleCone = number("dribbleCone"),
-          .dribbleClearance = number("dribbleClearance"),
-          .dribbleBeyond = number("dribbleBeyond"),
-          .maxTouchError = number("maxTouchError"),
-          .minTouchError = number("minTouchError"),
-          .maxDribbleError = number("maxDribbleError"),
-          .minDribbleError = number("minDribbleError"),
-          .slowDribbleShare = number("slowDribbleShare"),
-          .quickDribbleShare = number("quickDribbleShare"),
-          .shotDistance = number("shotDistance"),
-          .fullOpening = number("fullOpening"),
-          .minKeepChance = number("minKeepChance"),
-          .pressureRadius = number("pressureRadius"),
-          .keepWeight = number("keepWeight"),
-          .progressionWeight = number("progressionWeight"),
-          .spaceWeight = number("spaceWeight"),
-          .shotWeight = number("shotWeight"),
-          .bypassWeight = number("bypassWeight"),
-          .riskWeight = number("riskWeight"),
-          .holdWeight = number("holdWeight"),
-          .turnCost = number("turnCost"),
-          .turnSeconds = number("turnSeconds"),
-          .buildUp = readCarryFactors(field.member("buildUpFactors")),
-          .progression = readCarryFactors(field.member("progressionFactors")),
-          .finalThird = readCarryFactors(field.member("finalThirdFactors")),
-          .attackingTransition = readCarryFactors(field.member("attackingTransitionFactors"))};
+template <typename Visitor>
+void fieldsOf(Visitor& visit, SimMatch::PursuitConfig& pursuit) {
+  visit.integer("intervalTicks", pursuit.intervalTicks, 1, kMaxIntervalTicks);
+  visit.number("sampleSeconds", pursuit.sampleSeconds);
+  visit.number("horizonSeconds", pursuit.horizonSeconds);
 }
 
-[[nodiscard]] SimMatch::DecisionConfig readDecisions(const Field& field) {
-  const Field scoring = field.member("scoring");
-  const Field shooting = field.member("shooting");
-  const Field distribution = field.member("distribution");
-  return {
-      .intervalTicks = static_cast<int>(field.member("intervalTicks").integerIn(1, 100000)),
-      .minHoldSeconds = field.member("minHoldSeconds").number(),
-      .temperature = field.member("temperature").number(),
-      .scoring = {.minConfidence = scoring.member("minConfidence").number(),
-                  .minPassDistance = scoring.member("minPassDistance").number(),
-                  .maxPassDistance = scoring.member("maxPassDistance").number(),
-                  .interceptionMarginSeconds = scoring.member("interceptionMarginSeconds").number(),
-                  .pressureRadius = scoring.member("pressureRadius").number(),
-                  .minCompletion = scoring.member("minCompletion").number(),
-                  .completionWeight = scoring.member("completionWeight").number(),
-                  .progressionWeight = scoring.member("progressionWeight").number(),
-                  .pressureWeight = scoring.member("pressureWeight").number(),
-                  .riskWeight = scoring.member("riskWeight").number(),
-                  .loftedBias = scoring.member("loftedBias").number()},
-      .shooting = {.minConfidence = shooting.member("minConfidence").number(),
-                   .maxShotDistance = shooting.member("maxShotDistance").number(),
-                   .minOpening = shooting.member("minOpening").number(),
-                   .zoneColumns = static_cast<int>(
-                       shooting.member("zoneColumns").integerIn(0, SimMatch::kMaxShotZones)),
-                   .zoneRows = static_cast<int>(
-                       shooting.member("zoneRows").integerIn(0, SimMatch::kMaxShotZones)),
-                   .shotSpeed = shooting.member("shotSpeed").number(),
-                   .keeperDiveReach = shooting.member("keeperDiveReach").number(),
-                   .keeperJumpReach = shooting.member("keeperJumpReach").number(),
-                   .keeperDiveSeconds = shooting.member("keeperDiveSeconds").number(),
-                   .blockReach = shooting.member("blockReach").number(),
-                   .blockMarginSeconds = shooting.member("blockMarginSeconds").number(),
-                   .saveMarginSeconds = shooting.member("saveMarginSeconds").number(),
-                   .spreadAtZero = shooting.member("spreadAtZero").number(),
-                   .spreadPerMeter = shooting.member("spreadPerMeter").number(),
-                   .pressureRadius = shooting.member("pressureRadius").number(),
-                   .pressureSpread = shooting.member("pressureSpread").number(),
-                   .frameMargin = shooting.member("frameMargin").number(),
-                   .reboundShare = shooting.member("reboundShare").number(),
-                   .maxBlockRisk = shooting.member("maxBlockRisk").number(),
-                   .minGoalChance = shooting.member("minGoalChance").number(),
-                   .goalWeight = shooting.member("goalWeight").number(),
-                   .secondBallWeight = shooting.member("secondBallWeight").number(),
-                   .lossWeight = shooting.member("lossWeight").number()},
-      .distribution = {.holdSeconds = distribution.member("holdSeconds").number(),
-                       .clearSeconds = distribution.member("clearSeconds").number(),
-                       .throwRange = distribution.member("throwRange").number(),
-                       .minLongDistance = distribution.member("minLongDistance").number(),
-                       .flightSeconds = distribution.member("flightSeconds").number(),
-                       .contestMarginSeconds = distribution.member("contestMarginSeconds").number(),
-                       .directnessWeight = distribution.member("directnessWeight").number()},
-      .stuckSeconds = field.member("stuckSeconds").number(),
-      .clearTouchlineMargin = field.member("clearTouchlineMargin").number(),
-      .clearGoalLineMargin = field.member("clearGoalLineMargin").number(),
-      .carrying = readCarrying(field.member("carrying"))};
+template <typename Visitor>
+void fieldsOf(Visitor& visit, SimMatch::PassScoringConfig& scoring) {
+  visit.number("minConfidence", scoring.minConfidence);
+  visit.number("minPassDistance", scoring.minPassDistance);
+  visit.number("maxPassDistance", scoring.maxPassDistance);
+  visit.number("interceptionMarginSeconds", scoring.interceptionMarginSeconds);
+  visit.number("pressureRadius", scoring.pressureRadius);
+  visit.number("minCompletion", scoring.minCompletion);
+  visit.number("completionWeight", scoring.completionWeight);
+  visit.number("progressionWeight", scoring.progressionWeight);
+  visit.number("pressureWeight", scoring.pressureWeight);
+  visit.number("riskWeight", scoring.riskWeight);
+  visit.number("loftedBias", scoring.loftedBias);
 }
 
-[[nodiscard]] SimMatch::PhaseConfig readPhases(const Field& field) {
-  return {.intervalTicks = static_cast<int>(field.member("intervalTicks").integerIn(1, 100000)),
-          .transitionSeconds = field.member("transitionSeconds").number(),
-          .hysteresisMeters = field.member("hysteresisMeters").number()};
+template <typename Visitor>
+void fieldsOf(Visitor& visit, SimMatch::ShotScoringConfig& shooting) {
+  visit.number("minConfidence", shooting.minConfidence);
+  visit.number("maxShotDistance", shooting.maxShotDistance);
+  visit.number("minOpening", shooting.minOpening);
+  visit.integer("zoneColumns", shooting.zoneColumns, 0, SimMatch::kMaxShotZones);
+  visit.integer("zoneRows", shooting.zoneRows, 0, SimMatch::kMaxShotZones);
+  visit.number("shotSpeed", shooting.shotSpeed);
+  visit.number("keeperDiveReach", shooting.keeperDiveReach);
+  visit.number("keeperJumpReach", shooting.keeperJumpReach);
+  visit.number("keeperDiveSeconds", shooting.keeperDiveSeconds);
+  visit.number("blockReach", shooting.blockReach);
+  visit.number("blockMarginSeconds", shooting.blockMarginSeconds);
+  visit.number("saveMarginSeconds", shooting.saveMarginSeconds);
+  visit.number("spreadAtZero", shooting.spreadAtZero);
+  visit.number("spreadPerMeter", shooting.spreadPerMeter);
+  visit.number("pressureRadius", shooting.pressureRadius);
+  visit.number("pressureSpread", shooting.pressureSpread);
+  visit.number("frameMargin", shooting.frameMargin);
+  visit.number("reboundShare", shooting.reboundShare);
+  visit.number("maxBlockRisk", shooting.maxBlockRisk);
+  visit.number("minGoalChance", shooting.minGoalChance);
+  visit.number("goalWeight", shooting.goalWeight);
+  visit.number("secondBallWeight", shooting.secondBallWeight);
+  visit.number("lossWeight", shooting.lossWeight);
 }
 
-[[nodiscard]] SimMatch::PositioningConfig readPositioning(const Field& field) {
-  return {.intervalTicks = static_cast<int>(field.member("intervalTicks").integerIn(1, 100000)),
-          .candidateSpacing = field.member("candidateSpacing").number(),
-          .targetDistanceScale = field.member("targetDistanceScale").number(),
-          .spacingRadius = field.member("spacingRadius").number(),
-          .pressureRadius = field.member("pressureRadius").number(),
-          .minConfidence = field.member("minConfidence").number(),
-          .hysteresisCost = field.member("hysteresisCost").number(),
-          .maxShiftMeters = field.member("maxShiftMeters").number()};
+template <typename Visitor>
+void fieldsOf(Visitor& visit, SimMatch::DistributionConfig& distribution) {
+  visit.number("holdSeconds", distribution.holdSeconds);
+  visit.number("clearSeconds", distribution.clearSeconds);
+  visit.number("throwRange", distribution.throwRange);
+  visit.number("minLongDistance", distribution.minLongDistance);
+  visit.number("flightSeconds", distribution.flightSeconds);
+  visit.number("contestMarginSeconds", distribution.contestMarginSeconds);
+  visit.number("directnessWeight", distribution.directnessWeight);
 }
 
-[[nodiscard]] SimMatch::OffBallConfig readOffBall(const Field& field) {
-  const auto ticks = [&field](const std::string_view key) {
-    return static_cast<int>(field.member(key).integerIn(1, 100000));
-  };
-  const auto number = [&field](const std::string_view key) { return field.member(key).number(); };
-  return {.nearBallRadius = number("nearBallRadius"),
-          .nearIntervalTicks = ticks("nearIntervalTicks"),
-          .farIntervalTicks = ticks("farIntervalTicks"),
-          .supportDistance = number("supportDistance"),
-          .spaceSearchRadius = number("spaceSearchRadius"),
-          .runDepth = number("runDepth"),
-          .laneRadius = number("laneRadius"),
-          .pressedRadius = number("pressedRadius"),
-          .effortScale = number("effortScale"),
-          .holdResponsibility = number("holdResponsibility"),
-          .temperature = number("temperature"),
-          .responsibilityWeight = number("responsibilityWeight"),
-          .regionWeight = number("regionWeight"),
-          .spaceWeight = number("spaceWeight"),
-          .laneWeight = number("laneWeight"),
-          .urgencyWeight = number("urgencyWeight"),
-          .effortWeight = number("effortWeight")};
+template <typename Visitor>
+void fieldsOf(Visitor& visit, SimMatch::CarryPhaseFactors& factors) {
+  visit.number("progression", factors.progression);
+  visit.number("space", factors.space);
+  visit.number("shot", factors.shot);
+  visit.number("bypassed", factors.bypassed);
+  visit.number("risk", factors.risk);
 }
 
-[[nodiscard]] SimMatch::DefensiveConfig readDefensive(const Field& field) {
-  const auto number = [&field](const std::string_view key) { return field.member(key).number(); };
-  return {.markRadius = number("markRadius"),
-          .markDistance = number("markDistance"),
-          .trackRadius = number("trackRadius"),
-          .runnerSpeed = number("runnerSpeed"),
-          .trackLeadSeconds = number("trackLeadSeconds"),
-          .coverDistance = number("coverDistance"),
-          .pressRadius = number("pressRadius"),
-          .pressDistance = number("pressDistance"),
-          .idleSeconds = number("idleSeconds"),
-          .idlePressRadius = number("idlePressRadius"),
-          .laneMinDistance = number("laneMinDistance"),
-          .effortScale = number("effortScale"),
-          .holdResponsibility = number("holdResponsibility"),
-          .temperature = number("temperature"),
-          .responsibilityWeight = number("responsibilityWeight"),
-          .regionWeight = number("regionWeight"),
-          .spaceWeight = number("spaceWeight"),
-          .urgencyWeight = number("urgencyWeight"),
-          .effortWeight = number("effortWeight")};
+template <typename Visitor>
+void fieldsOf(Visitor& visit, SimMatch::CarryScoringConfig& carrying) {
+  visit.boolean("enabled", carrying.enabled);
+  visit.number("minConfidence", carrying.minConfidence);
+  visit.number("horizonSeconds", carrying.horizonSeconds);
+  visit.number("minCarryDistance", carrying.minCarryDistance);
+  visit.number("gapRadius", carrying.gapRadius);
+  visit.number("sameDirection", carrying.sameDirection);
+  visit.number("pitchMargin", carrying.pitchMargin);
+  visit.number("safetySeconds", carrying.safetySeconds);
+  visit.number("lossMarginSeconds", carrying.lossMarginSeconds);
+  visit.number("touchSeconds", carrying.touchSeconds);
+  visit.number("minTouchDistance", carrying.minTouchDistance);
+  visit.number("maxTouchDistance", carrying.maxTouchDistance);
+  visit.number("touchShare", carrying.touchShare);
+  visit.number("lookBackSeconds", carrying.lookBackSeconds);
+  visit.number("turnDistance", carrying.turnDistance);
+  visit.number("dribbleRadius", carrying.dribbleRadius);
+  visit.number("dribbleCone", carrying.dribbleCone);
+  visit.number("dribbleClearance", carrying.dribbleClearance);
+  visit.number("dribbleBeyond", carrying.dribbleBeyond);
+  visit.number("maxTouchError", carrying.maxTouchError);
+  visit.number("minTouchError", carrying.minTouchError);
+  visit.number("maxDribbleError", carrying.maxDribbleError);
+  visit.number("minDribbleError", carrying.minDribbleError);
+  visit.number("slowDribbleShare", carrying.slowDribbleShare);
+  visit.number("quickDribbleShare", carrying.quickDribbleShare);
+  visit.number("shotDistance", carrying.shotDistance);
+  visit.number("fullOpening", carrying.fullOpening);
+  visit.number("minKeepChance", carrying.minKeepChance);
+  visit.number("pressureRadius", carrying.pressureRadius);
+  visit.number("keepWeight", carrying.keepWeight);
+  visit.number("progressionWeight", carrying.progressionWeight);
+  visit.number("spaceWeight", carrying.spaceWeight);
+  visit.number("shotWeight", carrying.shotWeight);
+  visit.number("bypassWeight", carrying.bypassWeight);
+  visit.number("riskWeight", carrying.riskWeight);
+  visit.number("holdWeight", carrying.holdWeight);
+  visit.number("turnCost", carrying.turnCost);
+  visit.number("turnSeconds", carrying.turnSeconds);
+  visit.object("buildUpFactors", carrying.buildUp);
+  visit.object("progressionFactors", carrying.progression);
+  visit.object("finalThirdFactors", carrying.finalThird);
+  visit.object("attackingTransitionFactors", carrying.attackingTransition);
 }
 
-[[nodiscard]] SimMatch::DuelConfig readDuels(const Field& field) {
-  const auto number = [&field](const std::string_view key) { return field.member(key).number(); };
-  return {.intervalTicks = static_cast<int>(field.member("intervalTicks").integerIn(1, 100000)),
-          .protectSeconds = number("protectSeconds"),
-          .engageRadius = number("engageRadius"),
-          .breakRadius = number("breakRadius"),
-          .jockeyDistance = number("jockeyDistance"),
-          .turnStep = number("turnStep"),
-          .accelerateStep = number("accelerateStep"),
-          .tackleReach = number("tackleReach"),
-          .footRadius = number("footRadius"),
-          .bodyRadius = number("bodyRadius"),
-          .footError = number("footError"),
-          .minHold = number("minHold"),
-          .maxHold = number("maxHold"),
-          .looseSpeed = number("looseSpeed"),
-          .contactDistance = number("contactDistance"),
-          .shovePerSecond = number("shovePerSecond"),
-          .commitCost = number("commitCost"),
-          .turnCost = number("turnCost"),
-          .recoveryPerSecond = number("recoveryPerSecond"),
-          .stumbleSeconds = number("stumbleSeconds"),
-          .shieldWeight = number("shieldWeight"),
-          .turnWeight = number("turnWeight"),
-          .accelerateWeight = number("accelerateWeight"),
-          .jockeyWeight = number("jockeyWeight"),
-          .commitWeight = number("commitWeight"),
-          .decisionTemperature = number("decisionTemperature")};
+template <typename Visitor>
+void fieldsOf(Visitor& visit, SimMatch::DecisionConfig& decisions) {
+  visit.integer("intervalTicks", decisions.intervalTicks, 1, kMaxIntervalTicks);
+  visit.number("minHoldSeconds", decisions.minHoldSeconds);
+  visit.number("temperature", decisions.temperature);
+  visit.object("scoring", decisions.scoring);
+  visit.object("shooting", decisions.shooting);
+  visit.object("distribution", decisions.distribution);
+  visit.number("stuckSeconds", decisions.stuckSeconds);
+  visit.number("clearTouchlineMargin", decisions.clearTouchlineMargin);
+  visit.number("clearGoalLineMargin", decisions.clearGoalLineMargin);
+  visit.object("carrying", decisions.carrying);
 }
 
-[[nodiscard]] SimMatch::PressingConfig readPressing(const Field& field) {
-  const auto number = [&field](const std::string_view key) { return field.member(key).number(); };
-  return {.intervalTicks = static_cast<int>(field.member("intervalTicks").integerIn(1, 100000)),
-          .triggerRadius = number("triggerRadius"),
-          .recentSeconds = number("recentSeconds"),
-          .heavyTouchSpeed = number("heavyTouchSpeed"),
-          .slowPassSpeed = number("slowPassSpeed"),
-          .isolationRadius = number("isolationRadius"),
-          .facingOwnGoal = number("facingOwnGoal"),
-          .backPassMeters = number("backPassMeters"),
-          .maxJoiners = static_cast<int>(field.member("maxJoiners").integerIn(1, 100)),
-          .phaseIntensity = number("phaseIntensity"),
-          .maxPressSeconds = number("maxPressSeconds")};
+template <typename Visitor>
+void fieldsOf(Visitor& visit, SimMatch::PhaseConfig& phases) {
+  visit.integer("intervalTicks", phases.intervalTicks, 1, kMaxIntervalTicks);
+  visit.number("transitionSeconds", phases.transitionSeconds);
+  visit.number("hysteresisMeters", phases.hysteresisMeters);
 }
 
-[[nodiscard]] SimMatch::BallPhysics readBall(const Field& field) {
-  return {.rollingDeceleration = field.member("rollingDeceleration").number(),
-          .carryDistance = field.member("carryDistance").number(),
-          .gravity = field.member("gravity").number(),
-          .airDrag = field.member("airDrag").number(),
-          .bounceRestitution = field.member("bounceRestitution").number(),
-          .bounceGrip = field.member("bounceGrip").number(),
-          .spinTransfer = field.member("spinTransfer").number(),
-          .spinDecay = field.member("spinDecay").number(),
-          .restingVerticalSpeed = field.member("restingVerticalSpeed").number(),
-          .minCarrySpeedFactor = field.member("minCarrySpeedFactor").number(),
-          .maxCarrySpeedFactor = field.member("maxCarrySpeedFactor").number()};
+template <typename Visitor>
+void fieldsOf(Visitor& visit, SimMatch::PitchControlConfig& pitchControl) {
+  visit.integer("intervalTicks", pitchControl.intervalTicks, 1, kMaxIntervalTicks);
+  visit.number("cellSize", pitchControl.cellSize);
+  visit.number("controlSeconds", pitchControl.controlSeconds);
 }
 
-[[nodiscard]] SimMatch::ShotConfig readShooting(const Field& field) {
-  const auto number = [&field](const std::string_view key) { return field.member(key).number(); };
-  return {.spreadAtZero = number("spreadAtZero"),
-          .spreadPerMeter = number("spreadPerMeter"),
-          .speedError = number("speedError"),
-          .maxLaunchSlope = number("maxLaunchSlope"),
-          .topspin = number("topspin"),
-          .spinError = number("spinError"),
-          .pressureErrorFactor = number("pressureErrorFactor"),
-          .balanceErrorFactor = number("balanceErrorFactor"),
-          .weakFootErrorFactor = number("weakFootErrorFactor"),
-          .unsettledErrorFactor = number("unsettledErrorFactor"),
-          .weakFootSide = number("weakFootSide"),
-          .unsettledSeconds = number("unsettledSeconds"),
-          .unsettledBallSpeed = number("unsettledBallSpeed"),
-          .deflectionSpeed = number("deflectionSpeed"),
-          .blockRadius = number("blockRadius"),
-          .blockReach = number("blockReach"),
-          .minDeflectedSpeed = number("minDeflectedSpeed"),
-          .maxDeflectedSpeed = number("maxDeflectedSpeed"),
-          .blockedBelow = number("blockedBelow"),
-          .deflectionSpread = number("deflectionSpread"),
-          .deflectionLift = number("deflectionLift")};
+template <typename Visitor>
+void fieldsOf(Visitor& visit, SimMatch::PositioningConfig& positioning) {
+  visit.integer("intervalTicks", positioning.intervalTicks, 1, kMaxIntervalTicks);
+  visit.number("candidateSpacing", positioning.candidateSpacing);
+  visit.number("targetDistanceScale", positioning.targetDistanceScale);
+  visit.number("spacingRadius", positioning.spacingRadius);
+  visit.number("pressureRadius", positioning.pressureRadius);
+  visit.number("minConfidence", positioning.minConfidence);
+  visit.number("hysteresisCost", positioning.hysteresisCost);
+  visit.number("maxShiftMeters", positioning.maxShiftMeters);
 }
 
-[[nodiscard]] SimMatch::AerialConfig readAerial(const Field& field) {
-  const auto number = [&field](const char* name) { return field.member(name).number(); };
-  return {.headHeight = number("headHeight"),
-          .headRadius = number("headRadius"),
-          .lowestJump = number("lowestJump"),
-          .highestJump = number("highestJump"),
-          .timingError = number("timingError"),
-          .attemptMargin = number("attemptMargin"),
-          .contestRadius = number("contestRadius"),
-          .landingSeconds = number("landingSeconds"),
-          .reachWeight = number("reachWeight"),
-          .reachCap = number("reachCap"),
-          .arrivalWeight = number("arrivalWeight"),
-          .strengthWeight = number("strengthWeight"),
-          .bodyWeight = number("bodyWeight"),
-          .keeperAdvantage = number("keeperAdvantage"),
-          .duelTemperature = number("duelTemperature"),
-          .contestedDrop = number("contestedDrop"),
-          .shotRange = number("shotRange"),
-          .shotSpeed = number("shotSpeed"),
-          .shotHeight = number("shotHeight"),
-          .shotInside = number("shotInside"),
-          .passRange = number("passRange"),
-          .knockDownRange = number("knockDownRange"),
-          .passSeconds = number("passSeconds"),
-          .openDistance = number("openDistance"),
-          .passWeight = number("passWeight"),
-          .clearanceZone = number("clearanceZone"),
-          .clearanceDistance = number("clearanceDistance"),
-          .maxHeaderSpeed = number("maxHeaderSpeed"),
-          .decisionTemperature = number("decisionTemperature"),
-          .directionError = number("directionError"),
-          .speedError = number("speedError"),
-          .mistimedErrorFactor = number("mistimedErrorFactor")};
+template <typename Visitor>
+void fieldsOf(Visitor& visit, SimMatch::OffBallConfig& offBall) {
+  visit.number("nearBallRadius", offBall.nearBallRadius);
+  visit.integer("nearIntervalTicks", offBall.nearIntervalTicks, 1, kMaxIntervalTicks);
+  visit.integer("farIntervalTicks", offBall.farIntervalTicks, 1, kMaxIntervalTicks);
+  visit.number("supportDistance", offBall.supportDistance);
+  visit.number("spaceSearchRadius", offBall.spaceSearchRadius);
+  visit.number("runDepth", offBall.runDepth);
+  visit.number("laneRadius", offBall.laneRadius);
+  visit.number("pressedRadius", offBall.pressedRadius);
+  visit.number("effortScale", offBall.effortScale);
+  visit.number("holdResponsibility", offBall.holdResponsibility);
+  visit.number("temperature", offBall.temperature);
+  visit.number("responsibilityWeight", offBall.responsibilityWeight);
+  visit.number("regionWeight", offBall.regionWeight);
+  visit.number("spaceWeight", offBall.spaceWeight);
+  visit.number("laneWeight", offBall.laneWeight);
+  visit.number("urgencyWeight", offBall.urgencyWeight);
+  visit.number("effortWeight", offBall.effortWeight);
 }
 
-[[nodiscard]] SimMatch::ShotStoppingConfig readShotStopping(const Field& field) {
-  const auto number = [&field](const char* name) { return field.member(name).number(); };
-  return {.slowestReaction = number("slowestReaction"),
-          .quickestReaction = number("quickestReaction"),
-          .readError = number("readError"),
-          .readyHeight = number("readyHeight"),
-          .diveReach = number("diveReach"),
-          .jumpReach = number("jumpReach"),
-          .diveSpeed = number("diveSpeed"),
-          .bodyReach = number("bodyReach"),
-          .catchableSpeed = number("catchableSpeed"),
-          .minParrySpeed = number("minParrySpeed"),
-          .maxParrySpeed = number("maxParrySpeed"),
-          .parryTilt = number("parryTilt"),
-          .parrySpread = number("parrySpread"),
-          .carelessTryMargin = number("carelessTryMargin"),
-          .carefulTryMargin = number("carefulTryMargin"),
-          .wideMargin = number("wideMargin"),
-          .diveBelowSpeed = number("diveBelowSpeed"),
-          .standingRecovery = number("standingRecovery"),
-          .stretchRecovery = number("stretchRecovery"),
-          .reflexRecoveryShare = number("reflexRecoveryShare")};
+template <typename Visitor>
+void fieldsOf(Visitor& visit, SimMatch::DefensiveConfig& defensive) {
+  visit.number("markRadius", defensive.markRadius);
+  visit.number("markDistance", defensive.markDistance);
+  visit.number("trackRadius", defensive.trackRadius);
+  visit.number("runnerSpeed", defensive.runnerSpeed);
+  visit.number("trackLeadSeconds", defensive.trackLeadSeconds);
+  visit.number("coverDistance", defensive.coverDistance);
+  visit.number("pressRadius", defensive.pressRadius);
+  visit.number("pressDistance", defensive.pressDistance);
+  visit.number("idleSeconds", defensive.idleSeconds);
+  visit.number("idlePressRadius", defensive.idlePressRadius);
+  visit.number("laneMinDistance", defensive.laneMinDistance);
+  visit.number("effortScale", defensive.effortScale);
+  visit.number("holdResponsibility", defensive.holdResponsibility);
+  visit.number("temperature", defensive.temperature);
+  visit.number("responsibilityWeight", defensive.responsibilityWeight);
+  visit.number("regionWeight", defensive.regionWeight);
+  visit.number("spaceWeight", defensive.spaceWeight);
+  visit.number("urgencyWeight", defensive.urgencyWeight);
+  visit.number("effortWeight", defensive.effortWeight);
 }
 
-[[nodiscard]] SimMatch::GoalkeeperConfig readGoalkeeper(const Field& field) {
-  const auto number = [&field](const char* name) { return field.member(name).number(); };
-  return {.lineDepth = number("lineDepth"),
-          .highDepthShare = number("highDepthShare"),
-          .possessionDepthShare = number("possessionDepthShare"),
-          .positionErrorAlong = number("positionErrorAlong"),
-          .positionErrorAcross = number("positionErrorAcross"),
-          .cautiousMargin = number("cautiousMargin"),
-          .boldMargin = number("boldMargin"),
-          .sweepHysteresis = number("sweepHysteresis"),
-          .misjudgement = number("misjudgement")};
+template <typename Visitor>
+void fieldsOf(Visitor& visit, SimMatch::DuelConfig& duels) {
+  visit.integer("intervalTicks", duels.intervalTicks, 1, kMaxIntervalTicks);
+  visit.number("protectSeconds", duels.protectSeconds);
+  visit.number("engageRadius", duels.engageRadius);
+  visit.number("breakRadius", duels.breakRadius);
+  visit.number("jockeyDistance", duels.jockeyDistance);
+  visit.number("turnStep", duels.turnStep);
+  visit.number("accelerateStep", duels.accelerateStep);
+  visit.number("tackleReach", duels.tackleReach);
+  visit.number("footRadius", duels.footRadius);
+  visit.number("bodyRadius", duels.bodyRadius);
+  visit.number("footError", duels.footError);
+  visit.number("minHold", duels.minHold);
+  visit.number("maxHold", duels.maxHold);
+  visit.number("looseSpeed", duels.looseSpeed);
+  visit.number("contactDistance", duels.contactDistance);
+  visit.number("shovePerSecond", duels.shovePerSecond);
+  visit.number("commitCost", duels.commitCost);
+  visit.number("turnCost", duels.turnCost);
+  visit.number("recoveryPerSecond", duels.recoveryPerSecond);
+  visit.number("stumbleSeconds", duels.stumbleSeconds);
+  visit.number("shieldWeight", duels.shieldWeight);
+  visit.number("turnWeight", duels.turnWeight);
+  visit.number("accelerateWeight", duels.accelerateWeight);
+  visit.number("jockeyWeight", duels.jockeyWeight);
+  visit.number("commitWeight", duels.commitWeight);
+  visit.number("decisionTemperature", duels.decisionTemperature);
+}
+
+template <typename Visitor>
+void fieldsOf(Visitor& visit, SimMatch::PressingConfig& pressing) {
+  visit.integer("intervalTicks", pressing.intervalTicks, 1, kMaxIntervalTicks);
+  visit.number("triggerRadius", pressing.triggerRadius);
+  visit.number("recentSeconds", pressing.recentSeconds);
+  visit.number("heavyTouchSpeed", pressing.heavyTouchSpeed);
+  visit.number("slowPassSpeed", pressing.slowPassSpeed);
+  visit.number("isolationRadius", pressing.isolationRadius);
+  visit.number("facingOwnGoal", pressing.facingOwnGoal);
+  visit.number("backPassMeters", pressing.backPassMeters);
+  visit.integer("maxJoiners", pressing.maxJoiners, 1, 100);
+  visit.number("phaseIntensity", pressing.phaseIntensity);
+  visit.number("maxPressSeconds", pressing.maxPressSeconds);
+}
+
+template <typename Visitor>
+void fieldsOf(Visitor& visit, SimMatch::RestartConfig& restarts) {
+  visit.boolean("enabled", restarts.enabled);
+  visit.number("maxHoldSeconds", restarts.maxHoldSeconds);
+}
+
+template <typename Visitor>
+void fieldsOf(Visitor& visit, SimMatch::ShotConfig& shooting) {
+  visit.number("spreadAtZero", shooting.spreadAtZero);
+  visit.number("spreadPerMeter", shooting.spreadPerMeter);
+  visit.number("speedError", shooting.speedError);
+  visit.number("maxLaunchSlope", shooting.maxLaunchSlope);
+  visit.number("topspin", shooting.topspin);
+  visit.number("spinError", shooting.spinError);
+  visit.number("pressureErrorFactor", shooting.pressureErrorFactor);
+  visit.number("balanceErrorFactor", shooting.balanceErrorFactor);
+  visit.number("weakFootErrorFactor", shooting.weakFootErrorFactor);
+  visit.number("unsettledErrorFactor", shooting.unsettledErrorFactor);
+  visit.number("weakFootSide", shooting.weakFootSide);
+  visit.number("unsettledSeconds", shooting.unsettledSeconds);
+  visit.number("unsettledBallSpeed", shooting.unsettledBallSpeed);
+  visit.number("deflectionSpeed", shooting.deflectionSpeed);
+  visit.number("blockRadius", shooting.blockRadius);
+  visit.number("blockReach", shooting.blockReach);
+  visit.number("minDeflectedSpeed", shooting.minDeflectedSpeed);
+  visit.number("maxDeflectedSpeed", shooting.maxDeflectedSpeed);
+  visit.number("blockedBelow", shooting.blockedBelow);
+  visit.number("deflectionSpread", shooting.deflectionSpread);
+  visit.number("deflectionLift", shooting.deflectionLift);
+}
+
+template <typename Visitor>
+void fieldsOf(Visitor& visit, SimMatch::WoodworkConfig& woodwork) {
+  visit.number("radius", woodwork.radius);
+  visit.number("restitution", woodwork.restitution);
+}
+
+template <typename Visitor>
+void fieldsOf(Visitor& visit, SimMatch::GoalkeeperConfig& goalkeeper) {
+  visit.number("lineDepth", goalkeeper.lineDepth);
+  visit.number("highDepthShare", goalkeeper.highDepthShare);
+  visit.number("possessionDepthShare", goalkeeper.possessionDepthShare);
+  visit.number("positionErrorAlong", goalkeeper.positionErrorAlong);
+  visit.number("positionErrorAcross", goalkeeper.positionErrorAcross);
+  visit.number("cautiousMargin", goalkeeper.cautiousMargin);
+  visit.number("boldMargin", goalkeeper.boldMargin);
+  visit.number("sweepHysteresis", goalkeeper.sweepHysteresis);
+  visit.number("misjudgement", goalkeeper.misjudgement);
+}
+
+template <typename Visitor>
+void fieldsOf(Visitor& visit, SimMatch::ShotStoppingConfig& saves) {
+  visit.number("slowestReaction", saves.slowestReaction);
+  visit.number("quickestReaction", saves.quickestReaction);
+  visit.number("readError", saves.readError);
+  visit.number("readyHeight", saves.readyHeight);
+  visit.number("diveReach", saves.diveReach);
+  visit.number("jumpReach", saves.jumpReach);
+  visit.number("diveSpeed", saves.diveSpeed);
+  visit.number("bodyReach", saves.bodyReach);
+  visit.number("catchableSpeed", saves.catchableSpeed);
+  visit.number("minParrySpeed", saves.minParrySpeed);
+  visit.number("maxParrySpeed", saves.maxParrySpeed);
+  visit.number("parryTilt", saves.parryTilt);
+  visit.number("parrySpread", saves.parrySpread);
+  visit.number("carelessTryMargin", saves.carelessTryMargin);
+  visit.number("carefulTryMargin", saves.carefulTryMargin);
+  visit.number("wideMargin", saves.wideMargin);
+  visit.number("diveBelowSpeed", saves.diveBelowSpeed);
+  visit.number("standingRecovery", saves.standingRecovery);
+  visit.number("stretchRecovery", saves.stretchRecovery);
+  visit.number("reflexRecoveryShare", saves.reflexRecoveryShare);
+}
+
+template <typename Visitor>
+void fieldsOf(Visitor& visit, SimMatch::AerialConfig& aerial) {
+  visit.number("headHeight", aerial.headHeight);
+  visit.number("headRadius", aerial.headRadius);
+  visit.number("lowestJump", aerial.lowestJump);
+  visit.number("highestJump", aerial.highestJump);
+  visit.number("timingError", aerial.timingError);
+  visit.number("attemptMargin", aerial.attemptMargin);
+  visit.number("contestRadius", aerial.contestRadius);
+  visit.number("landingSeconds", aerial.landingSeconds);
+  visit.number("reachWeight", aerial.reachWeight);
+  visit.number("reachCap", aerial.reachCap);
+  visit.number("arrivalWeight", aerial.arrivalWeight);
+  visit.number("strengthWeight", aerial.strengthWeight);
+  visit.number("bodyWeight", aerial.bodyWeight);
+  visit.number("keeperAdvantage", aerial.keeperAdvantage);
+  visit.number("duelTemperature", aerial.duelTemperature);
+  visit.number("contestedDrop", aerial.contestedDrop);
+  visit.number("shotRange", aerial.shotRange);
+  visit.number("shotSpeed", aerial.shotSpeed);
+  visit.number("shotHeight", aerial.shotHeight);
+  visit.number("shotInside", aerial.shotInside);
+  visit.number("passRange", aerial.passRange);
+  visit.number("knockDownRange", aerial.knockDownRange);
+  visit.number("passSeconds", aerial.passSeconds);
+  visit.number("openDistance", aerial.openDistance);
+  visit.number("passWeight", aerial.passWeight);
+  visit.number("clearanceZone", aerial.clearanceZone);
+  visit.number("clearanceDistance", aerial.clearanceDistance);
+  visit.number("maxHeaderSpeed", aerial.maxHeaderSpeed);
+  visit.number("decisionTemperature", aerial.decisionTemperature);
+  visit.number("directionError", aerial.directionError);
+  visit.number("speedError", aerial.speedError);
+  visit.number("mistimedErrorFactor", aerial.mistimedErrorFactor);
+}
+
+template <typename Visitor>
+void fieldsOf(Visitor& visit, MatchConfig& config) {
+  visit.integer("ticksPerSecond", config.ticksPerSecond, 1, kMaxIntervalTicks);
+  visit.object("ball", config.ball);
+  visit.object("perception", config.perception);
+  visit.object("passing", config.passing);
+  visit.object("reception", config.reception);
+  visit.object("pursuit", config.pursuit);
+  visit.object("decisions", config.decisions);
+  visit.object("phases", config.phases);
+  visit.object("pitchControl", config.pitchControl);
+  visit.object("positioning", config.positioning);
+  visit.object("offBall", config.offBall);
+  visit.object("defensive", config.defensive);
+  visit.object("duels", config.duels);
+  visit.object("pressing", config.pressing);
+  visit.object("restarts", config.restarts);
+  visit.object("shooting", config.shooting);
+  visit.object("woodwork", config.woodwork);
+  visit.object("goalkeeper", config.goalkeeper);
+  visit.object("shotStopping", config.shotStopping);
+  visit.object("aerial", config.aerial);
+}
+
+// Writes the fields it visits into a JSON object.
+class ConfigWriter {
+ public:
+  void number(const std::string_view key, const double value) { json_[std::string(key)] = value; }
+
+  void boolean(const std::string_view key, const bool value) { json_[std::string(key)] = value; }
+
+  void integer(const std::string_view key, const int value, std::int64_t /*min*/,
+               std::int64_t /*max*/) {
+    json_[std::string(key)] = value;
+  }
+
+  template <typename Config>
+  void object(const std::string_view key, Config& config) {
+    ConfigWriter nested;
+    fieldsOf(nested, config);
+    json_[std::string(key)] = std::move(nested.json_);
+  }
+
+  [[nodiscard]] Json take() && { return std::move(json_); }
+
+ private:
+  Json json_ = Json::object();
+};
+
+// Reads the fields it visits from a JSON object; each must be there.
+class ConfigReader {
+ public:
+  explicit ConfigReader(Field field) : field_(std::move(field)) {}
+
+  void number(const std::string_view key, double& value) const {
+    value = field_.member(key).number();
+  }
+
+  void boolean(const std::string_view key, bool& value) const {
+    value = field_.member(key).boolean();
+  }
+
+  void integer(const std::string_view key, int& value, const std::int64_t min,
+               const std::int64_t max) const {
+    value = static_cast<int>(field_.member(key).integerIn(min, max));
+  }
+
+  template <typename Config>
+  void object(const std::string_view key, Config& config) const {
+    ConfigReader nested(field_.member(key));
+    fieldsOf(nested, config);
+  }
+
+ private:
+  Field field_;
+};
+
+[[nodiscard]] Json configJson(MatchConfig config) {
+  ConfigWriter writer;
+  fieldsOf(writer, config);
+  return std::move(writer).take();
 }
 
 [[nodiscard]] MatchConfig readConfig(const Field& field) {
-  return {
-      .ticksPerSecond = static_cast<int>(field.member("ticksPerSecond").integerIn(1, 100000)),
-      .ball = readBall(field.member("ball")),
-      .perception = readPerception(field.member("perception")),
-      .passing = readPassing(field.member("passing")),
-      .reception = {.controlRadius = field.member("reception").member("controlRadius").number(),
-                    .reclaimDelaySeconds =
-                        field.member("reception").member("reclaimDelaySeconds").number(),
-                    .controlHeight = field.member("reception").member("controlHeight").number(),
-                    .handsRadius = field.member("reception").member("handsRadius").number(),
-                    .handsHeight = field.member("reception").member("handsHeight").number()},
-      .pursuit = readPursuit(field.member("pursuit")),
-      .decisions = readDecisions(field.member("decisions")),
-      .phases = readPhases(field.member("phases")),
-      .pitchControl =
-          {.intervalTicks = static_cast<int>(
-               field.member("pitchControl").member("intervalTicks").integerIn(1, 100000)),
-           .cellSize = field.member("pitchControl").member("cellSize").number(),
-           .controlSeconds = field.member("pitchControl").member("controlSeconds").number()},
-      .positioning = readPositioning(field.member("positioning")),
-      .offBall = readOffBall(field.member("offBall")),
-      .defensive = readDefensive(field.member("defensive")),
-      .duels = readDuels(field.member("duels")),
-      .pressing = readPressing(field.member("pressing")),
-      .restarts = {.enabled = field.member("restarts").member("enabled").boolean(),
-                   .maxHoldSeconds = field.member("restarts").member("maxHoldSeconds").number()},
-      .shooting = readShooting(field.member("shooting")),
-      .woodwork = {.radius = field.member("woodwork").member("radius").number(),
-                   .restitution = field.member("woodwork").member("restitution").number()},
-      .goalkeeper = readGoalkeeper(field.member("goalkeeper")),
-      .shotStopping = readShotStopping(field.member("shotStopping")),
-      .aerial = readAerial(field.member("aerial"))};
+  MatchConfig config;
+  ConfigReader reader(field);
+  fieldsOf(reader, config);
+  return config;
 }
 
 [[nodiscard]] MatchCommand readCommand(const Field& field) {
