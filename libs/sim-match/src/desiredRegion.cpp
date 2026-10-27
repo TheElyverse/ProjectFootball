@@ -41,7 +41,8 @@ void validate(const PositioningConfig& config) {
 namespace {
 
 // Wing and halfspace centre lines, as fractions of the pitch width from the
-// touchline on a slot's side of the pitch (docs/zones.md).
+// touchline on a slot's side of the pitch
+// (docs/team-tactics.md#zones-and-team-shape).
 constexpr double kWingCentre = 0.1;
 constexpr double kHalfspaceCentre = 0.3;
 

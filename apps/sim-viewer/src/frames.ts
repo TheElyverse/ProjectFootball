@@ -1,6 +1,6 @@
-// The debug frame format written by `sim-cli --frames-out` (docs/debug-viewer.md).
-// The viewer only reads frames: it never simulates, so nothing it does can
-// change a match.
+// The debug frame format written by `sim-cli --frames-out`
+// (docs/tooling.md#debug-viewer). The viewer only reads frames: it never
+// simulates, so nothing it does can change a match.
 
 export const FRAMES_FORMAT = "elyverse-debug-frames";
 export const FRAMES_VERSION = 5;
@@ -24,7 +24,7 @@ export interface Observation {
   readonly lastSeen: number;
 }
 
-// Where the tactic wants a player (docs/desired-region.md).
+// Where the tactic wants a player (docs/team-tactics.md#desired-region).
 export interface DesiredRegion {
   readonly tacticalTarget: Vec2;
   readonly center: Vec2;
@@ -44,8 +44,9 @@ export interface PlayerFrame {
   readonly velocity: Vec2;
   readonly facing: Vec2;
   // Where he looks: his facing, or a carrier's look over his shoulder for an
-  // option (docs/pass-decisions.md). Absent from recordings of a core before
-  // 0.27.0, which came without a new version; he looks along his facing then.
+  // option (docs/on-ball.md#pass-decisions). Absent from recordings of a core
+  // before 0.27.0, which came without a new version; he looks along his facing
+  // then.
   readonly look?: Vec2;
   readonly target: Vec2 | null;
   readonly observations: readonly Observation[];
@@ -54,7 +55,8 @@ export interface PlayerFrame {
   readonly action: PlayerAction | null;
 }
 
-// Depths are meters from the side's own goal line (docs/zones.md).
+// Depths are meters from the side's own goal line
+// (docs/team-tactics.md#zones-and-team-shape).
 export interface TeamShape {
   readonly defensiveLine: number;
   readonly midfieldLine: number;
@@ -65,7 +67,7 @@ export interface TeamShape {
 }
 
 // The current phase's instruction; heights and sizes are fractions of the
-// pitch (docs/tactics.md).
+// pitch (docs/tactics.md#tactic-model).
 export interface PhaseInstruction {
   readonly lineHeight: number;
   readonly blockLength: number;
@@ -117,7 +119,7 @@ export interface ActionDecision {
   readonly player: number;
   readonly chosen: number | null;
   readonly assigned: boolean;
-  // Sent at a carrier who stands on the ball (docs/pressing.md).
+  // Sent at a carrier who stands on the ball (docs/team-tactics.md#pressing).
   readonly idlePress: boolean;
   readonly candidates: readonly ActionCandidate[];
 }

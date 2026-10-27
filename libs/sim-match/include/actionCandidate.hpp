@@ -11,7 +11,7 @@ namespace ElyverseFootball::SimMatch {
 
 // The weighted parts of an action's utility, one number per consideration,
 // each already multiplied by its weight: their sum is the utility. Kept apart
-// so a decision can be explained (docs/off-ball-movement.md). A
+// so a decision can be explained (docs/team-tactics.md#off-ball-movement). A
 // consideration that does not apply to an action is 0.
 struct ActionScores {
   // How well the action matches the player's responsibilities.

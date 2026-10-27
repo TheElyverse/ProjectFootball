@@ -15,7 +15,7 @@
 namespace ElyverseFootball::SimReplay {
 
 // The version of the debug frame format written by this build; see
-// docs/debug-viewer.md.
+// docs/tooling.md#debug-viewer.
 inline constexpr int kDebugFramesVersion = 5;
 
 // Everything the debug viewer shows for one tick: the state after the step
@@ -55,9 +55,10 @@ class DebugFrameRecorder {
   DebugRecording recording_;
 };
 
-// The recording as a JSON document in the format of docs/debug-viewer.md.
-// Positions, velocities and scores are rounded to three decimals, so the
-// file is smaller; it is for looking at, not for verifying a match.
+// The recording as a JSON document in the format of
+// docs/tooling.md#debug-viewer. Positions, velocities and scores are rounded to
+// three decimals, so the file is smaller; it is for looking at, not for
+// verifying a match.
 [[nodiscard]] std::string toDebugFramesJson(const DebugRecording& recording);
 
 // toDebugFramesJson() written to a file. Fails with a message naming the path.

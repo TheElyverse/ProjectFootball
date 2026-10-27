@@ -532,7 +532,7 @@ bool settleFreeBall(const BallState& from, const FreeBall& free, const BallRules
 // his answer to its flight: the dive he decided on against it, or standing
 // set where he is while he has not reacted yet or left it. A keeper still busy
 // with a dive against another flight faces nothing, nor does one off his feet
-// after a duel (docs/duels.md).
+// after a duel (docs/duels.md#duels-on-the-ball).
 struct FacingKeeper {
   std::size_t index = 0;
   ShotRecord shot;
@@ -827,7 +827,7 @@ void playHeader(const HeaderIntent& intent, const BallClaim& claim, const Aerial
 }
 
 // Adds everyone off his feet after a duel to those who take no ball -- one
-// who stumbled earlier this same step too (docs/duels.md).
+// who stumbled earlier this same step too (docs/duels.md#duels-on-the-ball).
 void excludeStumbling(const MatchStepContext& context, const MatchState& current,
                       MatchStateWriter& next, std::vector<std::size_t>& excluded) {
   for (std::size_t index = 0; index < current.players().size(); ++index) {
@@ -981,12 +981,13 @@ void loseTouch(const FreeBall& free, const BallClaim& claim, const std::size_t o
   endDribble(current, ownerIndex, DribbleOutcome::kLost, context, next);
 }
 
-// The ball rolling ahead of its owner after a touch (docs/ball-carrying.md):
-// it rolls as a free ball does, and whoever reaches it first takes it -- the
-// owner once the touch's seconds have passed, without waiting for the reclaim
-// delay, which is for passes, and any opponent; his teammates leave it to
-// him. Nobody reaching it, it rolls on, off the goal frame and into the goal
-// or out of play like any ball; one out of play is nobody's.
+// The ball rolling ahead of its owner after a touch
+// (docs/on-ball.md#ball-carrying): it rolls as a free ball does, and whoever
+// reaches it first takes it -- the owner once the touch's seconds have passed,
+// without waiting for the reclaim delay, which is for passes, and any opponent;
+// his teammates leave it to him. Nobody reaching it, it rolls on, off the goal
+// frame and into the goal or out of play like any ball; one out of play is
+// nobody's.
 void moveTouchedBall(const BallState& ball, const BallRules& rules, const MatchStepContext& context,
                      const MatchState& current, MatchStateWriter& next) {
   const auto ownerIndex = findPlayerIndex(current, ball.owner.value_or(PlayerId::invalid()));

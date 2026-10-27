@@ -6,8 +6,9 @@
 
 namespace ElyverseFootball::SimAnalytics {
 
-// A metric over a series of matches (docs/sim-benchmark.md): how many values,
-// their mean, sample variance and a 95 % confidence interval of the mean.
+// A metric over a series of matches (docs/tooling.md#sim-benchmark): how many
+// values, their mean, sample variance and a 95 % confidence interval of the
+// mean.
 struct SeriesSummary {
   std::size_t count = 0;
   std::optional<double> mean;

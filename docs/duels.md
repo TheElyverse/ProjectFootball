@@ -1,5 +1,13 @@
 # Duels
 
+Two players contesting the ball: on the ground, carrier against defender, and in
+the air, for a high ball and the header that follows.
+
+- [Duels on the ball](#duels-on-the-ball)
+- [Aerial duels and headers](#aerial-duels-and-headers)
+
+## Duels on the ball
+
 When a presser gets to a player with the ball at his feet, they fight for it.
 A duel is not one roll for a winner: it is a short sequence, a step ten times a
 second, in which both players read where they stand, how fast, at what angle,
@@ -9,7 +17,7 @@ jockeys or commits to a lunge (GDD section 8.8). What comes of it -- the ball
 kept, won cleanly, knocked loose, or a foul -- follows from the geometry of the
 step a lunge lands in and from the balance the steps before left both players
 with. The model lives in `sim-match` (`duel.hpp`) and replaces the placeholder
-challenge pressing used to win the ball with ([pressing](pressing.md#winning-the-ball)).
+challenge pressing used to win the ball with ([pressing](team-tactics.md#winning-the-ball)).
 
 ```text
 presser within engageRadius → DuelStarted, the defender sizes the carrier up
@@ -19,30 +27,30 @@ every step: ends? (kept) → balance: recovery, shoving, pushed off his feet? (w
                                                        or turned off his feet (loose)
 ```
 
-## Who duels
+### Who duels
 
 The "duel" system runs every `intervalTicks` (3 ticks, ten times a second),
 after the pass decision and before movement, in the slot the challenge had
-([match loop](match-loop.md#the-standard-systems)). At most one duel is fought
+([match loop](match-engine.md#the-standard-systems)). At most one duel is fought
 at a time: the ball has one carrier.
 
 A duel starts on a carrier who has the ball at his feet -- not rolling ahead of
-him after a touch ([ball carrying](ball-carrying.md)), not in a goalkeeper's
+him after a touch ([ball carrying](on-ball.md#ball-carrying)), not in a goalkeeper's
 hands -- and has had it for `protectSeconds` (0.5 s) since his last touch: he is
 still settling it, and a winner is not robbed straight back. The defender is
 the nearest player of the other side whose decided action is to press the
-carrier (`pressCarrier`, [defensive shape](defensive-shape.md)), who stands
+carrier (`pressCarrier`, [defensive shape](team-tactics.md#defensive-shape)), who stands
 within `engageRadius` (1.5 m) of him and is on his feet; ties to the first in
 player order. The step records `DuelStarted`. In it the defender only sizes the
 carrier up -- he jockeys -- while the carrier already decides his first move.
 The duel is part of the defender's tactical state, `PlayerTacticalState::duel`:
 the carrier, when it began, both players' last moves and their balance.
 
-## A step
+### A step
 
 1. **Does it go on?** It ends, **kept**, once the carrier no longer has the ball
    at his feet -- he passed, shot or touched it on, which his own
-   [decisions](pass-decisions.md) still choose --, the defender no longer
+   [decisions](on-ball.md#pass-decisions) still choose --, the defender no longer
    presses him, or they stand more than `breakRadius` (3 m) apart: the carrier
    got away.
 2. **Balance.** Both regain some, and bodies in contact push each other off it
@@ -69,7 +77,7 @@ the carrier protects the ball by reading the situation, not by reacting to a
 lunge already on its way: a ball he rolled behind him a step ago is out of
 reach, one he dragged to the side to get away is not.
 
-## The geometry
+### The geometry
 
 Each step reads `DuelGeometry`: the carrier, the defender, the ball and the
 centre of the goal the carrier attacks.
@@ -85,7 +93,7 @@ centre of the goal the carrier attacks.
   times his balance. A defender who is beaten, down or far off threatens
   nothing.
 
-## The carrier's moves
+### The carrier's moves
 
 | Move         | Plays the ball                                         | Runs to                      | Utility                                  |
 |--------------|--------------------------------------------------------|------------------------------|------------------------------------------|
@@ -100,11 +108,11 @@ front. A pressed carrier shields the ball; one with a beaten defender goes.
 
 Rolling the ball round him is a matter of a step, but it costs balance:
 `turnCost` (0.2) for a turn right round, less for a smaller one, as
-`(1 − facing · direction) / 2`. The [movement](player-movement.md) system then
+`(1 − facing · direction) / 2`. The [movement](players.md#player-movement) system then
 turns him toward the ball as the duel left it, and moving faster than
 `kFacingRunSpeed` he looks where he runs, so the ball goes where he goes.
 
-## The defender's moves
+### The defender's moves
 
 | Move     | Target                                       | Utility                                         |
 |----------|----------------------------------------------|-------------------------------------------------|
@@ -115,7 +123,7 @@ He commits only to a ball within `tackleReach` (1.8 m) whose way passes the
 carrier at all, clearance above 0: nobody lunges through a man on purpose.
 Against a shielded ball he jockeys, tight enough to be in contact and push.
 
-## The lunge
+### The lunge
 
 The foot aims at the ball and lands off it by a triangular error in each
 direction, `footError` (0.3 m) wide at full balance, widened by `2 − balance`,
@@ -140,7 +148,7 @@ A won ball is the defender's at his feet; a loose one is nobody's, its last
 touch the defender's. A missed lunge or a foul puts the defender off his feet,
 a ball knocked loose the carrier.
 
-## Balance
+### Balance
 
 Both start square on their feet, at 1. Every step
 
@@ -156,28 +164,28 @@ the defender's foot less accurate, a lunge less tempting and the carrier's
 hold weaker; a balanced defender threatens more. A carrier whose balance
 reaches 0 is off his feet and loses the ball ([a step](#a-step)).
 
-## Off his feet
+### Off his feet
 
 A player who stumbles -- the defender whose lunge misses or fouls, the carrier
 pushed off the ball, turned off his feet or whose ball is knocked loose, not
 one tackled cleanly -- is off his feet for `stumbleSeconds` (0.5 s), in his
 tactical state as `stumbledUntil` (`isStumbling()`). Until then he
 
-- stands: the [movement](player-movement.md) system ignores his target,
-- takes no ball: [ball movement](ball-movement.md) leaves him out of who gets
+- stands: the [movement](players.md#player-movement) system ignores his target,
+- takes no ball: [ball movement](ball.md#ball-movement) leaves him out of who gets
   to a free or touched ball, also in the step he stumbled in, and a keeper
   neither dives for a shot nor faces one,
-- chases none: [pursuit](reception.md#going-after-the-ball) sends a teammate,
+- chases none: [pursuit](ball.md#going-after-the-ball) sends a teammate,
 - starts no duel, and in one he is in he only jockeys, pushes nobody and wins
   no ball by pushing the carrier off his feet.
 
-A restart gets its taker up again ([restarts](restarts.md)).
+A restart gets its taker up again ([restarts](match-engine.md#restarts)).
 
 So a loose ball is scrappy: the carrier is down, the defender cannot take back
 his own touch for the reclaim delay, and whoever is quickest to it gets it. A
 beaten defender stands while the carrier accelerates away from him.
 
-## How a duel ends
+### How a duel ends
 
 | Outcome | When                                                       | Events                                                       |
 |---------|------------------------------------------------------------|--------------------------------------------------------------|
@@ -190,11 +198,11 @@ A foul is only recorded for now: play goes on with the carrier on the ball, and
 the defender off his feet. Whistling it, the free kick and cards come with the
 fouls of the P3 rules baseline. A won or loose ball drops
 the carrier's pending pass, shot or touch, as the ball system would discard
-it anyway ([ball movement](ball-movement.md)). `DuelStarted` and `DuelEnded`
+it anyway ([ball movement](ball.md#ball-movement)). `DuelStarted` and `DuelEnded`
 name the carrier and the defender and where the ball was -- for a carrier who
-turned himself off his feet, where he rolled it ([match events](match-events.md)).
+turned himself off his feet, where he rolled it ([match events](match-engine.md#match-events-and-decision-diagnostics)).
 
-## Configuration
+### Configuration
 
 `DuelConfig` is part of `MatchConfig` (`duels`) and of every replay;
 `validate()` rejects values outside their ranges.
@@ -224,7 +232,7 @@ turned himself off his feet, where he rolled it ([match events](match-events.md)
 With them, the players' `strength` and `ballControl` in `PlayerAttributes`, and
 the ball physics' `carryDistance`.
 
-## Scenarios
+### Scenarios
 
 The [duel scenarios](scenarios.md#the-duel-scenarios) give the idle carrier's
 centre back opponents of different strength: in `duel-ball-won` a strong centre
@@ -232,13 +240,276 @@ back wins the ball from a weak carrier, in `duel-ball-kept` a strong carrier
 keeps it from a weak one, and in `duel-loose-ball` an even duel knocks it loose
 for others to chase.
 
-## What this is not
+### What this is not
 
 There is no tackle but the lunge: no slide, no block of a shot or a cross, and
 no shoulder-to-shoulder duel while both run. There is no feint, and no
 dribble past a defender inside a duel -- a carrier who touches the ball on
-leaves the duel and [dribbles](ball-carrying.md#dribble). A foul has no
+leaves the duel and [dribbles](on-ball.md#dribble). A foul has no
 consequence but the defender's stumble; no free kick, no card, no advantage.
 Players' bodies do not block each other's runs, only the way of a foot, and a
 player turns at once rather than at a rate. Duels for a ball in the air are
-[aerial duels](aerial-duels.md).
+[aerial duels](#aerial-duels-and-headers).
+
+## Aerial duels and headers
+
+A ball in the air belongs to whoever gets highest to it first. When a high
+ball comes to a player, everyone near enough goes up for it; their jumps are
+timed and reach so high, and of those who get to it the duel decides who wins
+it. The winner heads it — at goal, to a teammate, down to one close by, or
+clear — and a goalkeeper in his area catches it or punches it clear
+(implementation plan §6.1, stage M6; GDD §8.8). The model lives in
+`sim-match` (`aerialDuels.hpp`), and the [ball system](ball.md#ball-movement)
+plays it out where the ball meets the players.
+
+```text
+high ball → first contact: findAerialContact()
+          → who goes up: findChallengers()
+          → jumps: timing, reach (kExecution)
+          → duel: duelUtility(), chooseByUtility() (kExecution)
+          → the winner's touch: decideHeader() (kAi), executeHeader() (kExecution), or hold / punch
+```
+
+### In the air or on the ground
+
+The ball's height decides whether a contest is aerial at all. A ball no higher
+than `controlHeight` (1 m) where a player gets to it is taken at his feet as
+it always was ([reception](ball.md#reception-interceptions-and-loose-balls)): the first to reach it has it. The
+same delivery played above that is contested in the air.
+
+`findAerialContact()` finds the first player to get to a high ball on its way
+in a tick, with the same search reception uses (`findFirstReach()`), each
+player reaching it as `aerialReach()` says:
+
+- **with his head**, within `headRadius` (0.7 m) of him along the ground, up to
+  `headHeight` (1.9 m, the ball's centre as he meets it standing) plus his
+  jump;
+- **with his hands**, if he is the goalkeeper and he and the ball are in his
+  own penalty area where his hands first get to it (`hasHands()`): within
+  reception's `handsRadius` (1.2 m), up to its `handsHeight` (2.2 m) plus his
+  jump;
+- and up to `attemptMargin` (0.3 m) beyond that: a player goes up for a ball a
+  little too high for him, and does not get to it.
+
+A ball that a player gets to in the air at the same moment as, or before,
+anyone takes one at his feet, is contested. A ball that never rises above
+`controlHeight` in the tick — on the grass, or coming down from no higher —
+is not searched at all (`mayRiseAbove()`). A keeper's hands used to take every
+ball up to `handsHeight` in his area; a ball above `controlHeight` there is
+now contested like any other, and uncontested he still holds it.
+
+A player who went up for a ball is **in the air** for `landingSeconds` (0.6 s)
+after (`isInTheAir()`, the `lastJump` of his tactical state): he goes up for
+no other ball until he has landed, so a ball nobody reached is not contested
+again by the same players as it flies on, nor taken at their feet in the same
+tick. It flies on past them to the keeper who faces it and to whoever else
+gets to it first. Like reception, the contest leaves
+out a keeper busy with a dive or facing a shot ([shot stopping](goalkeeper.md#shot-stopping))
+and the ball's last touch within `reclaimDelaySeconds` (`mayCompete()`). A shot
+still fast enough to come off a body is no aerial ball: it is
+[deflected](on-ball.md#on-the-way).
+
+### Who goes up
+
+`findChallengers()`: the first player, and every other player who is within
+`contestRadius` (1.5 m) of the ball at that moment and whose `aerialReach()`
+gets as high as the ball is there, in player order. For each the duel knows
+
+- whether he has his hands: `hasHands()` where he and the ball are at that
+  moment;
+- how high he stands — `headHeight`, or `handsHeight` with his hands — and how
+  high his jump lifts him: `lowestJump` (0.3 m) at `jumping` 0 to
+  `highestJump` (0.7 m) at 1 (`jumpRise()`);
+- how late he is: how far beyond his own reach of it he still is from the
+  ball, at his `maxSpeed` — none for the first;
+- his body position: how square he stands to it, from 0 with his back to the
+  ball's way to 1 facing it.
+
+### The jump
+
+Every challenger aims the top of his jump at the ball's arrival and misses it
+by a triangular draw spread `timingError` (0.25 s) times `skillErrorFactor()`
+of his `heading` — a keeper with his hands of his `keeperHandling` — two draws
+from the `kExecution` stream each, in player order (`timingSpread()`). His jump
+is a parabola under gravity, and off its top he is that much lower:
+
+```text
+reach = standing + max(0, rise − ½ · gravity · offset²)
+```
+
+(`reachAt()`). He reaches the ball if its centre is no higher than that. A ball
+below his head he reaches however he timed his jump, but a mistimed jump
+still spoils the header. His **mistiming** is how far off he was, as a share of
+`timingError`, at most 1.
+
+### The duel
+
+Of those who reached the ball, `chooseByUtility()` picks the winner at
+`duelTemperature` (0.3) — one draw from `kExecution`, the best the most likely,
+never a certainty — by `duelUtility()`:
+
+```text
+utility = reachWeight · min(reach − ball height, reachCap)
+        − arrivalWeight · late
+        + strengthWeight · strength
+        + bodyWeight · body
+        + keeperAdvantage · keeperHandling        (a keeper with his hands)
+```
+
+with `reachWeight` 4 per meter up to `reachCap` (0.3 m), `arrivalWeight` 5 per
+second, and `strengthWeight`, `bodyWeight` and `keeperAdvantage` 1. So arrival
+time, reach, jump, strength and body position all decide, and a player who gets
+there 0.1 s late gives away half a point — as much as half the gap between the
+weakest and the strongest player.
+
+Nobody reaching the ball, it flies on as if they were not there.
+
+### The keeper's hands
+
+A keeper who wins a ball with his hands holds it with `holdChance()`:
+certainly if no opponent went up with him; otherwise all but `contestedDrop`
+(0.3) of the time for a keeper of average handling, the share scaled by
+`skillErrorFactor()` of his `keeperHandling`. One draw from `kExecution`,
+always. Held, he has the ball like any player who takes a free ball. Dropped,
+he punches it: it leaves his fists as a clearance would leave a head, his
+errors scaled by his handling rather than heading.
+
+So the keeper's handling is his advantage three times over: his hands reach
+higher than a head and from farther away, it counts in the duel, and it decides
+whether he holds what he wins.
+
+### The header
+
+The winner decides his header like every decision, from options with
+utilities chosen by `chooseByUtility()` — at `decisionTemperature` (0.15), one
+draw from the `kAi` stream (`decideHeader()`). A header is played without a
+second look, so `headerOptions()` reads the true state rather than his
+[perception](players.md#perception):
+
+| Play        | When                                          | Aim                                                                                                                                               | Utility                                                           |
+|-------------|-----------------------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------|-------------------------------------------------------------------|
+| `clearance` | always                                        | `clearanceDistance` (30 m) up the pitch, on the ground, at `maxHeaderSpeed` (18 m/s)                                                              | 1 − distance to his own goal / `clearanceZone` (35 m), at least 0 |
+| `shot`      | the goal he attacks within `shotRange` (14 m) | `shotInside` (0.5 m) inside the post away from the opposing keeper — the centre without one —, `shotHeight` (0.5 m) high, at `shotSpeed` (14 m/s) | 1 − distance to the goal / `shotRange`                            |
+| `knockDown` | a teammate within `knockDownRange` (6 m)      | down to his feet, there in `passSeconds` (0.8 s) along the ground                                                                                 | `passWeight` (0.6) · open · (1 − distance / `passRange`)          |
+| `pass`      | a teammate within `passRange` (20 m)          | the same                                                                                                                                          | the same                                                          |
+
+A teammate is open as far as his nearest opponent is from him, fully at
+`openDistance` (5 m).
+
+`executeHeader()` carries it out from the ball where it meets the head: the
+ball leaves toward the aimed point on the flight that brings it to the aimed
+height there (`launchVerticalVelocity()` from the ball's own height, so a
+header down is a launch below it), strayed across and up by a triangular
+error of `directionError` (0.06 m per meter to the aim) and in pace by a
+uniform one of `speedError` (10 %) — five draws from `kExecution`, always.
+The flight is planned at the intended speed, at most `maxHeaderSpeed`; one
+the drag stops short of goes up at 45 degrees. The pace error scales it along
+the ground and up alike, and a header never leaves faster than
+`maxHeaderSpeed` in all.
+Both are scaled by `headerErrorFactor()`: `skillErrorFactor()` of his
+heading, times `1 + mistimedErrorFactor · mistiming` — a fully mistimed header
+is three times as wide. The ball leaves without spin.
+
+What the ball is afterwards follows the play:
+
+- a **shot** is a new [shot](on-ball.md#shooting): `ShotAttempted`, the keeper faces
+  it, and it ends in its `ShotResolved`;
+- a **pass** or **knock-down** is a pass: `PassAttempted`, and a teammate who
+  takes it received it, an opponent intercepted it;
+- a **clearance** or a **punch** is no pass: whoever takes it recovers a loose
+  ball.
+
+A shot still open when the ball was headed or punched has become what it will
+be, as if the player had taken it ([shooting](on-ball.md#outcomes)). The ball
+flies on from the head for the rest of the tick: the keeper who faces a
+header shot meets it where it passes him, and it comes off the goal frame,
+but nobody else gets to it before the next tick.
+
+### Events
+
+`AerialContest` records every contest, with where the ball was and how high
+when the first player got to it, every `contestants` — the player, the
+`reach` his jump met it with and whether he `reached` it —, the `winner`, empty
+if nobody reached it, and his `play`: `shot`, `pass`, `knockDown`,
+`clearance`, `caught` or `punched` ([match events](match-engine.md#match-events-and-decision-diagnostics)). The
+events of the play follow it.
+
+### Configuration
+
+`AerialConfig` is the `aerial` part of `MatchConfig` and of every replay:
+
+| Field                 | Default | Meaning                                                         |
+|-----------------------|---------|-----------------------------------------------------------------|
+| `headHeight`          | 1.9 m   | the ball's centre as a standing player meets it with his head   |
+| `headRadius`          | 0.7 m   | how close along the ground it must come to his head             |
+| `lowestJump`          | 0.3 m   | how high a jump lifts a player of jumping 0                     |
+| `highestJump`         | 0.7 m   | and one of jumping 1                                            |
+| `timingError`         | 0.25 s  | how far an average header times his jump off the ball's arrival |
+| `attemptMargin`       | 0.3 m   | he goes up for a ball this far above the best he can reach      |
+| `contestRadius`       | 1.5 m   | who else goes up when the first player gets to the ball         |
+| `landingSeconds`      | 0.6 s   | after going up, he goes up for nothing else this long           |
+| `reachWeight`         | 4 per m | what getting above the ball is worth in the duel                |
+| `reachCap`            | 0.3 m   | up to this far above it                                         |
+| `arrivalWeight`       | 5 per s | what getting there late costs                                   |
+| `strengthWeight`      | 1       | what strength is worth                                          |
+| `bodyWeight`          | 1       | what facing the ball is worth                                   |
+| `keeperAdvantage`     | 1       | what a keeper's handling is worth, with his hands               |
+| `duelTemperature`     | 0.3     | how surely the best in the duel wins                            |
+| `contestedDrop`       | 0.3     | the share of contested balls an average keeper drops            |
+| `shotRange`           | 14 m    | the farthest from the goal's centre he heads at it              |
+| `shotSpeed`           | 14 m/s  | how hard                                                        |
+| `shotHeight`          | 0.5 m   | how high he aims                                                |
+| `shotInside`          | 0.5 m   | how far inside the post                                         |
+| `passRange`           | 20 m    | the farthest teammate he heads to                               |
+| `knockDownRange`      | 6 m     | the farthest he heads down to                                   |
+| `passSeconds`         | 0.8 s   | how long a header pass takes along the ground                   |
+| `openDistance`        | 5 m     | a teammate this far from his nearest opponent is open           |
+| `passWeight`          | 0.6     | what a pass to an open teammate is worth                        |
+| `clearanceZone`       | 35 m    | from his own goal, how far a clearance is worth anything        |
+| `clearanceDistance`   | 30 m    | how far up the pitch he clears                                  |
+| `maxHeaderSpeed`      | 18 m/s  | no header leaves faster, along the ground and up together       |
+| `decisionTemperature` | 0.15    | how surely he picks the best header                             |
+| `directionError`      | 0.06    | how far an average header strays per meter to his aim           |
+| `speedError`          | 0.1     | how much harder or softer                                       |
+| `mistimedErrorFactor` | 2       | how much a fully mistimed jump widens both                      |
+
+`validate()` rejects values outside their rules; see `aerialDuels.hpp`. The
+players' side is `PlayerAttributes` ([match state](match-engine.md#match-state)):
+`jumping`, `heading` and `strength` in [0, 1], 0.5 by default, with
+`maxSpeed` for arrival and a keeper's `keeperHandling`.
+
+### Tests
+
+`tests/unit/sim-match/aerialDuelsTests.cpp`:
+
+- a jump lifts a player by his jumping, his heading times it, and off its top
+  he reaches less;
+- arrival, reach, strength, body position and a keeper's hands each count in
+  the duel, and the stronger of two players who both reach a ball wins it
+  nineteen times in twenty;
+- a mistimed jump widens the header's errors, and a keeper holds a ball
+  nobody challenged him for;
+- a header goes at goal near it, clear near his own, down to a close teammate
+  and to a farther one as a pass;
+- an attacker who out-jumps the defender beside him heads a cross into the
+  goal; a defender in his own box heads the same cross clear; a cross just
+  above both of them is contested once and flies on as if they were not there;
+  the same cross along the ground is no aerial contest, and the first to reach
+  it has it;
+- a keeper in his area wins a ball too high for an attacker and holds it, or
+  punches it clear when he drops it.
+
+### What this is not
+
+Nobody but a goalkeeper lofts a pass, and nobody crosses a ball yet: a high
+ball comes off a keeper's long ball
+([goalkeeper distribution](goalkeeper.md#distribution)), a shot, a deflection,
+a parry or the woodwork, or from a test. A keeper who holds a ball he caught in
+the air distributes it like any ball in his hands. The jump is resolved at
+the moment the ball arrives: a player does not leave the ground before it,
+hang in the air or land somewhere else, and the movement system does not know
+he jumped. There are no fouls in the air, no header on the run toward a spot
+he heads for, no diving header and no chest or thigh control of a ball
+between the feet and the head. A header goal earns no assist: the scorer never
+received the ball, and his header shot clears a reception of his from before. Who heads how well is still the predefined attributes of
+the sandbox, not a generated player.

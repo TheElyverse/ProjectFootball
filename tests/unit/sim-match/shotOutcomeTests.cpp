@@ -1,5 +1,5 @@
-// What becomes of a shot in the ball system (docs/shooting.md): a goal, the
-// woodwork, a block, a deflection, a save or a miss, each with its events.
+// What becomes of a shot in the ball system (docs/on-ball.md#shooting): a goal,
+// the woodwork, a block, a deflection, a save or a miss, each with its events.
 
 #include <algorithm>
 #include <catch2/catch_test_macros.hpp>

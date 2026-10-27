@@ -12,7 +12,8 @@
 namespace ElyverseFootball::SimMatch {
 
 // How a presser and the carrier fight for the ball at the carrier's feet; see
-// docs/duels.md. Part of MatchConfig and therefore of every replay.
+// docs/duels.md#duels-on-the-ball. Part of MatchConfig and therefore of every
+// replay.
 struct DuelConfig {
   // 3 ticks at 30 Hz: a duel takes a step ten times a second.
   int intervalTicks = 3;
@@ -148,7 +149,7 @@ enum class LungeResult : std::uint8_t {
 inline constexpr std::string_view kDuelSystemName = "duel";
 
 // Every config.intervalTicks ticks, takes the duel on the ball a step
-// (docs/duels.md):
+// (docs/duels.md#duels-on-the-ball):
 //
 //   1. A duel ends, kept, once the carrier no longer has the ball at his
 //      feet, the defender no longer presses him (ActionType::kPressCarrier)

@@ -59,12 +59,12 @@ struct NearbyPlayer {
                                                             SimCore::Vec2 center,
                                                             const PlayerFilter& filter = {});
 
-// How many seconds the player needs to reach a position at full effort,
-// running through it rather than stopping on it -- what matters for reaching
-// a ball. Uses the movement model of docs/player-movement.md: he accelerates
-// at his acceleration from his current speed toward the position, up to his
-// maximum speed. Empty if the position is not finite or off the pitch, where
-// no movement target can lead.
+// How many seconds the player needs to reach a position at full effort, running
+// through it rather than stopping on it -- what matters for reaching a ball.
+// Uses the movement model of docs/players.md#player-movement: he accelerates at
+// his acceleration from his current speed toward the position, up to his
+// maximum speed. Empty if the position is not finite or off the pitch, where no
+// movement target can lead.
 //
 // Only the part of his velocity that points at the position counts; a player
 // running away starts by slowing down. Turning away from a sideways run costs

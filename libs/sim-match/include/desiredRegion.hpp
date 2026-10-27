@@ -15,7 +15,8 @@
 namespace ElyverseFootball::SimMatch {
 
 // How players of a side with a tactic choose where to stand; see
-// docs/desired-region.md. Part of MatchConfig and therefore of every replay.
+// docs/team-tactics.md#desired-region. Part of MatchConfig and therefore of
+// every replay.
 struct PositioningConfig {
   // 6 ticks at 30 Hz: players re-evaluate their position five times a
   // second.
@@ -43,10 +44,10 @@ struct PositioningConfig {
 
 // Where the tactic wants the player at this index in the phase: his slot's
 // place in the base shape, scaled into the phase's block -- its line height,
-// length and width -- shifted with the ball, then pulled toward the lanes
-// and depths his responsibilities ask for (docs/desired-region.md). Always
-// on the pitch. Throws std::invalid_argument for a player of a scripted side
-// and for the goalkeeper, who keeps goal by goalkeeperTarget()
+// length and width -- shifted with the ball, then pulled toward the lanes and
+// depths his responsibilities ask for (docs/team-tactics.md#desired-region).
+// Always on the pitch. Throws std::invalid_argument for a player of a scripted
+// side and for the goalkeeper, who keeps goal by goalkeeperTarget()
 // (goalkeeper.hpp) instead.
 [[nodiscard]] SimCore::Vec2 tacticalTarget(const MatchState& state, std::size_t playerIndex,
                                            SimTactics::TacticalPhase phase);

@@ -25,10 +25,10 @@ namespace ElyverseFootball::SimMatch {
 inline constexpr int kMaxShotZones = 64;
 void validate(const ShotScoringConfig& config);
 
-// The weighted parts of a shot's utility (docs/shot-decisions.md): the goal
-// and the second ball add, losing the ball subtracts, so that one is 0 or
-// negative. Their sum is the utility, bit for bit. Kept apart so a decision
-// can be explained.
+// The weighted parts of a shot's utility (docs/on-ball.md#shot-decisions): the
+// goal and the second ball add, losing the ball subtracts, so that one is 0 or
+// negative. Their sum is the utility, bit for bit. Kept apart so a decision can
+// be explained.
 struct ShotContributions {
   double goal = 0.0;
   double secondBall = 0.0;

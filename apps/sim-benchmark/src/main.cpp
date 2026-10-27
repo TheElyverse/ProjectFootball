@@ -1,5 +1,5 @@
 // sim-benchmark: plays a series of seven-a-side matches between two tactic
-// files and writes their statistics (docs/sim-benchmark.md).
+// files and writes their statistics (docs/tooling.md#sim-benchmark).
 
 #include <algorithm>
 #include <charconv>

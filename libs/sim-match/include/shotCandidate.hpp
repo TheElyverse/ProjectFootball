@@ -9,7 +9,7 @@
 namespace ElyverseFootball::SimMatch {
 
 // How a player on the ball weighs his shooting options; see
-// docs/shot-decisions.md.
+// docs/on-ball.md#shot-decisions.
 struct ShotScoringConfig {
   // Opponents remembered with less confidence are ignored.
   double minConfidence = 0.3;

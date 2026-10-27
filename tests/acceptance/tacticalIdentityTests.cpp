@@ -1,5 +1,5 @@
 // The signatures of the tactical identities under data/tactics/
-// (docs/tactical-identities.md): the same fixture and the same systems,
+// (docs/tactics.md#tactical-identities): the same fixture and the same systems,
 // only the tactic files differ. Checked over fixed seeds, so the results are
 // reproducible.
 
@@ -179,9 +179,10 @@ using Side = std::array<Placement, kDefaultPlayersPerSide>;
   }
 }
 
-// How often player 4's first action after the regain -- a pass, or a carry
-// or a dribble (docs/ball-carrying.md) -- goes forward, over the seeds; every
-// seed must see him act within three seconds, in the attacking transition.
+// How often player 4's first action after the regain -- a pass, or a carry or a
+// dribble (docs/on-ball.md#ball-carrying) -- goes forward, over the seeds;
+// every seed must see him act within three seconds, in the attacking
+// transition.
 [[nodiscard]] int forwardFirstPasses(const std::string& home) {
   int forward = 0;
   for (std::uint64_t seed = 1; seed <= kSeeds; ++seed) {

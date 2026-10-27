@@ -1,8 +1,8 @@
-// The stuck-carrier scenarios (docs/pass-decisions.md, docs/pressing.md): a
-// carrier without a valid option looks round for one and, still without one
-// after stuckSeconds, plays the best pass he rejected; a carrier who stands on
-// the ball is gone at by the nearest opponent even when the opponent's tactic
-// does not press.
+// The stuck-carrier scenarios (docs/on-ball.md#pass-decisions,
+// docs/team-tactics.md#pressing): a carrier without a valid option looks round
+// for one and, still without one after stuckSeconds, plays the best pass he
+// rejected; a carrier who stands on the ball is gone at by the nearest opponent
+// even when the opponent's tactic does not press.
 
 #include <catch2/catch_test_macros.hpp>
 #include <cstdint>

@@ -16,8 +16,8 @@ namespace ElyverseFootball::SimMatch {
 
 // Whether the ball is out of play: free, at rest on the ground, and on a
 // touchline or goal line, where a ball that leaves the pitch stops
-// (docs/ball-movement.md). A ball still in the air, even one directly over the
-// line, is in play.
+// (docs/ball.md#ball-movement). A ball still in the air, even one directly over
+// the line, is in play.
 [[nodiscard]] bool isOutOfPlay(const BallState& ball, const Pitch& pitch) noexcept;
 [[nodiscard]] bool isOutOfPlay(const MatchState& state) noexcept;
 
@@ -43,7 +43,7 @@ struct RestartPlan {
 
 // Where a goal kick is taken from: on the front edge of the goal area at the
 // goal line the ball left the pitch over at `out`, level with where it left
-// it but no wider than the goal area (docs/restarts.md).
+// it but no wider than the goal area (docs/match-engine.md#restarts).
 [[nodiscard]] SimCore::Vec2 goalKickSpot(const Pitch& pitch, SimCore::Vec2 out) noexcept;
 
 // Where everybody stands for a kickoff, and who takes it.
@@ -56,15 +56,15 @@ struct KickoffLineUp {
   friend bool operator==(const KickoffLineUp&, const KickoffLineUp&) = default;
 };
 
-// The line-up for a kickoff by this side (docs/restarts.md), empty if it has
-// no player. Every player stands in his side's starting formation in his own
-// half: his slot of the tactic's base shape at half its depth, or for a
+// The line-up for a kickoff by this side (docs/match-engine.md#restarts), empty
+// if it has no player. Every player stands in his side's starting formation in
+// his own half: his slot of the tactic's base shape at half its depth, or for a
 // scripted side, which has no formation, where he is, moved straight back to
 // the halfway line if he is beyond it. An opponent inside the centre circle
 // steps straight back onto it. The taker is the kicking side's player nearest
 // to the centre spot in that formation, ties to the lower player index; he
-// stands carryDistance behind the spot, so the ball at his feet lies on it,
-// or on his goal line if the pitch is shorter than that.
+// stands carryDistance behind the spot, so the ball at his feet lies on it, or
+// on his goal line if the pitch is shorter than that.
 [[nodiscard]] std::optional<KickoffLineUp> lineUpForKickoff(const MatchState& state,
                                                             TeamSide kicking,
                                                             const BallPhysics& ball);

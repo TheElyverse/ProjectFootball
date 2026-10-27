@@ -17,9 +17,9 @@ struct PlayerKinematics {
   friend bool operator==(const PlayerKinematics&, const PlayerKinematics&) = default;
 };
 
-// One tick of the movement model described in docs/player-movement.md: the
-// player steers toward his target at up to maxSpeed, changes his velocity by
-// at most acceleration * secondsPerTick, and brakes in time to stop on the
+// One tick of the movement model described in docs/players.md#player-movement:
+// the player steers toward his target at up to maxSpeed, changes his velocity
+// by at most acceleration * secondsPerTick, and brakes in time to stop on the
 // target instead of running past it. Without a target he slows to a stop.
 //
 // A pure function of the player and the tick length, so other systems -- the
@@ -28,11 +28,11 @@ struct PlayerKinematics {
 [[nodiscard]] PlayerKinematics stepPlayerMovement(const PlayerMatchState& player,
                                                   double secondsPerTick) noexcept;
 
-// The fastest a player runs: his maxSpeed, and a share of it with the ball
-// at his feet or rolling ahead of him -- minCarrySpeedFactor at no ball
-// control, maxCarrySpeedFactor at full control, linear in between
-// (docs/ball-carrying.md). A goalkeeper holding the ball in his hands runs as
-// fast as without it.
+// The fastest a player runs: his maxSpeed, and a share of it with the ball at
+// his feet or rolling ahead of him -- minCarrySpeedFactor at no ball control,
+// maxCarrySpeedFactor at full control, linear in between
+// (docs/on-ball.md#ball-carrying). A goalkeeper holding the ball in his hands
+// runs as fast as without it.
 [[nodiscard]] double runningSpeed(const PlayerMatchState& player, const BallState& ball,
                                   const BallPhysics& physics) noexcept;
 
@@ -78,14 +78,14 @@ inline constexpr std::string_view kPlayerMovementSystemName = "player movement";
 
 struct ShotStoppingConfig;
 
-// Moves every player one tick with stepPlayerMovement() at his
-// runningSpeed(), as asMoving() has him, and turns him with facingAfterMove()
-// toward the ball as the systems before it left it -- except a goalkeeper
-// busy with a dive, whom it puts where his dive takes him, under his hands
-// (bodyAt(), docs/shot-stopping.md), whatever his target, without turning
-// him. Writes player positions, velocities and facings, every tick. Throws
-// std::invalid_argument for an invalid configuration; the overloads without
-// one use the default.
+// Moves every player one tick with stepPlayerMovement() at his runningSpeed(),
+// as asMoving() has him, and turns him with facingAfterMove() toward the ball
+// as the systems before it left it -- except a goalkeeper busy with a dive,
+// whom it puts where his dive takes him, under his hands (bodyAt(),
+// docs/goalkeeper.md#shot-stopping), whatever his target, without turning him.
+// Writes player positions, velocities and facings, every tick. Throws
+// std::invalid_argument for an invalid configuration; the overloads without one
+// use the default.
 [[nodiscard]] MatchSystem makePlayerMovementSystem(const ShotStoppingConfig& saves,
                                                    const BallPhysics& physics);
 [[nodiscard]] MatchSystem makePlayerMovementSystem(const ShotStoppingConfig& saves);

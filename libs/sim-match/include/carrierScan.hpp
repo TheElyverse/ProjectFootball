@@ -8,9 +8,10 @@
 
 namespace ElyverseFootball::SimMatch {
 
-// What a carrier without a valid option does about it (docs/pass-decisions.md):
-// where he looks for one, and where he kicks the ball when there is none. Pure
-// functions of the state; the pass decision (passDecision.hpp) drives them.
+// What a carrier without a valid option does about it
+// (docs/on-ball.md#pass-decisions): where he looks for one, and where he kicks
+// the ball when there is none. Pure functions of the state; the pass decision
+// (passDecision.hpp) drives them.
 
 // The scan of the player at this index while it is still his: he owns the
 // ball and has not touched it since the scan began but to carry it on in his
@@ -18,9 +19,9 @@ namespace ElyverseFootball::SimMatch {
 [[nodiscard]] const CarrierScan* activeScan(const MatchState& state, std::size_t playerIndex);
 
 // Where the player at this index looks, which decides what he sees
-// (docs/perception.md): while his ball rolls ahead of him after a touch along
-// his active run's gaze (docs/ball-carrying.md), otherwise along his active
-// scan's gaze, otherwise along his facing.
+// (docs/players.md#perception): while his ball rolls ahead of him after a touch
+// along his active run's gaze (docs/on-ball.md#ball-carrying), otherwise along
+// his active scan's gaze, otherwise along his facing.
 [[nodiscard]] SimCore::Vec2 lookDirection(const MatchState& state, std::size_t playerIndex);
 
 // A point a carrier looks at, and whether it lies on the side he looks to

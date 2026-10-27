@@ -12,8 +12,8 @@
 
 namespace ElyverseFootball::SimMatch {
 
-// How players perceive the match; see docs/perception.md. Part of MatchConfig
-// and therefore of every replay.
+// How players perceive the match; see docs/players.md#perception. Part of
+// MatchConfig and therefore of every replay.
 struct PerceptionConfig {
   // 3 ticks at 30 Hz: perception updates ten times a second.
   int intervalTicks = 3;

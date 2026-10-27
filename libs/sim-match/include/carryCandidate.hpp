@@ -12,7 +12,7 @@
 namespace ElyverseFootball::SimMatch {
 
 // How much one phase of play shifts the weights of a carry
-// (docs/ball-carrying.md): each weight is multiplied by its factor.
+// (docs/on-ball.md#ball-carrying): each weight is multiplied by its factor.
 struct CarryPhaseFactors {
   double progression = 1.0;
   double space = 1.0;
@@ -23,13 +23,14 @@ struct CarryPhaseFactors {
   friend bool operator==(const CarryPhaseFactors&, const CarryPhaseFactors&) = default;
 };
 
-// How a player on the ball weighs holding, turning, carrying and dribbling;
-// see docs/ball-carrying.md. Part of DecisionConfig and therefore of every
+// How a player on the ball weighs holding, turning, carrying and dribbling; see
+// docs/on-ball.md#ball-carrying. Part of DecisionConfig and therefore of every
 // replay.
 struct CarryScoringConfig {
   // Whether players carry the ball at all: without, a player on the ball only
   // passes, shoots or keeps it, as before carrying existed. Scenarios that
-  // isolate a pass or a shot switch it off (docs/scenarios.md).
+  // isolate a pass or a shot switch it off
+  // (docs/scenarios.md#scenario-catalogue).
   bool enabled = true;
   // Teammates and opponents remembered with less confidence are ignored.
   double minConfidence = 0.3;

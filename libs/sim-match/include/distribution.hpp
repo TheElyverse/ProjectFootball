@@ -10,7 +10,7 @@
 
 namespace ElyverseFootball::SimMatch {
 
-// How a goalkeeper distributes the ball; see docs/goalkeeper-distribution.md.
+// How a goalkeeper distributes the ball; see docs/goalkeeper.md#distribution.
 // Part of DecisionConfig and therefore of every replay.
 struct DistributionConfig {
   // With the ball in his hands he keeps it at least this long, for his side
@@ -49,7 +49,7 @@ void validate(const DistributionConfig& config);
 // directnessWeight · (2 · directness − 1). Nothing at 0.5.
 [[nodiscard]] double directnessBias(double directness, const DistributionConfig& config) noexcept;
 
-// The goalkeeper's long balls (docs/goalkeeper-distribution.md): every
+// The goalkeeper's long balls (docs/goalkeeper.md#distribution): every
 // teammate the carrier at carrierIndex remembers with at least minConfidence
 // becomes a lofted candidate, aimed at where he believes the teammate is now
 // and kicked at the speed along the ground that brings it down there after

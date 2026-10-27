@@ -9,7 +9,7 @@
 namespace ElyverseFootball::SimMatch {
 
 // The seeded softmax every decision in the match chooses with
-// (docs/pass-decisions.md): option i with probability proportional to
+// (docs/on-ball.md#pass-decisions): option i with probability proportional to
 // exp((u_i - u_max) / temperature). The best option is the most likely, not a
 // certainty.
 //

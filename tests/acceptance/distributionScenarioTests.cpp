@@ -1,4 +1,4 @@
-// The goalkeeper distribution scenarios (docs/goalkeeper-distribution.md):
+// The goalkeeper distribution scenarios (docs/goalkeeper.md#distribution):
 // home's keeper, player 1, throws the ball out of his hands to a free centre
 // back, and goes long from his feet when a high press closes his short
 // options; away's keeper, player 8, takes a goal kick from his goal area.

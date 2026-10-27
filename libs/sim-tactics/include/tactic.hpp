@@ -92,14 +92,15 @@ struct PositioningWeights {
   friend bool operator==(const PositioningWeights&, const PositioningWeights&) = default;
 };
 
-// How the goalkeeper plays (docs/goalkeeper.md). Dials in [0, 1].
+// How the goalkeeper plays (docs/goalkeeper.md#positioning-and-sweeping). Dials
+// in [0, 1].
 struct GoalkeeperPrinciples {
   // How readily he comes off his line for a ball played in behind his
   // defence, from 0 (only when he is clearly first to it) to 1 (even when an
   // attacker is a little closer).
   double sweeping = 0.5;
   // How readily he goes long with the ball rather than playing out
-  // (docs/goalkeeper-distribution.md), from 0 (plays out whenever he can) to
+  // (docs/goalkeeper.md#distribution), from 0 (plays out whenever he can) to
   // 1 (goes long whenever he can); 0.5 weighs both on their merits.
   double directness = 0.5;
 
@@ -160,9 +161,9 @@ struct TacticError {
   friend bool operator==(const TacticError&, const TacticError&) = default;
 };
 
-// A validated tactic: a base shape of kSlotsPerTactic slots, team
-// principles, an instruction for every phase and atomic responsibilities per
-// slot (implementation plan section 7.1, docs/tactics.md). Immutable; a
+// A validated tactic: a base shape of kSlotsPerTactic slots, team principles,
+// an instruction for every phase and atomic responsibilities per slot
+// (implementation plan section 7.1, docs/tactics.md#tactic-model). Immutable; a
 // team changes tactics by getting a different one.
 class Tactic {
  public:

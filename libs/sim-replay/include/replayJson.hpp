@@ -9,7 +9,7 @@
 
 namespace ElyverseFootball::SimReplay {
 
-// The replay as a JSON document in the format of docs/replay-format.md,
+// The replay as a JSON document in the format of docs/tooling.md#replay-format,
 // schema version kReplaySchemaVersion.
 [[nodiscard]] std::string toReplayJson(const Replay& replay);
 

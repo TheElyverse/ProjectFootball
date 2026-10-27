@@ -9,7 +9,7 @@
 namespace ElyverseFootball::SimMatch {
 
 // How a player on the ball weighs his passing options; see
-// docs/pass-candidates.md.
+// docs/on-ball.md#pass-candidates.
 struct PassScoringConfig {
   // Teammates and opponents remembered with less confidence are ignored.
   double minConfidence = 0.3;
@@ -32,7 +32,7 @@ struct PassScoringConfig {
   double riskWeight = 0.3;
   // What a lofted pass is worth on top of its scores, either way: how much
   // the keeper's tactic wants him to go long (directnessBias(),
-  // docs/goalkeeper-distribution.md). 0 weighs it on its merits.
+  // docs/goalkeeper.md#distribution). 0 weighs it on its merits.
   double loftedBias = 0.0;
 
   friend bool operator==(const PassScoringConfig&, const PassScoringConfig&) = default;
@@ -74,7 +74,7 @@ struct PassCandidate {
   double utility = 0.0;
   PassRejection rejection = PassRejection::kValid;
   // Whether the ball goes through the air: a goalkeeper's long ball
-  // (docs/goalkeeper-distribution.md). Its interception risk is then the
+  // (docs/goalkeeper.md#distribution). Its interception risk is then the
   // risk that an opponent wins it where it comes down.
   bool lofted = false;
 

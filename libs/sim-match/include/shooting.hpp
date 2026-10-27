@@ -12,7 +12,7 @@
 namespace ElyverseFootball::SimMatch {
 
 // How players strike shots and what a body in the way does to one; see
-// docs/shooting.md. Part of MatchConfig and therefore of every replay.
+// docs/on-ball.md#shooting. Part of MatchConfig and therefore of every replay.
 struct ShotConfig {
   // How far from his aim a shot may go at the goal line, to either side and up
   // or down: the half-width of a triangular spread, at zero distance and per

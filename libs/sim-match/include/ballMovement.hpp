@@ -13,8 +13,8 @@ namespace ElyverseFootball::SimMatch {
 
 // Where a controlled ball is: carryDistance ahead of its carrier along his
 // facing, moved onto the pitch if that lies off it -- a carrier on the line
-// does not carry the ball out of play (docs/possession.md). A carried ball is
-// always on the ground.
+// does not carry the ball out of play (docs/ball.md#possession). A carried ball
+// is always on the ground.
 [[nodiscard]] SimCore::Vec2 carriedBallPosition(const PlayerMatchState& carrier,
                                                 const BallPhysics& physics,
                                                 const Pitch& pitch) noexcept;
@@ -35,8 +35,8 @@ struct WoodworkConfig;
 //      last touch and in the state's last pass. A pass is a ground pass, so it
 //      leaves the foot on the grass, without vertical velocity or spin. A
 //      pending shot is struck the same way, on executeShot()'s flight, and
-//      recorded as the state's last shot (docs/shooting.md). An action whose
-//      player does not own the ball is discarded. Either way the pending
+//      recorded as the state's last shot (docs/on-ball.md#shooting). An action
+//      whose player does not own the ball is discarded. Either way the pending
 //      action is cleared.
 //   2. A controlled ball follows its owner: it ends the tick at
 //      carriedBallPosition() of the owner as the movement system moves and
@@ -46,22 +46,24 @@ struct WoodworkConfig;
 //      tick. The claimant owns it from the end of the tick, with the ball at
 //      his feet, and becomes its last touch; the state's last reception records
 //      him and how fast the ball came. A ball flying over his head is out of
-//      reach and is not claimed (docs/reception.md). With restarts enabled, a
-//      ball already out of play is left alone: the restart system settles who
-//      plays on, so a player standing on it does not receive or intercept it
-//      first. On its way the ball rebounds from a post or a crossbar it hits
-//      (findWoodworkHit()), and a shot still fast comes off an outfield
-//      player in its way instead of being taken by him (deflectShot()). The
-//      goalkeeper facing a shot (facingKeeper()) does not take it like any
-//      ball: where it passes his plane he meets it with his dive, or standing
-//      set before he has reacted, and holds it, parries it or lets it past.
-//      A keeper standing set is down for a moment after it passed him, and
-//      one who holds it is up at once (docs/shot-stopping.md). A ball higher
-//      than controlHeight that a player gets to before anyone takes it at his
-//      feet is contested in the air (findAerialContact()): everyone near it
-//      goes up, and the winner heads it -- at goal, to a teammate or clear --
-//      or, a keeper with his hands, catches or punches it; nobody may reach it
-//      at all, and it flies on past them (docs/aerial-duels.md). A headed ball
+//      reach and is not claimed
+//      (docs/ball.md#reception-interceptions-and-loose-balls). With restarts
+//      enabled, a ball already out of play is left alone: the restart system
+//      settles who plays on, so a player standing on it does not receive or
+//      intercept it first. On its way the ball rebounds from a post or a
+//      crossbar it hits (findWoodworkHit()), and a shot still fast comes off an
+//      outfield player in its way instead of being taken by him
+//      (deflectShot()). The goalkeeper facing a shot (facingKeeper()) does not
+//      take it like any ball: where it passes his plane he meets it with his
+//      dive, or standing set before he has reacted, and holds it, parries it or
+//      lets it past. A keeper standing set is down for a moment after it passed
+//      him, and one who holds it is up at once
+//      (docs/goalkeeper.md#shot-stopping). A ball higher than controlHeight
+//      that a player gets to before anyone takes it at his feet is contested in
+//      the air (findAerialContact()): everyone near it goes up, and the winner
+//      heads it -- at goal, to a teammate or clear -- or, a keeper with his
+//      hands, catches or punches it; nobody may reach it at all, and it flies
+//      on past them (docs/duels.md#aerial-duels-and-headers). A headed ball
 //      meets only the keeper and the goal frame before the next tick.
 //   4. A ball that leaves the pitch over a goal line, between the posts and
 //      under the crossbar, is a goal: the score goes up and GoalScored is

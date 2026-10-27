@@ -18,7 +18,7 @@
 
 namespace ElyverseFootball::SimReplay {
 
-// Why a pass went to an opponent (docs/decision-trace.md):
+// Why a pass went to an opponent (docs/tooling.md#decision-trace):
 enum class FailureCause : std::uint8_t {
   // The passer did not know the interceptor was there: he had not seen him,
   // or believed him far from where he was.

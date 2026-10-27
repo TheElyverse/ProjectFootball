@@ -14,7 +14,8 @@
 namespace ElyverseFootball::SimMatch {
 
 // When and how a side with a tactic starts a coordinated press; see
-// docs/pressing.md. Part of MatchConfig and therefore of every replay.
+// docs/team-tactics.md#pressing. Part of MatchConfig and therefore of every
+// replay.
 struct PressingConfig {
   // 6 ticks at 30 Hz: pressing is reconsidered five times a second.
   int intervalTicks = 6;
@@ -62,7 +63,8 @@ struct SpottedTrigger {
 // The first trigger of the side's tactic, in the tactic's order, that one of
 // its outfield players within triggerRadius of the ball spots in what he
 // observes -- he must have seen the carrier (or, for a slow pass, the ball)
-// within the last perception interval (docs/pressing.md). Empty if none.
+// within the last perception interval (docs/team-tactics.md#pressing). Empty if
+// none.
 [[nodiscard]] std::optional<SpottedTrigger> spotTrigger(const MatchState& state,
                                                         TeamSide pressingSide, SimCore::SimTick now,
                                                         double secondsPerTick,

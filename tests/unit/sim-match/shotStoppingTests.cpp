@@ -1,6 +1,7 @@
-// How the goalkeeper stops shots (docs/shot-stopping.md): his reaction, the
-// reach of his dive, his reading of the ball, and what becomes of a shot he
-// meets -- caught, parried back into play or behind, or out of his reach.
+// How the goalkeeper stops shots (docs/goalkeeper.md#shot-stopping): his
+// reaction, the reach of his dive, his reading of the ball, and what becomes of
+// a shot he meets -- caught, parried back into play or behind, or out of his
+// reach.
 
 #include <algorithm>
 #include <catch2/catch_test_macros.hpp>

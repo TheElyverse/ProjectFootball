@@ -116,7 +116,8 @@ void run(MatchSimulation& simulation, const SimTick::ValueType ticks) {
 TEST_CASE("The tactical target scales the slot into the phase's block", "[desiredRegion]") {
   const MatchState state = kickoff();
   // Progression, ball on the centre spot: the block's line at 20.1 m, 27 m
-  // long, 34 m wide (see docs/desired-region.md for the arithmetic).
+  // long, 34 m wide (see docs/team-tactics.md#desired-region for the
+  // arithmetic).
   const Vec2 centreBack = tacticalTarget(state, 1, TacticalPhase::kProgression);
   REQUIRE_THAT(centreBack.x, WithinAbs(20.1, 1e-9));
   REQUIRE_THAT(centreBack.y, WithinAbs(20.0 - (((0.18 / 0.76) - 0.5) * -34.0), 1e-9));
@@ -242,9 +243,10 @@ TEST_CASE("Players of a side with a tactic take up their regions", "[desiredRegi
     CAPTURE(index);
     const auto& region = state.tactical(index).region;
     REQUIRE(region.has_value());
-    // A player goes to his region's centre while he holds position, and to
-    // his action's target otherwise (docs/defensive-shape.md) -- but where
-    // his duel takes him while he takes on the carrier (docs/duels.md).
+    // A player goes to his region's centre while he holds position, and to his
+    // action's target otherwise (docs/team-tactics.md#defensive-shape) -- but
+    // where his duel takes him while he takes on the carrier
+    // (docs/duels.md#duels-on-the-ball).
     if (state.tactical(index).duel) {
       continue;
     }

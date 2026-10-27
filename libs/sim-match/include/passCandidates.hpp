@@ -26,11 +26,11 @@ namespace ElyverseFootball::SimMatch {
 inline constexpr double kMaxScoringWeight = 1e6;
 void validate(const PassScoringConfig& config);
 
-// The weighted parts of a candidate's utility (docs/pass-candidates.md):
-// completion and progression add, receiver pressure and interception risk
-// subtract, so those two are 0 or negative, and directness is the lofted
-// bias of a lofted pass, 0 for a ground pass. Their sum is the utility, bit
-// for bit. Kept apart so a decision can be explained.
+// The weighted parts of a candidate's utility
+// (docs/on-ball.md#pass-candidates): completion and progression add, receiver
+// pressure and interception risk subtract, so those two are 0 or negative, and
+// directness is the lofted bias of a lofted pass, 0 for a ground pass. Their
+// sum is the utility, bit for bit. Kept apart so a decision can be explained.
 struct PassContributions {
   double completion = 0.0;
   double progression = 0.0;

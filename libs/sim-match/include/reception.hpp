@@ -14,8 +14,9 @@
 
 namespace ElyverseFootball::SimMatch {
 
-// How players gain control of a free ball; see docs/reception.md. Part of
-// MatchConfig and therefore of every replay.
+// How players gain control of a free ball; see
+// docs/ball.md#reception-interceptions-and-loose-balls. Part of MatchConfig and
+// therefore of every replay.
 struct ReceptionConfig {
   // A player controls a free ball that comes this close to him.
   double controlRadius = 1.0;  // m
@@ -28,7 +29,8 @@ struct ReceptionConfig {
   // through.
   double controlHeight = 1.0;  // m
   // A goalkeeper in his own penalty area takes a ball there with his hands:
-  // this far from him and this high (docs/goalkeeper.md).
+  // this far from him and this high
+  // (docs/goalkeeper.md#positioning-and-sweeping).
   double handsRadius = 1.2;  // m
   double handsHeight = 2.2;  // m
 
@@ -68,19 +70,18 @@ struct BallClaim {
 };
 
 // `ball` is the free ball at the start of the tick, `moved` the step
-// stepFreeBallTimed() makes of it. Every player of `state` competes, moving
-// as the movement system moves him in this tick, except the ball's last touch
-// within
-// reclaimDelaySeconds of it. The earliest contact wins; equal contact times
-// go to the player who comes closer, and then to the lower id. A contact above
-// controlHeight does not count: the ball flies over the player. A goalkeeper
-// who stands in his own penalty area, with the ball in it, at the start of
-// the tick reaches it with his hands instead: within handsRadius and up to
-// handsHeight. The players at the `excluded` indices do not compete: the
-// goalkeeper facing a shot meets it his own way, and everyone who just went
-// up for it in the air and missed it (docs/aerial-duels.md); one busy with a
-// dive (isDiving()) takes no ball at all (docs/shot-stopping.md).
-// Empty if no one reaches the ball.
+// stepFreeBallTimed() makes of it. Every player of `state` competes, moving as
+// the movement system moves him in this tick, except the ball's last touch
+// within reclaimDelaySeconds of it. The earliest contact wins; equal contact
+// times go to the player who comes closer, and then to the lower id. A contact
+// above controlHeight does not count: the ball flies over the player. A
+// goalkeeper who stands in his own penalty area, with the ball in it, at the
+// start of the tick reaches it with his hands instead: within handsRadius and
+// up to handsHeight. The players at the `excluded` indices do not compete: the
+// goalkeeper facing a shot meets it his own way, and everyone who just went up
+// for it in the air and missed it (docs/duels.md#aerial-duels-and-headers); one
+// busy with a dive (isDiving()) takes no ball at all
+// (docs/goalkeeper.md#shot-stopping). Empty if no one reaches the ball.
 //
 // The height at the moment of contact is asked of the flight itself
 // (ballHeightAfter()), which is why `physics` is needed: neither end of the
@@ -95,8 +96,8 @@ struct BallClaim {
 
 // findBallClaim() for a ball outfield players do not take at their feet: a
 // goalkeeper still reaches it as findBallClaim() says, everyone else as
-// `outfield` says -- a body in the way of a shot rather than a foot on the
-// ball (docs/shooting.md). What the first player to reach it does with it is
+// `outfield` says -- a body in the way of a shot rather than a foot on the ball
+// (docs/on-ball.md#shooting). What the first player to reach it does with it is
 // the caller's to decide.
 [[nodiscard]] std::optional<BallClaim> findBallContact(const MatchState& state,
                                                        const BallState& ball, const BallStep& moved,
@@ -122,7 +123,7 @@ struct BallClaim {
 
 // Whether the player at this index released the ball from his hands and is
 // still its last touch: nobody else has touched it since, so he may not take
-// it in them again (docs/goalkeeper-distribution.md).
+// it in them again (docs/goalkeeper.md#distribution).
 [[nodiscard]] bool hasReleasedBall(const MatchState& state, std::size_t playerIndex);
 
 // The first player to reach the ball, each as reachOf says of his index --

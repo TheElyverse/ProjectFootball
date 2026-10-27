@@ -17,9 +17,9 @@
 
 namespace ElyverseFootball::SimMatch {
 
-// How players go up for a high ball, who wins it and what he does with it;
-// see docs/aerial-duels.md. Part of MatchConfig and therefore of every
-// replay.
+// How players go up for a high ball, who wins it and what he does with it; see
+// docs/duels.md#aerial-duels-and-headers. Part of MatchConfig and therefore of
+// every replay.
 struct AerialConfig {
   // The highest a standing player meets the ball with his head, as the
   // height of its centre, and how close to him along the ground it must come.

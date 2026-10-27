@@ -11,12 +11,12 @@
 
 namespace ElyverseFootball::SimMatch {
 
-// The P2 golden scenarios (docs/golden-scenarios.md): short, hand-placed
-// seven-a-side situations in which one tactical behaviour must show. Each
-// has an entry in the scenario catalog with the parameters below at their
-// defaults; the parameters let a test compare variants of one situation.
-// Like every scenario, they are versioned: a change changes every match
-// played from them.
+// The P2 golden scenarios (docs/scenarios.md#golden-scenarios): short,
+// hand-placed seven-a-side situations in which one tactical behaviour must
+// show. Each has an entry in the scenario catalog with the parameters below at
+// their defaults; the parameters let a test compare variants of one situation.
+// Like every scenario, they are versioned: a change changes every match played
+// from them.
 
 // Home has just won the ball in midfield with three attackers against two
 // defenders; away's other players are caught upfield.

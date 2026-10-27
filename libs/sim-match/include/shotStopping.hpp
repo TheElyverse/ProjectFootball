@@ -15,7 +15,7 @@
 
 namespace ElyverseFootball::SimMatch {
 
-// How a goalkeeper stops shots; see docs/shot-stopping.md. Part of
+// How a goalkeeper stops shots; see docs/goalkeeper.md#shot-stopping. Part of
 // MatchConfig and therefore of every replay.
 struct ShotStoppingConfig {
   // How long after the ball is struck or deflected he goes: at

@@ -522,8 +522,8 @@ void DebugFrameRecorder::recordStep(const SimMatch::MatchSimulation& simulation)
 
 namespace {
 
-// Where the lanes and thirds of docs/zones.md meet: pitch y between lanes,
-// pitch x between thirds. The same for both sides.
+// Where the lanes and thirds of docs/team-tactics.md#zones-and-team-shape meet:
+// pitch y between lanes, pitch x between thirds. The same for both sides.
 [[nodiscard]] Json zonesJson(const SimMatch::Pitch& pitch) {
   constexpr auto home = SimMatch::TeamSide::kHome;
   std::set<double> lanes;

@@ -17,7 +17,8 @@ namespace ElyverseFootball::SimTactics {
 namespace {
 
 // ordered_json keeps keys in insertion order, so written files read in the
-// order docs/tactic-format.md lists them. Key order is not part of the format.
+// order docs/tactics.md#tactic-file-format lists them. Key order is not part of
+// the format.
 using Json = nlohmann::ordered_json;
 
 // ---------------------------------------------------------------------------

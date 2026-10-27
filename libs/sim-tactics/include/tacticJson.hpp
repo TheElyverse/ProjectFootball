@@ -11,7 +11,7 @@
 namespace ElyverseFootball::SimTactics {
 
 // Every tactic file starts with this format name and version; see
-// docs/tactic-format.md.
+// docs/tactics.md#tactic-file-format.
 inline constexpr std::string_view kTacticFormat = "elyverse-tactic";
 inline constexpr int kTacticFormatVersion = 3;
 

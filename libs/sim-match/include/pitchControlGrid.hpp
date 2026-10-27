@@ -35,9 +35,9 @@ struct PitchControlGridSpec {
 };
 
 // Which team can reach which part of the pitch first, and how clearly
-// (docs/pitch-control.md): a grid of square cells over the pitch, each with
-// both teams' earliest arrival time at its centre. The control of a cell
-// follows from the two arrival times; see control().
+// (docs/team-tactics.md#pitch-control): a grid of square cells over the pitch,
+// each with both teams' earliest arrival time at its centre. The control of a
+// cell follows from the two arrival times; see control().
 //
 // Built by computePitchControl() (pitchControl.hpp) and cached in the match
 // state between refreshes. A value type: two grids are equal when every

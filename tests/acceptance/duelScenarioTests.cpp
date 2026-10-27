@@ -1,8 +1,8 @@
-// The duel scenarios (docs/duels.md): a centre back takes on a carrier with
-// his back to goal once he has stood on the ball for idleSeconds. Who is
-// stronger and better on the ball decides how the duel tends to go -- won by
-// the defender, kept by the carrier, or knocked loose for others to chase --
-// but every duel is decided step by step.
+// The duel scenarios (docs/duels.md#duels-on-the-ball): a centre back takes on
+// a carrier with his back to goal once he has stood on the ball for
+// idleSeconds. Who is stronger and better on the ball decides how the duel
+// tends to go -- won by the defender, kept by the carrier, or knocked loose for
+// others to chase -- but every duel is decided step by step.
 
 #include <catch2/catch_test_macros.hpp>
 #include <cstdint>

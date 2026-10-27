@@ -28,8 +28,8 @@
 namespace ElyverseFootball::SimReplay {
 namespace {
 
-// ordered_json keeps keys in insertion order, so files read top to bottom
-// the way docs/replay-format.md lists them. Key order is not part of the
+// ordered_json keeps keys in insertion order, so files read top to bottom the
+// way docs/tooling.md#replay-format lists them. Key order is not part of the
 // format.
 using Json = nlohmann::ordered_json;
 using SimCore::PlayerId;
@@ -95,10 +95,10 @@ using SimMatch::TeamSide;
   return std::format("{:016x}", hash);
 }
 
-// A tactic is embedded in its own file format (docs/tactic-format.md), so a
-// replay's tactic can be cut out and loaded as a tactic file, next to its
-// content hash, which identifies the version played and is checked on
-// reading.
+// A tactic is embedded in its own file format
+// (docs/tactics.md#tactic-file-format), so a replay's tactic can be cut out and
+// loaded as a tactic file, next to its content hash, which identifies the
+// version played and is checked on reading.
 [[nodiscard]] Json tacticJson(const std::optional<SimTactics::Tactic>& tactic) {
   if (!tactic) {
     return nullptr;
@@ -1065,7 +1065,7 @@ std::string toReplayJson(const Replay& replay) {
   json["schemaVersion"] = kReplaySchemaVersion;
   json["coreVersion"] = replay.coreVersion;
   json["createdAt"] = replay.createdAt;
-  // A decimal string, never a JSON number: see docs/replay-format.md.
+  // A decimal string, never a JSON number: see docs/tooling.md#replay-format.
   json["seed"] = std::to_string(replay.setup.seed);
   json["gameTime"] = replay.finalTick.value();
   json["config"] = configJson(replay.setup.config);

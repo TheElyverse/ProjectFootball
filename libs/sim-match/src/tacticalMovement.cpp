@@ -147,12 +147,12 @@ namespace {
                       .withBall = false};
 }
 
-// The press on a carrier who stands on the ball (docs/pressing.md): once he
-// has had it for more than idleSeconds since his last touch, the nearest
-// outfield player of the other side within idlePressRadius goes at him,
-// goal-side, whatever his phase's pressing -- ties to the first in player
-// order. Not at a goalkeeper holding the ball in his hands. Empty for anyone
-// else.
+// The press on a carrier who stands on the ball
+// (docs/team-tactics.md#pressing): once he has had it for more than idleSeconds
+// since his last touch, the nearest outfield player of the other side within
+// idlePressRadius goes at him, goal-side, whatever his phase's pressing -- ties
+// to the first in player order. Not at a goalkeeper holding the ball in his
+// hands. Empty for anyone else.
 [[nodiscard]] std::optional<PlayerAction> idlePressAction(const MatchStepContext& context,
                                                           const MatchState& current,
                                                           const std::size_t index,

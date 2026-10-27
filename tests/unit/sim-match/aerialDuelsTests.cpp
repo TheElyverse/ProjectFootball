@@ -1,6 +1,7 @@
-// Aerial duels and headers (docs/aerial-duels.md): the jump, who wins a high
-// ball, what the winner heads it into -- a goal, a clearance --, a ball
-// nobody reaches, the same delivery along the ground, and the keeper's hands.
+// Aerial duels and headers (docs/duels.md#aerial-duels-and-headers): the jump,
+// who wins a high ball, what the winner heads it into -- a goal, a clearance
+// --, a ball nobody reaches, the same delivery along the ground, and the
+// keeper's hands.
 
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/matchers/catch_matchers_floating_point.hpp>

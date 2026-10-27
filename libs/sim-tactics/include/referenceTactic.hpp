@@ -8,7 +8,7 @@ namespace ElyverseFootball::SimTactics {
 // centre backs, a holding midfielder, two wingers and a striker) built from
 // role presets, middling heights and no pressing triggers. Tests and
 // hand-built fixtures start from it and change what they are about; the
-// tactical identities are data files (docs/tactics.md), not code.
+// tactical identities are data files (docs/tactics.md#tactic-model), not code.
 [[nodiscard]] TacticSpec referenceTacticSpec();
 
 }  // namespace ElyverseFootball::SimTactics

@@ -25,38 +25,8 @@ before starting a change.
   vision (German).
 - [Implementation plan](docs/implementation-plan.md): architecture, roadmap, and
   engineering requirements (German).
-- [Match geometry](docs/match-geometry.md): pitch coordinates, units, and numeric
-  contracts.
-- [Match state](docs/match-state.md): players, ball, validation rules, and the
-  seven-a-side kickoff fixture.
-- [Match loop](docs/match-loop.md): the fixed-timestep simulation loop, system
-  order and schedule, commands, and failure handling.
-- [Player movement](docs/player-movement.md): movement targets, speed and
-  acceleration limits, and the pitch boundary rule.
-- [Ball movement](docs/ball-movement.md): the rolling ball, ground friction, and
-  what happens when it leaves the pitch.
-- [Spatial queries](docs/spatial-queries.md): nearby players and arrival-time
-  estimates.
-- [Perception](docs/perception.md): vision cones, observation memory and
-  confidence decay.
-- [Possession](docs/possession.md): who controls the ball and how a controlled
-  ball follows its carrier.
-- [Passing](docs/passing.md): pass intents, pass speed and reach, and execution
-  error.
-- [Reception](docs/reception.md): who gains control of a free ball, and who goes
-  after it.
-- [Pass candidates](docs/pass-candidates.md): passing options and their scores,
-  from the carrier's perception.
-- [Pass decisions](docs/pass-decisions.md): when a player on the ball passes, and
-  the seeded softmax that picks the pass.
-- [Match events](docs/match-events.md): pass and possession events, and decision
-  diagnostics.
-- [Replay format](docs/replay-format.md): the replay file `sim-cli` writes, its
-  versioning and seed encoding contract, and replay playback.
-- [Scenarios](docs/scenarios.md): the named, reproducible match setups `sim-cli`
-  runs.
-- [Debug viewer](docs/debug-viewer.md): watching a match in the browser, and the
-  debug frame format `sim-cli` writes for it.
+- [Documentation index](docs/README.md): the topic documents, one per area of
+  the simulation and its tooling, describing what exists in code.
 
 The simulation uses standard C++23 and runs independently of Unreal Engine.
 Unreal will consume simulation state for presentation. Keep simulation behavior
@@ -131,13 +101,13 @@ arguments. With Make available, `make run ARGS="..."` builds and runs it.
 | `--tui`               |               | show the result in a terminal screen                 |
 
 A run prints the tick count, the simulated time and the final state and event
-hashes, and writes a [replay](docs/replay-format.md). `--play` rebuilds the match
+hashes, and writes a [replay](docs/tooling.md#replay-format). `--play` rebuilds the match
 from the file, verifies every recorded state and event hash, and prints the same
 summary; it takes everything from the file, so it cannot be combined with the run
 options or with `--list-scenarios`, which cannot be combined with the run options
-either. `--help` wins over every other option. [Scenarios](docs/scenarios.md)
+either. `--help` wins over every other option. [Scenarios](docs/scenarios.md#scenario-catalogue)
 describes the scenario catalog. `--frames-out` writes one frame per tick for the
-[debug viewer](docs/debug-viewer.md), which plays the match back in the browser.
+[debug viewer](docs/tooling.md#debug-viewer), which plays the match back in the browser.
 
 Invalid arguments, an unknown scenario, a replay that cannot be read, and a
 replay that does not reproduce all end with a message on stderr and a nonzero
@@ -159,7 +129,7 @@ folder next to `index.html`. The game loads its language's catalog from there.
 That folder is build output and ignored by Git: a change to a catalog reaches the
 game only after the next build, and an edit made there is lost on the next
 build. `pnpm run dev` serves the catalogs straight from `public/`. See
-[the UI spike](docs/ui-spike.md) for the whole setup.
+[the UI spike](docs/apps.md#ui-spike) for the whole setup.
 
 ## Check a change
 

@@ -11,7 +11,8 @@
 
 namespace ElyverseFootball::SimMatch {
 
-// The part a player plays in a coordinated press (docs/pressing.md).
+// The part a player plays in a coordinated press
+// (docs/team-tactics.md#pressing).
 enum class PressRole : std::uint8_t {
   // Close the carrier down on the line to his nearest option.
   kPress,

@@ -25,10 +25,10 @@
 namespace ElyverseFootball::SimMatch {
 
 // Which squad a player belongs to. The pitch coordinate system is fixed (see
-// docs/match-geometry.md), so this is not itself an attacking direction. The
-// sandbox has no halves yet: home defends x = 0 in every match, and systems
-// that need the direction ask attackingDirection() (teamFrame.hpp), the
-// one place to change once rules let teams switch ends.
+// docs/match-engine.md#match-geometry), so this is not itself an attacking
+// direction. The sandbox has no halves yet: home defends x = 0 in every match,
+// and systems that need the direction ask attackingDirection() (teamFrame.hpp),
+// the one place to change once rules let teams switch ends.
 enum class TeamSide : std::uint8_t {
   kHome,
   kAway,
@@ -89,25 +89,25 @@ enum class Foot : std::uint8_t {
 [[nodiscard]] std::string_view footName(Foot foot) noexcept;
 
 // What a player can do, fixed for a match. maxSpeed and acceleration are what
-// his body allows and must be positive and finite; the same acceleration
-// limits speeding up, slowing down and turning (see
-// docs/player-movement.md). shotAccuracy, in [0, 1], is how closely his shots
-// follow his aim, from wild to pinpoint (docs/shot-decisions.md).
-// shotTechnique, in [0, 1], is how cleanly he strikes the ball -- its pace,
-// its lift and its spin -- and weakFootAccuracy, in [0, 1], how much of his
-// shooting he keeps on the foot that is not his strongFoot (docs/shooting.md).
-// keeperPositioning, in [0, 1], is how exactly he takes up his place in goal,
-// and keeperAnticipation, in [0, 1], how well he judges whether he reaches a
-// ball played in behind first (docs/goalkeeper.md) and where a shot will pass
-// him; keeperReflexes, in [0, 1], how quickly he reacts to a shot, and
+// his body allows and must be positive and finite; the same acceleration limits
+// speeding up, slowing down and turning (see docs/players.md#player-movement).
+// shotAccuracy, in [0, 1], is how closely his shots follow his aim, from wild
+// to pinpoint (docs/on-ball.md#shot-decisions). shotTechnique, in [0, 1], is
+// how cleanly he strikes the ball -- its pace, its lift and its spin -- and
+// weakFootAccuracy, in [0, 1], how much of his shooting he keeps on the foot
+// that is not his strongFoot (docs/on-ball.md#shooting). keeperPositioning, in
+// [0, 1], is how exactly he takes up his place in goal, and keeperAnticipation,
+// in [0, 1], how well he judges whether he reaches a ball played in behind
+// first (docs/goalkeeper.md#positioning-and-sweeping) and where a shot will
+// pass him; keeperReflexes, in [0, 1], how quickly he reacts to a shot, and
 // keeperHandling, in [0, 1], how surely he holds one he reaches
-// (docs/shot-stopping.md). Only a goalkeeper uses them. jumping, in [0, 1],
-// is how high he gets off the ground, heading how well he times his jump and
-// directs a header, and strength how well he holds his own in a duel
-// (docs/aerial-duels.md). ballControl, in [0, 1], is how closely his touches
-// follow his intent and how fast he can run with the ball, dribbling, in
-// [0, 1], how cleanly and quickly he takes the ball past an opponent
-// (docs/ball-carrying.md).
+// (docs/goalkeeper.md#shot-stopping). Only a goalkeeper uses them. jumping, in
+// [0, 1], is how high he gets off the ground, heading how well he times his
+// jump and directs a header, and strength how well he holds his own in a duel
+// (docs/duels.md#aerial-duels-and-headers). ballControl, in [0, 1], is how
+// closely his touches follow his intent and how fast he can run with the ball,
+// dribbling, in [0, 1], how cleanly and quickly he takes the ball past an
+// opponent (docs/on-ball.md#ball-carrying).
 struct PlayerAttributes {
   double maxSpeed = kDefaultMaxSpeed;
   double acceleration = kDefaultAcceleration;
@@ -137,8 +137,8 @@ struct PlayerAttributes {
 // target is where the player is moving to, assigned by a command and kept on
 // the pitch; without one the player comes to a stop where he is.
 //
-// facing is the unit vector the player looks along, which decides what he
-// can see (docs/perception.md). It is a vector rather than an angle so that
+// facing is the unit vector the player looks along, which decides what he can
+// see (docs/players.md#perception). It is a vector rather than an angle so that
 // no trigonometry, and none of its platform differences, enters the state.
 struct PlayerMatchState {
   SimCore::PlayerId playerId;
@@ -162,7 +162,7 @@ struct BallTouch {
 
 // A touch that plays the ball ahead of its carrier: in which tick, and how
 // many seconds later at the earliest he plays it again -- until then it rolls
-// on its own (docs/ball-carrying.md).
+// on its own (docs/on-ball.md#ball-carrying).
 struct CarryTouch {
   SimCore::SimTick tick;
   double seconds = 0.0;
@@ -180,7 +180,7 @@ struct CarryTouch {
 // owner is the player in control of the ball; empty while the ball is free.
 // One optional id rather than a flag per player, so the ball can never have
 // two owners. A controlled ball follows its owner, a free ball rolls, flies
-// and bounces on its own (docs/possession.md, docs/ball-movement.md).
+// and bounces on its own (docs/ball.md#possession, docs/ball.md#ball-movement).
 // lastTouch is the last player to kick or take the ball; empty until someone
 // has.
 //
@@ -195,13 +195,13 @@ struct CarryTouch {
 // it a curving flight, is not modelled yet.
 //
 // held is whether the owner holds the ball in his hands: a goalkeeper who
-// took it with them (docs/goalkeeper-distribution.md). Only an owned ball can
+// took it with them (docs/goalkeeper.md#distribution). Only an owned ball can
 // be held; nobody takes him on for it in a duel.
 //
 // touch is the owner's touch while the ball rolls ahead of him between two
-// touches (docs/ball-carrying.md): he keeps possession, but the ball moves on
-// its own until he or an opponent reaches it. Only an owned ball at his feet
-// can be touched on, and setting an owner leaves the ball at his feet.
+// touches (docs/on-ball.md#ball-carrying): he keeps possession, but the ball
+// moves on its own until he or an opponent reaches it. Only an owned ball at
+// his feet can be touched on, and setting an owner leaves the ball at his feet.
 struct BallState {
   SimCore::Vec2 position;
   SimCore::Vec2 velocity;
@@ -309,10 +309,10 @@ struct MatchStateSpec {
   Score score{};
 };
 
-// The tactic each side plays, if any (docs/tactics.md). A side without a
-// tactic is scripted: its players move only on commands and after free
-// balls, as in the P1 sandbox. The player in slot i of a tactic is the i-th
-// player of that side in MatchState::players(), see slotIndex().
+// The tactic each side plays, if any (docs/tactics.md#tactic-model). A side
+// without a tactic is scripted: its players move only on commands and after
+// free balls, as in the P1 sandbox. The player in slot i of a tactic is the
+// i-th player of that side in MatchState::players(), see slotIndex().
 struct TeamTactics {
   std::optional<SimTactics::Tactic> home;
   std::optional<SimTactics::Tactic> away;
@@ -325,7 +325,7 @@ struct TeamTactics {
 };
 
 // The last pass played in the match: who kicked it, from where, when, and
-// for whom. Pressing triggers read it (docs/pressing.md).
+// for whom. Pressing triggers read it (docs/team-tactics.md#pressing).
 struct PassRecord {
   SimCore::PlayerId passer;
   SimCore::Vec2 from;
@@ -335,14 +335,14 @@ struct PassRecord {
   friend bool operator==(const PassRecord&, const PassRecord&) = default;
 };
 
-// The last shot taken in the match: who struck it, from where, and when. A
-// free ball whose last touch was a shot, a deflection of one or the keeper's
-// parry is loose, not a pass. deflection is the last outfield player the shot
-// came off, and resolved whether its outcome has been recorded: a shot stays
-// open until the ball crosses the goal line, a player controls it, it leaves
-// the pitch or comes to rest (docs/shooting.md). parry is the keeper's last
+// The last shot taken in the match: who struck it, from where, and when. A free
+// ball whose last touch was a shot, a deflection of one or the keeper's parry
+// is loose, not a pass. deflection is the last outfield player the shot came
+// off, and resolved whether its outcome has been recorded: a shot stays open
+// until the ball crosses the goal line, a player controls it, it leaves the
+// pitch or comes to rest (docs/on-ball.md#shooting). parry is the keeper's last
 // touch of it, and saved whether he parried it on its way into his goal
-// (docs/shot-stopping.md).
+// (docs/goalkeeper.md#shot-stopping).
 struct ShotRecord {
   SimCore::PlayerId shooter;
   SimCore::Vec2 from;
@@ -369,7 +369,7 @@ struct ReceptionRecord {
 
 // The last goal scored in the match: the side it counts for, who scored it --
 // nobody, for a ball no player had touched -- and when. The restart after it
-// is a kickoff (docs/restarts.md).
+// is a kickoff (docs/match-engine.md#restarts).
 struct GoalRecord {
   TeamSide side = TeamSide::kHome;
   std::optional<SimCore::PlayerId> scorer;
@@ -379,11 +379,11 @@ struct GoalRecord {
 };
 
 // Which team has the ball, as the tactical phase system last saw it
-// (docs/match-phases.md): the owner's side, or while the ball is free the side
-// of its last touch -- a pass in flight still belongs to the passer's team.
-// since is the tick the team won it; fromOpponent whether it took the ball
-// from the other team rather than from nobody, as at kickoff. Empty team
-// until anyone has touched the ball.
+// (docs/team-tactics.md#match-phases): the owner's side, or while the ball is
+// free the side of its last touch -- a pass in flight still belongs to the
+// passer's team. since is the tick the team won it; fromOpponent whether it
+// took the ball from the other team rather than from nobody, as at kickoff.
+// Empty team until anyone has touched the ball.
 struct TeamPossession {
   std::optional<TeamSide> team;
   SimCore::SimTick since;
@@ -401,8 +401,8 @@ struct TeamPhase {
 };
 
 // A pass a player has decided on and not yet played: the what, decided apart
-// from the how well (docs/passing.md). The ball system executes it in the
-// next step it runs, if the passer still owns the ball, and discards it
+// from the how well (docs/on-ball.md#passing). The ball system executes it in
+// the next step it runs, if the passer still owns the ball, and discards it
 // otherwise.
 struct PassIntent {
   SimCore::PlayerId passer;
@@ -414,16 +414,16 @@ struct PassIntent {
   std::optional<SimCore::PlayerId> receiver;
   // Whether it goes through the air: speed is then the ball's speed along
   // the ground, and the flight brings it down on the target
-  // (docs/goalkeeper-distribution.md). A ground pass otherwise.
+  // (docs/goalkeeper.md#distribution). A ground pass otherwise.
   bool lofted = false;
 
   friend bool operator==(const PassIntent&, const PassIntent&) = default;
 };
 
 // A shot a player has decided on and not yet taken: where he aims, decided
-// apart from how well he strikes it (docs/shot-decisions.md). The ball system
-// takes it in the next step it runs, if the shooter still owns the ball, and
-// discards it otherwise.
+// apart from how well he strikes it (docs/on-ball.md#shot-decisions). The ball
+// system takes it in the next step it runs, if the shooter still owns the ball,
+// and discards it otherwise.
 struct ShotIntent {
   SimCore::PlayerId shooter;
   // Where he aims: a point on the goal line, and a height above the ground.
@@ -436,9 +436,9 @@ struct ShotIntent {
 };
 
 // A touch a player on the ball has decided on and not yet played: to turn,
-// carry the ball or dribble past an opponent (docs/ball-carrying.md). The ball
-// system plays it in the next step it runs, if he still has the ball at his
-// feet, and discards it otherwise.
+// carry the ball or dribble past an opponent (docs/on-ball.md#ball-carrying).
+// The ball system plays it in the next step it runs, if he still has the ball
+// at his feet, and discards it otherwise.
 struct CarryIntent {
   SimCore::PlayerId carrier;
   // Where the touch should take the ball, in meters.
@@ -521,21 +521,21 @@ class MatchState {
     return tactical_.at(playerIndex);
   }
 
-  // The side's press in progress, if any (docs/pressing.md).
+  // The side's press in progress, if any (docs/team-tactics.md#pressing).
   [[nodiscard]] const std::optional<TeamPress>& press(const TeamSide side) const noexcept {
     return side == TeamSide::kHome ? presses_[0] : presses_[1];
   }
 
   // The player each side has sent after the free ball, if any
-  // (docs/reception.md). The ball pursuit system owns his movement target
-  // while he chases; no other system writes it.
+  // (docs/ball.md#reception-interceptions-and-loose-balls). The ball pursuit
+  // system owns his movement target while he chases; no other system writes it.
   [[nodiscard]] const std::optional<SimCore::PlayerId>& chaser(const TeamSide side) const noexcept {
     return side == TeamSide::kHome ? chasers_[0] : chasers_[1];
   }
 
-  // The pitch-control grid as last refreshed (docs/pitch-control.md); empty
-  // in every state created from a spec, until the pitch-control system has
-  // run.
+  // The pitch-control grid as last refreshed
+  // (docs/team-tactics.md#pitch-control); empty in every state created from a
+  // spec, until the pitch-control system has run.
   [[nodiscard]] const std::optional<PitchControlGrid>& pitchControl() const noexcept {
     return pitchControl_;
   }

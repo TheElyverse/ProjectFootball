@@ -1,10 +1,10 @@
-# P2 acceptance, reduced for CI (docs/sim-benchmark.md): the three tactical
-# identities in a round robin of every pairing, eight six-minute matches each.
-# The run must finish within its time budget without an invalid value, a
-# sampled match of every pairing must replay identically, and the styles must
-# separate where their identities promise. Invoked by CTest with
-# SIM_BENCHMARK, DATA_DIR and TEST_OUTPUT_DIR set; registered for Release
-# builds only.
+# P2 acceptance, reduced for CI (docs/tooling.md#sim-benchmark): the three
+# tactical identities in a round robin of every pairing, eight six-minute
+# matches each. The run must finish within its time budget without an invalid
+# value, a sampled match of every pairing must replay identically, and the
+# styles must separate where their identities promise. Invoked by CTest with
+# SIM_BENCHMARK, DATA_DIR and TEST_OUTPUT_DIR set; registered for Release builds
+# only.
 
 cmake_minimum_required(VERSION 3.25)
 
@@ -32,15 +32,15 @@ if(NOT pairings EQUAL 9)
     message(FATAL_ERROR "Expected all nine pairings, got ${pairings}")
 endif()
 
-# The separations the identities promise (docs/tactical-identities.md).
-# Pressing's regains in the attacking third over possession's are not among
-# them any more: since a shot that goes in is a goal and a kickoff rather than
-# a goal kick to win back in front of the goal, six matches no longer separate
-# the two with every seed -- not with seed 2 since both sides line up for the
-# kickoff (docs/restarts.md). Nor is possession's PPDA over pressing's: the
-# two differ by about a tenth, which thirty matches separate but six do not
-# with every seed -- not with seed 1 since the keeper distributes the ball
-# (docs/goalkeeper-distribution.md), nor with seeds 3 and 4 before.
+# The separations the identities promise (docs/tactics.md#tactical-identities).
+# Pressing's regains in the attacking third over possession's are not among them
+# any more: since a shot that goes in is a goal and a kickoff rather than a goal
+# kick to win back in front of the goal, six matches no longer separate the two
+# with every seed -- not with seed 2 since both sides line up for the kickoff
+# (docs/match-engine.md#restarts). Nor is possession's PPDA over pressing's: the
+# two differ by about a tenth, which thirty matches separate but six do not with
+# every seed -- not with seed 1 since the keeper distributes the ball
+# (docs/goalkeeper.md#distribution), nor with seeds 3 and 4 before.
 set(expected
         "regains:pressing:possession" "regains:pressing:counter"
         "regainsAttackingThird:pressing:counter"
@@ -62,15 +62,15 @@ foreach(separation IN LISTS expected)
     endif()
 endforeach()
 
-# How often the sides shoot (docs/shot-decisions.md): every side of every
-# pairing shoots, and none shoots at every chance. The band is set from the
-# first measurement -- 2 to 27 shots a side in six minutes, 3 to 13 since goals
-# restart play from the centre, 1 to 9 since both sides line up for that
+# How often the sides shoot (docs/on-ball.md#shot-decisions): every side of
+# every pairing shoots, and none shoots at every chance. The band is set from
+# the first measurement -- 2 to 27 shots a side in six minutes, 3 to 13 since
+# goals restart play from the centre, 1 to 9 since both sides line up for that
 # kickoff, 0.67 to 11.67 since the keeper dives, holds or parries shots and
-# picks up slow balls (possession against counter's deep block), 1.62 to
-# 11.88 since players carry the ball (docs/ball-carrying.md) -- with room
-# above; it guards against a change that stops the shooting or makes a
-# shooting gallery of the sandbox, not against balancing.
+# picks up slow balls (possession against counter's deep block), 1.62 to 11.88
+# since players carry the ball (docs/on-ball.md#ball-carrying) -- with room
+# above; it guards against a change that stops the shooting or makes a shooting
+# gallery of the sandbox, not against balancing.
 set(minShots 0.5)
 set(maxShots 40)
 math(EXPR lastPairing "${pairings} - 1")
@@ -85,11 +85,12 @@ foreach(index RANGE ${lastPairing})
     endforeach()
 endforeach()
 
-# Nobody stands on the ball or carries it about for good (docs/pass-decisions.md,
-# docs/pressing.md, docs/ball-carrying.md): in every match no player of either
-# side owns it longer than 15 s at a time. A carrier without an option once
-# kept it for up to 318 s against counter's deep block; since players carry
-# the ball, touch after touch, the longest is 12.7 s.
+# Nobody stands on the ball or carries it about for good
+# (docs/on-ball.md#pass-decisions, docs/team-tactics.md#pressing,
+# docs/on-ball.md#ball-carrying): in every match no player of either side owns
+# it longer than 15 s at a time. A carrier without an option once kept it for up
+# to 318 s against counter's deep block; since players carry the ball, touch
+# after touch, the longest is 12.7 s.
 set(maxOwnershipSeconds 15)
 foreach(index RANGE ${lastPairing})
     string(JSON matches LENGTH "${json}" pairings ${index} results)

@@ -11,8 +11,9 @@
 
 namespace ElyverseFootball::SimMatch {
 
-// How the goalkeeper keeps his goal; see docs/goalkeeper.md. Part of
-// MatchConfig and therefore of every replay.
+// How the goalkeeper keeps his goal; see
+// docs/goalkeeper.md#positioning-and-sweeping. Part of MatchConfig and
+// therefore of every replay.
 struct GoalkeeperConfig {
   // Against a shot he stands this far off his goal line.
   double lineDepth = 1.5;  // m

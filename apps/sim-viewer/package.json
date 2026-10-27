@@ -2,7 +2,7 @@
   "name": "sim-viewer",
   "version": "0.1.0",
   "private": true,
-  "description": "Read-only 2D debug viewer for Elyverse: Football match frames (docs/debug-viewer.md)",
+  "description": "Read-only 2D debug viewer for Elyverse: Football match frames (docs/tooling.md#debug-viewer)",
   "type": "module",
   "engines": {
     "node": ">=22"

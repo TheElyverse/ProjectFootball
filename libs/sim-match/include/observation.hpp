@@ -42,8 +42,9 @@ class ObservedEntity {
 
 // What a player believes about one entity. position and velocity are the
 // entity's as last seen; confidence falls from 1 when seen to 0 when the
-// observation is forgotten (docs/perception.md). An estimate for a later tick
-// extrapolates from these values, see estimatePosition() in perception.hpp.
+// observation is forgotten (docs/players.md#perception). An estimate for a
+// later tick extrapolates from these values, see estimatePosition() in
+// perception.hpp.
 struct Observation {
   ObservedEntity entity = ObservedEntity::ball();
   SimCore::Vec2 position;

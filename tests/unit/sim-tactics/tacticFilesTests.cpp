@@ -1,7 +1,7 @@
 // The tactic files under data/tactics/: every one loads, and the reference
 // tactic file is the tactic referenceTacticSpec() builds in code. The three
 // tactical identities differ only in data, in the directions their intent
-// promises (docs/tactical-identities.md).
+// promises (docs/tactics.md#tactical-identities).
 
 #include <algorithm>
 #include <catch2/catch_test_macros.hpp>

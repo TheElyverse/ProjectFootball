@@ -2,7 +2,7 @@
   "name": "manager-ui",
   "version": "0.1.0",
   "private": true,
-  "description": "Manager UI for Elyverse: Football, hosted in Unreal's WebBrowser widget (docs/ui-spike.md)",
+  "description": "Manager UI for Elyverse: Football, hosted in Unreal's WebBrowser widget (docs/apps.md#ui-spike)",
   "type": "module",
   "engines": {
     "node": ">=22"

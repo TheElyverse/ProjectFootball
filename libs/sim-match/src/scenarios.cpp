@@ -74,8 +74,8 @@ constexpr double kPitchWidth = kSandboxWidthMeters;
           .y = 4.0 + (4.0 * static_cast<double>(row))};
 }
 
-// The M0 acceptance scenario of docs/scenarios.md: every player moving, with
-// several target changes each, and a rolling ball.
+// The M0 acceptance scenario of docs/scenarios.md#scenario-catalogue: every
+// player moving, with several target changes each, and a rolling ball.
 [[nodiscard]] std::expected<MatchSetup, std::string> m0Acceptance(const std::uint64_t seed) {
   auto setup = kickoffWith(seed, {.x = 9.0, .y = 4.0});
   if (!setup) {
@@ -137,7 +137,7 @@ constexpr double kCarryMarkDistance = 1.5;  // m
   const Pitch pitch(kPitchLength, kPitchWidth);
   MatchConfig config;
   // Each fixture sets up one pass or shot decision: carrying the ball would
-  // answer a different question (docs/scenarios.md).
+  // answer a different question (docs/scenarios.md#scenario-catalogue).
   config.decisions.carrying.enabled = false;
   std::vector<PlayerMatchState> players;
   players.reserve(home.size() + away.size());
@@ -301,9 +301,10 @@ constexpr Side kIdleAway{{{.x = 58.0, .y = 20.0, .facingX = -1.0},
 }
 
 // ---------------------------------------------------------------------------
-// Shot scenarios (docs/shot-decisions.md): home player 1 on the ball near the
-// away goal, which away player 8 keeps -- the away side plays the reference
-// tactic, whose first slot guards the goal -- and home plays without one.
+// Shot scenarios (docs/on-ball.md#shot-decisions): home player 1 on the ball
+// near the away goal, which away player 8 keeps -- the away side plays the
+// reference tactic, whose first slot guards the goal -- and home plays without
+// one.
 
 // Away with the reference tactic: away player 8 keeps goal.
 [[nodiscard]] std::expected<MatchSetup, std::string> againstKeeper(const std::uint64_t seed,
@@ -411,9 +412,10 @@ constexpr Side kClearChanceAway{{{.x = 59.5, .y = 20.0, .facingX = -1.0},
 }
 
 // ---------------------------------------------------------------------------
-// Goalkeeper scenarios (docs/goalkeeper.md): away keeps goal with the
-// reference tactic, its keeper player 8 a perfect judge of a ball played in
-// behind, so whether he comes is the model's call and not a misjudgement.
+// Goalkeeper scenarios (docs/goalkeeper.md#positioning-and-sweeping): away
+// keeps goal with the reference tactic, its keeper player 8 a perfect judge of
+// a ball played in behind, so whether he comes is the model's call and not a
+// misjudgement.
 
 // The setup with away's keeper given a keeperAnticipation of 1.
 [[nodiscard]] std::expected<MatchSetup, std::string> withSureKeeper(
@@ -512,7 +514,7 @@ constexpr Side kClearChanceAway{{{.x = 59.5, .y = 20.0, .facingX = -1.0},
 }
 
 // ---------------------------------------------------------------------------
-// Distribution scenarios (docs/goalkeeper-distribution.md): home plays the
+// Distribution scenarios (docs/goalkeeper.md#distribution): home plays the
 // reference tactic in the order of its slots -- keeper, centre backs,
 // holding midfielder, wingers, striker -- so player 1 is its keeper, on the
 // ball in his own penalty area from the start; away plays without a tactic
@@ -648,7 +650,7 @@ constexpr Side kBuildUpAway{{{.x = 59.0, .y = 20.0, .facingX = -1.0},
 }
 
 // ---------------------------------------------------------------------------
-// Carry scenarios (docs/ball-carrying.md): home player 1 on the ball at
+// Carry scenarios (docs/on-ball.md#ball-carrying): home player 1 on the ball at
 // (20, 20) facing away's goal with carrying switched on, every teammate behind
 // him with an away player in the lane a meter and a half in front of him --
 // every pass is too likely to be cut out, so he has nobody to pass to. Home
@@ -700,10 +702,10 @@ constexpr Side kCarryHome{{{.x = 20.0, .y = 20.0, .facingX = 1.0},
 }
 
 // ---------------------------------------------------------------------------
-// Duel scenarios (docs/duels.md): the idle carrier's fixture, in which the
-// centre back, player 9, takes player 1 on once he has stood on the ball for
-// idleSeconds. Who is stronger and better on the ball decides how the duel
-// tends to go; it is decided step by step all the same.
+// Duel scenarios (docs/duels.md#duels-on-the-ball): the idle carrier's fixture,
+// in which the centre back, player 9, takes player 1 on once he has stood on
+// the ball for idleSeconds. Who is stronger and better on the ball decides how
+// the duel tends to go; it is decided step by step all the same.
 
 // A weak carrier with a poor touch against a strong centre back: pushed off
 // his feet or tackled once he turns, he loses the ball.
@@ -870,7 +872,8 @@ std::expected<MatchSetup, std::string> makeTacticMatch(TeamTactics tactics,
   if (!fixture) {
     return std::unexpected("invalid tactic match: " + fixture.error().front().message);
   }
-  // Home kicks off, from the same line-up as after a goal (docs/restarts.md).
+  // Home kicks off, from the same line-up as after a goal
+  // (docs/match-engine.md#restarts).
   const MatchConfig config;
   const auto lineUp = lineUpForKickoff(*fixture, TeamSide::kHome, config.ball);
   if (!lineUp) {

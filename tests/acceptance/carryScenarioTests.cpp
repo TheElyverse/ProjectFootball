@@ -1,5 +1,5 @@
-// The carry scenarios (docs/ball-carrying.md): a carrier with nobody to pass
-// to carries the ball into open space with touch after touch, and takes it
+// The carry scenarios (docs/on-ball.md#ball-carrying): a carrier with nobody to
+// pass to carries the ball into open space with touch after touch, and takes it
 // past a covering defender with a dribble.
 
 #include <catch2/catch_test_macros.hpp>

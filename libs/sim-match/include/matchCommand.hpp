@@ -24,7 +24,7 @@ struct MovePlayerCommand {
 };
 
 // Puts the ball at a player's feet: he owns it from this step on, and the
-// ball follows him (docs/possession.md). A scenario uses it to decide who
+// ball follows him (docs/ball.md#possession). A scenario uses it to decide who
 // starts with the ball; a test uses it to set up a situation.
 struct GiveBallCommand {
   SimCore::PlayerId playerId;
@@ -35,7 +35,7 @@ struct GiveBallCommand {
 // Asks a player to pass: a PassIntent from outside the decision system, so a
 // scenario or test can request a specific pass and watch it being executed.
 // Like a decided pass, it is played in the step of its tick if the player
-// owns the ball then, and dropped if he does not (docs/passing.md).
+// owns the ball then, and dropped if he does not (docs/on-ball.md#passing).
 struct PassCommand {
   SimCore::PlayerId playerId;
   SimCore::Vec2 target;
@@ -48,10 +48,11 @@ struct PassCommand {
 
 // Switches a side to another tactic from this step on: the same command for a
 // human coach, a script and an AI, so every tactic change goes through the
-// ordered command log and a replay reproduces it (docs/match-loop.md). The
-// tactic is already valid by construction; the command is rejected if it
-// does not fit the squad. Phase, press and the players' tactical state are
-// kept and follow the new tactic at the systems' next update.
+// ordered command log and a replay reproduces it
+// (docs/match-engine.md#match-loop). The tactic is already valid by
+// construction; the command is rejected if it does not fit the squad. Phase,
+// press and the players' tactical state are kept and follow the new tactic at
+// the systems' next update.
 struct ChangeTacticCommand {
   TeamSide side = TeamSide::kHome;
   SimTactics::Tactic tactic;

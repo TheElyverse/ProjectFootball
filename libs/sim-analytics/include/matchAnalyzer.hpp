@@ -30,7 +30,7 @@ struct MatchContext {
 // The context of a match starting from this state.
 [[nodiscard]] MatchContext contextOf(const SimMatch::MatchState& initialState, int ticksPerSecond);
 
-// The definitions behind the metrics (docs/match-analytics.md).
+// The definitions behind the metrics (docs/tooling.md#match-analytics).
 struct AnalyticsConfig {
   // A pass is progressive if it moves the ball at least this far toward the
   // opponent's goal line.

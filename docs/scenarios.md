@@ -1,5 +1,13 @@
 # Scenarios
 
+The named, reproducible match setups `sim-cli` runs and the acceptance tests
+check, and the golden scenarios that pin whole situations down.
+
+- [Scenario catalogue](#scenario-catalogue)
+- [Golden scenarios](#golden-scenarios)
+
+## Scenario catalogue
+
 A scenario is a named, reproducible match setup: a fixture, the configuration of
 the standard systems, and scripted commands. The seed is the caller's; everything
 else is fixed, so a scenario name and a seed identify a match. The catalog lives
@@ -13,35 +21,35 @@ in `sim-match` (`scenarios.hpp`), and `sim-cli --scenario <name>` runs one.
 | `pass-chain`   | home player 1 on the ball, teammates in a zigzag ahead, no opponent in reach |
 | `intercepted-pass` | home player 1's only option is a risky pass past away player 8 |
 | `no-passing-option` | home player 1 on the ball, every teammate behind him out of sight, looks round and plays back |
-| `no-option-forced` | home player 1 on the ball, every pass he sees cut out, plays the best after looking round ([pass decisions](pass-decisions.md#without-a-valid-option)) |
-| `idle-carrier-challenged` | home player 1 stands on the ball, away does not press and still goes at him ([pressing](pressing.md#a-carrier-who-stands-on-the-ball)) |
-| `clear-chance` | home player 1 eight meters out, only the keeper to beat ([shot decisions](shot-decisions.md)) |
-| `goal-kickoff` | the clear chance with tactics and restarts, the kickoff after the goal ([restarts](restarts.md#the-kickoff)) |
+| `no-option-forced` | home player 1 on the ball, every pass he sees cut out, plays the best after looking round ([pass decisions](on-ball.md#without-a-valid-option)) |
+| `idle-carrier-challenged` | home player 1 stands on the ball, away does not press and still goes at him ([pressing](team-tactics.md#a-carrier-who-stands-on-the-ball)) |
+| `clear-chance` | home player 1 eight meters out, only the keeper to beat ([shot decisions](on-ball.md#shot-decisions)) |
+| `goal-kickoff` | the clear chance with tactics and restarts, the kickoff after the goal ([restarts](match-engine.md#the-kickoff)) |
 | `hopeless-angle` | home player 1 on the goal line wide of the post, a teammate free |
 | `blocked-lane` | home player 1 twelve meters out, a defender in the way, a teammate free |
-| `keeper-arc` | home player 1 carries the ball across in front of away's goal, the keeper moves with it ([goalkeeper](goalkeeper.md)) |
+| `keeper-arc` | home player 1 carries the ball across in front of away's goal, the keeper moves with it ([goalkeeper](goalkeeper.md#positioning-and-sweeping)) |
 | `keeper-sweep-claim` | a through ball in behind away's line, the keeper first to it |
 | `keeper-sweep-leave` | a through ball in behind away's line, home's striker first to it |
-| `keeper-build-up` | home's keeper holds the ball and plays out to a free centre back ([goalkeeper distribution](goalkeeper-distribution.md)) |
+| `keeper-build-up` | home's keeper holds the ball and plays out to a free centre back ([goalkeeper distribution](goalkeeper.md#distribution)) |
 | `keeper-turned` | home's keeper holds the ball facing his own goal, turns and plays out |
 | `keeper-long-kick` | home's keeper on the ball under a high press goes long |
 | `goal-kick` | home plays the ball over away's goal line, away's keeper takes the goal kick |
 | `tactic-match` | the reference tactic against itself, lined up for home's kickoff   |
-| `transition-3v2` | home wins the ball in midfield, three attackers against two defenders ([golden](golden-scenarios.md)) |
+| `transition-3v2` | home wins the ball in midfield, three attackers against two defenders ([golden](#golden-scenarios)) |
 | `isolated-winger` | home plays out to an isolated winger, away presses on the trigger |
 | `touchline-trap` | away's receiver faces his own goal at the touchline, home presses four players |
 | `lone-press` | the touchline trap with one home presser instead of four |
 | `run-behind-line` | home's striker level with away's defensive line, space behind it |
-| `carry-into-space` | home player 1 on the ball, nobody to pass to, open space ahead ([ball carrying](ball-carrying.md)) |
+| `carry-into-space` | home player 1 on the ball, nobody to pass to, open space ahead ([ball carrying](on-ball.md#ball-carrying)) |
 | `dribble-past-defender` | home player 1 carries the ball at a covering defender and past him |
-| `duel-ball-won` | a strong centre back takes on a weak carrier with his back to goal and wins the ball ([duels](duels.md)) |
+| `duel-ball-won` | a strong centre back takes on a weak carrier with his back to goal and wins the ball ([duels](duels.md#duels-on-the-ball)) |
 | `duel-ball-kept` | a strong carrier with his back to goal shields the ball from a weak centre back and gets away |
 | `duel-loose-ball` | an even duel knocks the ball loose, a teammate of each close by |
 
 All scenarios use the 60 × 40 m example pitch and the default `MatchConfig`
 (30 Hz) unless their section below says otherwise. `sim-cli --list-scenarios` prints the catalog.
 
-## The M0 acceptance scenario
+### The M0 acceptance scenario
 
 `m0-acceptance` is the integration scenario of milestone M0. It starts from the
 kickoff fixture with the ball rolling at (9, 4) m/s. Every player gets six
@@ -66,7 +74,7 @@ that:
 CI runs these tests in their own step (`ctest --preset ci --label-regex
 acceptance`).
 
-## The P1 passing scenarios
+### The P1 passing scenarios
 
 The P1 scenarios exercise the whole passing pipeline -- perception, pass
 candidates, the seeded decision, execution, the ball's flight and reception --
@@ -76,7 +84,7 @@ given to him at tick 0. From then on only the standard systems act.
 
 Every hand-placed fixture -- these, and the shot, goalkeeper, distribution and
 stuck-carrier scenarios below -- sets up one pass or shot decision, so it
-switches [carrying](ball-carrying.md) off (`decisions.carrying.enabled`): a
+switches [carrying](on-ball.md#ball-carrying) off (`decisions.carrying.enabled`): a
 carrier there passes, shoots or keeps the ball, as before players carried it.
 The [carry scenarios](#the-carry-scenarios) switch it on again.
 
@@ -94,14 +102,14 @@ The [carry scenarios](#the-carry-scenarios) switch it on again.
 - **`no-passing-option`**: player 1 stands at (30, 20) facing the away goal with
   every teammate behind him, beyond his awareness radius. At first he sees no
   one to pass to and decides "no valid option"; he
-  [looks over his shoulder](pass-decisions.md#without-a-valid-option), finds
+  [looks over his shoulder](on-ball.md#without-a-valid-option), finds
   his teammates and plays back to one. The away side waits in its own half.
 
-### Acceptance checks
+#### Acceptance checks
 
 `tests/acceptance/p1AcceptanceTests.cpp` runs each scenario for twenty seconds
 with seed 7 and checks, on every tick, the possession invariants: a controlled
-ball sits exactly where the [carry rule](possession.md) puts it and moves with
+ball sits exactly where the [carry rule](ball.md#possession) puts it and moves with
 its owner, a pending pass belongs to the player on the ball, possession changes
 only through a chain of `PossessionChanged` events, and passes are played by the
 owner, received by teammates and intercepted by opponents. Then:
@@ -121,10 +129,10 @@ owner, received by teammates and intercepted by opponents. Then:
 
 CI runs them with the other acceptance tests.
 
-### Watching them
+#### Watching them
 
 Each scenario can be run with debug frames and watched in the
-[debug viewer](debug-viewer.md):
+[debug viewer](tooling.md#debug-viewer):
 
 ```sh
 ./build/debug/apps/sim-cli/sim-cli --scenario intercepted-pass --seed 7 --ticks 600 \
@@ -147,7 +155,7 @@ What to look at:
   decision reads "no valid option". Step on: the cone swings round to his
   teammates while his facing stroke stays, and he plays back.
 
-## The shot scenarios
+### The shot scenarios
 
 Home player 1 has the ball near the away goal. The away side plays the
 reference tactic, so away player 8 is its keeper; home plays without a tactic,
@@ -163,7 +171,7 @@ and home's other players wait in their own half.
   meters in front of him, square in the way; his teammate 2 stands free to his
   left.
 
-- **`goal-kickoff`**: the clear chance with a [kickoff](restarts.md#the-kickoff)
+- **`goal-kickoff`**: the clear chance with a [kickoff](match-engine.md#the-kickoff)
   after it. Both sides play the reference tactic — home's with its slots in
   the order its players stand, so player 1 is the striker and player 7 the
   keeper — and restarts are on. With seeds 2 to 5 and 8, player 1 scores
@@ -181,12 +189,12 @@ hopeless angle every shot is `too narrow` and he always passes, and past the
 blocked lane he passes more often than he shoots, with the middle of the goal
 at least half blocked in at least 90 seeds. The clear chance is also followed to
 its end: the first shot is a goal in 55 to 90 of the seeds
-([shooting](shooting.md)).
+([shooting](on-ball.md#shooting)).
 
-## The goalkeeper scenarios
+### The goalkeeper scenarios
 
 Away plays the reference tactic, so away player 8 keeps goal; home plays
-without a tactic. They show the [goalkeeper](goalkeeper.md)'s own model:
+without a tactic. They show the [goalkeeper](goalkeeper.md#positioning-and-sweeping)'s own model:
 
 - **`keeper-arc`**: home player 1 starts on the touchline 27 m in front of
   away's goal with the ball and carries it to the other touchline, beyond the
@@ -209,10 +217,10 @@ goal, and once the ball has stopped within 0.75 m of the bisector of his goal's
 angle; in the claim his first call is to come and he is first to the ball; in
 the leave he stays home, stays in his area and the striker has the ball.
 
-## The distribution scenarios
+### The distribution scenarios
 
-They show what a [goalkeeper](goalkeeper.md) does with the ball
-([goalkeeper distribution](goalkeeper-distribution.md)):
+They show what a [goalkeeper](goalkeeper.md#positioning-and-sweeping) does with the ball
+([goalkeeper distribution](goalkeeper.md#distribution)):
 
 - **`keeper-build-up`**: home plays the reference tactic with its slots in
   order, so player 1 is its keeper, at his goal with the ball in his hands from
@@ -236,12 +244,12 @@ They show what a [goalkeeper](goalkeeper.md) does with the ball
 the keeper throws to a centre back along the ground, kicks long to a winger or
 the striker through the air, and takes the goal kick from his goal area.
 
-## The stuck-carrier scenarios
+### The stuck-carrier scenarios
 
 They show what a carrier without a valid option does
-([pass decisions](pass-decisions.md#without-a-valid-option)) and what the other
+([pass decisions](on-ball.md#without-a-valid-option)) and what the other
 side does about a carrier who stands on the ball
-([pressing](pressing.md#a-carrier-who-stands-on-the-ball)). Home plays without
+([pressing](team-tactics.md#a-carrier-who-stands-on-the-ball)). Home plays without
 a tactic, so its players stand still.
 
 - **`no-option-forced`**: player 1 stands at (30, 20) facing the away goal,
@@ -260,13 +268,13 @@ in `no-option-forced` every decision before the last looks for an option,
 first side and other side in turn, and the last plays his best rejected pass
 between `stuckSeconds` and a quarter of a second more after the first; in
 `idle-carrier-challenged` nobody goes at him before `idleSeconds`, then player
-9 does and takes him on in a [duel](duels.md). Both, and `no-passing-option`,
+9 does and takes him on in a [duel](duels.md#duels-on-the-ball). Both, and `no-passing-option`,
 run alike every time.
 
-## The carry scenarios
+### The carry scenarios
 
 They show a carrier with nobody to pass to carrying the ball
-([ball carrying](ball-carrying.md)). Home player 1 stands at (20, 20) facing
+([ball carrying](on-ball.md#ball-carrying)). Home player 1 stands at (20, 20) facing
 away's goal with carrying switched on; every teammate stands behind him with an
 away player a meter and a half in front of him toward player 1, so every pass
 is too likely to be cut out. Neither side has a tactic: everyone else stands
@@ -287,9 +295,9 @@ dribbles at player 8 in at least ten, every dribble ends, and at least half of
 those he attempts beat him, with the ball beyond the defender. Both run alike
 every time.
 
-## The duel scenarios
+### The duel scenarios
 
-They show a [duel](duels.md) on the ball and how the players' `strength` and
+They show a [duel](duels.md#duels-on-the-ball) on the ball and how the players' `strength` and
 `ballControl` tilt it. Each is `idle-carrier-challenged` with other players:
 home player 1 stands on the ball at (46, 20) with his back to away's goal, and
 once he has done so for `idleSeconds` away's centre back, player 9, takes him
@@ -316,11 +324,11 @@ of the `duel-ball-won` runs -- 25 at the time of writing --, home in at least
 ball loose, and a third player gets to it first after at least 2 of them -- 5.
 All three run alike every time.
 
-## The tactic match
+### The tactic match
 
 `tactic-match` is the fixture two tactics play on: the players of the
 seven-a-side kickoff fixture with a tactic on each side, lined up for a
-[kickoff](restarts.md#the-kickoff) by home — each side in its tactic's base
+[kickoff](match-engine.md#the-kickoff) by home — each side in its tactic's base
 shape in its own half, the ball on the centre spot — the standard
 configuration, and `GiveBall` to home's taker, the striker (player 7) of every
 preset, at tick 0. `makeTacticMatch()` builds it
@@ -335,20 +343,77 @@ tactic on both sides. The CLI swaps in tactic files:
 `--home-tactic` and `--away-tactic` imply `--scenario tactic-match`; a side
 without one plays the reference tactic. The replay records the tactics
 themselves, so it plays back without the files. See
-[tactical identities](tactical-identities.md) for the presets.
+[tactical identities](tactics.md#tactical-identities) for the presets.
 
-## Scenarios are versioned
+### Scenarios are versioned
 
 A scenario is a fixture: changing its layout, configuration or commands changes
 every match played from it and every state hash recorded against it. Replays do
 not depend on the catalog — they carry their own initial state and commands — but
 tests and documentation that name a scenario do. Change a scenario deliberately,
-update this document in the same commit, and prefer adding a new scenario to
+update this chapter in the same commit, and prefer adding a new scenario to
 changing an old one.
 
-## Adding a scenario
+### Adding a scenario
 
 Add a function that returns the `MatchSetup` and an entry to the catalog in
 `scenarios.cpp`, and a row to the table above. `scenariosTests.cpp` checks that
 every scenario has a unique name, builds a valid setup that starts on the pitch,
 and runs.
+
+## Golden scenarios
+
+The P2 golden scenarios are short, hand-placed seven-a-side situations in which
+one tactical behaviour must show. Each is a [scenario](#scenario-catalogue) in the
+catalog — so it is versioned like every fixture and can be run and watched with
+`sim-cli` — and `tests/acceptance/goldenScenarioTests.cpp` asserts its behaviour
+through events and decision diagnostics over twenty fixed seeds. CI runs them
+with the other acceptance tests; every golden scenario also has to survive a
+replay round trip unchanged.
+
+The builders live in `goldenScenarios.hpp`; their parameters let a test compare
+variants of one situation. Players stand in tactic slot order — goalkeeper, two
+centre backs, holding midfielder, two wingers, striker — home ids 1 to 7, away 8
+to 14, on the 60 × 40 m sandbox pitch.
+
+| Scenario          | Situation | Asserted, of 20 seeds (at the time of writing) |
+|-------------------|-----------|-----------------------------------------------|
+| `transition-3v2`  | Home's holding midfielder (4) wins the ball from away's (11) at the halfway line at tick 10; wingers 5, 6 and striker 7 face away's two centre backs, away's wingers and striker are caught upfield. Both sides play the reference tactic. | His first action within 1.5 s of the regain plays the ball forward, at least 3 m: a pass to one of the three attackers, or a carry or a dribble ([ball carrying](on-ball.md#ball-carrying)): at least 16 (19). |
+| `isolated-winger` | Home's goalkeeper plays a long ball to winger 6 on the touchline, no teammate within 10 m. Home is scripted, so nobody comes to help; away presses on `isolatedReceiver` only and stays out of its pressing phase. | Away starts a press on 6 with trigger `isolatedReceiver` and at least three players: all 20. |
+| `touchline-trap`  | Away's centre back passes to its holding midfielder (11), who stands at the touchline facing his own goal. Home presses on `receiverFacingOwnGoal` with intensity 1 — presser, cover and two lane blocks. | Over 100 seeds rather than 20, home's press wins the ball back within six seconds in at least 35 (40) — at least 15 more than `lone-press` (17) and 25 more than the same press in the centre (3). |
+| `lone-press`      | The touchline trap at intensity 0.25: one presser, no lane blocks, no cover. | The uncoordinated comparison above. |
+| `run-behind-line` | Home's holding midfielder on the ball at the halfway line; striker 7 level with away's centre backs, 20 m of space behind them. | Striker 7 chooses `runInBehind` within one second: at least 18 (20); an away defender answers with `trackRunner` on him within three seconds: at least 12 (17). |
+
+A pass into the space behind the line is not asserted: passes go to where a
+teammate stands, not into his run, until the match has a through pass. The
+scenario shows the run and the defence's answer to it.
+
+### Watching them
+
+Record one with debug frames and open it in the [debug viewer](tooling.md#debug-viewer):
+
+```sh
+./build/debug/apps/sim-cli/sim-cli --scenario touchline-trap --seed 3 --ticks 180 \
+  --replay-out trap.json --frames-out frames.json
+cd apps/sim-viewer && pnpm run serve ../../frames.json
+```
+
+- **`transition-3v2`**: step to tick 11; the phases above the pitch read
+  `attackingTransition` and `defensiveTransition`. Select player 4 to see his
+  pass candidates and the forward pass he chooses; switch on **regions** to see
+  the attackers' desired regions pushed forward.
+- **`isolated-winger`**: follow the long ball to player 6; the event log shows
+  `away presses #6 (isolatedReceiver, 4 players)` and the **press** overlay
+  draws the presser, the lanes blocked back to the scripted defenders and the
+  cover.
+- **`touchline-trap`** and **`lone-press`**: compare the **press** overlay — the
+  blocked lanes along the touchline against a single presser — and the event
+  log's `home press ends: ballRegained`.
+- **`run-behind-line`**: select player 7 to see his action candidates with
+  `runInBehind` chosen, then an away centre back's `trackRunner` on him.
+
+Or trace the decisions of a player directly:
+
+```sh
+./build/debug/apps/sim-cli/sim-cli --play trap.json --trace trace.txt --trace-players 11,4
+```

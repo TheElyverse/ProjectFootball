@@ -10,8 +10,8 @@
 
 namespace ElyverseFootball::SimMatch {
 
-// The goal frame as something a ball hits; see docs/shooting.md. Part of
-// MatchConfig and therefore of every replay.
+// The goal frame as something a ball hits; see docs/on-ball.md#shooting. Part
+// of MatchConfig and therefore of every replay.
 struct WoodworkConfig {
   // Posts and crossbar are round, this thick from their axis. The posts
   // stand on the goal line at the pitch geometry's posts, and the crossbar
