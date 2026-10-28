@@ -208,263 +208,272 @@ constexpr auto kDecisions = SimCore::RandomNumberGeneratorDomain::kAi;
           .goal = attackedGoal(state.pitch(), carrier.side).center};
 }
 
-void stumble(const MatchStepContext& context, const std::size_t index, const DuelConfig& config,
-             MatchStateWriter& next) {
-  const auto ticks = static_cast<SimCore::SimTick::ValueType>(
-      std::ceil(config.stumbleSeconds / context.secondsPerTick()));
-  next.tactical(index).stumbledUntil = SimCore::SimTick(context.tick().value() + ticks);
-}
-
-// Ends the defender's duel where the ball lies now: where the carrier rolled
-// it, if he turned himself off his feet this step.
-void endDuel(const MatchStepContext& context, const MatchState& current,
-             const std::size_t defenderIndex, const Duel& duel, const DuelOutcome outcome,
-             MatchStateWriter& next) {
-  next.tactical(defenderIndex).duel.reset();
-  context.record(DuelEnded{.tick = context.tick(),
-                           .carrier = duel.carrier,
-                           .defender = current.players()[defenderIndex].playerId,
-                           .outcome = outcome,
-                           .position = next.ball().position});
-}
-
-// The defender takes the ball at the carrier's feet.
-void winBall(const MatchStepContext& context, const MatchState& current,
-             const std::size_t carrierIndex, const std::size_t defenderIndex,
-             MatchStateWriter& next) {
-  const SimCore::PlayerId winner = current.players()[defenderIndex].playerId;
-  const SimCore::PlayerId loser = current.players()[carrierIndex].playerId;
-  next.setBallOwner(winner);
-  next.setBallLastTouch(BallTouch{.playerId = winner, .tick = context.tick()});
-  next.setPendingAction(carrierIndex, std::nullopt);
-  context.record(BallWon{.tick = context.tick(),
-                         .winner = winner,
-                         .loser = loser,
-                         .position = current.ball().position,
-                         .cause = BallWonCause::kDuel});
-  context.record(
-      PossessionChanged{.tick = context.tick(), .previousOwner = loser, .newOwner = winner});
-}
-
-// The carrier loses the ball at his feet: it moves on at this velocity, last
-// touched by the player at index `touchedBy`, and he stumbles.
-void loseBall(const MatchStepContext& context, const MatchState& current,
-              const std::size_t carrierIndex, const std::size_t touchedBy, const Vec2 velocity,
-              const DuelConfig& config, MatchStateWriter& next) {
-  next.setBallOwner(std::nullopt);
-  next.setBallVelocity(velocity);
-  next.setBallLastTouch(
-      BallTouch{.playerId = current.players()[touchedBy].playerId, .tick = context.tick()});
-  next.setPendingAction(carrierIndex, std::nullopt);
-  stumble(context, carrierIndex, config, next);
-  context.record(PossessionChanged{.tick = context.tick(),
-                                   .previousOwner = current.players()[carrierIndex].playerId,
-                                   .newOwner = std::nullopt});
-}
-
-// The defender's foot knocks the ball away from it.
-void loosenBall(const MatchStepContext& context, const MatchState& current,
-                const std::size_t carrierIndex, const std::size_t defenderIndex, const Vec2 foot,
-                const DuelConfig& config, MatchStateWriter& next) {
-  const Vec2 ball = current.ball().position;
-  const Vec2 lunge = unitOr(ball - current.players()[defenderIndex].position, {});
-  loseBall(context, current, carrierIndex, defenderIndex,
-           unitOr(ball - foot, lunge) * config.looseSpeed, config, next);
-}
-
-// The carrier, unless he is about to play the ball, decides his move: he
-// rolls the ball round him that way, which costs balance by how far he turns
-// it, and runs to the move's target -- or, turned off his feet by it, loses
-// the ball where he rolled it, and the duel ends. The defender jockeys --
-// once he is back on his feet. The duel is stored as it stands after both.
-void moveOn(const MatchStepContext& context, const MatchState& current,
-            const std::size_t carrierIndex, const std::size_t defenderIndex, Duel duel,
-            const DuelRules& rules, MatchStateWriter& next) {
-  const DuelConfig& config = rules.duels;
-  const DuelGeometry geometry = geometryOf(current, carrierIndex, defenderIndex);
-  const Pitch& pitch = current.pitch();
-  if (!next.pendingAction(carrierIndex)) {
-    // A defender off his feet threatens nothing.
-    Duel seen = duel;
-    if (isStumbling(next.tactical(defenderIndex), context.tick())) {
-      seen.defenderBalance = 0.0;
-    }
-    const auto utilities = carrierUtilities(geometry, seen, config);
-    duel.carrierMove = kCarrierMoves.at(
-        chooseByUtility(utilities, config.decisionTemperature, context.random(kDecisions))
-            .value_or(0));
-    const PlayerMatchState& carrier = current.players()[carrierIndex];
-    const Vec2 direction = moveDirection(duel.carrierMove, geometry);
-    duel.carrierBalance = std::max(
-        0.0, duel.carrierBalance - (config.turnCost * (1.0 - carrier.facing.dot(direction)) / 2.0));
-    next.setBallPosition(pitch.clamp(carrier.position + (direction * rules.physics.carryDistance)));
-    if (duel.carrierBalance == 0.0) {
-      endDuel(context, current, defenderIndex, duel, DuelOutcome::kLoose, next);
-      loseBall(context, current, carrierIndex, carrierIndex, {}, config, next);
-      return;
-    }
-    // Shielding, he stands rather than runs back to where he stood.
-    next.setPlayerTarget(
-        carrierIndex,
-        duel.carrierMove == DuelMove::kShield
-            ? std::nullopt
-            : std::optional(pitch.clamp(moveTarget(duel.carrierMove, geometry, config))));
-  }
-  next.setPlayerTarget(defenderIndex, pitch.clamp(moveTarget(DuelMove::kJockey, geometry, config)));
-  next.tactical(defenderIndex).duel = duel;
-}
-
 // Where the defender's lunge landed and what it did.
 struct Lunge {
   Vec2 foot;
   LungeResult result = LungeResult::kMissed;
 };
 
-// The defender's lunge, decided and landed in this step.
-[[nodiscard]] Lunge lunge(const MatchStepContext& context, const DuelGeometry& geometry,
-                          const Duel& duel, const double ballControl, const DuelConfig& config) {
-  auto& random = context.random(SimCore::RandomNumberGeneratorDomain::kExecution);
-  const double spread = config.footError * (2.0 - duel.defenderBalance);
-  const Vec2 aimed = geometry.ball + Vec2{.x = symmetricTriangular(random) * spread,
-                                          .y = symmetricTriangular(random) * spread};
-  // A lunge reaches no farther than tackleReach.
-  const Vec2 reach = aimed - geometry.defender;
-  const double length = reach.length();
-  const Vec2 foot = length > config.tackleReach
-                        ? geometry.defender + (reach * (config.tackleReach / length))
-                        : aimed;
-  return {.foot = foot,
-          .result = resolveLunge(geometry, foot, duel.carrierBalance, ballControl, config)};
-}
+// One step of the duel system: the rules it plays by, the step it runs in,
+// the state the step starts from and the writer it leaves the duel in. Each
+// method plays its part of a duel against these four.
+class DuelStep {
+ public:
+  DuelStep(const DuelRules& rules, const MatchStepContext& context, const MatchState& current,
+           MatchStateWriter& next)
+      : rules_(&rules), context_(&context), current_(&current), next_(&next) {}
 
-// One step of the duel the defender at this index fights.
-void stepDuel(const MatchStepContext& context, const MatchState& current,
-              const std::size_t defenderIndex, const Duel& duel, const DuelRules& rules,
-              MatchStateWriter& next) {
-  const DuelConfig& config = rules.duels;
-  const BallState& ball = current.ball();
-  const PlayerMatchState& defender = current.players()[defenderIndex];
-  const auto carrierIndex = findPlayerIndex(current, duel.carrier);
-  const auto& action = current.tactical(defenderIndex).action;
-  const bool onTheBall = carrierIndex && ball.owner == duel.carrier && canBeTakenOn(ball);
-  const bool pressing = action && action->type == ActionType::kPressCarrier;
-  const double apart =
-      carrierIndex ? SimCore::distance(defender.position, current.players()[*carrierIndex].position)
-                   : 0.0;
-  if (!onTheBall || !pressing || apart > config.breakRadius) {
-    endDuel(context, current, defenderIndex, duel, DuelOutcome::kKept, next);
-    return;
-  }
-  const PlayerMatchState& carrier = current.players()[*carrierIndex];
-  const double seconds = config.intervalTicks * context.secondsPerTick();
-  const bool contact = apart < config.contactDistance;
-  // A defender off his feet pushes nobody and wins nothing.
-  const bool defenderDown = isStumbling(current.tactical(defenderIndex), context.tick());
-  // Both regain balance, and in contact each is pushed off it the more, the
-  // stronger the other is.
-  const auto balanceAfter = [&](const double balance, const PlayerAttributes& own,
-                                const PlayerAttributes& other, const bool pushed) {
-    const double push =
-        pushed ? config.shovePerSecond * clamp01(0.5 + other.strength - own.strength) : 0.0;
-    return clamp01(balance + ((config.recoveryPerSecond - push) * seconds));
-  };
-  Duel stepped = duel;
-  stepped.carrierBalance = balanceAfter(duel.carrierBalance, carrier.attributes,
-                                        defender.attributes, contact && !defenderDown);
-  stepped.defenderBalance =
-      balanceAfter(duel.defenderBalance, defender.attributes, carrier.attributes, contact);
-  // Off his feet -- only a push can take him there while he regains balance
-  // -- he loses the ball to the defender against him.
-  if (stepped.carrierBalance == 0.0) {
-    endDuel(context, current, defenderIndex, duel, DuelOutcome::kWon, next);
-    winBall(context, current, *carrierIndex, defenderIndex, next);
-    stumble(context, *carrierIndex, config, next);
-    return;
-  }
-  stepped.defenderMove = DuelMove::kJockey;
-  if (!defenderDown) {
-    const DuelGeometry geometry = geometryOf(current, *carrierIndex, defenderIndex);
-    const std::vector<double> utilities =
-        defenderUtilities(geometry, stepped.defenderBalance, config);
-    if (chooseByUtility(utilities, config.decisionTemperature, context.random(kDecisions)) == 1) {
-      stepped.defenderMove = DuelMove::kCommit;
-      const Lunge landed =
-          lunge(context, geometry, stepped, carrier.attributes.ballControl, config);
-      stepped.defenderBalance = std::max(0.0, stepped.defenderBalance - config.commitCost);
-      switch (landed.result) {
-        case LungeResult::kWon:
-          endDuel(context, current, defenderIndex, duel, DuelOutcome::kWon, next);
-          winBall(context, current, *carrierIndex, defenderIndex, next);
-          return;
-        case LungeResult::kLoose:
-          endDuel(context, current, defenderIndex, duel, DuelOutcome::kLoose, next);
-          loosenBall(context, current, *carrierIndex, defenderIndex, landed.foot, config, next);
-          return;
-        case LungeResult::kFoul:
-          endDuel(context, current, defenderIndex, duel, DuelOutcome::kFoul, next);
-          stumble(context, defenderIndex, config, next);
-          return;
-        case LungeResult::kMissed:
-          stumble(context, defenderIndex, config, next);
-          break;
+  // One step of the duel the defender at this index fights.
+  void stepDuel(const std::size_t defenderIndex, const Duel& duel) const {
+    const DuelConfig& config = rules().duels;
+    const BallState& ball = current().ball();
+    const PlayerMatchState& defender = current().players()[defenderIndex];
+    const auto carrierIndex = findPlayerIndex(current(), duel.carrier);
+    const auto& action = current().tactical(defenderIndex).action;
+    const bool onTheBall = carrierIndex && ball.owner == duel.carrier && canBeTakenOn(ball);
+    const bool pressing = action && action->type == ActionType::kPressCarrier;
+    const double apart =
+        carrierIndex
+            ? SimCore::distance(defender.position, current().players()[*carrierIndex].position)
+            : 0.0;
+    if (!onTheBall || !pressing || apart > config.breakRadius) {
+      endDuel(defenderIndex, duel, DuelOutcome::kKept);
+      return;
+    }
+
+    const PlayerMatchState& carrier = current().players()[*carrierIndex];
+    const double seconds = config.intervalTicks * context().secondsPerTick();
+    const bool contact = apart < config.contactDistance;
+    // A defender off his feet pushes nobody and wins nothing.
+    const bool defenderDown = isStumbling(current().tactical(defenderIndex), context().tick());
+    // Both regain balance, and in contact each is pushed off it the more, the
+    // stronger the other is.
+    const auto balanceAfter = [&](const double balance, const PlayerAttributes& own,
+                                  const PlayerAttributes& other, const bool pushed) {
+      const double push =
+          pushed ? config.shovePerSecond * clamp01(0.5 + other.strength - own.strength) : 0.0;
+      return clamp01(balance + ((config.recoveryPerSecond - push) * seconds));
+    };
+    Duel stepped = duel;
+    stepped.carrierBalance = balanceAfter(duel.carrierBalance, carrier.attributes,
+                                          defender.attributes, contact && !defenderDown);
+    stepped.defenderBalance =
+        balanceAfter(duel.defenderBalance, defender.attributes, carrier.attributes, contact);
+    // Off his feet -- only a push can take him there while he regains balance
+    // -- he loses the ball to the defender against him.
+    if (stepped.carrierBalance == 0.0) {
+      endDuel(defenderIndex, duel, DuelOutcome::kWon);
+      winBall(*carrierIndex, defenderIndex);
+      stumble(*carrierIndex, config);
+      return;
+    }
+
+    stepped.defenderMove = DuelMove::kJockey;
+    if (!defenderDown) {
+      const DuelGeometry geometry = geometryOf(current(), *carrierIndex, defenderIndex);
+      const std::vector<double> utilities =
+          defenderUtilities(geometry, stepped.defenderBalance, config);
+      if (chooseByUtility(utilities, config.decisionTemperature, context().random(kDecisions)) ==
+          1) {
+        stepped.defenderMove = DuelMove::kCommit;
+        const Lunge landed = lunge(geometry, stepped, carrier.attributes.ballControl, config);
+        stepped.defenderBalance = std::max(0.0, stepped.defenderBalance - config.commitCost);
+        switch (landed.result) {
+          case LungeResult::kWon:
+            endDuel(defenderIndex, duel, DuelOutcome::kWon);
+            winBall(*carrierIndex, defenderIndex);
+            return;
+          case LungeResult::kLoose:
+            endDuel(defenderIndex, duel, DuelOutcome::kLoose);
+            loosenBall(*carrierIndex, defenderIndex, landed.foot, config);
+            return;
+          case LungeResult::kFoul:
+            endDuel(defenderIndex, duel, DuelOutcome::kFoul);
+            stumble(defenderIndex, config);
+            return;
+          case LungeResult::kMissed:
+            stumble(defenderIndex, config);
+            break;
+        }
       }
     }
-  }
-  moveOn(context, current, *carrierIndex, defenderIndex, stepped, rules, next);
-}
 
-// The presser who takes on the carrier at this index, if any: the nearest of
-// the other side who presses him, stands within engageRadius and is on his
-// feet; ties to the first in player order.
-[[nodiscard]] std::optional<std::size_t> findDefender(const MatchStepContext& context,
-                                                      const MatchState& current,
-                                                      const std::size_t carrierIndex,
-                                                      const DuelConfig& config) {
-  const PlayerMatchState& carrier = current.players()[carrierIndex];
-  std::optional<std::size_t> nearest;
-  double nearestDistance = 0.0;
-  for (std::size_t index = 0; index < current.players().size(); ++index) {
-    const PlayerMatchState& player = current.players()[index];
-    const PlayerTacticalState& tactical = current.tactical(index);
-    const bool pressing = player.side != carrier.side && tactical.action &&
-                          tactical.action->type == ActionType::kPressCarrier;
-    const double distance = SimCore::distance(player.position, carrier.position);
-    if (pressing && !isStumbling(tactical, context.tick()) && distance <= config.engageRadius &&
-        (!nearest || distance < nearestDistance)) {
-      nearest = index;
-      nearestDistance = distance;
+    moveOn(*carrierIndex, defenderIndex, stepped);
+  }
+  // Starts a duel on a carrier who has had the ball at his feet long enough, if
+  // a presser is there to take him on.
+  void startDuel() const {
+    const DuelConfig& config = rules().duels;
+    const BallState& ball = current().ball();
+    if (!ball.owner || !canBeTakenOn(ball)) {
+      return;
     }
-  }
-  return nearest;
-}
 
-// Starts a duel on a carrier who has had the ball at his feet long enough, if
-// a presser is there to take him on.
-void startDuel(const MatchStepContext& context, const MatchState& current, const DuelRules& rules,
-               MatchStateWriter& next) {
-  const DuelConfig& config = rules.duels;
-  const BallState& ball = current.ball();
-  if (!ball.owner || !canBeTakenOn(ball)) {
-    return;
+    const SimCore::PlayerId owner = *ball.owner;
+    const auto carrierIndex = findPlayerIndex(current(), owner);
+    const bool settled = !ball.lastTouch || context().time().secondsSince(ball.lastTouch->tick) >=
+                                                config.protectSeconds;
+    if (!carrierIndex || !settled) {
+      return;
+    }
+
+    const auto defenderIndex = findDefender(*carrierIndex, config);
+    if (!defenderIndex) {
+      return;
+    }
+
+    context().record(DuelStarted{.tick = context().tick(),
+                                 .carrier = owner,
+                                 .defender = current().players()[*defenderIndex].playerId,
+                                 .position = ball.position});
+    moveOn(*carrierIndex, *defenderIndex, Duel{.carrier = owner, .since = context().tick()});
   }
-  const SimCore::PlayerId owner = *ball.owner;
-  const auto carrierIndex = findPlayerIndex(current, owner);
-  const bool settled =
-      !ball.lastTouch || context.time().secondsSince(ball.lastTouch->tick) >= config.protectSeconds;
-  if (!carrierIndex || !settled) {
-    return;
+
+ private:
+  void stumble(const std::size_t index, const DuelConfig& config) const {
+    const auto ticks = static_cast<SimCore::SimTick::ValueType>(
+        std::ceil(config.stumbleSeconds / context().secondsPerTick()));
+    next().tactical(index).stumbledUntil = SimCore::SimTick(context().tick().value() + ticks);
   }
-  const auto defenderIndex = findDefender(context, current, *carrierIndex, config);
-  if (!defenderIndex) {
-    return;
+  // Ends the defender's duel where the ball lies now: where the carrier rolled
+  // it, if he turned himself off his feet this step.
+  void endDuel(const std::size_t defenderIndex, const Duel& duel, const DuelOutcome outcome) const {
+    next().tactical(defenderIndex).duel.reset();
+    context().record(DuelEnded{.tick = context().tick(),
+                               .carrier = duel.carrier,
+                               .defender = current().players()[defenderIndex].playerId,
+                               .outcome = outcome,
+                               .position = next().ball().position});
   }
-  context.record(DuelStarted{.tick = context.tick(),
-                             .carrier = owner,
-                             .defender = current.players()[*defenderIndex].playerId,
-                             .position = ball.position});
-  moveOn(context, current, *carrierIndex, *defenderIndex,
-         Duel{.carrier = owner, .since = context.tick()}, rules, next);
-}
+  // The defender takes the ball at the carrier's feet.
+  void winBall(const std::size_t carrierIndex, const std::size_t defenderIndex) const {
+    const SimCore::PlayerId winner = current().players()[defenderIndex].playerId;
+    const SimCore::PlayerId loser = current().players()[carrierIndex].playerId;
+    next().setBallOwner(winner);
+    next().setBallLastTouch(BallTouch{.playerId = winner, .tick = context().tick()});
+    next().setPendingAction(carrierIndex, std::nullopt);
+    context().record(BallWon{.tick = context().tick(),
+                             .winner = winner,
+                             .loser = loser,
+                             .position = current().ball().position,
+                             .cause = BallWonCause::kDuel});
+    context().record(
+        PossessionChanged{.tick = context().tick(), .previousOwner = loser, .newOwner = winner});
+  }
+  // The carrier loses the ball at his feet: it moves on at this velocity, last
+  // touched by the player at index `touchedBy`, and he stumbles.
+  void loseBall(const std::size_t carrierIndex, const std::size_t touchedBy, const Vec2 velocity,
+                const DuelConfig& config) const {
+    next().setBallOwner(std::nullopt);
+    next().setBallVelocity(velocity);
+    next().setBallLastTouch(
+        BallTouch{.playerId = current().players()[touchedBy].playerId, .tick = context().tick()});
+    next().setPendingAction(carrierIndex, std::nullopt);
+    stumble(carrierIndex, config);
+    context().record(PossessionChanged{.tick = context().tick(),
+                                       .previousOwner = current().players()[carrierIndex].playerId,
+                                       .newOwner = std::nullopt});
+  }
+  // The defender's foot knocks the ball away from it.
+  void loosenBall(const std::size_t carrierIndex, const std::size_t defenderIndex, const Vec2 foot,
+                  const DuelConfig& config) const {
+    const Vec2 ball = current().ball().position;
+    const Vec2 lunge = unitOr(ball - current().players()[defenderIndex].position, {});
+    loseBall(carrierIndex, defenderIndex, unitOr(ball - foot, lunge) * config.looseSpeed, config);
+  }
+  // The carrier, unless he is about to play the ball, decides his move: he
+  // rolls the ball round him that way, which costs balance by how far he turns
+  // it, and runs to the move's target -- or, turned off his feet by it, loses
+  // the ball where he rolled it, and the duel ends. The defender jockeys --
+  // once he is back on his feet. The duel is stored as it stands after both.
+  void moveOn(const std::size_t carrierIndex, const std::size_t defenderIndex, Duel duel) const {
+    const DuelConfig& config = rules().duels;
+    const DuelGeometry geometry = geometryOf(current(), carrierIndex, defenderIndex);
+    const Pitch& pitch = current().pitch();
+    if (!next().pendingAction(carrierIndex)) {
+      // A defender off his feet threatens nothing.
+      Duel seen = duel;
+      if (isStumbling(next().tactical(defenderIndex), context().tick())) {
+        seen.defenderBalance = 0.0;
+      }
+      const auto utilities = carrierUtilities(geometry, seen, config);
+      duel.carrierMove = kCarrierMoves.at(
+          chooseByUtility(utilities, config.decisionTemperature, context().random(kDecisions))
+              .value_or(0));
+      const PlayerMatchState& carrier = current().players()[carrierIndex];
+      const Vec2 direction = moveDirection(duel.carrierMove, geometry);
+      duel.carrierBalance =
+          std::max(0.0, duel.carrierBalance -
+                            (config.turnCost * (1.0 - carrier.facing.dot(direction)) / 2.0));
+      next().setBallPosition(
+          pitch.clamp(carrier.position + (direction * rules().physics.carryDistance)));
+      if (duel.carrierBalance == 0.0) {
+        endDuel(defenderIndex, duel, DuelOutcome::kLoose);
+        loseBall(carrierIndex, carrierIndex, {}, config);
+        return;
+      }
+      // Shielding, he stands rather than runs back to where he stood.
+      next().setPlayerTarget(
+          carrierIndex,
+          duel.carrierMove == DuelMove::kShield
+              ? std::nullopt
+              : std::optional(pitch.clamp(moveTarget(duel.carrierMove, geometry, config))));
+    }
+
+    next().setPlayerTarget(defenderIndex,
+                           pitch.clamp(moveTarget(DuelMove::kJockey, geometry, config)));
+    next().tactical(defenderIndex).duel = duel;
+  }
+  // The defender's lunge, decided and landed in this step.
+  [[nodiscard]] Lunge lunge(const DuelGeometry& geometry, const Duel& duel,
+                            const double ballControl, const DuelConfig& config) const {
+    auto& random = context().random(SimCore::RandomNumberGeneratorDomain::kExecution);
+    const double spread = config.footError * (2.0 - duel.defenderBalance);
+    const Vec2 aimed = geometry.ball + Vec2{.x = symmetricTriangular(random) * spread,
+                                            .y = symmetricTriangular(random) * spread};
+    // A lunge reaches no farther than tackleReach.
+    const Vec2 reach = aimed - geometry.defender;
+    const double length = reach.length();
+    const Vec2 foot = length > config.tackleReach
+                          ? geometry.defender + (reach * (config.tackleReach / length))
+                          : aimed;
+    return {.foot = foot,
+            .result = resolveLunge(geometry, foot, duel.carrierBalance, ballControl, config)};
+  }
+  // The presser who takes on the carrier at this index, if any: the nearest of
+  // the other side who presses him, stands within engageRadius and is on his
+  // feet; ties to the first in player order.
+  [[nodiscard]] std::optional<std::size_t> findDefender(const std::size_t carrierIndex,
+                                                        const DuelConfig& config) const {
+    const PlayerMatchState& carrier = current().players()[carrierIndex];
+    std::optional<std::size_t> nearest;
+    double nearestDistance = 0.0;
+    for (std::size_t index = 0; index < current().players().size(); ++index) {
+      const PlayerMatchState& player = current().players()[index];
+      const PlayerTacticalState& tactical = current().tactical(index);
+      const bool pressing = player.side != carrier.side && tactical.action &&
+                            tactical.action->type == ActionType::kPressCarrier;
+      const double distance = SimCore::distance(player.position, carrier.position);
+      if (pressing && !isStumbling(tactical, context().tick()) && distance <= config.engageRadius &&
+          (!nearest || distance < nearestDistance)) {
+        nearest = index;
+        nearestDistance = distance;
+      }
+    }
+
+    return nearest;
+  }
+
+  [[nodiscard]] const DuelRules& rules() const noexcept { return *rules_; }
+  [[nodiscard]] const MatchStepContext& context() const noexcept { return *context_; }
+  [[nodiscard]] const MatchState& current() const noexcept { return *current_; }
+  [[nodiscard]] MatchStateWriter& next() const noexcept { return *next_; }
+
+  const DuelRules* rules_;
+  const MatchStepContext* context_;
+  const MatchState* current_;
+  MatchStateWriter* next_;
+};
 
 }  // namespace
 
@@ -475,13 +484,14 @@ MatchSystem makeDuelSystem(const DuelRules& rules) {
           .update =
               [rules](const MatchStepContext& context, const MatchState& current,
                       MatchStateWriter& next) {
+                const DuelStep step(rules, context, current, next);
                 for (std::size_t index = 0; index < current.players().size(); ++index) {
                   if (const auto& duel = current.tactical(index).duel) {
-                    stepDuel(context, current, index, *duel, rules, next);
+                    step.stepDuel(index, *duel);
                     return;
                   }
                 }
-                startDuel(context, current, rules, next);
+                step.startDuel();
               },
           .intervalTicks = rules.duels.intervalTicks,
           .phaseTicks = 0};
