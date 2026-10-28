@@ -50,6 +50,8 @@ libs/
   sim-player     Capabilities, match/world player state, development           [planned]
   sim-tactics    Principles, phases, responsibilities, spatial targets         [exists: tactic model]
   sim-match      Pitch, ball, perception, decisions, actions, rules            [exists: 7v7 match, see docs/README.md]
+                 headers in layers model → mechanics → loop → behaviour → setup,
+                 checked by tests/architecture (docs/match-engine.md#header-layers)
   sim-world      Calendar, clubs, competitions, economy, careers               [planned]
   sim-ai         Club planning, coach decisions, staff behavior                [planned]
   sim-analytics  Events, metrics, explanations (read-only over domain events)  [exists: match stats, series summaries]

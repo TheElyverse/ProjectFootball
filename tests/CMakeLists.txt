@@ -18,6 +18,13 @@ add_subdirectory(unit)
 # Acceptance scenarios: whole matches, determinism and stability.
 add_subdirectory(acceptance)
 
+# sim-match's headers keep their layers (docs/match-engine.md#header-layers).
+add_test(NAME sim-match-header-layers
+        COMMAND ${CMAKE_COMMAND}
+        -DINCLUDE_DIR=${PROJECT_SOURCE_DIR}/libs/sim-match/include
+                -P ${CMAKE_CURRENT_SOURCE_DIR}/architecture/headerLayers.cmake
+)
+set_tests_properties(sim-match-header-layers PROPERTIES LABELS architecture)
 add_test(NAME sim-cli-smoke
         COMMAND ${CMAKE_COMMAND}
         -DSIM_CLI=$<TARGET_FILE:sim-cli>

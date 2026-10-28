@@ -4,11 +4,45 @@ The frame every match system runs in: the pitch and its coordinates, the
 validated match state, the fixed-timestep loop with its commands and systems,
 the events a step publishes, and how play restarts after the ball goes out.
 
+- [Header layers](#header-layers)
 - [Match geometry](#match-geometry)
 - [Match state](#match-state)
 - [Match loop](#match-loop)
 - [Match events and decision diagnostics](#match-events-and-decision-diagnostics)
 - [Restarts](#restarts)
+
+## Header layers
+
+The public headers of `sim-match` form five layers. A header includes
+`sim-match` headers of its own layer or a lower one only, so the match state
+knows nothing of the systems that change it, and the loop nothing of the
+systems it runs:
+
+| Layer     | What it holds                                                    | Headers, for example                                  |
+|-----------|------------------------------------------------------------------|-------------------------------------------------------|
+| model     | the match state and its parts, events, commands, candidate types | `matchState.hpp`, `matchEvents.hpp`, `passCandidate.hpp` |
+| mechanics | pure physics, geometry and execution, spatial queries            | `ballPhysics.hpp`, `passing.hpp`, `reception.hpp`     |
+| loop      | the fixed-timestep loop and the interface of its systems         | `matchSimulation.hpp`                                 |
+| behaviour | the decisions and the systems that run them                      | `passDecision.hpp`, `ballMovement.hpp`, `duel.hpp`    |
+| setup     | configuration and fixtures that put whole matches together       | `matchSetup.hpp`, `scenarios.hpp`                     |
+
+`tests/architecture/headerLayers.cmake` lists every header's layer and fails
+the `sim-match-header-layers` test for a header that includes one above its
+own, or that belongs to no layer: a new header needs its layer there. Sources
+under `src/` may include anything.
+
+A type an event carries belongs with the events, even when one system makes
+it: the goalkeeper's `SweepCall` and the aerial duel's `AerialPlay` are model,
+so the loop, which records events, does not depend on the goalkeeper or the
+aerial duels.
+
+Systems share one shape. A factory `make…System()` takes the system's own
+configuration, or a `…Rules` struct when it needs more than one, whose fields
+default to the standard configuration. The time a rule needs is a
+`SimCore::StepTime`, which `MatchStepContext::time()` hands out. A system with
+many steps plays them as const methods of one object that holds the rules, the
+context, the state and the writer for the step, as `BallTick` and `DuelStep`
+do, rather than passing all four from function to function.
 
 ## Match geometry
 
