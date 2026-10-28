@@ -59,6 +59,12 @@ using SimMatch::MatchEvent;
   return text;
 }
 
+// ", judged 0.31" when a poor decider misjudged an estimate
+// (docs/on-ball.md#decision-making), empty otherwise.
+[[nodiscard]] std::string judgedNote(const double estimate, const double judged) {
+  return judged != estimate ? std::format(", judged {:.2f}", judged) : std::string();
+}
+
 // Why he did not shoot: that the best shot lost the choice, or why even the
 // best zone of the goal was not on. Empty if he had no shot to consider.
 [[nodiscard]] std::string shotNote(const DecisionDiagnostic& decision) {
@@ -69,12 +75,11 @@ using SimMatch::MatchEvent;
   if (best.isValid()) {
     return std::format("; best shot (utility {:.2f}) not chosen", best.utility);
   }
-  const bool scored = best.rejection != SimMatch::ShotRejection::kTooFar &&
-                      best.rejection != SimMatch::ShotRejection::kGoalUnseen &&
-                      best.rejection != SimMatch::ShotRejection::kTooNarrow;
-  return scored ? std::format("; no shot: {} (goal chance {:.2f})",
-                              SimMatch::shotRejectionName(best.rejection), best.goalChance)
-                : std::format("; no shot: {}", SimMatch::shotRejectionName(best.rejection));
+  return SimMatch::isScored(best.rejection)
+             ? std::format("; no shot: {} (goal chance {:.2f}{})",
+                           SimMatch::shotRejectionName(best.rejection), best.goalChance,
+                           judgedNote(best.goalChance, best.judgedGoalChance))
+             : std::format("; no shot: {}", SimMatch::shotRejectionName(best.rejection));
 }
 
 [[nodiscard]] std::string shotLine(const DecisionDiagnostic& decision, const std::size_t chosen,
@@ -83,12 +88,15 @@ using SimMatch::MatchEvent;
   const SimMatch::ShotContributions parts = SimMatch::shotContributions(shot, decision.shotScoring);
   return line + std::format(
                     "shoots at ({:.1f}, {:.1f}) {:.2f} m high (utility {:.2f}: goal {} "
-                    "secondBall {} possession {}; goal chance {:.2f}, save {:.2f}, block "
-                    "{:.2f}; {}) because {}",
+                    "secondBall {} possession {}; goal chance {:.2f}{}, save {:.2f}{}, block "
+                    "{:.2f}{}; {}) because {}",
                     shot.target.x, shot.target.y, shot.height, shot.utility,
                     signedNumber(parts.goal), signedNumber(parts.secondBall),
-                    signedNumber(parts.possession), shot.goalChance, shot.saveRisk, shot.blockRisk,
-                    context, SimMatch::dominantShotContribution(parts));
+                    signedNumber(parts.possession), shot.goalChance,
+                    judgedNote(shot.goalChance, shot.judgedGoalChance), shot.saveRisk,
+                    judgedNote(shot.saveRisk, shot.judgedSaveRisk), shot.blockRisk,
+                    judgedNote(shot.blockRisk, shot.judgedBlockRisk), context,
+                    SimMatch::dominantShotContribution(parts));
 }
 
 // What he does with the ball at his feet instead of passing or shooting
@@ -184,10 +192,11 @@ using SimMatch::MatchEvent;
       pass.lofted ? std::format(" directness {}", signedNumber(parts.directness)) : std::string();
   line += std::format(
       "{} #{} (utility {:.2f}: completion {} progression {} pressure {} risk {}{}; "
-      "estimated risk {:.2f}; {}{}) because {}",
+      "estimated risk {:.2f}{}; {}{}) because {}",
       passVerb(pass, decision.held), pass.receiver.value(), pass.utility,
       signedNumber(parts.completion), signedNumber(parts.progression), signedNumber(parts.pressure),
-      signedNumber(parts.risk), directness, pass.interceptionRisk, context, shotNote(decision),
+      signedNumber(parts.risk), directness, pass.interceptionRisk,
+      judgedNote(pass.interceptionRisk, pass.judgedInterceptionRisk), context, shotNote(decision),
       reason == SimMatch::OnBallReason::kForcedRejected
           ? std::string("its best rejected option (forcedRejected)")
           : std::string(SimMatch::dominantContribution(parts)));
@@ -242,6 +251,8 @@ std::string_view failureCauseName(const FailureCause cause) noexcept {
   switch (cause) {
     case FailureCause::kPerception:
       return "perception";
+    case FailureCause::kJudgement:
+      return "judgement";
     case FailureCause::kDecision:
       return "decision";
     case FailureCause::kExecution:
@@ -367,9 +378,13 @@ PassOutcome attributeInterception(const SimMatch::PassIntercepted& event,
     }
   }
   const std::size_t chosen = decision.chosen.value_or(0);
-  if (chosen < decision.candidates.size() &&
-      decision.candidates.at(chosen).interceptionRisk >= config.riskyDecision) {
-    outcome.cause = FailureCause::kDecision;
+  if (chosen < decision.candidates.size()) {
+    const SimMatch::PassCandidate& pass = decision.candidates.at(chosen);
+    if (pass.judgedInterceptionRisk >= config.riskyDecision) {
+      outcome.cause = FailureCause::kDecision;
+    } else if (pass.interceptionRisk >= config.riskyDecision) {
+      outcome.cause = FailureCause::kJudgement;
+    }
   }
   return outcome;
 }

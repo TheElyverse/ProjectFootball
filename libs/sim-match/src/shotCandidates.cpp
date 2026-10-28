@@ -214,10 +214,10 @@ struct AxisAim {
 
 [[nodiscard]] ShotRejection rejectionOf(const ShotCandidate& candidate,
                                         const ShotScoringConfig& scoring) noexcept {
-  if (candidate.blockRisk >= scoring.maxBlockRisk) {
+  if (candidate.judgedBlockRisk >= scoring.maxBlockRisk) {
     return ShotRejection::kBlocked;
   }
-  if (candidate.goalChance < scoring.minGoalChance) {
+  if (candidate.judgedGoalChance < scoring.minGoalChance) {
     return ShotRejection::kUnlikely;
   }
   if (candidate.utility <= 0.0) {
@@ -261,8 +261,8 @@ std::string_view shotRejectionName(const ShotRejection rejection) noexcept {
 
 ShotContributions shotContributions(const ShotCandidate& candidate,
                                     const ShotScoringConfig& scoring) noexcept {
-  const double loss = std::max(0.0, 1.0 - candidate.goalChance - candidate.secondBallChance);
-  return {.goal = scoring.goalWeight * candidate.goalChance,
+  const double loss = std::max(0.0, 1.0 - candidate.judgedGoalChance - candidate.secondBallChance);
+  return {.goal = scoring.goalWeight * candidate.judgedGoalChance,
           .secondBall = scoring.secondBallWeight * candidate.secondBallChance,
           .possession = -(scoring.lossWeight * loss)};
 }
@@ -381,21 +381,35 @@ std::vector<ShotCandidate> generateShotCandidates(const MatchState& state,
           candidate.goalChance += inFrame * outcome.goal;
         }
       }
-      candidate.secondBallChance =
-          scoring.reboundShare * (candidate.blockRisk + candidate.saveRisk);
-      candidate.utility = shotContributions(candidate, scoring).total();
+      judgeShotCandidate(
+          candidate,
+          {.block = candidate.blockRisk, .save = candidate.saveRisk, .goal = candidate.goalChance},
+          scoring);
+    }
+  } else {
+    for (ShotCandidate& candidate : candidates) {
+      candidate.rejection = position;
     }
   }
-  for (ShotCandidate& candidate : candidates) {
-    candidate.rejection =
-        position == ShotRejection::kValid ? rejectionOf(candidate, scoring) : position;
-  }
+  orderShotCandidates(candidates);
+  return candidates;
+}
 
+void judgeShotCandidate(ShotCandidate& candidate, const ShotChances& judged,
+                        const ShotScoringConfig& scoring) noexcept {
+  candidate.judgedBlockRisk = judged.block;
+  candidate.judgedSaveRisk = judged.save;
+  candidate.judgedGoalChance = judged.goal;
+  candidate.secondBallChance = scoring.reboundShare * (judged.block + judged.save);
+  candidate.utility = shotContributions(candidate, scoring).total();
+  candidate.rejection = rejectionOf(candidate, scoring);
+}
+
+void orderShotCandidates(std::vector<ShotCandidate>& candidates) {
   std::ranges::sort(candidates, [](const ShotCandidate& left, const ShotCandidate& right) {
     return std::tuple(!left.isValid(), -left.utility, left.column, left.row) <
            std::tuple(!right.isValid(), -right.utility, right.column, right.row);
   });
-  return candidates;
 }
 
 }  // namespace ElyverseFootball::SimMatch

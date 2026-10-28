@@ -47,10 +47,11 @@ straight line from the ball to the target.
 | Component            | Range   | How                                                                 |
 |----------------------|---------|---------------------------------------------------------------------|
 | `interceptionRisk`   | 0 … 1   | chance that some remembered opponent reaches the lane first         |
-| `completion`         | 0 … 1   | `(1 − interceptionRisk) · receiverConfidence`                       |
+| `judgedInterceptionRisk` | 0 … 1 | the risk as he judges it: `interceptionRisk`, unless a poor decider [misjudges](#decision-making) it |
+| `completion`         | 0 … 1   | `(1 − judgedInterceptionRisk) · receiverConfidence`                 |
 | `progression`        | −1 … 1  | meters gained toward the opponent's goal line over the pitch length |
 | `receiverPressure`   | 0 … 1   | `1 − d / pressureRadius` for the nearest remembered opponent at `d` from the target, at least 0 |
-| `utility`            |         | `completion·w_c + progression·w_p − pressure·w_r − risk·w_i`, plus `loftedBias` for a lofted pass |
+| `utility`            |         | `completion·w_c + progression·w_p − pressure·w_r − risk·w_i`, `risk` the judged one, plus `loftedBias` for a lofted pass |
 
 **Interception risk.** The ball's time to reach a point `s` meters along the lane
 follows from rolling friction, `s = v·t − a·t²/2`. Every half meter along the lane
@@ -162,8 +163,10 @@ after a carrier got his touched ball back
    `generateCarryCandidates()` list and score his options from his memory. A
    goalkeeper adds his long balls, and from his hands throws no farther than
    `throwRange` ([goalkeeper distribution](goalkeeper.md#distribution)).
-4. **Choice.** `chooseOnBall()` picks one of the valid passes, the best valid
-   shot or the best valid carry of each kind. Without a valid option -- only
+4. **Choice.** A poor decider first misjudges his passes and shots
+   (`misjudgeOptions()`, from the `kCognition` stream,
+   [decision-making](#decision-making)). `chooseOnBall()` picks one of the
+   valid passes, the best valid shot or the best valid carry of each kind. Without a valid option -- only
    with the ball in a goalkeeper's hands, since holding the ball at the feet is
    always valid -- he keeps the ball; a goalkeeper who has held it in his hands
    for `clearSeconds` (6 s) clears it
@@ -244,7 +247,65 @@ temperature is greedier, a higher one more varied.
 
 The draw comes from the `kAi` random stream: one number per choice, none when
 there is nothing to choose. The exponential is `stableExp()`, so the same seed
-makes the same choices on every platform.
+makes the same choices on every platform. `T` is the player's own
+[temperature](#decision-making).
+
+### Decision-making
+
+`PlayerAttributes::decisionMaking`, in [0, 1] and 0.5 by default
+(`kDefaultDecisionMaking`), is how well a player chooses on the ball: how
+reliably he picks his best option, and how well he estimates his options in the
+first place (implementation plan §6.6). The default decides exactly as before
+the skill existed.
+
+**How reliably he picks.** `choiceTemperature()` scales the softmax temperature
+by `1 + skillTemperatureSpread · (d₀ − d) / d₀`, for his decisionMaking `d` and
+the default `d₀`:
+
+| decisionMaking | Temperature at the defaults | Two options 0.1 apart chosen |
+|----------------|-----------------------------|------------------------------|
+| 1              | 0.0375                      | about 14 : 1                 |
+| 0.5            | 0.15                        | about 2 : 1                  |
+| 0              | 0.2625                      | about 3 : 2                  |
+
+**How well he estimates.** A player below the default misjudges every estimate
+his choice rests on: the interception risk of each pass valid or rejected only
+as `unlikely`, and the block, save and goal chances of his shots.
+`misjudgeOptions()` adds a triangular error of half-width
+`maxMisjudgement · (1 − d / d₀)` (`misjudgementWidth()`), clamps the result to
+[0, 1] and scores the candidate again with it: completion, second ball, utility
+and whether it is still valid follow the misjudged values
+(`judgePassCandidate()`, `judgeShotCandidate()`). At or above the default the
+width is 0: he estimates as well as his perception lets him. A poor decider
+may so take a pass he would have seen as too risky, or pass up a shot he
+misjudged as hopeless.
+
+Each pass gets its own error. The shots get one error each for block, save and
+goal, the same for every zone of the goal: he misjudges the situation, not each
+corner apart. An error per zone would make the best of 35 zones look better
+than it is, and a poor decider would shoot more just for being poor.
+
+The errors draw from their own random stream, `kCognition`: one triangular draw
+per such pass, in list order, then three for the shots if his position allows
+one, and nothing at all for a player at or above the default. The choice still
+draws exactly one number from `kAi`.
+
+**Both estimates stay.** A candidate keeps the estimate from his memory
+(`interceptionRisk`, `blockRisk`, `saveRisk`, `goalChance`) beside the one he
+judged (`judgedInterceptionRisk`, `judgedBlockRisk`, `judgedSaveRisk`,
+`judgedGoalChance`), so the [decision trace](tooling.md#decision-trace) prints
+both when they differ and blames an interception on his `judgement` when he
+misjudged a risky pass as safe.
+
+| Field                    | Default | Meaning                                                  |
+|--------------------------|---------|----------------------------------------------------------|
+| `skillTemperatureSpread` | 0.75    | how far the temperature moves from the default's, in [0, 1) |
+| `maxMisjudgement`        | 0.3     | the worst decider's misjudgement half-width, in [0, 1]   |
+
+Both are part of `DecisionConfig` and so of every replay. In the `clear-chance`
+[scenario](scenarios.md#the-shot-scenarios) a decider of 1 shoots in at least
+98 of 100 seeds, the default in at least 90 and a decider of 0 still in more
+than half.
 
 ### Timing
 
@@ -268,7 +329,8 @@ twice:
 |------------------|---------|-------------------------------------------------|
 | `intervalTicks`  | 6       | ticks between decisions                         |
 | `minHoldSeconds` | 0.5 s   | a new owner keeps the ball at least this long   |
-| `temperature`    | 0.15    | softmax temperature over utility                |
+| `temperature`    | 0.15    | softmax temperature over utility for an average decider |
+| `skillTemperatureSpread`, `maxMisjudgement` | 0.75, 0.3 | how [decision-making](#decision-making) shifts the temperature and how far a poor decider misjudges |
 | `scoring`        |         | the pass candidates' scoring configuration      |
 | `shooting`       |         | the shot candidates' scoring configuration      |
 | `distribution`   |         | how a goalkeeper distributes the ball ([goalkeeper distribution](goalkeeper.md#distribution)) |
@@ -278,8 +340,9 @@ twice:
 | `carrying`       |         | how he weighs holding, turning, carrying and dribbling ([ball carrying](#configuration-5)) |
 
 The system rejects an interval below one tick, a negative or non-finite hold,
-stuck time or margin, a temperature that is not positive and finite, and
-invalid scoring, carrying or distribution. It runs every tick, to follow a
+stuck time or margin, a temperature that is not positive and finite, a
+temperature spread outside [0, 1) or a misjudgement outside [0, 1], and invalid
+scoring, carrying or distribution. It runs every tick, to follow a
 touched ball and to decide when a carrier gets it back, but decides at the
 interval otherwise.
 
@@ -539,11 +602,12 @@ gives the candidate's chances:
 | `blockRisk`        | block over the spread — a wide shot passes the zone on the frame nearest it, so a blocker in front of the goal blocks it too |
 | `saveRisk`         | save over the spread inside the frame                                  |
 | `goalChance`       | goal over the spread inside the frame                                  |
-| `secondBallChance` | `reboundShare` (0.3) of `blockRisk + saveRisk`: a rebound or a corner  |
-| `utility`          | `goal·w_g + secondBall·w_s − loss·w_k`                                 |
+| `judgedBlockRisk`, `judgedSaveRisk`, `judgedGoalChance` | the three as he judges them: themselves, unless a poor decider [misjudges](#decision-making) them |
+| `secondBallChance` | `reboundShare` (0.3) of the judged `blockRisk + saveRisk`: a rebound or a corner |
+| `utility`          | `goal·w_g + secondBall·w_s − loss·w_k`, from the judged goal chance     |
 
 where `loss = 1 − goalChance − secondBallChance` is the chance his team loses the
-ball. `shotContributions(candidate, scoring)` splits the utility into `goal`,
+ball, again from the judged goal chance. `shotContributions(candidate, scoring)` splits the utility into `goal`,
 `secondBall` and `possession`, whose sum is the utility bit for bit;
 `dominantShotContribution()` names the largest, the reason a
 [decision trace](tooling.md#decision-trace) gives.
@@ -560,8 +624,8 @@ when
 
 | Rejection     | When                                                     |
 |---------------|----------------------------------------------------------|
-| `kBlocked`    | `blockRisk` is at least `maxBlockRisk` (0.7)             |
-| `kUnlikely`   | `goalChance` is below `minGoalChance` (0.05)             |
+| `kBlocked`    | the judged `blockRisk` is at least `maxBlockRisk` (0.7)  |
+| `kUnlikely`   | the judged `goalChance` is below `minGoalChance` (0.05)  |
 | `kNotWorthIt` | the utility is 0 or less: keeping the ball is worth more |
 
 Every zone stays in the list with its reason, so a decision can be explained.
@@ -573,8 +637,8 @@ column, then row.
 `chooseOnBall()` offers the valid passes and the **best** valid shot — one shot,
 not every zone of the goal, or a player with seven good zones would shoot seven
 times as often — to the seeded softmax of [pass decisions](#pass-decisions),
-with the same temperature and exactly one draw from the `kAi` stream per
-decision. A side with a tactic scales the shot scoring by the `passingRisk` `r`
+with the same [temperature](#decision-making) and exactly one draw from the
+`kAi` stream per decision. A side with a tactic scales the shot scoring by the `passingRisk` `r`
 of its current phase, as it does the pass scoring (`shotScoringForRisk()`):
 
 | Field           | Scaled by               | Effect of a bold tactic (`r` near 1) |
@@ -652,8 +716,9 @@ from 8 m, 0.41 from 12 m, 0.09 from 18 m and 0.06 from 22 m.
 - He judges a shot as a straight line from the ball to a point of the goal,
   slowing like a rolling ball, the ball a point: he knows neither the
   [flight](#shooting) his strike takes nor the thickness of the posts.
-- How well he decides and misjudges his chances does not depend on him yet;
-  every player chooses with the same temperature.
+- A poor decider's misjudgement is noise around his estimates, not a
+  personality bias toward shooting or passing. Near 0 or 1 the clamp leaves
+  it one-sided: a very safe pass looks a little riskier on average.
 
 ## Shooting
 

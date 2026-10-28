@@ -51,6 +51,7 @@ using ElyverseFootball::SimMatch::TeamSide;
 using ElyverseFootball::SimReplay::attributeInterception;
 using ElyverseFootball::SimReplay::DecisionTracer;
 using ElyverseFootball::SimReplay::FailureCause;
+using ElyverseFootball::SimReplay::failureCauseName;
 using ElyverseFootball::SimReplay::formatTrace;
 using ElyverseFootball::SimReplay::PassDecisionTrace;
 using ElyverseFootball::SimReplay::PassResult;
@@ -72,10 +73,13 @@ struct Interception {
   double confidence = 1.0;
 };
 
-[[nodiscard]] ElyverseFootball::SimReplay::PassOutcome attribute(const Interception& setup) {
+// The passer judged the risk as `judgedRisk`, the estimate itself if empty.
+[[nodiscard]] ElyverseFootball::SimReplay::PassOutcome attribute(
+    const Interception& setup, const std::optional<double> judgedRisk = std::nullopt) {
   PassCandidate pass;
   pass.receiver = PlayerId(2);
   pass.interceptionRisk = setup.estimatedRisk;
+  pass.judgedInterceptionRisk = judgedRisk.value_or(setup.estimatedRisk);
   DecisionDiagnostic decision{.tick = SimTick(30),
                               .player = PlayerId(1),
                               .observations = {},
@@ -161,6 +165,18 @@ TEST_CASE("A pass chosen despite a high estimated risk is a decision failure", "
               .cause == FailureCause::kDecision);
 }
 
+TEST_CASE("A risky pass a poor decider misjudged as safe is a judgement failure",
+          "[decisionTrace]") {
+  const Interception seen{
+      .estimatedRisk = 0.6, .seen = {{.x = 31.0, .y = 20.0}}, .confidence = 1.0};
+  REQUIRE(attribute(seen, 0.3).cause == FailureCause::kJudgement);
+  REQUIRE(failureCauseName(FailureCause::kJudgement) == "judgement");
+  // Judged risky, whatever he estimated, it was his decision.
+  REQUIRE(
+      attribute({.estimatedRisk = 0.3, .seen = {{.x = 31.0, .y = 20.0}}, .confidence = 1.0}, 0.6)
+          .cause == FailureCause::kDecision);
+}
+
 TEST_CASE("A pass judged safe with the interceptor in view is an execution failure",
           "[decisionTrace]") {
   const auto outcome =
@@ -206,6 +222,9 @@ TEST_CASE("A shot is traced with its aim, its chances and its reason", "[decisio
   shot.goalChance = 0.5;
   shot.saveRisk = 0.3;
   shot.blockRisk = 0.1;
+  shot.judgedGoalChance = 0.5;
+  shot.judgedSaveRisk = 0.3;
+  shot.judgedBlockRisk = 0.1;
   shot.secondBallChance = 0.12;
   const DecisionDiagnostic decision{.tick = SimTick(40),
                                     .player = PlayerId(7),
@@ -225,11 +244,22 @@ TEST_CASE("A shot is traced with its aim, its chances and its reason", "[decisio
   REQUIRE(text.starts_with("t=40 #7 shoots at (60.0, 21.2) 0.43 m high (utility "));
   REQUIRE(text.contains("goal chance 0.50, save 0.30, block 0.10"));
   REQUIRE(text.ends_with("because goal\n"));
+
+  // A poor decider's misjudged chances follow the estimates they differ from.
+  DecisionDiagnostic misjudged = decision;
+  misjudged.shots.front().judgedGoalChance = 0.7;
+  misjudged.shots.front().judgedBlockRisk = 0.05;
+  const std::string misjudgedText =
+      formatTrace(std::vector<TraceEntry>{PassDecisionTrace{.decision = misjudged, .outcome = {}}});
+  CAPTURE(misjudgedText);
+  REQUIRE(
+      misjudgedText.contains("goal chance 0.50, judged 0.70, save 0.30, block 0.10, judged 0.05"));
 }
 
 TEST_CASE("A decision without a shot says why the goal was not on", "[decisionTrace]") {
   ShotCandidate shot;
   shot.goalChance = 0.12;
+  shot.judgedGoalChance = 0.12;
   shot.rejection = ShotRejection::kNotWorthIt;
   DecisionDiagnostic decision{.tick = SimTick(40),
                               .player = PlayerId(7),

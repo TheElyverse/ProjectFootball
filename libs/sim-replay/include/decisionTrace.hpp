@@ -23,8 +23,11 @@ enum class FailureCause : std::uint8_t {
   // The passer did not know the interceptor was there: he had not seen him,
   // or believed him far from where he was.
   kPerception,
-  // The passer saw the danger and chose the pass anyway: its estimated
-  // interception risk was high.
+  // The passer saw the interceptor, estimated the pass as risky and, a poor
+  // decider, misjudged it as safe (docs/on-ball.md#decision-making).
+  kJudgement,
+  // The passer saw the danger and chose the pass anyway: its interception
+  // risk as he judged it was high.
   kDecision,
   // The passer saw the interceptor and judged the pass safe; the kick
   // itself -- execution error, pressure on the passer -- let it fail.
@@ -103,8 +106,9 @@ using TruePositions = std::map<SimCore::PlayerId, SimCore::Vec2>;
 // Why the pass the decision chose went to the interceptor: perception if the
 // passer had not seen him (no observation of at least the scoring's
 // minConfidence) or believed him more than perceptionErrorMeters from his
-// true position, decision if the pass's estimated interception risk was at
-// least riskyDecision, execution otherwise.
+// true position, judgement if the pass's estimated interception risk was at
+// least riskyDecision but the risk as he judged it below, decision if the
+// judged risk was at least riskyDecision, execution otherwise.
 [[nodiscard]] PassOutcome attributeInterception(const SimMatch::PassIntercepted& event,
                                                 const SimMatch::DecisionDiagnostic& decision,
                                                 const TruePositions& truePositions,

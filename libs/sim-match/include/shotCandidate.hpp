@@ -88,6 +88,13 @@ enum class ShotRejection : std::uint8_t {
 
 [[nodiscard]] std::string_view shotRejectionName(ShotRejection rejection) noexcept;
 
+// Whether a shot with this rejection was scored: the shooter's position
+// allows a shot -- it is not kTooFar, kGoalUnseen or kTooNarrow.
+[[nodiscard]] constexpr bool isScored(const ShotRejection rejection) noexcept {
+  return rejection != ShotRejection::kTooFar && rejection != ShotRejection::kGoalUnseen &&
+         rejection != ShotRejection::kTooNarrow;
+}
+
 // One shooting option as the shooter sees it: a zone of the goal, the point
 // he aims at in it, and every score component, so that a decision can be
 // explained. The probabilities follow the shot's spread over the goal's
@@ -114,7 +121,14 @@ struct ShotCandidate {
   double saveRisk = 0.0;
   // Chance it goes in, in [0, 1].
   double goalChance = 0.0;
-  // Chance his team gets the ball back from a block or a save, in [0, 1].
+  // The block, save and goal chances as he judges them, which the second
+  // ball, utility and rejection use: the chances themselves, unless a poor
+  // decider misjudged them (docs/on-ball.md#decision-making).
+  double judgedBlockRisk = 0.0;
+  double judgedSaveRisk = 0.0;
+  double judgedGoalChance = 0.0;
+  // Chance his team gets the ball back from a block or a save as he judges
+  // them, in [0, 1].
   double secondBallChance = 0.0;
   double utility = 0.0;
   ShotRejection rejection = ShotRejection::kValid;
