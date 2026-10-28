@@ -8,7 +8,7 @@
 #include <utility>
 #include <vector>
 
-#include "ballMovement.hpp"
+#include "ballPhysics.hpp"
 #include "goldenScenarios.hpp"
 #include "ids.hpp"
 #include "kickoffScenario.hpp"

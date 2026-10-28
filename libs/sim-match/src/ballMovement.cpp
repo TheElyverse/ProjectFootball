@@ -1083,11 +1083,6 @@ void forgetReleases(const MatchState& current, MatchStateWriter& next) {
 
 }  // namespace
 
-Vec2 carriedBallPosition(const PlayerMatchState& carrier, const BallPhysics& physics,
-                         const Pitch& pitch) noexcept {
-  return pitch.clamp(carrier.position + (carrier.facing * physics.carryDistance));
-}
-
 MatchSystem makeBallMovementSystem(const BallPhysics& physics, const PassConfig& passing,
                                    const ReceptionConfig& reception, const RestartConfig& restarts,
                                    const ShotConfig& shooting, const WoodworkConfig& woodwork,

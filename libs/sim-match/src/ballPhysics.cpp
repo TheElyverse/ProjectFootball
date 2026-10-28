@@ -394,4 +394,9 @@ BallState stepFreeBall(const BallState& ball, const BallPhysics& physics, const 
   return stepFreeBallTimed(ball, physics, pitch, secondsPerTick).ball;
 }
 
+SimCore::Vec2 carriedBallPosition(const PlayerMatchState& carrier, const BallPhysics& physics,
+                                  const Pitch& pitch) noexcept {
+  return pitch.clamp(carrier.position + (carrier.facing * physics.carryDistance));
+}
+
 }  // namespace ElyverseFootball::SimMatch

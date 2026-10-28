@@ -191,4 +191,12 @@ struct BallStep {
 [[nodiscard]] BallStep stepFreeBallTimed(const BallState& ball, const BallPhysics& physics,
                                          const Pitch& pitch, double secondsPerTick) noexcept;
 
+// Where a controlled ball is: carryDistance ahead of its carrier along his
+// facing, moved onto the pitch if that lies off it -- a carrier on the line
+// does not carry the ball out of play (docs/ball.md#possession). A carried ball
+// is always on the ground.
+[[nodiscard]] SimCore::Vec2 carriedBallPosition(const PlayerMatchState& carrier,
+                                                const BallPhysics& physics,
+                                                const Pitch& pitch) noexcept;
+
 }  // namespace ElyverseFootball::SimMatch

@@ -3,7 +3,7 @@
 #include <optional>
 #include <string_view>
 
-#include "ballMovement.hpp"
+#include "ballPhysics.hpp"
 #include "goalkeeper.hpp"
 #include "matchSimulation.hpp"
 #include "matchState.hpp"
