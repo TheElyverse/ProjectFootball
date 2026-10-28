@@ -56,17 +56,14 @@ The reusable `Vec2` value type lives in `sim-core` (`vec2.hpp`).
 
 [Editable vector drawing](images/pitch-geometry.svg) · [PNG version](images/pitch-geometry.png)
 
-The example connects `A = (10, 10)` to `B = (40, 30)`. Subtracting the
-positions gives the displacement `(30, 20)` meters. Its length is
-`(30, 20).length()`, approximately 36.06 meters. A velocity of `(6, 4)`
-meters per second multiplied by five seconds gives the same displacement;
-this illustrates vector arithmetic, not an implemented movement system.
+The example connects `A = (10, 10)` to `B = (40, 30)`: the displacement is
+`(30, 20)` meters, its `length()` about 36.06 meters. A velocity of `(6, 4)`
+m/s over five seconds gives the same displacement.
 
-`Pitch` stores only the two dimensions. Grid lines, markings, the center,
-and example points in the drawing illustrate the coordinate system; they are
-not additional stored geometry -- the markings below are derived from the
-dimensions on demand. Boundary checks include a point on the edge
-and reject a point beyond it, without applying ball radius or football rules.
+`Pitch` stores only the two dimensions; the drawing's grid lines, markings and
+points illustrate the coordinate system, and the markings are derived on
+demand. Boundary checks include the edge and reject a point beyond it, without
+ball radius or football rules.
 
 ### Coordinate system
 
@@ -78,17 +75,14 @@ and reject a point beyond it, without applying ball radius or football rules.
 - Coordinates stay fixed when teams change ends. Team attacking direction is a
   separate concern. Renderers map these coordinates to their own screen axes.
 
-`Pitch(60.0, 40.0)` creates a 60 by 40 meter rectangle. These are example
-dimensions, not a mandated 7v7 size. Both dimensions must be positive and finite;
-invalid dimensions throw `std::invalid_argument`.
+`Pitch(60.0, 40.0)` creates a 60 by 40 meter rectangle (example dimensions,
+not a mandated 7v7 size). Both dimensions must be positive and finite, or it
+throws `std::invalid_argument`. Two `Pitch` values are equal when both
+dimensions match exactly, without tolerance.
 
-Two `Pitch` values compare equal when both dimensions match exactly; like `Vec2`,
-the comparison applies no tolerance.
-
-`Pitch::contains()` includes the edges and corners, without an implicit epsilon.
-It returns false for positions containing NaN or infinity. It tests a point,
-not the full ball: out-of-play rules, ball radius, and player movement constraints
-are not part of this geometry API.
+`Pitch::contains()` includes edges and corners, without an implicit epsilon, and
+is false for NaN or infinity. It tests a point, not the ball: ball radius and
+out-of-play rules are not part of this API.
 
 `Pitch::clamp()` returns the point on the pitch nearest to a finite position:
 the position itself when `contains()` holds, otherwise its projection onto the
@@ -96,8 +90,7 @@ nearest edge or corner. Movement commands use it to keep targets on the pitch.
 
 ### Named sizes
 
-Two sizes are named, and neither is imposed: any positive, finite pair of
-dimensions builds a pitch.
+Two sizes are named; any positive, finite pair of dimensions builds a pitch.
 
 - `kStandardLengthMeters` (105) and `kStandardWidthMeters` (68): standard
   eleven-a-side dimensions, the reference pitch the Laws of the Game state every
@@ -108,14 +101,11 @@ dimensions builds a pitch.
 
 ### Markings
 
-`Pitch::markings()` derives the lengths every marking is built from, in meters,
-from the two dimensions alone. `Pitch` stores nothing but the dimensions: the
-markings are computed on demand, two pitches with the same dimensions have the
-same markings, and `operator==` therefore still compares the dimensions only.
-
-The Laws fix every marking and give a range only for the pitch itself, so the
-dimensions are the only thing to configure. `kStandardMarkings` holds the Laws'
-own numbers, which a pitch of another size scales:
+`Pitch::markings()` derives every marking's lengths, in meters, from the two
+dimensions alone, so `operator==` compares only the dimensions. The Laws fix
+every marking and give a range only for the pitch, so the dimensions are all
+there is to configure. `kStandardMarkings` holds the Laws' numbers, which a
+pitch of another size scales:
 
 | Marking | At the standard pitch | Scales with |
 | --- | --- | --- |
@@ -133,18 +123,16 @@ The penalty area is 16.5 meters deep and reaches 16.5 meters to either side of
 the goal (16.5 + 7.32 + 16.5 = 40.32); the goal area does the same with 5.5
 (5.5 + 7.32 + 5.5 = 18.32).
 
-Depths scale with the length, widths across the pitch with the width, and the
-two radii with the smaller of the two factors, so a circle stays a circle
-instead of becoming an ellipse. Because each standard marking is smaller than
-the standard pitch in the direction it scales with, every derived marking fits
-inside its pitch, however small or lopsided: the 60 by 40 meter sandbox pitch
-gets a 4.31 by 1.44 meter goal, a penalty area 9.43 meters deep and 23.72 wide,
-and a center circle of radius 5.23. At 105 by 68 both factors are exactly one,
-so the markings are the Laws' numbers bit for bit.
+Depths scale with the length, widths with the width, and the two radii with
+the smaller factor, so a circle stays a circle. Every standard marking is
+smaller than the standard pitch in its direction, so every derived marking fits
+its pitch: the 60 × 40 m sandbox gets a 4.31 × 1.44 m goal, a penalty area
+9.43 m deep and 23.72 m wide, and a center circle of radius 5.23 m. At 105 × 68
+both factors are exactly one, so the markings are the Laws' numbers bit for
+bit.
 
-Markings are geometry, not rules. Nothing in the simulation treats a line as a
-boundary by itself; offside, penalties and goals are rules built on top of this
-geometry, and none of them exists yet.
+Markings are geometry, not rules: no line is a boundary by itself. Goals are
+[shooting](on-ball.md#goals); offside and penalties do not exist yet.
 
 ### Goals, areas, spots and arcs
 
@@ -165,20 +153,17 @@ teams change ends, so an end says nothing about which side defends it.
   circle and on the pitch. `PitchCorner` names a corner by the goal line and the
   touchline it lies on, `cornerPosition(corner)` gives the corner itself.
 
-`PitchCircle::contains()` includes the edge and rejects non-finite points, the
-way `PitchRect::contains()` and `Pitch::contains()` do. It compares the
-`length()` of the offset against the radius rather than
-their squares, so it stays correct on the extreme pitch sizes where squaring
-would overflow or underflow. Heights are meters above the ground. The pitch geometry stores none of its own:
-a caller supplies the height it asks about, and the ball carries its own
+`PitchCircle::contains()` includes the edge and rejects non-finite points, like
+`PitchRect::contains()` and `Pitch::contains()`. It compares the offset's
+`length()` with the radius, not their squares, so it stays correct where
+squaring would overflow or underflow. Heights are meters above the ground; the
+geometry stores none — callers supply the height, and the ball carries its own
 ([ball movement](ball.md#ball-movement)).
 
-`Goal::framesPoint(pitchY, height)` answers whether a point is inside the frame:
-`isBetweenPosts()` and `isUnderCrossbar()` both hold, so a point beside a post
-or above the crossbar misses. Both edges are included -- a point exactly on a
-post or against the underside of the crossbar is framed -- and neither says
-anything about whether a ball crossed the line or which way it travelled. That
-is for shot and rule code to decide.
+`Goal::framesPoint(pitchY, height)` is true inside the frame: both
+`isBetweenPosts()` and `isUnderCrossbar()` hold. Edges count — a point on a post
+or under the crossbar is framed. Whether a ball crossed the line, and which way,
+is for shot code.
 
 ### Distance and open angle to a goal
 
@@ -198,57 +183,43 @@ Three helpers exist for shot and goalkeeper code:
   behind the goal line gets the same angle as its mirror image, so callers check
   where they stand themselves.
 
-The angle uses `SimCore::stableArcTangent()` rather than `std::atan2`, for the
-same reason perception computes its own cosine and `sim-core` its own
-exponential: the standard functions need not be correctly rounded, and a
-last-bit difference between two machines would be enough to rate the same shot
-differently and make a replay diverge. `stableArcTangent()` works from basic
-arithmetic and `std::sqrt`, both correctly rounded, and is accurate to a few
-units in the last place.
-
-`Vec2::length()`, and with it `SimCore::distance()`, the goal distance and
-the circles' containment, uses `SimCore::stableHypot()` rather than `std::hypot`:
-that too need not be correctly rounded. `stableHypot()` is exactly
-`std::sqrt(x * x + y * y)` wherever the squares are safe and scales both
-components by an exact power of two first where they would overflow or
-underflow.
+Standard math functions such as `std::atan2`, `std::hypot`, `std::exp` and
+`std::cos` need not be correctly rounded; a last-bit difference between machines
+can make a replay diverge. `sim-core` therefore provides its own, built from
+correctly rounded arithmetic and `std::sqrt`: the angle uses
+`SimCore::stableArcTangent()` (accurate to a few units in the last place).
+`Vec2::length()` — and with it `SimCore::distance()`, the goal distance and the
+circles' containment — uses `SimCore::stableHypot()`: exactly
+`std::sqrt(x * x + y * y)` where the squares are safe, scaled by an exact power
+of two first where they would overflow or underflow.
 
 ### Vector operations
 
-`Vec2` stores two doubles by value and defaults to zero. It supports addition,
-subtraction, scalar multiplication, dot product, length, squared length,
-distance, and explicit finite-value checks. It has no owning pointers, dynamic
-allocation, or indexed component access. Units follow the context: a position
-uses meters, a velocity uses meters per second, and velocity multiplied by
-seconds yields displacement.
+`Vec2` holds two doubles by value, zero by default: addition, subtraction,
+scalar multiplication, dot product, length, squared length, distance and
+`isFinite()`. Units follow the context: meters for a position, meters per
+second for a velocity; velocity times seconds is displacement.
 
-Equality compares components exactly. Geometric tolerance checks should use an
-explicit, context-specific tolerance. Arithmetic follows floating-point rules
-and may produce non-finite results for extreme inputs; `isFinite()` allows those
-results to be detected. Length uses `SimCore::stableHypot()`, which is
-bit-identical on every platform and avoids intermediate overflow or underflow
-when squaring components.
+Equality compares components exactly; tolerance checks need an explicit,
+context-specific tolerance. Extreme inputs can give non-finite results, which
+`isFinite()` detects. `length()` uses `SimCore::stableHypot()`.
 
-`lengthSquared()` returns the squared magnitude without the square root. Its unit
-is the square of the component unit: meters squared for a position in meters.
-Compare it against a squared threshold, never against a length. It orders
-magnitudes exactly as `length()` does, and is exact where `length()` rounds, which
-suits proximity and radius comparisons. Unlike `length()`, it squares the
-components directly, so extreme inputs can overflow to infinity.
+`lengthSquared()` is the squared magnitude, in squared units: compare it with a
+squared threshold, never a length. It orders magnitudes exactly like
+`length()`, is exact where `length()` rounds, and can overflow to infinity for
+extreme inputs.
 
-These primitives introduce no randomness. They do not promise bitwise-identical
-floating-point results across different compilers or platforms.
+The primitives draw no random numbers and use only correctly rounded
+operations, so their results are the same on every platform the project builds
+on (the build turns off floating-point contraction).
 
 ## Match state
 
-`MatchState` is the smallest complete picture of a match the simulation works
-on: a pitch, two teams of players, and one ball. It lives in `sim-match`
-(`matchState.hpp`, `kickoffScenario.hpp`) and depends on `sim-core` and, for
-the tactics sides play, `sim-tactics`.
-
-Nothing in this chapter advances time. The state is what the
-[match loop](#match-loop) reads and writes; the loop itself, player movement,
-and ball physics are separate concerns.
+`MatchState` is the smallest complete picture of a match: a pitch, two teams of
+players, and one ball. It is in `sim-match` (`matchState.hpp`,
+`kickoffScenario.hpp`) and depends on `sim-core` and, for the tactics sides
+play, `sim-tactics`. Nothing here advances time: the
+[match loop](#match-loop) reads and writes the state.
 
 ### What a state holds
 
@@ -256,111 +227,88 @@ and ball physics are separate concerns.
 |--------------------|---------------------------------------------------------------------------------|
 | `MatchState`       | the `Pitch`, the players in order, the `BallState`, the squad size per side, every player's perception memory, and each side's tactic |
 | `PlayerMatchState` | `playerId`, `side`, `position`, `velocity`, `attributes`, `target`, `facing`    |
-| `PlayerAttributes` | `maxSpeed` (m/s), `acceleration` (m/s²), `shotAccuracy`, `shotTechnique`, `weakFootAccuracy`, `keeperPositioning`, `keeperAnticipation`, `keeperReflexes`, `keeperHandling`, `jumping`, `heading` and `strength` (0 … 1) and `strongFoot`, fixed for the match |
-| `BallState`        | `position`, `velocity`, `owner`, `lastTouch`, `held`, `touch`                   |
+| `PlayerAttributes` | fixed for the match; see below                                                   |
+| `BallState`        | `position`, `velocity`, `height`, `verticalVelocity`, `spin`, `owner`, `lastTouch`, `held`, `touch` |
 | `TeamSide`         | `kHome` or `kAway`                                                              |
 
-Positions are meters in pitch coordinates, velocities are meters per second, in
-the plane described by [match geometry](#match-geometry). The pitch
-coordinate system is fixed, so `TeamSide` says which squad a player belongs to,
-not by itself which way that squad attacks. The sandbox has no halves yet, so
-home defends `x = 0` and attacks `+x` in every match; systems that need the
-direction take it from `attackingDirection()`, the one place to change once
-rules let teams switch ends.
+Positions are meters and velocities meters per second, in the plane of
+[match geometry](#match-geometry). The coordinates are fixed, so `TeamSide`
+names a squad, not its direction. The sandbox has no halves: home defends
+`x = 0` and attacks `+x` in every match. Systems take the direction from
+`attackingDirection()`, the one place to change once teams switch ends.
 
-`target` is where the player is moving to. It is empty until a command assigns
-one, and without a target a player comes to a stop where he is; see
-[player movement](players.md#player-movement). `attributes` default to `kDefaultMaxSpeed` (7.5 m/s) and
-`kDefaultAcceleration` (4 m/s²), and `shotAccuracy` to `kDefaultShotAccuracy`
-(0.5, an average finisher; see [shot decisions](on-ball.md#shot-decisions)). How he
-strikes a shot is `shotTechnique` and `weakFootAccuracy`, both 0.5 by default,
-and his `strongFoot`, the right ([shooting](on-ball.md#shooting)). How exactly a
-goalkeeper takes up his place and how well he judges a ball played in behind
-are `keeperPositioning` and `keeperAnticipation`, both 0.5 by default
-([goalkeeper](goalkeeper.md#positioning-and-sweeping)); how quickly he reacts to a shot and how surely
-he holds one are `keeperReflexes` and `keeperHandling`, both 0.5 by default,
-and his anticipation is also how well he reads where a shot passes him
-([shot stopping](goalkeeper.md#shot-stopping)). Only a goalkeeper uses them. How high a
-player jumps, how well he times his jump and directs a header, and how well he
-holds his own in a duel are `jumping`, `heading` and `strength`, all 0.5 by
-default ([aerial duels](duels.md#aerial-duels-and-headers)); how closely his touches follow his
-intent and how fast he runs with the ball, and how cleanly he takes it past an
-opponent, are `ballControl` and `dribbling`, both 0.5 by default
-([ball carrying](on-ball.md#ball-carrying)). They describe the
-predefined test players of the sandbox, not a generated player.
-
-The ball's `owner` is the player in control of it, empty while it is free, and
-`lastTouch` the last player to kick or take it; see [possession](ball.md#possession).
-`held` says the owner holds it in his hands: a goalkeeper who took it with them
-([goalkeeper distribution](goalkeeper.md#distribution)). Only an owned ball
-can be held; a new owner has it at his feet until the ball system puts it in
-his hands. `touch` is the owner's touch while the ball rolls ahead of him
-([ball carrying](on-ball.md#ball-carrying)): only an owned ball at the feet can be
-touched on.
-Every player has a slot for the action he has decided on and not yet done,
-`pendingAction(index)`, empty for every player of a state created from a spec.
-The action is a pass (see [passing](on-ball.md#passing)), a shot (see
-[shot decisions](on-ball.md#shot-decisions)) or a touch to turn, carry or dribble (see
-[ball carrying](on-ball.md#ball-carrying)), and only the player on the ball decides
-one; `pendingPass()` finds the pass waiting to be played, if any.
-
-`facing` is the unit vector a player looks along; it decides what he can see. It
-is a vector rather than an angle so that no trigonometry, and none of its
-platform differences, enters the state. The kickoff fixture turns each side
+`target` is where the player is moving to; empty until a command sets one, and
+without one he stops ([player movement](players.md#player-movement)). `facing`
+is the unit vector he looks along and decides what he sees; a vector, not an
+angle, so no trigonometry enters the state. The kickoff fixture turns each side
 toward the goal it attacks.
 
-Each side plays a [tactic](tactics.md#tactic-model) or none: `MatchState::create(spec,
-tactics)` takes them as `TeamTactics { home, away }`, both empty by default. A
-side without a tactic is scripted -- its players move only on commands and after
-free balls, as in the P1 sandbox. A tactic must have one slot per player of its
-side (`kTacticDoesNotFitSquad` otherwise); the player in slot `i` is the `i`-th
-player of his side in `players()`, and `slotIndex(state, playerIndex)` finds it.
-The state hash includes each tactic by its content hash.
+`PlayerAttributes` describe the sandbox's predefined test players, not
+generated ones. All skills lie in [0, 1]:
 
-The state also holds which team has the ball, `possession()` -- the team, the
-tick it won the ball and whether it won it from the opponent -- and the
-tactical phase of each side with a tactic, `phase(side)`. Both are empty in a
-state created from a spec and kept up to date by the tactical phase system; see
-[match phases](team-tactics.md#match-phases). Likewise `pitchControl()` caches the
-[pitch-control](team-tactics.md#pitch-control) grid between refreshes, `chaser(side)` names the
-player each side has sent after a free ball ([reception](ball.md#reception-interceptions-and-loose-balls)), and
-`tactical(playerIndex)` holds each player's tactical runtime state, such as his
-[desired region](team-tactics.md#desired-region), a goalkeeper's
-[dive](goalkeeper.md#shot-stopping), when a player last [jumped](duels.md#aerial-duels-and-headers), the
-[duel](duels.md#duels-on-the-ball) a defender fights and until when a player is off his feet
-after one, and `press(side)` the side's
-[press](team-tactics.md#pressing) in progress. `lastPass()`, `lastShot()` and
-`lastReception()` record the last pass kicked, the last shot taken — with the
-player it last came off, whether its outcome is recorded, and the keeper's
-parry ([shot stopping](goalkeeper.md#shot-stopping)) — and the last
-free ball controlled — with the teammate whose pass it was, if any —, and
-`lastGoal()` the last goal scored. All are empty in a
-state created from a spec.
+| Attribute | Default | Used by |
+|-----------|---------|---------|
+| `maxSpeed`, `acceleration` | 7.5 m/s, 4 m/s² (`kDefaultMaxSpeed`, `kDefaultAcceleration`) | [player movement](players.md#player-movement) |
+| `shotAccuracy` | 0.5, an average finisher | [shot decisions](on-ball.md#shot-decisions) |
+| `shotTechnique`, `weakFootAccuracy`, `strongFoot` | 0.5, 0.5, right | [shooting](on-ball.md#shooting) |
+| `keeperPositioning`, `keeperAnticipation` | 0.5 | [goalkeeper](goalkeeper.md#positioning-and-sweeping); anticipation also reads a shot |
+| `keeperReflexes`, `keeperHandling` | 0.5 | [shot stopping](goalkeeper.md#shot-stopping) |
+| `jumping`, `heading`, `strength` | 0.5 | [aerial duels](duels.md#aerial-duels-and-headers); strength also [duels](duels.md#duels-on-the-ball) |
+| `ballControl`, `dribbling` | 0.5 | [ball carrying](on-ball.md#ball-carrying); ball control also [duels](duels.md#duels-on-the-ball) |
 
-`score()` is the goals both sides have scored. A spec states the score a match
-starts at, 0:0 by default and never negative (`kInvalidScore`); the
+The ball's `owner` controls it, empty while free; `lastTouch` is the last player
+to kick or take it ([possession](ball.md#possession)). `held` means the owner
+holds it in his hands, a goalkeeper who took it with them
+([goalkeeper distribution](goalkeeper.md#distribution)); only an owned ball can
+be held, and a new owner has it at his feet until the ball system puts it in his
+hands. `touch` is the owner's touch while the ball rolls ahead of him
+([ball carrying](on-ball.md#ball-carrying)); only an owned ball at the feet can
+be touched on. `height` and `verticalVelocity` (meters, m/s) and `spin` (top-
+or backspin, rad/s) are its third dimension ([ball movement](ball.md#ball-movement)).
+Validation rejects a non-finite height, a ball below the ground, and a vertical
+velocity or spin that is not finite or beyond `kMaxBallSpeed` and
+`kMaxBallSpin`.
+
+Every player has a slot for an action he has decided and not yet done,
+`pendingAction(index)`: a pass ([passing](on-ball.md#passing)), a shot
+([shot decisions](on-ball.md#shot-decisions)) or a touch to turn, carry or
+dribble ([ball carrying](on-ball.md#ball-carrying)). Only the player on the ball
+decides one; `pendingPass()` finds the waiting pass.
+
+Each side plays a [tactic](tactics.md#tactic-model) or none:
+`MatchState::create(spec, tactics)` takes them as `TeamTactics { home, away }`,
+both empty by default. A side without a tactic is scripted: its players move
+only on commands and after free balls, as in the P1 sandbox. A tactic needs one
+slot per player of its side (`kTacticDoesNotFitSquad` otherwise); the player in
+slot `i` is the `i`-th of his side in `players()`, and
+`slotIndex(state, playerIndex)` finds it. The state hash includes each tactic
+by its content hash.
+
+The systems keep their results in the state too:
+
+| Accessor | Holds | Written by |
+|----------|-------|------------|
+| `possession()`, `phase(side)` | which team has the ball, since when and whether from the opponent; each side's tactical phase | [match phases](team-tactics.md#match-phases) |
+| `pitchControl()` | the latest grid | [pitch control](team-tactics.md#pitch-control) |
+| `chaser(side)` | the player each side sends after a free ball | [reception](ball.md#reception-interceptions-and-loose-balls) |
+| `tactical(playerIndex)` | a player's runtime state: [desired region](team-tactics.md#desired-region), a goalkeeper's [dive](goalkeeper.md#shot-stopping), his last [jump](duels.md#aerial-duels-and-headers), a defender's [duel](duels.md#duels-on-the-ball) and how long he is off his feet | several systems |
+| `press(side)` | the side's [press](team-tactics.md#pressing) in progress | team pressing |
+| `lastPass()`, `lastShot()`, `lastReception()`, `lastGoal()` | the last pass kicked; the last shot, with the player it came off, whether its outcome is recorded and the keeper's parry ([shot stopping](goalkeeper.md#shot-stopping)); the last free ball controlled, with the teammate whose pass it was; the last goal | the ball system |
+| `perception(playerIndex)` | what he believes about the ball and the others ([perception](players.md#perception)) | perception |
+
+All are empty in a state created from a spec; perception is built up by the
+match, so neither the spec nor the replay format has a field for it. The state
+hash includes them all.
+
+`score()` is the goals both sides have scored. A spec states the starting
+score, 0:0 by default and never negative (`kInvalidScore`); the
 [ball system](on-ball.md#goals) counts from there.
 
-Every player also has a perception memory, `perception(playerIndex)`: what he
-believes about the ball and the other players (see [perception](players.md#perception)).
-A state created from a spec starts with every memory empty — perception is built
-up by the match, not given — so the spec and the replay format need no field
-for it; the state hash includes it.
+Energy and the other fields of [implementation plan](implementation-plan.md)
+section 6.2 come with the systems that fill them.
 
-The fields are deliberately few. Orientation, energy, action, perception, and
-tactical runtime state from [implementation plan](implementation-plan.md)
-section 6.2 arrive with the systems that fill them.
-
-The ball carries its third dimension: `height` and `verticalVelocity` in meters
-and meters per second, and `spin` as top- or backspin in radians per second
-(section 6.7, [ball movement](ball.md#ball-movement)). A ball with neither height
-nor vertical velocity lies or rolls on the grass. Validation rejects a
-non-finite height, a ball below the ground, a vertical velocity or spin that is
-not finite, and both of them beyond `kMaxBallSpeed` and `kMaxBallSpin`.
-
-Player order is part of the state. Two states holding the same players in a
-different order are not equal, because the order in which players are updated
-has to stay fixed for a replay to reproduce.
+Player order is part of the state: two states with the same players in a
+different order are not equal, because a replay needs a fixed update order.
 
 ### Construction is validation
 
@@ -487,30 +435,25 @@ treat the table above as a contract, not a default.
 
 ### What this is not
 
-The state does not advance itself: the clock is the [match loop](#match-loop)'s,
-and movement and ball physics are systems that run in it. There is no possession
-and there are no rules here: no offside, no out of play, no fouls. `Pitch::contains()` decides whether
-a position is on the rectangle, nothing more. A player standing on the goal
-line is a valid state, and so is a ball behind it; whether that ball is a goal
-is for the rules to decide.
+- The state does not advance itself; the [match loop](#match-loop) has the
+  clock, and movement and ball physics are systems in it.
+- It holds no rules: no offside, no fouls. A player on the goal line, or a ball
+  behind it, is a valid state; the systems decide what it means.
 
 ## Match loop
 
-`MatchSimulation` advances a match in fixed time steps. It lives in `sim-match`
-(`matchSimulation.hpp`) and works on the [match state](#match-state); it
-depends only on `sim-core`.
-
-The loop owns time, update order and the rules every system follows. It does not
-move anyone by itself: movement, ball physics, perception and decisions arrive as
-systems that plug into it.
+`MatchSimulation` advances a match in fixed time steps. It is in `sim-match`
+(`matchSimulation.hpp`), works on the [match state](#match-state) and depends
+only on `sim-core`. The loop owns time, update order and the rules every system
+follows; it moves nobody itself — movement, ball physics, perception and
+decisions are systems in it.
 
 ### One step, one tick
 
-`step()` advances the match by exactly one tick. It takes no argument — no delta
-time, no timestamp, no frame — so simulation time moves only through `step()`.
-How often a caller steps changes how fast a match plays out on screen, never what
-happens in it: stepping live, fast-forwarding or running headless gives the same
-match.
+`step()` advances the match by exactly one tick. It takes no argument — no
+delta time, no timestamp — so time moves only through `step()`. How often a
+caller steps changes how fast a match plays on screen, never what happens: live,
+fast-forwarded or headless give the same match.
 
 The tick rate is a setting of `MatchSimulationSpec`, 30 Hz by default
 (`kDefaultTicksPerSecond`). Elapsed time is `tick / ticksPerSecond`, one correctly
@@ -523,8 +466,8 @@ rounded division, so 300 ticks at 30 Hz are exactly 10 seconds.
 | `state()`          | the state after the last step                               |
 | `previousState()`  | the state before the last step; equal to `state()` at first |
 
-`previousState()` and `state()` are the two snapshots a presentation layer
-interpolates between to render at any frame rate.
+A presentation layer interpolates between `previousState()` and `state()` to
+render at any frame rate.
 
 ### What happens in a step
 
@@ -554,31 +497,28 @@ the command types:
 | `ChangeTacticCommand` | switches a side to another tactic from this step on               |
 
 `schedule(ScheduledCommand)` queues a command for the step that starts at its
-tick. Commands of one tick apply in the order they were scheduled, which is the
-explicit execution order a replay needs. `schedule()` rejects a tick before
-`tick()`, an unknown player, a non-finite target and a tactic that does not fit
-the squad, and leaves the queue unchanged; a command for `tick()` itself applies in the next step. Commands
-known before kickoff go into `MatchSimulationSpec::commands`, which the
-constructor schedules in order and rejects with `std::invalid_argument`.
+tick; a command for `tick()` itself applies in the next step. Commands of one
+tick apply in scheduling order, the explicit order a replay needs. `schedule()`
+rejects a tick before `tick()`, an unknown player, a non-finite target and a
+tactic that does not fit the squad, and leaves the queue unchanged. Commands
+known before kickoff go into `MatchSimulationSpec::commands`; the constructor
+schedules them in order and throws `std::invalid_argument` for an invalid one.
 
-`appliedCommands()` returns every command applied so far, in application order.
-Together with the initial state, seed and tick rate this is the ordered command
-log of the replay contract.
-
-Commands are applied to a copy of the current state, so a step that fails leaves
-`state()` and the command log as they were.
+`appliedCommands()` returns every command applied so far, in order: with the
+initial state, seed and tick rate, the ordered command log of the replay
+contract. Commands apply to a copy of the current state, so a failed step leaves
+`state()` and the log unchanged.
 
 #### Tactic changes
 
-A coach changes a tactic the way a script or a test does: with a
-`ChangeTacticCommand` carrying the side and the new, already validated tactic.
-There is no second path for AI or user input, so every change lands in the
-ordered command log and a replay reproduces it, tactic content included. The
-change applies at the start of its tick's step and records a `TacticChanged`
-event with the tactic's name and content hash. The side's phase, press and
-the players' tactical state are kept; each system follows the new tactic at its
-next update, the tactical phase within a third of a second. A side that played
-no tactic plays the new one from then on.
+A coach, the AI and a test all change a tactic the same way: a
+`ChangeTacticCommand` with the side and the new, validated tactic. So every
+change is in the command log, and a replay reproduces it, tactic content
+included. It applies at the start of its tick's step and records a
+`TacticChanged` event with the tactic's name and content hash. The side's phase,
+press and the players' tactical state stay; each system follows the new tactic
+at its next update, the tactical phase within a third of a second. A side
+without a tactic plays the new one from then on.
 
 ### Systems
 
@@ -589,22 +529,23 @@ using MatchSystemUpdate = std::function<void(
     const MatchStepContext& context, const MatchState& current, MatchStateWriter& next)>;
 ```
 
-**Read current, write next.** A system never sees what another system wrote in the
-same step, and a player is never updated against positions other players already
-moved to in that step. Update order is fixed, so replays reproduce, but it does
-not change the result: the tenth player and the first see the same pitch. Each
-field should have exactly one system that writes it.
+**Read current, write next.** A player is never updated against positions
+other players already moved to in the same step: the tenth player and the first
+see the same pitch. Update order is fixed, so replays reproduce. Each field
+should have exactly one system that writes it. Where a later system must see an
+earlier one's write in the same step — a stumble from the duel system, for
+instance — it reads the writer instead of `current`.
 
-**Write only what a match changes.** `MatchStateWriter` can set player and ball
-positions and velocities, player targets and facings, perception memories, the
-ball's owner and last touch, and the players' pending actions, and nothing else.
-Squad, ids, sides, attributes, player order and the pitch have no setter, so a
-system cannot break those invariants. Players
-are addressed by their index in `MatchState::players()`.
+**Write only what a match changes.** `MatchStateWriter` sets what systems change
+— positions, velocities, targets, facings, perception, the ball, pending
+actions, tactical state, phases, presses, records and the score. Squad, ids,
+sides, attributes, player order and the pitch have no setter, so no system can
+break those invariants. Players are addressed by their index in
+`MatchState::players()`.
 
-**Keep no state of your own.** Everything that must survive a tick belongs in the
-match state. A copy of a simulation continues exactly like the original only if
-systems remember nothing between ticks.
+**Keep no state of your own.** Everything that must survive a tick belongs in
+the match state; only then does a copy of a simulation continue exactly like
+the original.
 
 **Schedule.** A system runs in the steps whose tick satisfies
 `t % intervalTicks == phaseTicks`. The default, interval 1 and phase 0, runs it
@@ -617,9 +558,9 @@ every tick. At 30 Hz:
 | 5 Hz  | 6        | decisions           |
 | 2 Hz  | 15       | tactical evaluation |
 
-Different phases spread systems of one rate over different ticks. In a step a
-system skips, the fields it writes keep their values. Rates are whole numbers of
-ticks, so the schedule stays exact over a whole match.
+Different phases spread systems of one rate over different ticks. In a skipped
+step, a system's fields keep their values. Rates are whole numbers of ticks, so
+the schedule stays exact over a whole match.
 
 **Randomness.** `context.random(domain)` returns the simulation's stream for a
 `RandomNumberGeneratorDomain`, derived from the spec's seed with
@@ -629,8 +570,9 @@ a replay reproduces.
 ### The standard systems
 
 `matchSetup.hpp` assembles the systems a real match runs. `MatchConfig` holds
-every tunable parameter of those systems — the tick rate, ball physics and
-perception, passing, reception, pursuit, decisions, phases, pitch control, positioning, off-ball and defensive decisions, duels, presses and restarts so far — and `makeMatchSystems(config)` returns them in their fixed order:
+every tunable parameter of those systems, and `makeMatchSystems(config)` returns
+them in their fixed order. Each system's factory takes its configuration, or a
+`…Rules` struct when it needs more ([header layers](#header-layers)):
 
 | Order | System          | Rate       | Writes                         |
 |-------|-----------------|------------|--------------------------------|
@@ -658,24 +600,22 @@ The loop enforces the [match state](#match-state) invariants every tick. The
 writer makes most of them impossible to break; what remains is finiteness, which
 the loop checks after every system with `findNonFiniteValues()`.
 
-Positions off the pitch are allowed. A ball over the touchline or a player behind
-the goal line is football; what it means is for a rules system to decide.
+Positions off the pitch are allowed: a ball over the touchline or a player
+behind the goal line is football, and the systems decide what it means.
 
 A non-finite value or an exception from a system is a defect, not a match event.
-The step stops at that system and the simulation stays at the last good state:
-`state()`, `previousState()` and `tick()` are unchanged. `step()` returns a
-`MatchStepError` naming the tick, the system and the broken values — for an
-exception, the error is recorded and the exception propagates. Every later
-`step()` returns the same error without running anything, and `hasFailed()`
-reports the stopped simulation.
+The step stops at that system, and the simulation stays at the last good state
+(`state()`, `previousState()` and `tick()` unchanged). `step()` returns a
+`MatchStepError` naming the tick, the system and the broken values; an exception
+is recorded and propagates. Every later `step()` returns the same error without
+running anything, and `hasFailed()` reports it.
 
 ### Snapshots and replays
 
-A `MatchSimulation` is copyable, and a copy includes state, clock and random
-streams. The copy is a complete snapshot: stepping it and the original the same
-number of times gives equal states. This is what rewinding and simulating ahead
-of playback build on (see the [game design document](game-design-document.md),
-section 8.10).
+A `MatchSimulation` is copyable, including state, clock and random streams: a
+complete snapshot. Stepping copy and original equally gives equal states;
+rewinding and simulating ahead build on this
+([game design document](game-design-document.md), section 8.10).
 
 A replay is the same `MatchSimulationSpec` built again: initial state, seed, tick
 rate and systems, with the applied commands as its command list — the ordered
@@ -684,17 +624,18 @@ command log of the replay contract in the
 
 ### Performance
 
-A successful step allocates nothing: the next state reuses its storage, the three
-state buffers are swapped rather than rebuilt, and the finiteness check only
-allocates when it has an error to report. Steps without a command skip the
-commanded copy entirely; scheduling a command may allocate, applying it does not. A 90-minute match at 30 Hz is 162,000
-steps, and the world simulation will run many of them headless.
+A successful step allocates nothing: the three state buffers are reused and
+swapped, and the finiteness check allocates only to report an error. Steps
+without a command skip the commanded copy; scheduling a command may allocate,
+applying it does not. A 90-minute match at 30 Hz is 162,000 steps, and the world
+simulation will run many matches headless.
 
 ### What this is not
 
-The loop knows nothing about match length, halves, stoppage time or the end of a
-match; a rules and match-clock system will. Simulation time is never scaled: a
-shorter match ends earlier, it does not run faster.
+- No match length, halves, stoppage time or end of match; a rules and
+  match-clock system will add them.
+- Simulation time is never scaled: a shorter match ends earlier, it does not
+  run faster.
 
 ## Match events and decision diagnostics
 
@@ -818,31 +759,27 @@ events, and whoever needs a log keeps one. Match statistics are
 
 ## Restarts
 
-A ball that leaves the pitch stops on the line where it crossed it
-([ball movement](ball.md#ball-movement)) — also one that went into a goal
-([shooting](on-ball.md#shooting)). Without anything else, players then chase
-it there and play on from the line. That is fine for short scenarios, but over
-a whole match it blurs every statistic: a side can win the ball back by
-walking to a ball it kicked out itself. The restart system settles who plays
-on, simply and deterministically. It is **opt-in** (`MatchConfig::restarts`,
-`enabled = false` by default), so matches recorded without it keep their
-hashes; the [benchmark](tooling.md#sim-benchmark) turns it on.
+A ball that leaves the pitch stops on the line where it crossed
+([ball movement](ball.md#ball-movement)), also one that went into a goal
+([shooting](on-ball.md#shooting)). Without restarts, players chase it there and
+play on from the line — fine for short scenarios, but over a whole match it
+blurs every statistic: a side wins back a ball it kicked out itself. The restart
+system settles who plays on, simply and deterministically. It is **opt-in**
+(`MatchConfig::restarts`, `enabled = false` by default), so matches recorded
+without it keep their hashes; the [benchmark](tooling.md#sim-benchmark) turns it
+on.
 
 ### When
 
-The ball is **out of play** (`isOutOfPlay()`) when it is free, at rest on the
-ground and on a
-touchline or goal line — exactly where a ball that left the pitch stops. At rest
-means in every direction: a ball still in the air over the line, even one at the
-apex of its flight with no speed across the grass, is in play. The
-restart system runs every tick, last in the [standard order](#match-loop),
-and restarts in the step after the ball stopped there.
+The ball is **out of play** (`isOutOfPlay()`) when it is free and at rest on
+the ground on a touchline or goal line, where a ball that left the pitch stops.
+At rest means in every direction: a ball in the air over the line, even at the
+top of its flight, is in play. The restart system runs every tick, last in the
+[standard order](#match-loop), and restarts in the step after the ball stopped.
 
-While restarts are enabled, [ball movement](ball.md#ball-movement) leaves a ball
-that is already out of play alone: a player standing within his control radius
-of the line would otherwise receive or intercept it first — with the events
-that come with that — only for the restart to hand it to the taker in the same
-step.
+With restarts enabled, [ball movement](ball.md#ball-movement) leaves a ball out
+of play alone; otherwise a player near the line would receive or intercept it,
+with events, just before the restart hands it to the taker.
 
 ### Who
 
@@ -862,17 +799,16 @@ since the state's last goal (`MatchState::lastGoal()`).
 
 ### Holding the ball too long
 
-A goalkeeper may hold the ball in his hands for eight seconds (Law 12): the
-referee counts the last five down. One who holds it longer than
-`maxHoldSeconds` (8 s) since he took it -- his last touch -- concedes a
-**corner**, at the corner of his goal line nearer the ball -- unless the
-ball system is just playing the pass or shot he chose before the limit. The
-other side's player nearest that corner, ties to the lower index, takes it: he
-stands on the corner flag at rest, facing the centre of the pitch, the ball at
-his feet. The system records `RestartTaken` (`corner`, the taker, the corner)
-and `PossessionChanged` from the keeper to the taker. The keeper's own way out
-is the [clearance](goalkeeper.md#the-ball-in-his-hands) two
-seconds earlier; there is no visible count.
+A goalkeeper may hold the ball in his hands for eight seconds (Law 12). One
+who holds it longer than `maxHoldSeconds` (8 s) since he took it (his last
+touch) concedes a **corner** at the corner of his goal line nearer the ball —
+unless the ball system is just playing the pass or shot he chose in time. The
+other side's player nearest that corner (ties to the lower index) takes it,
+standing on the corner flag at rest, facing the centre, the ball at his feet.
+The system records `RestartTaken` (`corner`, the taker, the corner) and
+`PossessionChanged` from keeper to taker. The keeper avoids it with his
+[clearance](goalkeeper.md#the-ball-in-his-hands) two seconds earlier. There is
+no visible count.
 
 ### What happens
 
@@ -909,16 +845,15 @@ kicking, ball)` says where everybody stands:
   stands `carryDistance` behind the spot, in his own half, so the ball at his
   feet lies on it; on a pitch shorter than that, on his goal line.
 
-**How they get there.** They are placed, in the one step that takes the
-kickoff: nobody walks back, and no tick is spent waiting for anybody. Both
-sides then start as at the beginning of a match — at rest, facing the goal they
-attack, without movement targets, pending actions, [memories](players.md#perception),
-desired regions, presses, chasers or [pitch control](team-tactics.md#pitch-control), which
-its next refresh computes anew — so nothing of the play before the goal
-carries over the halfway line. **The match clock** runs on as through every
-other restart: a goal costs the step the ball lies in the goal and nothing
-more. There is no stoppage and no added time yet; when the match gets halves
-and a whistle, the time a kickoff takes is theirs to decide.
+**How they get there.** They are placed in the step that takes the kickoff:
+nobody walks back, and no tick is spent waiting. Both sides start as at the
+beginning of a match — at rest, facing the goal they attack, without movement
+targets, pending actions, [memories](players.md#perception), desired regions,
+presses, chasers or [pitch control](team-tactics.md#pitch-control) (its next
+refresh computes it anew) — so nothing of the play before the goal carries over.
+**The match clock** runs on as through every restart: a goal costs only the step
+the ball lies in the goal. No stoppage or added time yet; halves and a whistle
+will decide how long a kickoff takes.
 
 **The same kickoff starts a match.** The [tactic match](scenarios.md#the-tactic-match)
 begins in this line-up with home kicking off, whether restarts are enabled or
@@ -927,9 +862,10 @@ not; only the restart after a goal needs them. Its opening kickoff is a
 
 ### What this is not
 
-No throw-in technique, no set pieces: the ball is simply handed to the right
-side. For a throw-in, a goal kick and a corner, players other than the goal
-kick's and a holding corner's taker do not take up positions; they are wherever the ball's journey
-left them, opponents in the penalty area at a goal kick included. The kickoff is not
-kicked to a teammate and need not go forward: the taker has the ball and
-decides like any other carrier, and the opponents may enter the circle at once.
+- No throw-in technique and no set pieces: the ball is handed to the right
+  side.
+- At a throw-in, goal kick or corner, only the goal kick's taker and a
+  held-ball corner's taker are placed; everyone else stays where the play left
+  him, opponents in the penalty area at a goal kick included.
+- The kickoff need not go to a teammate or forward: the taker decides like any
+  carrier, and opponents may enter the circle at once.
