@@ -9,13 +9,13 @@ data files define.
 
 ## Tactic model
 
-A tactic describes how a team wants to play, independent of any match: where
-its players stand, what each of them is responsible for, and how the team
-behaves in each phase of the game. The `sim-tactics` library
-(`ElyverseFootball::sim-tactics`) holds the data model; it depends on `sim-core`
-only, and `sim-match` reads tactics without `sim-tactics` knowing anything
-about a match. See the [implementation plan](implementation-plan.md), section 7,
-and the [game design document](game-design-document.md), section 8.
+A tactic describes how a team wants to play, apart from any match: where its
+players stand, what each is responsible for, and how the team behaves in each
+phase. The `sim-tactics` library (`ElyverseFootball::sim-tactics`) holds the
+model. It depends only on `sim-core`; `sim-match` reads tactics, and
+`sim-tactics` knows nothing about matches. See the
+[implementation plan](implementation-plan.md), section 7, and the
+[game design document](game-design-document.md), section 8.
 
 ```text
 Tactic
@@ -33,41 +33,40 @@ Tactic
        pressingIntensity, passingRisk, runFrequency
 ```
 
-The description is free text for people -- what the tactic is for and which
-parameters express it; nothing in the match reads it.
+The description is free text for people: what the tactic is for and which
+parameters express it. Nothing in the match reads it.
 
 `Tactic::create(TacticSpec)` is the only way to get a `Tactic`, so every tactic
-that exists is valid. It reports every rule a spec breaks, each with a code, the
-path of the offending field as a tactic file spells it
-(`slots[3].position.depth`, `phases.pressing.lineHeight`) and a message. A
-`Tactic` is immutable; a team changes tactics by getting another one.
+is valid. It reports every rule a spec breaks, each with a code, the path of the
+field as a tactic file spells it (`slots[3].position.depth`,
+`phases.pressing.lineHeight`) and a message. A `Tactic` is immutable; a team
+changes tactics by getting another one.
 
 `referenceTacticSpec()` (`referenceTactic.hpp`) is a neutral, valid tactic for
-tests and hand-built fixtures. Tactics are data: tactic files under
-`data/tactics/` describe them in the [tactic file format](#tactic-file-format).
+tests and hand-built fixtures. Tactic files under `data/tactics/` describe
+tactics in the [tactic file format](#tactic-file-format).
 
 ### Units and conventions
 
 Everything is a fraction of the pitch, so one tactic fits any pitch size.
 
-- **Depth** runs from the team's own goal line (0) to the opponent's (1). A
-  shape reads the same for both teams, whichever way they attack.
+- **Depth** runs from the team's own goal line (0) to the opponent's (1), so a
+  shape reads the same for both teams.
 - **Width** runs from the touchline at `y = 0` (0) to the one at `y = width` (1)
-  in [pitch coordinates](match-engine.md#match-geometry), for both teams alike: a slot at
-  width 0.1 plays near the same touchline for home and away.
+  in [pitch coordinates](match-engine.md#match-geometry), for both teams: a slot
+  at width 0.1 plays near the same touchline for home and away.
 - **Heights and lengths** in phase instructions are fractions of the pitch
-  length, **widths** fractions of the pitch width.
+  length, **widths** fractions of its width.
 - **Dials** (intensity, risk, frequency, shift) are dimensionless, in `[0, 1]`.
 
-A tactic has exactly seven slots: P2 is seven-a-side, eleven-a-side arrives with
+A tactic has exactly seven slots: P2 is seven-a-side; eleven-a-side comes with
 the P3 baseline. The player in slot `i` is the `i`-th player of his side in the
-match, in the order the match state lists them (his place in the line-up).
+match state (his place in the line-up).
 
 ### Base shape
 
 Each slot has a `position` in the base shape: where the player stands relative
-to his teammates. The base shape gives the arrangement; the phase instructions
-give its height and compactness in the match.
+to his teammates. The phase instructions set the shape's height and compactness.
 
 | Field   | Range    | Meaning                                         |
 |---------|----------|-------------------------------------------------|
@@ -78,7 +77,7 @@ give its height and compactness in the match.
 
 A slot holds a list of atomic responsibilities, each with a weight in `(0, 1]`
 that scales its pull on the player's decisions; 1 is a primary duty. A slot may
-hold none: its player simply keeps his place in the shape.
+hold none; its player keeps his place in the shape.
 
 | Responsibility      | Duty                                                        |
 |---------------------|-------------------------------------------------------------|
@@ -93,8 +92,7 @@ hold none: its player simply keeps his place in the shape.
 | `cover`             | protect the space behind a teammate who steps out             |
 | `closePressingLine` | join the press and close the carrier's passing lanes          |
 
-A slot must not hold contradicting duties, which pull the same player to
-different places:
+A slot must not hold duties that pull its player to different places:
 
 - `provideWidth` and `occupyHalfspace`,
 - `runInBehind` and `holdRestDefence`, `runInBehind` and `holdDefensiveLine`,
@@ -105,8 +103,8 @@ At most one slot guards the goal.
 #### Role presets
 
 Familiar roles are presets (`rolePreset.hpp`) that fill a slot's
-responsibilities. The tactic keeps only the responsibilities, so the match never
-knows which preset a slot came from, and a new role needs no new code.
+responsibilities. The tactic keeps only the responsibilities: the match never
+knows a slot's preset, and a new role needs no code.
 
 | Preset              | Responsibilities (weight)                                          |
 |---------------------|--------------------------------------------------------------------|
@@ -133,8 +131,8 @@ Pressing triggers (GDD section 8.7): `poorFirstTouch`, `backPass`,
 `receiverFacingOwnGoal`, `isolatedReceiver`, `slowPass`.
 
 The positioning weights (`targetDistance`, `spacing`, `pressure`, `occupancy`,
-`transitionRisk`) weigh the components of the desired-region cost of the
-implementation plan, section 7.2, against each other.
+`transitionRisk`) weigh the components of the desired-region cost
+(implementation plan, section 7.2) against each other.
 
 ### Phases
 
@@ -161,7 +159,7 @@ The tactic has one instruction per phase.
 | `passingRisk`       | `[0, 1]`  | how much risk the player on the ball accepts going forward, with a pass or a [shot](on-ball.md#shot-decisions) |
 | `runFrequency`      | `[0, 1]`  | how often players run into space instead of holding position |
 
-`lineHeight + blockLength` must not exceed 1: such a block would reach past the
+`lineHeight + blockLength` must not exceed 1; such a block would reach past the
 opponent's goal line.
 
 ### Validation
@@ -186,12 +184,11 @@ order of the table above.
 
 ## Tactic file format
 
-Tactics are data: tactic files under `data/tactics/` describe them, so a
-tactical identity can be tuned without recompiling. The `sim-tactics` library
-reads and writes them (`tacticJson.hpp`); the model they describe is in
-[tactics.md](#tactic-model).
+Tactic files under `data/tactics/` describe tactics, so a tactical identity can
+be tuned without recompiling. `sim-tactics` reads and writes them
+(`tacticJson.hpp`); the [tactic model](#tactic-model) defines what they hold.
 
-### Version 2
+### Version 3
 
 ```json
 {
@@ -251,18 +248,16 @@ seven phases.
 | `principles`       | object | `pressingLine`, `pressingTriggers`, `positioning` weights, `goalkeeper.sweeping` and `goalkeeper.directness` |
 | `phases`           | object | one instruction per phase, keyed by phase name               |
 
-Every field is required except `description`. A slot has either `role` or
-`responsibilities`, not both: a preset plus extra duties would hide what the
-slot really holds. Names are spelled as in [tactics.md](#tactic-model): phases
+Every field except `description` is required. A slot has `role` or
+`responsibilities`, not both: a preset plus extra duties would hide what the slot
+holds. Names, values and ranges are the [model's](#tactic-model): phases
 (`buildUp`, `progression`, ...), responsibilities (`provideWidth`, ...), role
-presets (`winger`, ...) and pressing triggers (`backPass`, ...). Values and
-their ranges are the model's.
+presets (`winger`, ...) and pressing triggers (`backPass`, ...).
 
 ### Loading
 
 `loadTactic(path)` and `parseTacticJson(text, source)` produce the same
-validated `Tactic` that `Tactic::create()` builds in code and apply all of its
-rules. They reject:
+validated `Tactic` as `Tactic::create()` and apply all its rules. They reject:
 
 | Code                  | Cause                                                          |
 |-----------------------|----------------------------------------------------------------|
@@ -271,29 +266,28 @@ rules. They reject:
 | `kUnsupportedVersion` | a `version` other than 3                                        |
 | `kInvalidTactic`      | the tactic breaks a rule of the model; every broken rule is listed |
 
-Every message names the file and the offending field:
+Every message names the file and the field:
 
 ```text
 data/tactics/pressing.json: phases.pressing.lineHeight: 1.3 must lie in [0, 1]
 ```
 
-Unknown fields are errors rather than ignored, so a misspelled key cannot
-silently fall back to nothing.
+Unknown fields are errors, so a misspelled key cannot silently do nothing.
 
-Loading is deterministic: the same file always yields an equal tactic.
+Loading is deterministic: the same file always gives an equal tactic.
 `contentHash()` (`tacticHash.hpp`) hashes the loaded model, not the text, so
-whitespace, key order or a role written out as its responsibilities do not
-change it; replays record it to name the tactic a team played.
-`toTacticJson()` writes a tactic back, with responsibilities written out, and
-reading that text yields an equal tactic.
+whitespace, key order, or a role written out as its responsibilities do not
+change it; replays record it to name the tactic a team played. `toTacticJson()`
+writes a tactic back, with responsibilities written out; reading that text gives
+an equal tactic.
 
 ### Versioning
 
-`version` counts up by one when a reader written against this chapter would
-misread a new file: a field removed, renamed, or changed in type or meaning.
-Readers accept exactly the version they know and reject every other one with
-an error naming it. A new optional field with a documented default does not
-need a new version; a new required one does.
+`version` goes up by one when a reader of the old format would misread a new
+file: a field removed, renamed, or changed in type or meaning. Readers accept
+only the version they know and reject every other one with an error naming it.
+A new optional field with a documented default needs no new version; a new
+required one does.
 
 | Version | Change          |
 |---------|-----------------|
@@ -317,10 +311,10 @@ need a new version; a new required one does.
 ## Tactical identities
 
 Three tactics under `data/tactics/` give the sandbox recognisable styles:
-`possession`, `counter` and `pressing`. They use the same seven-a-side tactic
-model as `reference.json` (see [tactics](#tactic-model) and the
-[file format](#tactic-file-format)) and differ **only in data**: no system knows
-their names, and a new style is a new file.
+`possession`, `counter` and `pressing`. They use the same seven-a-side
+[model](#tactic-model) and [file format](#tactic-file-format) as
+`reference.json` and differ **only in data**: no system knows their names, and a
+new style is a new file.
 
 ### Intent and parameters
 
@@ -336,14 +330,13 @@ their names, and a new style is a new file.
 | `runFrequency` | 0.2–0.35 | 0.5–0.9 | 0.3–0.7 |
 | `blockWidth` in possession | 0.9–0.95 | 0.8 | 0.85 |
 
-The positioning weights follow the same intent: possession values spacing
-and occupancy and guards against transitions (`transitionRisk` 0.8), counter
-cares least about occupancy and transition risk and most about reaching its
-targets.
+The positioning weights follow the same intent: possession values spacing and
+occupancy and guards against transitions (`transitionRisk` 0.8); counter cares
+least about occupancy and transition risk and most about reaching its targets.
 
 `passingRisk` reaches the player on the ball through `scoringForRisk()`
-([pass decisions](on-ball.md#pass-decisions)): the higher it is, the more a pass is
-worth for the ground it gains and the less its interception risk counts.
+([pass decisions](on-ball.md#pass-decisions)): the higher it is, the more a
+pass gains for its ground and the less its interception risk counts.
 
 ### Playing them against each other
 
@@ -363,30 +356,30 @@ setup.
 `tests/acceptance/tacticalIdentityTests.cpp` checks what makes each style
 recognisable, over fixed seeds:
 
-- **Pressing wins the ball back higher.** Over sixty one-minute tactic
-  matches against the reference tactic, pressing regains the ball more often
-  than counter and at least one and a half times as often in the opponent's
-  half (at the time of writing 315 regains, 139 of them high, against 192 and
-  58). Twenty matches were too few: with the goalkeeper's own model they
-  fell below the ratio by chance while sixty kept it.
-- **Counter plays forward after a regain.** A hand-placed moment: home's
-  holding midfielder has just won the ball in midfield, the striker is ahead
-  of him with a defender near the lane, the centre backs behind him are free.
-  In its attacking transition, counter's first action -- a pass, a carry or a
-  dribble ([ball carrying](on-ball.md#ball-carrying)) -- goes more than five metres
-  forward in at least eight more of twenty seeds than possession's does (at
-  the time of writing 14 against 4).
+- **Pressing wins the ball back higher.** Over sixty one-minute tactic matches
+  against the reference tactic, pressing regains the ball more often than
+  counter, and at least one and a half times as often in the opponent's half
+  (at the time of writing 315 regains, 139 of them high, against 192 and 58).
+  Twenty matches were too few: with the goalkeeper's own model they fell below
+  the ratio by chance.
+- **Counter plays forward after a regain.** A hand-placed moment: home's holding
+  midfielder has just won the ball in midfield, the striker ahead of him with a
+  defender near the lane, the centre backs behind him free. In its attacking
+  transition, counter's first action — a pass, a carry or a dribble
+  ([ball carrying](on-ball.md#ball-carrying)) — goes more than five metres
+  forward in at least eight more of twenty seeds than possession's (at the time
+  of writing 14 against 4).
 
-`tacticFilesTests.cpp` additionally pins the direction in which the files
-differ, such as pressing's lower pressing line and counter's deeper block,
-so an edit cannot quietly flatten an identity.
+`tacticFilesTests.cpp` also pins the direction in which the files differ, such
+as pressing's lower pressing line and counter's deeper block, so an edit cannot
+quietly flatten an identity.
 
 ### Over whole matches
 
-The [style benchmark](tooling.md#a-round-robin-of-styles) plays every
-pairing of the three identities. The full run — twenty 90-minute matches per
-pairing, seed 1, restarts on, core 0.18.0, 180 matches — gives, per style over
-its 120 matches home and away, mean and 95 % interval:
+The [style benchmark](tooling.md#a-round-robin-of-styles) plays every pairing
+of the three identities. The full run — twenty 90-minute matches per pairing,
+seed 1, restarts on, core 0.18.0, 180 matches — gives per style, over its 120
+matches home and away, mean and 95 % interval:
 
 | Metric                  | possession            | counter              | pressing               |
 |-------------------------|-----------------------|----------------------|------------------------|
@@ -402,29 +395,28 @@ its 120 matches home and away, mean and 95 % interval:
 | pitch control share     | 0.52 [0.52, 0.53]     | **0.45** [0.44, 0.47]| 0.52 [0.51, 0.53]      |
 | ball in attacking third | 0.29 [0.26, 0.33]     | 0.33 [0.28, 0.38]    | **0.40** [0.37, 0.43]  |
 
-Every pair of styles separates — non-overlapping intervals — on at least
-twelve metrics. What each identity shows:
+Every pair of styles separates — non-overlapping intervals — on at least twelve
+metrics:
 
 - **Pressing** presses about three times as often as possession, wins the ball
-  back most often and twice as often as possession in the attacking third,
-  allows the fewest passes per defensive action, and — winning it high — has
-  the most of the ball and the ball most in the attacking third. It pays with
-  the lowest pass completion.
+  back most often and twice as often as possession in the attacking third, and
+  allows the fewest passes per defensive action. Winning it high, it has the
+  most of the ball and the ball most in the attacking third. It pays with the
+  lowest pass completion.
 - **Counter** never presses, allows the most passes per defensive action,
-  controls the least of the pitch and plays the fewest passes; the ball still
+  controls the least of the pitch and plays the fewest passes; still, the ball
   spends as much time in its attacking third as in possession's.
-- **Possession** plays the longest and a safe passing game, and presses
+- **Possession** plays the longest passes, a safe passing game, and presses
   moderately through its counterpress.
 
-Two things are not there yet: possession does not own the most of the ball —
-the pressing side wins it back so often that it has more — and counter's
-directness shows in few, completed passes rather than in fast progression,
-since players cannot dribble or play a through pass into a run. Both depend on
-match mechanics beyond P2, not on the tactic files.
+At core 0.18.0, two things were not there yet: possession did not own the most
+of the ball — pressing won it back so often that it had more — and counter's
+directness showed in few, completed passes rather than fast progression, since
+players could not yet dribble or play a through pass into a run. Both depend on
+match mechanics, not on the tactic files.
 
 ### What this is not
 
-The styles are as distinct as the P2 systems let them be. Carriers pass to
-where a teammate stands, not into his run, and cannot dribble or hold the ball
-to wait for a runner, so a counter-attack is a sequence of forward passes
-rather than a run with the ball.
+The styles are as distinct as the match systems let them be. Carriers pass to
+where a teammate stands, not into his run, so a counter-attack is mostly a
+sequence of forward passes.
