@@ -209,18 +209,6 @@ void validate(const WoodworkConfig& config) {
   }
 }
 
-std::string_view woodworkPartName(const WoodworkPart part) noexcept {
-  switch (part) {
-    case WoodworkPart::kPostAtMinY:
-      return "postAtMinY";
-    case WoodworkPart::kPostAtMaxY:
-      return "postAtMaxY";
-    case WoodworkPart::kCrossbar:
-      return "crossbar";
-  }
-  return "unknown";
-}
-
 std::optional<WoodworkHit> findWoodworkHit(const BallState& ball, const BallPhysics& physics,
                                            const Pitch& pitch, const WoodworkConfig& config,
                                            const double seconds) noexcept {

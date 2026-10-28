@@ -9,6 +9,7 @@
 
 #include "ballPhysics.hpp"
 #include "ids.hpp"
+#include "matchEvents.hpp"
 #include "matchState.hpp"
 #include "random.hpp"
 #include "reception.hpp"
@@ -95,32 +96,6 @@ struct AerialConfig {
 // exceed the highest, the knock-down range does not exceed the pass range,
 // the dropped share lies in [0, 1] and the speed error below 1.
 void validate(const AerialConfig& config);
-
-// What the winner of an aerial contest did with the ball: headed it at
-// goal, to a teammate or down to one close by, or clear; or, a goalkeeper
-// with his hands, caught it or punched it clear.
-enum class AerialPlay : std::uint8_t {
-  kShot,
-  kPass,
-  kKnockDown,
-  kClearance,
-  kCaught,
-  kPunched,
-};
-
-// "shot", "pass", "knockDown", "clearance", "caught", "punched"; "unknown"
-// outside the enumerators.
-[[nodiscard]] std::string_view aerialPlayName(AerialPlay play) noexcept;
-
-// One player who went up for a high ball: the highest ball centre his jump
-// met it with, and whether that reached it.
-struct AerialContestant {
-  SimCore::PlayerId player;
-  double reach = 0.0;  // m
-  bool reached = false;
-
-  friend bool operator==(const AerialContestant&, const AerialContestant&) = default;
-};
 
 // How high a jump lifts a player of this jumping.
 [[nodiscard]] double jumpRise(double jumping, const AerialConfig& config) noexcept;

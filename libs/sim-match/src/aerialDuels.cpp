@@ -90,24 +90,6 @@ void validate(const AerialConfig& config) {
   }
 }
 
-std::string_view aerialPlayName(const AerialPlay play) noexcept {
-  switch (play) {
-    case AerialPlay::kShot:
-      return "shot";
-    case AerialPlay::kPass:
-      return "pass";
-    case AerialPlay::kKnockDown:
-      return "knockDown";
-    case AerialPlay::kClearance:
-      return "clearance";
-    case AerialPlay::kCaught:
-      return "caught";
-    case AerialPlay::kPunched:
-      return "punched";
-  }
-  return "unknown";
-}
-
 double timingSkill(const PlayerAttributes& attributes, const bool hands) noexcept {
   return hands ? attributes.keeperHandling : attributes.heading;
 }

@@ -9,10 +9,7 @@
 #include <vector>
 
 #include "actionCandidate.hpp"
-#include "aerialDuels.hpp"
 #include "carryCandidate.hpp"
-#include "goalFrame.hpp"
-#include "goalkeeper.hpp"
 #include "ids.hpp"
 #include "matchState.hpp"
 #include "observation.hpp"
@@ -25,6 +22,32 @@
 #include "vec2.hpp"
 
 namespace ElyverseFootball::SimMatch {
+
+// A part of a goal frame: the post at the lower or the higher pitch y, or
+// the crossbar.
+enum class WoodworkPart : std::uint8_t {
+  kPostAtMinY,
+  kPostAtMaxY,
+  kCrossbar,
+};
+
+// "postAtMinY", "postAtMaxY", "crossbar"; "unknown" outside the enumerators.
+[[nodiscard]] std::string_view woodworkPartName(WoodworkPart part) noexcept;
+
+// What the keeper makes of a ball he could come for.
+struct SweepCall {
+  // The seconds he and the first attacker need to reach it; no attacker if
+  // none of them can.
+  double keeperSeconds = 0.0;
+  std::optional<double> attackerSeconds;
+  double misjudgement = 0.0;
+  // The head start he wants, already lowered by the hysteresis if he is
+  // coming.
+  double threshold = 0.0;
+  bool coming = false;
+
+  friend bool operator==(const SweepCall&, const SweepCall&) = default;
+};
 
 // Domain events: immutable facts about what happened in a step, recorded by the
 // systems that made them happen
@@ -296,6 +319,32 @@ struct SaveAttempted {
   double height = 0.0;
 
   friend bool operator==(const SaveAttempted&, const SaveAttempted&) = default;
+};
+
+// What the winner of an aerial contest did with the ball: headed it at
+// goal, to a teammate or down to one close by, or clear; or, a goalkeeper
+// with his hands, caught it or punched it clear.
+enum class AerialPlay : std::uint8_t {
+  kShot,
+  kPass,
+  kKnockDown,
+  kClearance,
+  kCaught,
+  kPunched,
+};
+
+// "shot", "pass", "knockDown", "clearance", "caught", "punched"; "unknown"
+// outside the enumerators.
+[[nodiscard]] std::string_view aerialPlayName(AerialPlay play) noexcept;
+
+// One player who went up for a high ball: the highest ball centre his jump
+// met it with, and whether that reached it.
+struct AerialContestant {
+  SimCore::PlayerId player;
+  double reach = 0.0;  // m
+  bool reached = false;
+
+  friend bool operator==(const AerialContestant&, const AerialContestant&) = default;
 };
 
 // Players went up for a high ball, where it was and how high when the first of
