@@ -8,16 +8,15 @@ the air, for a high ball and the header that follows.
 
 ## Duels on the ball
 
-When a presser gets to a player with the ball at his feet, they fight for it.
-A duel is not one roll for a winner: it is a short sequence, a step ten times a
-second, in which both players read where they stand, how fast, at what angle,
-how well balanced and how well the carrier has the ball, and both act -- the
-carrier shields the ball, turns away with it or accelerates past, the defender
-jockeys or commits to a lunge (GDD section 8.8). What comes of it -- the ball
-kept, won cleanly, knocked loose, or a foul -- follows from the geometry of the
-step a lunge lands in and from the balance the steps before left both players
-with. The model lives in `sim-match` (`duel.hpp`) and replaces the placeholder
-challenge pressing used to win the ball with ([pressing](team-tactics.md#winning-the-ball)).
+When a presser reaches a player with the ball at his feet, they fight for it.
+A duel is no single roll: it is a sequence of steps, ten a second. In each, both
+read position, speed, angle, balance and how well the carrier has the ball,
+and both act. The carrier shields the ball, turns away with it or accelerates
+past; the defender jockeys or lunges (GDD section 8.8). The result — ball kept,
+won cleanly, knocked loose, or a foul — follows from the geometry of the step a
+lunge lands in and the balance the earlier steps left. The model is in
+`sim-match` (`duel.hpp`); pressing wins the ball through it
+([pressing](team-tactics.md#winning-the-ball)).
 
 ```text
 presser within engageRadius → DuelStarted, the defender sizes the carrier up
@@ -30,21 +29,21 @@ every step: ends? (kept) → balance: recovery, shoving, pushed off his feet? (w
 ### Who duels
 
 The "duel" system runs every `intervalTicks` (3 ticks, ten times a second),
-after the pass decision and before movement, in the slot the challenge had
-([match loop](match-engine.md#the-standard-systems)). At most one duel is fought
-at a time: the ball has one carrier.
+after the pass decision and before movement
+([match loop](match-engine.md#the-standard-systems)). At most one duel runs at
+a time: the ball has one carrier.
 
-A duel starts on a carrier who has the ball at his feet -- not rolling ahead of
-him after a touch ([ball carrying](on-ball.md#ball-carrying)), not in a goalkeeper's
-hands -- and has had it for `protectSeconds` (0.5 s) since his last touch: he is
-still settling it, and a winner is not robbed straight back. The defender is
-the nearest player of the other side whose decided action is to press the
-carrier (`pressCarrier`, [defensive shape](team-tactics.md#defensive-shape)), who stands
-within `engageRadius` (1.5 m) of him and is on his feet; ties to the first in
-player order. The step records `DuelStarted`. In it the defender only sizes the
-carrier up -- he jockeys -- while the carrier already decides his first move.
-The duel is part of the defender's tactical state, `PlayerTacticalState::duel`:
-the carrier, when it began, both players' last moves and their balance.
+A duel starts on a carrier with the ball at his feet — not rolling ahead after
+a touch ([ball carrying](on-ball.md#ball-carrying)), not in a goalkeeper's
+hands — who has had it for `protectSeconds` (0.5 s) since his last touch, so a
+winner is not robbed straight back. The defender is the nearest opponent who
+has decided to press the carrier (`pressCarrier`,
+[defensive shape](team-tactics.md#defensive-shape)), stands within
+`engageRadius` (1.5 m) and is on his feet; ties go to the first in player order.
+The step records `DuelStarted`. In it the defender only jockeys, while the
+carrier already decides his first move. The duel is part of the defender's
+tactical state, `PlayerTacticalState::duel`: the carrier, the start, both
+players' last moves and their balance.
 
 ### A step
 
@@ -72,10 +71,9 @@ for perception -- by `chooseByUtility()` at `decisionTemperature` (0.2), one
 draw each from the `kAi` stream. The lunge's foot draws two numbers from
 `kExecution`. Nothing else is drawn, so a duel replays exactly.
 
-Because the defender acts on the ball where the carrier's last move left it,
-the carrier protects the ball by reading the situation, not by reacting to a
-lunge already on its way: a ball he rolled behind him a step ago is out of
-reach, one he dragged to the side to get away is not.
+The defender acts on the ball where the carrier's last move left it. So the
+carrier protects the ball by reading the situation, not by reacting to a lunge:
+a ball he rolled behind him is out of reach, one he dragged sideways is not.
 
 ### The geometry
 
@@ -181,9 +179,9 @@ tactical state as `stumbledUntil` (`isStumbling()`). Until then he
 
 A restart gets its taker up again ([restarts](match-engine.md#restarts)).
 
-So a loose ball is scrappy: the carrier is down, the defender cannot take back
-his own touch for the reclaim delay, and whoever is quickest to it gets it. A
-beaten defender stands while the carrier accelerates away from him.
+So a loose ball is scrappy: the carrier is down, the defender cannot retake
+his own touch during the reclaim delay, and the quickest player gets it. A
+beaten defender stands while the carrier accelerates away.
 
 ### How a duel ends
 
@@ -194,11 +192,11 @@ beaten defender stands while the carrier accelerates away from him.
 | `loose` | a lunge met it, but not that well, or the carrier turned himself off his feet | `DuelEnded`, `PossessionChanged` to nobody |
 | `foul`  | a lunge went through the man                                 | `DuelEnded`                                                  |
 
-A foul is only recorded for now: play goes on with the carrier on the ball, and
-the defender off his feet. Whistling it, the free kick and cards come with the
-fouls of the P3 rules baseline. A won or loose ball drops
-the carrier's pending pass, shot or touch, as the ball system would discard
-it anyway ([ball movement](ball.md#ball-movement)). `DuelStarted` and `DuelEnded`
+A foul is only recorded for now: play goes on, the carrier on the ball, the
+defender off his feet. Whistle, free kick and cards come with the P3 rules
+baseline. A won or loose ball drops the carrier's pending pass, shot or touch,
+which the ball system would discard anyway
+([ball movement](ball.md#ball-movement)). `DuelStarted` and `DuelEnded`
 name the carrier and the defender and where the ball was -- for a carrier who
 turned himself off his feet, where he rolled it ([match events](match-engine.md#match-events-and-decision-diagnostics)).
 
@@ -242,25 +240,24 @@ for others to chase.
 
 ### What this is not
 
-There is no tackle but the lunge: no slide, no block of a shot or a cross, and
-no shoulder-to-shoulder duel while both run. There is no feint, and no
-dribble past a defender inside a duel -- a carrier who touches the ball on
-leaves the duel and [dribbles](on-ball.md#dribble). A foul has no
-consequence but the defender's stumble; no free kick, no card, no advantage.
-Players' bodies do not block each other's runs, only the way of a foot, and a
-player turns at once rather than at a rate. Duels for a ball in the air are
-[aerial duels](#aerial-duels-and-headers).
+- No tackle but the lunge: no slide, no block of a shot or cross, no
+  shoulder-to-shoulder duel on the run.
+- No feint, and no dribble inside a duel: a carrier who touches the ball on
+  leaves the duel and [dribbles](on-ball.md#dribble).
+- A foul has no consequence but the defender's stumble: no free kick, card or
+  advantage.
+- Bodies block only the way of a foot, not runs; players turn at once.
+- Duels for a ball in the air are [aerial duels](#aerial-duels-and-headers).
 
 ## Aerial duels and headers
 
-A ball in the air belongs to whoever gets highest to it first. When a high
-ball comes to a player, everyone near enough goes up for it; their jumps are
-timed and reach so high, and of those who get to it the duel decides who wins
-it. The winner heads it — at goal, to a teammate, down to one close by, or
+When a high ball comes to a player, everyone near enough goes up for it. Each
+jump has a timing and a reach; among those who reach the ball, a duel decides
+the winner. He heads it — at goal, to a teammate, down to one close by, or
 clear — and a goalkeeper in his area catches it or punches it clear
-(implementation plan §6.1, stage M6; GDD §8.8). The model lives in
-`sim-match` (`aerialDuels.hpp`), and the [ball system](ball.md#ball-movement)
-plays it out where the ball meets the players.
+(implementation plan §6.1, stage M6; GDD §8.8). The model is in `sim-match`
+(`aerialDuels.hpp`); the [ball system](ball.md#ball-movement) plays it out
+where the ball meets the players.
 
 ```text
 high ball → first contact: findAerialContact()
@@ -272,10 +269,10 @@ high ball → first contact: findAerialContact()
 
 ### In the air or on the ground
 
-The ball's height decides whether a contest is aerial at all. A ball no higher
-than `controlHeight` (1 m) where a player gets to it is taken at his feet as
-it always was ([reception](ball.md#reception-interceptions-and-loose-balls)): the first to reach it has it. The
-same delivery played above that is contested in the air.
+The ball's height decides. A ball no higher than `controlHeight` (1 m) where a
+player reaches it is taken at his feet
+([reception](ball.md#reception-interceptions-and-loose-balls)): the first to
+reach it has it. Above that it is contested in the air.
 
 `findAerialContact()` finds the first player to get to a high ball on its way
 in a tick, with the same search reception uses (`findFirstReach()`), each
@@ -291,23 +288,20 @@ player reaching it as `aerialReach()` says:
 - and up to `attemptMargin` (0.3 m) beyond that: a player goes up for a ball a
   little too high for him, and does not get to it.
 
-A ball that a player gets to in the air at the same moment as, or before,
-anyone takes one at his feet, is contested. A ball that never rises above
-`controlHeight` in the tick — on the grass, or coming down from no higher —
-is not searched at all (`mayRiseAbove()`). A keeper's hands used to take every
-ball up to `handsHeight` in his area; a ball above `controlHeight` there is
-now contested like any other, and uncontested he still holds it.
+A ball reached in the air no later than anyone takes it at his feet is
+contested. A ball that never rises above `controlHeight` in the tick is not
+searched (`mayRiseAbove()`). In his area a keeper's hands contest a ball above
+`controlHeight` like anyone; uncontested he holds it.
 
-A player who went up for a ball is **in the air** for `landingSeconds` (0.6 s)
-after (`isInTheAir()`, the `lastJump` of his tactical state): he goes up for
-no other ball until he has landed, so a ball nobody reached is not contested
-again by the same players as it flies on, nor taken at their feet in the same
-tick. It flies on past them to the keeper who faces it and to whoever else
-gets to it first. Like reception, the contest leaves
-out a keeper busy with a dive or facing a shot ([shot stopping](goalkeeper.md#shot-stopping))
-and the ball's last touch within `reclaimDelaySeconds` (`mayCompete()`). A shot
-still fast enough to come off a body is no aerial ball: it is
-[deflected](on-ball.md#on-the-way).
+A player who went up is **in the air** for `landingSeconds` (0.6 s)
+(`isInTheAir()`, the `lastJump` of his tactical state). Until he lands he goes
+up for no other ball, so the same players do not contest a ball nobody reached
+again, nor take it at their feet in the same tick. It flies on to the keeper
+who faces it and to whoever reaches it next. Like reception, the contest leaves
+out a keeper busy with a dive or facing a shot
+([shot stopping](goalkeeper.md#shot-stopping)) and the ball's last touch within
+`reclaimDelaySeconds` (`mayCompete()`). A shot fast enough to come off a body is
+no aerial ball: it is [deflected](on-ball.md#on-the-way).
 
 ### Who goes up
 
@@ -357,12 +351,11 @@ utility = reachWeight · min(reach − ball height, reachCap)
 ```
 
 with `reachWeight` 4 per meter up to `reachCap` (0.3 m), `arrivalWeight` 5 per
-second, and `strengthWeight`, `bodyWeight` and `keeperAdvantage` 1. So arrival
-time, reach, jump, strength and body position all decide, and a player who gets
-there 0.1 s late gives away half a point — as much as half the gap between the
-weakest and the strongest player.
+second, and `strengthWeight`, `bodyWeight` and `keeperAdvantage` 1. Arriving
+0.1 s late costs half a point — half the gap between the weakest and the
+strongest player.
 
-Nobody reaching the ball, it flies on as if they were not there.
+If nobody reaches the ball, it flies on as if they were not there.
 
 ### The keeper's hands
 
@@ -374,9 +367,8 @@ always. Held, he has the ball like any player who takes a free ball. Dropped,
 he punches it: it leaves his fists as a clearance would leave a head, his
 errors scaled by his handling rather than heading.
 
-So the keeper's handling is his advantage three times over: his hands reach
-higher than a head and from farther away, it counts in the duel, and it decides
-whether he holds what he wins.
+So handling helps the keeper three times: his hands reach higher and farther
+than a head, it counts in the duel, and it decides whether he holds the ball.
 
 ### The header
 
@@ -501,15 +493,15 @@ players' side is `PlayerAttributes` ([match state](match-engine.md#match-state))
 
 ### What this is not
 
-Nobody but a goalkeeper lofts a pass, and nobody crosses a ball yet: a high
-ball comes off a keeper's long ball
-([goalkeeper distribution](goalkeeper.md#distribution)), a shot, a deflection,
-a parry or the woodwork, or from a test. A keeper who holds a ball he caught in
-the air distributes it like any ball in his hands. The jump is resolved at
-the moment the ball arrives: a player does not leave the ground before it,
-hang in the air or land somewhere else, and the movement system does not know
-he jumped. There are no fouls in the air, no header on the run toward a spot
-he heads for, no diving header and no chest or thigh control of a ball
-between the feet and the head. A header goal earns no assist: the scorer never
-received the ball, and his header shot clears a reception of his from before. Who heads how well is still the predefined attributes of
-the sandbox, not a generated player.
+- No crosses, and only goalkeepers loft passes: a high ball comes from a
+  keeper's long ball ([goalkeeper distribution](goalkeeper.md#distribution)), a
+  shot, a deflection, a parry, the woodwork or a test. A keeper who catches a
+  ball distributes it like any ball in his hands.
+- The jump happens at the ball's arrival: no take-off before it, no hang time,
+  no landing elsewhere; the movement system does not know he jumped.
+- No fouls in the air, no header on the run, no diving header, no chest or
+  thigh control.
+- A header goal earns no assist: the scorer never received the ball, and his
+  header shot clears an earlier reception of his.
+- Heading skill comes from the sandbox's predefined attributes, not generated
+  players.
