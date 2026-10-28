@@ -518,7 +518,8 @@ TEST_CASE("A diving keeper moves tick by tick and is down once the ball passed",
     REQUIRE(simulation.step().has_value());
     across.push_back(simulation.state().players()[7].position.y - kKeeper.y);
     const bool down =
-        isDiving(simulation.state().tactical(7), simulation.tick(), 1.0 / kTicksPerSecond);
+        isDiving(simulation.state().tactical(7),
+                 {.tick = simulation.tick(), .secondsPerTick = 1.0 / kTicksPerSecond});
     wasDown = wasDown || down;
     upAgain = upAgain || (wasDown && !down);
   }

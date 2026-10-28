@@ -108,7 +108,8 @@ constexpr double kSecondsPerTick = 1.0 / 30.0;
 
 [[nodiscard]] std::vector<CarryCandidate> candidatesOf(const MatchState& state,
                                                        const CarryCandidateRules& rules = {}) {
-  return generateCarryCandidates(state, 0, SimTick(1), kSecondsPerTick, rules);
+  return generateCarryCandidates(state, 0, {.tick = SimTick(1), .secondsPerTick = kSecondsPerTick},
+                                 rules);
 }
 
 [[nodiscard]] std::vector<CarryCandidate> ofKind(const std::vector<CarryCandidate>& candidates,

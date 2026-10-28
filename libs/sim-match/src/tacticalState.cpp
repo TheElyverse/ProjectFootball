@@ -68,16 +68,13 @@ bool isBusy(const KeeperDive& dive, const double seconds) noexcept {
   return seconds < dive.landSeconds + dive.recoverySeconds;
 }
 
-bool isDiving(const PlayerTacticalState& tactical, const SimCore::SimTick now,
-              const double secondsPerTick) noexcept {
+bool isDiving(const PlayerTacticalState& tactical, const SimCore::StepTime time) noexcept {
   const auto& dive = tactical.dive;
-  return dive &&
-         isBusy(*dive, static_cast<double>(now.value() - dive->tick.value()) * secondsPerTick);
+  return dive && isBusy(*dive, time.secondsSince(dive->tick));
 }
 
-bool isOffHisFeet(const PlayerTacticalState& tactical, const SimCore::SimTick now,
-                  const double secondsPerTick) noexcept {
-  return isStumbling(tactical, now) || isDiving(tactical, now, secondsPerTick);
+bool isOffHisFeet(const PlayerTacticalState& tactical, const SimCore::StepTime time) noexcept {
+  return isStumbling(tactical, time.tick) || isDiving(tactical, time);
 }
 
 }  // namespace ElyverseFootball::SimMatch

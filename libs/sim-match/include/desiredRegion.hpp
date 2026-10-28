@@ -66,8 +66,7 @@ struct PositioningConfig {
 // side.
 [[nodiscard]] PositionCost evaluatePosition(const MatchState& state, std::size_t playerIndex,
                                             SimCore::Vec2 candidate, SimCore::Vec2 target,
-                                            SimCore::SimTick now, double secondsPerTick,
-                                            const PositioningConfig& config,
+                                            SimCore::StepTime time, const PositioningConfig& config,
                                             const PerceptionConfig& perception);
 
 // The player's desired region now: the cheapest of a bounded set of
@@ -77,7 +76,7 @@ struct PositioningConfig {
 // evaluations.
 [[nodiscard]] DesiredRegion chooseDesiredRegion(const MatchState& state, std::size_t playerIndex,
                                                 SimTactics::TacticalPhase phase,
-                                                SimCore::SimTick now, double secondsPerTick,
+                                                SimCore::StepTime time,
                                                 const PositioningConfig& config,
                                                 const PerceptionConfig& perception);
 

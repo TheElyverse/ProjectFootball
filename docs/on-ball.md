@@ -17,7 +17,7 @@ dribbles.
 Before a player on the ball decides, he lists his passing options and scores
 each of them — from what he believes, not from the true state. Candidate
 generation lives in `sim-match` (`passCandidates.hpp`) as a pure function,
-`generatePassCandidates(state, carrierIndex, now, secondsPerTick, rules)`. It is
+`generatePassCandidates(state, carrierIndex, time, rules)`. It is
 the *generate candidates* and *estimate utility* part of the decision pipeline
 (implementation plan, section 6.6); choosing among the candidates and playing the
 pass are separate steps.
@@ -437,7 +437,7 @@ blocked, saved, a goal, a second ball — and offers his best shot to the same
 [choice](#pass-decisions) his passes compete in. The decision records where he
 aims; how well he strikes it is [execution](#shooting)'s business. Candidate generation lives
 in `sim-match` (`shotCandidates.hpp`) as the pure function
-`generateShotCandidates(state, shooterIndex, now, secondsPerTick, rules)`; the
+`generateShotCandidates(state, shooterIndex, time, rules)`; the
 choice and the pending shot live in the decision system of
 [pass decisions](#pass-decisions).
 

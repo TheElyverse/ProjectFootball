@@ -70,8 +70,7 @@ inline constexpr double kMaxRegionPenalty = 2.0;
 // Everything that scores a candidate position against a player's desired
 // region.
 struct RegionContext {
-  SimCore::SimTick now;
-  double secondsPerTick = 0.0;
+  SimCore::StepTime time;
   const PositioningConfig* positioning = nullptr;
   const PerceptionConfig* perception = nullptr;
 };
@@ -81,10 +80,9 @@ struct RegionContext {
 [[nodiscard]] inline double regionPenalty(const MatchState& state, const std::size_t playerIndex,
                                           const SimCore::Vec2 target, const DesiredRegion& region,
                                           const RegionContext& context) {
-  const double cost =
-      evaluatePosition(state, playerIndex, target, region.tacticalTarget, context.now,
-                       context.secondsPerTick, *context.positioning, *context.perception)
-          .total;
+  const double cost = evaluatePosition(state, playerIndex, target, region.tacticalTarget,
+                                       context.time, *context.positioning, *context.perception)
+                          .total;
   return std::clamp(cost - region.cost.total, 0.0, kMaxRegionPenalty);
 }
 

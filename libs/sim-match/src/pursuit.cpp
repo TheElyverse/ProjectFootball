@@ -122,8 +122,7 @@ void leaveToOwner(const MatchState& current,
     const bool owns = ball.owner == player.playerId;
     const bool justPassed =
         moving && ball.lastTouch && ball.lastTouch->playerId == player.playerId && !owns;
-    const bool down =
-        isOffHisFeet(current.tactical(index), context.tick(), context.secondsPerTick());
+    const bool down = isOffHisFeet(current.tactical(index), context.time());
     // His hands only while he may still use them, as when he claims it.
     const auto hands = isGoalkeeper(current, index) && !hasReleasedBall(current, index)
                            ? std::optional(HandsReach{.end = ownGoalEnd(player.side),

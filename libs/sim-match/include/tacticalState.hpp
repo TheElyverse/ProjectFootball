@@ -262,15 +262,14 @@ struct PlayerTacticalState {
 // down. A keeper who left the ball never is.
 [[nodiscard]] bool isBusy(const KeeperDive& dive, double seconds) noexcept;
 
-// Whether a goalkeeper is busy with a dive at the start of tick now: he takes
+// Whether a goalkeeper is busy with a dive at the start of `time`: he takes
 // no ball and chases none until he is up again
 // (docs/goalkeeper.md#shot-stopping).
-[[nodiscard]] bool isDiving(const PlayerTacticalState& tactical, SimCore::SimTick now,
-                            double secondsPerTick) noexcept;
+[[nodiscard]] bool isDiving(const PlayerTacticalState& tactical, SimCore::StepTime time) noexcept;
 
-// Whether he is off his feet at the start of tick now, stumbling or diving:
+// Whether he is off his feet at the start of `time`, stumbling or diving:
 // he chases no ball and faces no shot.
-[[nodiscard]] bool isOffHisFeet(const PlayerTacticalState& tactical, SimCore::SimTick now,
-                                double secondsPerTick) noexcept;
+[[nodiscard]] bool isOffHisFeet(const PlayerTacticalState& tactical,
+                                SimCore::StepTime time) noexcept;
 
 }  // namespace ElyverseFootball::SimMatch

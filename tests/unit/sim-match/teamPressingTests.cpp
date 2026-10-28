@@ -146,8 +146,9 @@ void untilReceived(MatchSimulation& simulation) {
 }
 
 [[nodiscard]] std::optional<PressingTrigger> spotted(const MatchSimulation& simulation) {
-  const auto trigger = spotTrigger(simulation.state(), TeamSide::kHome, simulation.tick(),
-                                   kSecondsPerTick, PressingConfig{}, {});
+  const auto trigger = spotTrigger(simulation.state(), TeamSide::kHome,
+                                   {.tick = simulation.tick(), .secondsPerTick = kSecondsPerTick},
+                                   PressingConfig{}, {});
   return trigger ? std::optional(trigger->trigger) : std::nullopt;
 }
 
@@ -230,7 +231,8 @@ TEST_CASE("Defenders spot each pressing trigger", "[teamPressing]") {
                                .commands = {}});
     REQUIRE(shotSince.step().has_value());
     const auto trigger =
-        spotTrigger(shotSince.state(), TeamSide::kHome, now, kSecondsPerTick, PressingConfig{}, {});
+        spotTrigger(shotSince.state(), TeamSide::kHome,
+                    {.tick = now, .secondsPerTick = kSecondsPerTick}, PressingConfig{}, {});
     REQUIRE((!trigger || trigger->trigger != PressingTrigger::kBackPass));
   }
   SECTION("poor first touch") {
@@ -254,8 +256,9 @@ TEST_CASE("Defenders spot each pressing trigger", "[teamPressing]") {
       REQUIRE(simulation.step().has_value());
     }
     REQUIRE_FALSE(simulation.state().ball().owner.has_value());
-    const auto trigger = spotTrigger(simulation.state(), TeamSide::kHome, simulation.tick(),
-                                     kSecondsPerTick, PressingConfig{}, {});
+    const auto trigger = spotTrigger(simulation.state(), TeamSide::kHome,
+                                     {.tick = simulation.tick(), .secondsPerTick = kSecondsPerTick},
+                                     PressingConfig{}, {});
     REQUIRE(trigger.has_value());
     REQUIRE(trigger.value_or(ElyverseFootball::SimMatch::SpottedTrigger{}).carrier == PlayerId(9));
   }
@@ -294,9 +297,9 @@ TEST_CASE("A trigger is spotted only by a defender near the ball who sees it", "
   const MatchSimulation seeing = scenario({});
   PressingConfig near;
   near.triggerRadius = 1.0;
-  REQUIRE_FALSE(
-      spotTrigger(seeing.state(), TeamSide::kHome, seeing.tick(), kSecondsPerTick, near, {})
-          .has_value());
+  REQUIRE_FALSE(spotTrigger(seeing.state(), TeamSide::kHome,
+                            {.tick = seeing.tick(), .secondsPerTick = kSecondsPerTick}, near, {})
+                    .has_value());
   REQUIRE(spotted(seeing) == PressingTrigger::kReceiverFacingOwnGoal);
 }
 

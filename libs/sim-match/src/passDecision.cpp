@@ -52,12 +52,11 @@ constexpr double kRunThroughCosine = 0.7071067811865476;
 
 // How long the owner has had the ball: since his last touch, which is when
 // he took it. An owner without a touch had the ball from the start.
-[[nodiscard]] double heldSeconds(const BallState& ball, const SimCore::SimTick now,
-                                 const double secondsPerTick) noexcept {
+[[nodiscard]] double heldSeconds(const BallState& ball, const SimCore::StepTime time) noexcept {
   if (!ball.lastTouch || ball.lastTouch->playerId != ball.owner) {
     return std::numeric_limits<double>::infinity();
   }
-  return static_cast<double>(now.value() - ball.lastTouch->tick.value()) * secondsPerTick;
+  return time.secondsSince(ball.lastTouch->tick);
 }
 
 // How long the owner keeps a ball he has taken before he plays it: a ball in
@@ -88,10 +87,10 @@ constexpr double kRunThroughCosine = 0.7071067811865476;
         std::min(ground.scoring.maxPassDistance, distribution.throwRange);
   }
   std::vector<PassCandidate> candidates =
-      generatePassCandidates(current, carrier, context.tick(), context.secondsPerTick(), ground);
+      generatePassCandidates(current, carrier, context.time(), ground);
   if (keeper) {
-    const std::vector<PassCandidate> longBalls = generateLongBallCandidates(
-        current, carrier, context.tick(), context.secondsPerTick(), rules, distribution);
+    const std::vector<PassCandidate> longBalls =
+        generateLongBallCandidates(current, carrier, context.time(), rules, distribution);
     candidates.insert(candidates.end(), longBalls.begin(), longBalls.end());
     orderPassCandidates(candidates);
   }
@@ -141,8 +140,7 @@ struct ScanStep {
   const PlayerMatchState& player = current.players()[carrier];
   const CarrierScan* active = activeScan(current, carrier);
   const SimCore::SimTick since = active != nullptr ? active->since : context.tick();
-  const double stuck =
-      static_cast<double>(context.tick().value() - since.value()) * context.secondsPerTick();
+  const double stuck = context.time().secondsSince(since);
   if (stuck >= config.stuckSeconds) {
     if (const auto best = bestPass(passes, [](const PassCandidate&) { return true; })) {
       return {.reason = OnBallReason::kForcedRejected, .chosen = best};
@@ -326,7 +324,7 @@ void followTouch(const MatchStepContext& context, const MatchState& current,
   SimCore::Vec2 lookAt = run->focus;
   if (!meet || meet->seconds <= scoring.lookBackSeconds) {
     lookAt = ball.position;
-  } else if (ball.touch->hasPassed(context.tick(), context.secondsPerTick())) {
+  } else if (ball.touch->hasPassed(context.time())) {
     if (const std::vector<LookTarget> targets = lookTargets(current, carrier); !targets.empty()) {
       lookAt = targets.front().point;
     }
@@ -360,8 +358,7 @@ struct OnBallRules {
   if (!retaken && context.tick().value() % config.intervalTicks != 0) {
     return false;
   }
-  return run != nullptr ||
-         heldSeconds(ball, context.tick(), context.secondsPerTick()) >= holdSeconds(ball, config);
+  return run != nullptr || heldSeconds(ball, context.time()) >= holdSeconds(ball, config);
 }
 
 // A carrier's options, and the rules they were scored with: for the passing
@@ -389,10 +386,9 @@ struct OnBallOptions {
   }
   options.passes =
       passOptions(context, current, carrier, rules.config.distribution, options.rules.passes);
-  options.shots = generateShotCandidates(current, carrier, context.tick(), context.secondsPerTick(),
-                                         options.rules.shots);
-  options.carries = generateCarryCandidates(current, carrier, context.tick(),
-                                            context.secondsPerTick(), options.rules.carries);
+  options.shots = generateShotCandidates(current, carrier, context.time(), options.rules.shots);
+  options.carries =
+      generateCarryCandidates(current, carrier, context.time(), options.rules.carries);
   return options;
 }
 
@@ -440,8 +436,7 @@ void decideOnBall(const MatchStepContext& context, const MatchState& current,
       chooseOnBall(options.passes, options.shots, options.carries, rules.config.temperature,
                    context.random(SimCore::RandomNumberGeneratorDomain::kAi));
   if (!chosen && ball.held &&
-      heldSeconds(ball, context.tick(), context.secondsPerTick()) >=
-          rules.config.distribution.clearSeconds) {
+      heldSeconds(ball, context.time()) >= rules.config.distribution.clearSeconds) {
     chosen = clearance(options.passes);
   }
   const ScanStep step = lookAround(context, current, carrier, options, chosen);

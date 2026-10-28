@@ -277,8 +277,9 @@ TEST_CASE("In his penalty area the keeper takes the ball with his hands", "[goal
                                  .lastTouch = std::nullopt,
                                  .height = 1.5},
                         .seconds = kSecondsPerTick};
-    const auto claim = findBallClaim(state, ball, step, BallPhysics{.gravity = 0.0}, SimTick(0),
-                                     kSecondsPerTick, config);
+    const auto claim =
+        findBallClaim(state, ball, step, BallPhysics{.gravity = 0.0},
+                      {.tick = SimTick(0), .secondsPerTick = kSecondsPerTick}, config);
     return claim ? std::optional(claim->playerId) : std::nullopt;
   };
   REQUIRE(config.controlHeight < 1.5);

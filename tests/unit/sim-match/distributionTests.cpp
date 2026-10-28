@@ -88,7 +88,8 @@ constexpr std::array<Vec2, 3> kBystanders{
 [[nodiscard]] std::vector<PassCandidate> longBallsOf(const MatchState& state,
                                                      const PassCandidateRules& rules = {},
                                                      const DistributionConfig& config = {}) {
-  return generateLongBallCandidates(state, 0, SimTick(1), kSecondsPerTick, rules, config);
+  return generateLongBallCandidates(
+      state, 0, {.tick = SimTick(1), .secondsPerTick = kSecondsPerTick}, rules, config);
 }
 
 [[nodiscard]] PassCandidate longBallTo(const std::vector<PassCandidate>& candidates,

@@ -72,8 +72,8 @@ void validate(const OffBallConfig& config);
 // Deterministic.
 [[nodiscard]] std::vector<ActionCandidate> generateOffBallCandidates(
     const MatchState& state, std::size_t playerIndex, const DesiredRegion& region,
-    SimCore::SimTick now, double secondsPerTick, const OffBallConfig& config,
-    const PositioningConfig& positioning, const PerceptionConfig& perception);
+    SimCore::StepTime time, const OffBallConfig& config, const PositioningConfig& positioning,
+    const PerceptionConfig& perception);
 
 // The options of a goalkeeper whose team has the ball, with region his
 // current desired region: holding it and supporting the carrier from inside
@@ -82,8 +82,8 @@ void validate(const OffBallConfig& config);
 // (docs/goalkeeper.md#positioning-and-sweeping). Deterministic.
 [[nodiscard]] std::vector<ActionCandidate> generateKeeperSupportCandidates(
     const MatchState& state, std::size_t playerIndex, const DesiredRegion& region,
-    SimCore::SimTick now, double secondsPerTick, const OffBallConfig& config,
-    const PositioningConfig& positioning, const PerceptionConfig& perception);
+    SimCore::StepTime time, const OffBallConfig& config, const PositioningConfig& positioning,
+    const PerceptionConfig& perception);
 
 // Whether the player at this index decides again at tick now, with or
 // without the ball: he has no action yet, his team won or lost the ball

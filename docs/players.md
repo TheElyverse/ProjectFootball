@@ -188,7 +188,7 @@ On each update, for every entity:
   `lastSeen`.
 - **Not seen for `memorySeconds` (3 s):** forgotten — the observation is removed.
 
-`estimatePosition(observation, now, secondsPerTick, config)` is where the entity
+`estimatePosition(observation, time, config)` is where the entity
 probably is now: its last seen position moved along its last seen velocity for
 the time since, but for at most `extrapolationSeconds` (1 s). A player who ran
 out of sight is expected to have kept running for a moment, not forever.

@@ -74,8 +74,7 @@ struct PassCandidateRules {
 // same list.
 [[nodiscard]] std::vector<PassCandidate> generatePassCandidates(const MatchState& state,
                                                                 std::size_t carrierIndex,
-                                                                SimCore::SimTick now,
-                                                                double secondsPerTick,
+                                                                SimCore::StepTime time,
                                                                 const PassCandidateRules& rules);
 
 // Scores a candidate whose receiver, target, distance, receiverConfidence

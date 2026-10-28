@@ -394,14 +394,12 @@ MatchSystem makeShotStoppingSystem(const ShotStoppingRules& rules) {
             // A keeper off his feet after a duel dives for nothing.
             const auto& answered = current.tactical(*keeper).dive;
             if ((answered && answers(*answered, ball)) ||
-                isOffHisFeet(next.tactical(*keeper), context.tick(), context.secondsPerTick())) {
+                isOffHisFeet(next.tactical(*keeper), context.time())) {
               return;
             }
             // A facing keeper faces a ball with a last touch.
             const auto touched = ball.lastTouch.value_or(BallTouch{});
-            const double since =
-                static_cast<double>(context.tick().value() - touched.tick.value()) *
-                context.secondsPerTick();
+            const double since = context.time().secondsSince(touched.tick);
             const PlayerAttributes& attributes = current.players()[*keeper].attributes;
             if (since < reactionSeconds(attributes.keeperReflexes, config)) {
               return;

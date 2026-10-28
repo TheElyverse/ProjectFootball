@@ -533,10 +533,10 @@ TEST_CASE("A touch has passed once its seconds have", "[matchState]") {
   using ElyverseFootball::SimCore::SimTick;
   using ElyverseFootball::SimMatch::CarryTouch;
   const CarryTouch touch{.tick = SimTick(10), .seconds = 0.5};
-  REQUIRE_FALSE(touch.hasPassed(SimTick(10), 0.1));
-  REQUIRE_FALSE(touch.hasPassed(SimTick(14), 0.1));
-  REQUIRE(touch.hasPassed(SimTick(15), 0.1));
-  REQUIRE(touch.hasPassed(SimTick(20), 0.1));
+  REQUIRE_FALSE(touch.hasPassed({.tick = SimTick(10), .secondsPerTick = 0.1}));
+  REQUIRE_FALSE(touch.hasPassed({.tick = SimTick(14), .secondsPerTick = 0.1}));
+  REQUIRE(touch.hasPassed({.tick = SimTick(15), .secondsPerTick = 0.1}));
+  REQUIRE(touch.hasPassed({.tick = SimTick(20), .secondsPerTick = 0.1}));
 }
 
 TEST_CASE("MatchState::create holds the ball only in a goalkeeper's hands", "[matchState]") {

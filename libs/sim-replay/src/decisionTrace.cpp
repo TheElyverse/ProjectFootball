@@ -356,8 +356,9 @@ PassOutcome attributeInterception(const SimMatch::PassIntercepted& event,
   if (const auto truth = truePositions.find(event.interceptor); truth != truePositions.end()) {
     const double secondsPerTick = 1.0 / static_cast<double>(matchConfig.ticksPerSecond);
     const double off =
-        SimCore::distance(SimMatch::estimatePosition(*observed, decision.tick, secondsPerTick,
-                                                     matchConfig.perception),
+        SimCore::distance(SimMatch::estimatePosition(
+                              *observed, {.tick = decision.tick, .secondsPerTick = secondsPerTick},
+                              matchConfig.perception),
                           truth->second);
     if (off > config.perceptionErrorMeters) {
       outcome.cause = FailureCause::kPerception;

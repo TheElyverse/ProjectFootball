@@ -141,16 +141,15 @@ void validate(const PassScoringConfig& config) {
 
 std::vector<PassCandidate> generatePassCandidates(const MatchState& state,
                                                   const std::size_t carrierIndex,
-                                                  const SimCore::SimTick now,
-                                                  const double secondsPerTick,
+                                                  const SimCore::StepTime time,
                                                   const PassCandidateRules& rules) {
   const PlayerMatchState& carrier = state.players()[carrierIndex];
   const Vec2 from = state.ball().position;
 
   // Everyone the carrier remembers well enough, at the positions he believes
-  // they have now.
+  // they have time.tick.
   const auto [teammates, opponents] = LaneReach::rememberedPlayers(
-      state, carrierIndex, now, secondsPerTick, rules.perception, rules.scoring.minConfidence);
+      state, carrierIndex, time, rules.perception, rules.scoring.minConfidence);
 
   std::vector<PassCandidate> candidates;
   candidates.reserve(teammates.size());

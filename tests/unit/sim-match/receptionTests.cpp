@@ -268,9 +268,9 @@ TEST_CASE("Simultaneous claims are decided by time, distance, then id", "[recept
                                        {.x = 20.3, .y = 20.0},
                                        {.x = 55.0, .y = 5.0}},
                                       freeBall({.x = 19.0, .y = 20.0}, {.x = 20.0, .y = 0.0}));
-    const auto claim =
-        findBallClaim(state, state.ball(), movedTo(state.ball(), {.x = 23.0, .y = 20.0}),
-                      BallPhysics{}, SimTick(0), kSecondsPerTick, config);
+    const auto claim = findBallClaim(
+        state, state.ball(), movedTo(state.ball(), {.x = 23.0, .y = 20.0}), BallPhysics{},
+        {.tick = SimTick(0), .secondsPerTick = kSecondsPerTick}, config);
     REQUIRE(claimant(claim) == 3);
   }
   SECTION("at the same moment the closer player wins") {
@@ -280,9 +280,9 @@ TEST_CASE("Simultaneous claims are decided by time, distance, then id", "[recept
                                        {.x = 20.0, .y = 19.5},
                                        {.x = 55.0, .y = 5.0}},
                                       freeBall({.x = 20.0, .y = 20.0}));
-    const auto claim =
-        findBallClaim(state, state.ball(), movedTo(state.ball(), state.ball().position),
-                      BallPhysics{}, SimTick(0), kSecondsPerTick, config);
+    const auto claim = findBallClaim(
+        state, state.ball(), movedTo(state.ball(), state.ball().position), BallPhysics{},
+        {.tick = SimTick(0), .secondsPerTick = kSecondsPerTick}, config);
     REQUIRE(claimant(claim) == 3);
   }
   SECTION("at the same moment and distance the lower id wins") {
@@ -291,9 +291,9 @@ TEST_CASE("Simultaneous claims are decided by time, distance, then id", "[recept
                                        {.x = 20.0, .y = 20.5},
                                        {.x = 55.0, .y = 5.0}},
                                       freeBall({.x = 20.0, .y = 20.0}));
-    const auto claim =
-        findBallClaim(state, state.ball(), movedTo(state.ball(), state.ball().position),
-                      BallPhysics{}, SimTick(0), kSecondsPerTick, config);
+    const auto claim = findBallClaim(
+        state, state.ball(), movedTo(state.ball(), state.ball().position), BallPhysics{},
+        {.tick = SimTick(0), .secondsPerTick = kSecondsPerTick}, config);
     REQUIRE(claimant(claim) == 2);
   }
 }
@@ -312,9 +312,9 @@ TEST_CASE("A ball over a player's head is not taken at his feet", "[reception]")
                                        {.x = 50.0, .y = 35.0},
                                        {.x = 55.0, .y = 5.0}},
                                       ball);
-    return findBallClaim(state, state.ball(),
-                         movedTo(state.ball(), {.x = 20.5, .y = 20.0}, state.ball().height),
-                         BallPhysics{}, SimTick(0), kSecondsPerTick, config);
+    return findBallClaim(
+        state, state.ball(), movedTo(state.ball(), {.x = 20.5, .y = 20.0}, state.ball().height),
+        BallPhysics{}, {.tick = SimTick(0), .secondsPerTick = kSecondsPerTick}, config);
   };
 
   // Chest high, it is his; over his head it flies past him.
@@ -340,7 +340,8 @@ TEST_CASE("A ball that leaves the pitch over a head is not claimed on the line",
     const BallStep step = stepFreeBallTimed(state.ball(), BallPhysics{}, pitch(), kSecondsPerTick);
     REQUIRE(step.ball.height == 0.0);
     REQUIRE(step.seconds < kSecondsPerTick);
-    return findBallClaim(state, state.ball(), step, BallPhysics{}, SimTick(0), kSecondsPerTick,
+    return findBallClaim(state, state.ball(), step, BallPhysics{},
+                         {.tick = SimTick(0), .secondsPerTick = kSecondsPerTick},
                          ReceptionConfig{});
   };
 
@@ -375,11 +376,13 @@ TEST_CASE("The passer cannot take his own pass back at once", "[reception]") {
   const ReceptionConfig config;
 
   REQUIRE_FALSE(findBallClaim(state, state.ball(), movedTo(state.ball(), {.x = 20.7, .y = 20.0}),
-                              BallPhysics{}, SimTick(12), kSecondsPerTick, config)
+                              BallPhysics{},
+                              {.tick = SimTick(12), .secondsPerTick = kSecondsPerTick}, config)
                     .has_value());
   // 0.3 s = 9 ticks later he may.
-  REQUIRE(claimant(findBallClaim(state, state.ball(), movedTo(state.ball(), {.x = 20.7, .y = 20.0}),
-                                 BallPhysics{}, SimTick(19), kSecondsPerTick, config)) == 1);
+  REQUIRE(claimant(findBallClaim(
+              state, state.ball(), movedTo(state.ball(), {.x = 20.7, .y = 20.0}), BallPhysics{},
+              {.tick = SimTick(19), .secondsPerTick = kSecondsPerTick}, config)) == 1);
 }
 
 TEST_CASE("An interception is the earliest point reached before the ball", "[reception]") {

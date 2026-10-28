@@ -111,9 +111,8 @@ constexpr double kMaxTouchSpread = 0.9;
   const auto index = findPlayerIndex(state, intent.shooter).value_or(0);
   const PlayerMatchState& shooter = state.players()[index];
   ball.position = carriedBallPosition(shooter, rules.physics, state.pitch());
-  const ShotConditions conditions =
-      shotConditions(state, index, ball.position, intent, context.tick(), context.secondsPerTick(),
-                     rules.shooting, rules.passing);
+  const ShotConditions conditions = shotConditions(state, index, ball.position, intent,
+                                                   context.time(), rules.shooting, rules.passing);
   const ShotStrike strike =
       executeShot(intent, ball.position, shooter,
                   shotErrorFactor(conditions, shooter.attributes, rules.shooting), rules.shooting,
@@ -542,10 +541,7 @@ struct FacingKeeper {
   FacingKeeper keeper{.index = *index, .shot = *free.shot, .dive = {}, .dived = false};
   // A dive decided this very step counts.
   const auto& decided = next.tactical(*index).dive;
-  const bool busy =
-      decided &&
-      isBusy(*decided, static_cast<double>(context.tick().value() - decided->tick.value()) *
-                           context.secondsPerTick());
+  const bool busy = decided && isBusy(*decided, context.time().secondsSince(decided->tick));
   const auto answer =
       busy ? decided : standingKeeper(current, *index, free.ball, context.tick(), rules.saves);
   if (!answer || (busy && !answers(*answer, free.ball))) {
@@ -571,8 +567,7 @@ struct FacingKeeper {
                               MatchStateWriter& next) {
   const KeeperDive& dive = keeper.dive;
   const PlayerMatchState& player = current.players()[keeper.index];
-  const double since =
-      static_cast<double>(context.tick().value() - dive.tick.value()) * context.secondsPerTick();
+  const double since = context.time().secondsSince(dive.tick);
   const double passed = start + passage.seconds;
   const double feet = feetAt(dive, since + passed, player.attributes);
   const PlanePoint hands = handsAt(dive, since + passed, player.attributes, rules.saves);
@@ -765,8 +760,8 @@ void playHeader(const HeaderIntent& intent, const BallClaim& claim, const Aerial
   const double moment = first.contact.contactFraction * free.step.seconds;
   const BallState there = ballAfter(free.ball, rules.physics, moment);
   const std::vector<AerialChallenger> challengers =
-      findChallengers(current, free.ball, free.step, first, rules.physics, context.tick(),
-                      context.secondsPerTick(), rules.reception, rules.aerial, excluded);
+      findChallengers(current, free.ball, free.step, first, rules.physics, context.time(),
+                      rules.reception, rules.aerial, excluded);
   auto& random = context.random(SimCore::RandomNumberGeneratorDomain::kExecution);
   const AerialDuel duel = resolveAerialDuel(current, challengers, there.height, rules.aerial,
                                             rules.physics.gravity, random);
@@ -855,21 +850,21 @@ void moveFreeBall(const BallState& ball, const BallMovementRules& rules,
   excludeStumbling(context, current, next, excluded);
   const bool deflects = free.shot && ball.velocity.length() >= rules.shooting.deflectionSpeed;
   const auto contactOf = [&] {
-    return deflects ? findBallContact(current, ball, free.step, rules.physics, context.tick(),
-                                      secondsPerTick, rules.reception,
-                                      {.radius = rules.shooting.blockRadius,
-                                       .height = rules.shooting.blockReach},
-                                      excluded)
-                    : findBallClaim(current, ball, free.step, rules.physics, context.tick(),
-                                    secondsPerTick, rules.reception, excluded);
+    return deflects
+               ? findBallContact(
+                     current, ball, free.step, rules.physics, context.time(), rules.reception,
+                     {.radius = rules.shooting.blockRadius, .height = rules.shooting.blockReach},
+                     excluded)
+               : findBallClaim(current, ball, free.step, rules.physics, context.time(),
+                               rules.reception, excluded);
   };
   auto contact = contactOf();
   // A high ball someone gets to before anyone takes it at his feet is
   // contested in the air; a fast shot comes off a body instead.
   const auto aerial =
       deflects ? std::nullopt
-               : findAerialContact(current, ball, free.step, rules.physics, context.tick(),
-                                   secondsPerTick, rules.reception, rules.aerial, excluded);
+               : findAerialContact(current, ball, free.step, rules.physics, context.time(),
+                                   rules.reception, rules.aerial, excluded);
   const bool inTheAir =
       aerial && (!contact || aerial->contact.contactFraction <= contact->contact.contactFraction);
   // The keeper meets the ball if it passes him before anyone else gets to
@@ -991,7 +986,7 @@ void moveTouchedBall(const BallState& ball, const BallMovementRules& rules,
     return;
   }
   const PlayerMatchState& owner = current.players()[*ownerIndex];
-  const bool reachable = ball.touch->hasPassed(context.tick(), context.secondsPerTick());
+  const bool reachable = ball.touch->hasPassed(context.time());
   std::vector<std::size_t> excluded;
   for (std::size_t index = 0; index < current.players().size(); ++index) {
     const bool teammate = index != *ownerIndex && current.players()[index].side == owner.side;
@@ -1009,8 +1004,8 @@ void moveTouchedBall(const BallState& ball, const BallMovementRules& rules,
   FreeBall free = freeBallOf(loose, std::nullopt, rules, current.pitch(), context.secondsPerTick());
   BallState rolling = ball;
   rolling.lastTouch.reset();
-  if (const auto claim = findBallClaim(current, rolling, free.step, rules.physics, context.tick(),
-                                       context.secondsPerTick(), rules.reception, excluded)) {
+  if (const auto claim = findBallClaim(current, rolling, free.step, rules.physics, context.time(),
+                                       rules.reception, excluded)) {
     if (claim->playerIndex == *ownerIndex) {
       retake(current, *ownerIndex, rules, context, next);
     } else {

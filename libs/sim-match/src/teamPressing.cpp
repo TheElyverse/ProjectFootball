@@ -24,11 +24,6 @@ using SimCore::SimTick;
 using SimCore::Vec2;
 using SimTactics::PressingTrigger;
 
-[[nodiscard]] double secondsSince(const SimTick earlier, const SimTick now,
-                                  const double secondsPerTick) noexcept {
-  return static_cast<double>(now.value() - earlier.value()) * secondsPerTick;
-}
-
 // What a defender sees right now: what he saw in his latest perception
 // update, no longer ago than one perception interval.
 [[nodiscard]] bool sees(const MatchState& state, const std::size_t observer,
@@ -44,18 +39,14 @@ using SimTactics::PressingTrigger;
 // teammates nearby.
 class TriggerCheck {
  public:
-  TriggerCheck(const MatchState& state, const std::size_t carrierIndex, const SimTick now,
-               const double secondsPerTick, const PressingConfig& config)
-      : state_(&state),
-        carrier_(&state.players()[carrierIndex]),
-        now_(now),
-        secondsPerTick_(secondsPerTick),
-        config_(&config) {}
+  TriggerCheck(const MatchState& state, const std::size_t carrierIndex,
+               const SimCore::StepTime time, const PressingConfig& config)
+      : state_(&state), carrier_(&state.players()[carrierIndex]), time_(time), config_(&config) {}
 
   [[nodiscard]] bool recentReception() const {
     const auto& reception = state_->lastReception();
     return reception && reception->player == carrier_->playerId &&
-           secondsSince(reception->tick, now_, secondsPerTick_) <= config_->recentSeconds;
+           time_.secondsSince(reception->tick) <= config_->recentSeconds;
   }
 
   [[nodiscard]] bool poorFirstTouch() const {
@@ -91,33 +82,34 @@ class TriggerCheck {
     if (!recentReception()) {
       return false;
     }
-    return std::ranges::none_of(
-        rememberedPlayers(*state_, defender, now_, secondsPerTick_, perception, 0.3),
-        [this](const RememberedPlayer& other) {
-          return !other.teammate && other.playerId != carrier_->playerId &&
-                 distanceBetween(other.position, carrier_->position) <= config_->isolationRadius;
-        });
+    return std::ranges::none_of(rememberedPlayers(*state_, defender, time_, perception, 0.3),
+                                [this](const RememberedPlayer& other) {
+                                  return !other.teammate && other.playerId != carrier_->playerId &&
+                                         distanceBetween(other.position, carrier_->position) <=
+                                             config_->isolationRadius;
+                                });
   }
 
  private:
   const MatchState* state_;
   const PlayerMatchState* carrier_;
-  SimTick now_;
-  double secondsPerTick_;
+  SimCore::StepTime time_;
   const PressingConfig* config_;
 };
 
 // A slow pass toward a receiver of the other side that the defender sees
 // rolling; the receiver is whom to press.
-[[nodiscard]] std::optional<PlayerId> slowPassReceiver(
-    const MatchState& state, const std::size_t defender, const TeamSide pressingSide,
-    const SimTick now, const double secondsPerTick, const PressingConfig& config,
-    const PerceptionConfig& perception) {
+[[nodiscard]] std::optional<PlayerId> slowPassReceiver(const MatchState& state,
+                                                       const std::size_t defender,
+                                                       const TeamSide pressingSide,
+                                                       const SimCore::StepTime time,
+                                                       const PressingConfig& config,
+                                                       const PerceptionConfig& perception) {
   const BallState& ball = state.ball();
   const auto& pass = state.lastPass();
   if (ball.owner || !pass || !pass->receiver ||
-      secondsSince(pass->tick, now, secondsPerTick) > config.recentSeconds ||
-      !sees(state, defender, ObservedEntity::ball(), now, perception)) {
+      time.secondsSince(pass->tick) > config.recentSeconds ||
+      !sees(state, defender, ObservedEntity::ball(), time.tick, perception)) {
     return std::nullopt;
   }
   const auto receiver = findPlayerIndex(state, *pass->receiver);
@@ -133,8 +125,7 @@ class TriggerCheck {
 struct TriggerScene {
   const MatchState* state = nullptr;
   TeamSide pressingSide = TeamSide::kHome;
-  SimTick now;
-  double secondsPerTick = 0.0;
+  SimCore::StepTime time;
   const PressingConfig* config = nullptr;
   const PerceptionConfig* perception = nullptr;
 
@@ -142,8 +133,7 @@ struct TriggerScene {
   [[nodiscard]] std::optional<PlayerId> spots(const std::size_t defender,
                                               const PressingTrigger trigger) const {
     if (trigger == PressingTrigger::kSlowPass) {
-      return slowPassReceiver(*state, defender, pressingSide, now, secondsPerTick, *config,
-                              *perception);
+      return slowPassReceiver(*state, defender, pressingSide, time, *config, *perception);
     }
     const auto& owner = state->ball().owner;
     const auto carrierIndex = owner ? findPlayerIndex(*state, *owner) : std::nullopt;
@@ -152,10 +142,10 @@ struct TriggerScene {
     }
     const PlayerMatchState& carrier = state->players()[*carrierIndex];
     if (carrier.side == pressingSide ||
-        !sees(*state, defender, ObservedEntity::player(carrier.playerId), now, *perception)) {
+        !sees(*state, defender, ObservedEntity::player(carrier.playerId), time.tick, *perception)) {
       return std::nullopt;
     }
-    const TriggerCheck check(*state, *carrierIndex, now, secondsPerTick, *config);
+    const TriggerCheck check(*state, *carrierIndex, time, *config);
     bool spotted = false;
     switch (trigger) {
       case PressingTrigger::kPoorFirstTouch:
@@ -195,7 +185,7 @@ void validate(const PressingConfig& config) {
 }
 
 std::optional<SpottedTrigger> spotTrigger(const MatchState& state, const TeamSide pressingSide,
-                                          const SimTick now, const double secondsPerTick,
+                                          const SimCore::StepTime time,
                                           const PressingConfig& config,
                                           const PerceptionConfig& perception) {
   const auto& tactic = state.tactics().of(pressingSide);
@@ -204,8 +194,7 @@ std::optional<SpottedTrigger> spotTrigger(const MatchState& state, const TeamSid
   }
   const TriggerScene scene{.state = &state,
                            .pressingSide = pressingSide,
-                           .now = now,
-                           .secondsPerTick = secondsPerTick,
+                           .time = time,
                            .config = &config,
                            .perception = &perception};
   for (const PressingTrigger trigger : tactic->principles().pressingTriggers) {
@@ -325,8 +314,7 @@ namespace {
 // How a side's press in progress ends at tick now, if it does.
 [[nodiscard]] std::optional<PressOutcome> pressOutcome(const MatchState& current,
                                                        const TeamSide side, const TeamPress& press,
-                                                       const SimTick now,
-                                                       const double secondsPerTick,
+                                                       const SimCore::StepTime time,
                                                        const PressingConfig& config) {
   const auto owner = current.ball().owner;
   const auto ownerIndex = owner ? findPlayerIndex(current, *owner) : std::nullopt;
@@ -336,7 +324,7 @@ namespace {
   if (owner && *owner != press.carrier) {
     return PressOutcome::kPassedOut;
   }
-  if (secondsSince(press.since, now, secondsPerTick) >= config.maxPressSeconds) {
+  if (time.secondsSince(press.since) >= config.maxPressSeconds) {
     return PressOutcome::kCarrierEscaped;
   }
   return std::nullopt;
@@ -354,8 +342,7 @@ struct PressStart {
                                                    const double intensity,
                                                    const PressingConfig& config,
                                                    const PerceptionConfig& perception) {
-  if (const auto spotted = spotTrigger(current, side, context.tick(), context.secondsPerTick(),
-                                       config, perception)) {
+  if (const auto spotted = spotTrigger(current, side, context.time(), config, perception)) {
     return PressStart{.carrier = spotted->carrier, .trigger = spotted->trigger};
   }
   const auto& phase = current.phase(side);
@@ -389,8 +376,8 @@ MatchSystem makePressingSystem(const PressingRules& rules) {
                 continue;
               }
               if (const auto& press = current.press(side)) {
-                if (const auto outcome = pressOutcome(current, side, *press, context.tick(),
-                                                      context.secondsPerTick(), config)) {
+                if (const auto outcome =
+                        pressOutcome(current, side, *press, context.time(), config)) {
                   next.setPress(side, std::nullopt);
                   context.record(
                       PressingEnded{.tick = context.tick(), .side = side, .outcome = *outcome});

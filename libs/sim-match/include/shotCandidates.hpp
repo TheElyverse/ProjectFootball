@@ -73,8 +73,7 @@ struct ShotCandidateRules {
 // state gives the same list.
 [[nodiscard]] std::vector<ShotCandidate> generateShotCandidates(const MatchState& state,
                                                                 std::size_t shooterIndex,
-                                                                SimCore::SimTick now,
-                                                                double secondsPerTick,
+                                                                SimCore::StepTime time,
                                                                 const ShotCandidateRules& rules);
 
 }  // namespace ElyverseFootball::SimMatch

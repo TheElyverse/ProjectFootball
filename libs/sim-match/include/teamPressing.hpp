@@ -67,8 +67,8 @@ struct SpottedTrigger {
 // within the last perception interval (docs/team-tactics.md#pressing). Empty if
 // none.
 [[nodiscard]] std::optional<SpottedTrigger> spotTrigger(const MatchState& state,
-                                                        TeamSide pressingSide, SimCore::SimTick now,
-                                                        double secondsPerTick,
+                                                        TeamSide pressingSide,
+                                                        SimCore::StepTime time,
                                                         const PressingConfig& config,
                                                         const PerceptionConfig& perception);
 

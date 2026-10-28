@@ -95,8 +95,7 @@ namespace {
   if (!ball.held || !ball.lastTouch || ball.lastTouch->playerId != ball.owner) {
     return std::nullopt;
   }
-  const double held = static_cast<double>(context.tick().value() - ball.lastTouch->tick.value()) *
-                      context.secondsPerTick();
+  const double held = context.time().secondsSince(ball.lastTouch->tick);
   const auto keeper = findPlayerIndex(state, ball.lastTouch->playerId);
   if (held <= maxHoldSeconds || !keeper || state.pendingAction(*keeper)) {
     return std::nullopt;

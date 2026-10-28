@@ -47,8 +47,7 @@ struct CarryCandidateRules {
 // orderCarryCandidates(). Deterministic: the same state gives the same list.
 [[nodiscard]] std::vector<CarryCandidate> generateCarryCandidates(const MatchState& state,
                                                                   std::size_t carrierIndex,
-                                                                  SimCore::SimTick now,
-                                                                  double secondsPerTick,
+                                                                  SimCore::StepTime time,
                                                                   const CarryCandidateRules& rules);
 
 // Puts valid candidates first by descending utility, then the rest; ties by

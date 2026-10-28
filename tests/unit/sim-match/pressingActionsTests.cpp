@@ -156,8 +156,8 @@ TEST_CASE("Blocking a lane raises the interception estimate of that pass", "[pre
                                 .systems = {makePerceptionSystem({})},
                                 .commands = {}});
     REQUIRE(simulation.step().has_value());
-    const std::vector<PassCandidate> candidates =
-        generatePassCandidates(simulation.state(), 0, simulation.tick(), kSecondsPerTick, {});
+    const std::vector<PassCandidate> candidates = generatePassCandidates(
+        simulation.state(), 0, {.tick = simulation.tick(), .secondsPerTick = kSecondsPerTick}, {});
     for (const PassCandidate& candidate : candidates) {
       if (candidate.receiver == PlayerId(2)) {
         return candidate.interceptionRisk;

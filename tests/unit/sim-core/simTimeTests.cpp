@@ -8,6 +8,7 @@
 
 using ElyverseFootball::SimCore::SimClock;
 using ElyverseFootball::SimCore::SimTick;
+using ElyverseFootball::SimCore::StepTime;
 
 static_assert(!noexcept(++SimTick{}));
 
@@ -128,4 +129,11 @@ TEST_CASE("SimClock rejects a nonpositive tick rate", "[simTime]") {
 
 TEST_CASE("A duration-based clock reports no tick rate", "[simTime]") {
   REQUIRE(SimClock(60.0).ticksPerSecond() == 0);
+}
+
+TEST_CASE("A step time counts the seconds since an earlier tick", "[simTime]") {
+  constexpr StepTime time{.tick = SimTick(45), .secondsPerTick = 1.0 / 30.0};
+  STATIC_REQUIRE(time.secondsSince(SimTick(45)) == 0.0);
+  REQUIRE(time.secondsSince(SimTick(15)) == 30.0 * (1.0 / 30.0));
+  REQUIRE(time.secondsSince(SimTick(60)) < 0.0);
 }

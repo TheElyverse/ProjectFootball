@@ -140,8 +140,7 @@ namespace {
                                                        const MatchStepContext& context,
                                                        const ShotStoppingConfig& saves) {
   const double secondsPerTick = context.secondsPerTick();
-  const double since =
-      static_cast<double>(context.tick().value() - dive.tick.value()) * secondsPerTick;
+  const double since = context.time().secondsSince(dive.tick);
   if (!isBusy(dive, since)) {
     return std::nullopt;
   }

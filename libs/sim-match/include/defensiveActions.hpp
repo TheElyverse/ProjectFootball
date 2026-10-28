@@ -63,8 +63,7 @@ void validate(const DefensiveConfig& config);
 
 // What defensive decisions need to know besides the state and the player.
 struct DefensiveRules {
-  SimCore::SimTick now;
-  double secondsPerTick = 0.0;
+  SimCore::StepTime time;
   const DefensiveConfig* config = nullptr;
   const PositioningConfig* positioning = nullptr;
   const PerceptionConfig* perception = nullptr;

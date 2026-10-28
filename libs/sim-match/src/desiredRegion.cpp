@@ -162,9 +162,8 @@ Vec2 tacticalTarget(const MatchState& state, const std::size_t playerIndex,
 }
 
 PositionCost evaluatePosition(const MatchState& state, const std::size_t playerIndex,
-                              const Vec2 candidate, const Vec2 target, const SimCore::SimTick now,
-                              const double secondsPerTick, const PositioningConfig& config,
-                              const PerceptionConfig& perception) {
+                              const Vec2 candidate, const Vec2 target, const SimCore::StepTime time,
+                              const PositioningConfig& config, const PerceptionConfig& perception) {
   const PlayerMatchState& player = state.players()[playerIndex];
   const TeamSide side = player.side;
   const SimTactics::Tactic& tactic = tacticOf(state, side);
@@ -172,8 +171,8 @@ PositionCost evaluatePosition(const MatchState& state, const std::size_t playerI
   cost.targetDistance =
       std::sqrt((candidate - target).lengthSquared()) / config.targetDistanceScale;
 
-  for (const RememberedPlayer& other : rememberedPlayers(state, playerIndex, now, secondsPerTick,
-                                                         perception, config.minConfidence)) {
+  for (const RememberedPlayer& other :
+       rememberedPlayers(state, playerIndex, time, perception, config.minConfidence)) {
     const double distance = std::sqrt((other.position - candidate).lengthSquared());
     if (other.teammate) {
       const double crowding = std::max(0.0, 1.0 - (distance / config.spacingRadius));
@@ -205,15 +204,13 @@ PositionCost evaluatePosition(const MatchState& state, const std::size_t playerI
 }
 
 DesiredRegion chooseDesiredRegion(const MatchState& state, const std::size_t playerIndex,
-                                  const TacticalPhase phase, const SimCore::SimTick now,
-                                  const double secondsPerTick, const PositioningConfig& config,
+                                  const TacticalPhase phase, const SimCore::StepTime time,
+                                  const PositioningConfig& config,
                                   const PerceptionConfig& perception) {
   const Pitch& pitch = state.pitch();
   const Vec2 target = tacticalTarget(state, playerIndex, phase);
   const auto costOf = [&](const Vec2 candidate) {
-    return evaluatePosition(state, playerIndex, candidate, target, now, secondsPerTick, config,
-                            perception)
-        .total;
+    return evaluatePosition(state, playerIndex, candidate, target, time, config, perception).total;
   };
 
   Vec2 best = target;
@@ -245,8 +242,7 @@ DesiredRegion chooseDesiredRegion(const MatchState& state, const std::size_t pla
   }
   return {.tacticalTarget = target,
           .center = center,
-          .cost = evaluatePosition(state, playerIndex, center, target, now, secondsPerTick, config,
-                                   perception)};
+          .cost = evaluatePosition(state, playerIndex, center, target, time, config, perception)};
 }
 
 }  // namespace ElyverseFootball::SimMatch

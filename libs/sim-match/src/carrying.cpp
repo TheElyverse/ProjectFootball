@@ -498,8 +498,7 @@ std::string_view dominantContribution(const CarryContributions& parts) noexcept 
 
 std::vector<CarryCandidate> generateCarryCandidates(const MatchState& state,
                                                     const std::size_t carrierIndex,
-                                                    const SimCore::SimTick now,
-                                                    const double secondsPerTick,
+                                                    const SimCore::StepTime time,
                                                     const CarryCandidateRules& rules) {
   if (!rules.scoring.enabled || state.ball().held) {
     return {};
@@ -507,8 +506,8 @@ std::vector<CarryCandidate> generateCarryCandidates(const MatchState& state,
   const CarryScoringConfig& scoring = rules.scoring;
   const PlayerMatchState carrier = carrierRunning(state, carrierIndex, rules.ball);
   const Vec2 from = state.ball().position;
-  const auto opponents = LaneReach::rememberedPlayers(state, carrierIndex, now, secondsPerTick,
-                                                      rules.perception, scoring.minConfidence)
+  const auto opponents = LaneReach::rememberedPlayers(state, carrierIndex, time, rules.perception,
+                                                      scoring.minConfidence)
                              .opponents;
 
   std::vector<CarryCandidate> candidates;

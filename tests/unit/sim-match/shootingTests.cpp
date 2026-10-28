@@ -116,7 +116,8 @@ struct Striker {
 
 [[nodiscard]] ShotConditions conditionsOf(const MatchState& state, const ShotIntent& intent,
                                           const SimTick now = SimTick(0)) {
-  return shotConditions(state, 0, kFrom, intent, now, kSecondsPerTick, ShotConfig{}, PassConfig{});
+  return shotConditions(state, 0, kFrom, intent, {.tick = now, .secondsPerTick = kSecondsPerTick},
+                        ShotConfig{}, PassConfig{});
 }
 
 }  // namespace

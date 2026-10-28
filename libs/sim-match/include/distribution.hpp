@@ -64,7 +64,7 @@ void validate(const DistributionConfig& config);
 // than the passing's maxLoftedSpeed kOutOfReach, and one less likely than
 // minCompletion kUnlikely. Ordered by orderPassCandidates(); deterministic.
 [[nodiscard]] std::vector<PassCandidate> generateLongBallCandidates(
-    const MatchState& state, std::size_t carrierIndex, SimCore::SimTick now, double secondsPerTick,
+    const MatchState& state, std::size_t carrierIndex, SimCore::StepTime time,
     const PassCandidateRules& rules, const DistributionConfig& config);
 
 }  // namespace ElyverseFootball::SimMatch

@@ -90,7 +90,7 @@ constexpr double kSecondsPerTick = 1.0 / 30.0;
 [[nodiscard]] std::vector<PassCandidate> candidatesOf(const MatchState& state,
                                                       const PassCandidateRules& rules = {},
                                                       const SimTick now = SimTick(1)) {
-  return generatePassCandidates(state, 0, now, kSecondsPerTick, rules);
+  return generatePassCandidates(state, 0, {.tick = now, .secondsPerTick = kSecondsPerTick}, rules);
 }
 
 [[nodiscard]] PassCandidate candidateFor(const std::vector<PassCandidate>& candidates,

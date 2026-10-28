@@ -56,11 +56,6 @@ using SimCore::Vec2;
   return unitOr(geometry.defender - geometry.carrier, {}).dot(towardGoal(geometry));
 }
 
-[[nodiscard]] double secondsSince(const SimCore::SimTick earlier, const SimCore::SimTick now,
-                                  const double secondsPerTick) noexcept {
-  return static_cast<double>(now.value() - earlier.value()) * secondsPerTick;
-}
-
 }  // namespace
 
 void validate(const DuelConfig& config) {
@@ -455,8 +450,7 @@ void startDuel(const MatchStepContext& context, const MatchState& current, const
   const SimCore::PlayerId owner = *ball.owner;
   const auto carrierIndex = findPlayerIndex(current, owner);
   const bool settled =
-      !ball.lastTouch || secondsSince(ball.lastTouch->tick, context.tick(),
-                                      context.secondsPerTick()) >= config.protectSeconds;
+      !ball.lastTouch || context.time().secondsSince(ball.lastTouch->tick) >= config.protectSeconds;
   if (!carrierIndex || !settled) {
     return;
   }

@@ -128,9 +128,7 @@ MatchSystem makePhaseSystem(const PhaseConfig& config) {
                 const TeamPossession possession =
                     updatePossession(current, current.possession(), context.tick());
                 next.setPossession(possession);
-                const double possessionSeconds =
-                    static_cast<double>(context.tick().value() - possession.since.value()) *
-                    context.secondsPerTick();
+                const double possessionSeconds = context.time().secondsSince(possession.since);
                 for (const TeamSide side : {TeamSide::kHome, TeamSide::kAway}) {
                   const auto& tactic = current.tactics().of(side);
                   if (!tactic) {

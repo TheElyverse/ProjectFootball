@@ -41,11 +41,10 @@ struct PerceptionConfig {
 [[nodiscard]] bool canSee(const PlayerMatchState& observer, SimCore::Vec2 position,
                           const PerceptionConfig& config) noexcept;
 
-// Where the observed entity probably is at tick now: its last seen position,
+// Where the observed entity probably is at `time`: its last seen position,
 // moved along its last seen velocity for the time since, but for at most
 // extrapolationSeconds.
-[[nodiscard]] SimCore::Vec2 estimatePosition(const Observation& observation, SimCore::SimTick now,
-                                             double secondsPerTick,
+[[nodiscard]] SimCore::Vec2 estimatePosition(const Observation& observation, SimCore::StepTime time,
                                              const PerceptionConfig& config) noexcept;
 
 // A player someone remembers, where he believes that player is now.
@@ -65,17 +64,19 @@ struct RememberedPlayer {
 // Every player the player at observerIndex remembers with at least
 // minConfidence, in his memory's order (by id). Squad membership -- who is a
 // teammate -- is known; positions are believed.
-[[nodiscard]] std::vector<RememberedPlayer> rememberedPlayers(
-    const MatchState& state, std::size_t observerIndex, SimCore::SimTick now, double secondsPerTick,
-    const PerceptionConfig& config, double minConfidence);
+[[nodiscard]] std::vector<RememberedPlayer> rememberedPlayers(const MatchState& state,
+                                                              std::size_t observerIndex,
+                                                              SimCore::StepTime time,
+                                                              const PerceptionConfig& config,
+                                                              double minConfidence);
 
-// One perception update for the player at observerIndex at tick now: every
+// One perception update for the player at observerIndex at `time`: every
 // entity he can see gets a fresh observation with confidence 1; every entity
 // he remembers but cannot see keeps its last seen values with confidence
 // 1 - age / memorySeconds, and is forgotten once that age reaches
 // memorySeconds. Writes the result, ordered by entity, into memory.
-void perceive(const MatchState& state, std::size_t observerIndex, SimCore::SimTick now,
-              double secondsPerTick, const PerceptionConfig& config, PlayerPerception& memory);
+void perceive(const MatchState& state, std::size_t observerIndex, SimCore::StepTime time,
+              const PerceptionConfig& config, PlayerPerception& memory);
 
 inline constexpr std::string_view kPerceptionSystemName = "perception";
 

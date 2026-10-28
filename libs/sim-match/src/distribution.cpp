@@ -52,8 +52,7 @@ double directnessBias(const double directness, const DistributionConfig& config)
 
 std::vector<PassCandidate> generateLongBallCandidates(const MatchState& state,
                                                       const std::size_t carrierIndex,
-                                                      const SimCore::SimTick now,
-                                                      const double secondsPerTick,
+                                                      const SimCore::StepTime time,
                                                       const PassCandidateRules& rules,
                                                       const DistributionConfig& config) {
   const PlayerMatchState& carrier = state.players()[carrierIndex];
@@ -63,7 +62,7 @@ std::vector<PassCandidate> generateLongBallCandidates(const MatchState& state,
   constexpr double kNever = std::numeric_limits<double>::infinity();
 
   const auto [teammates, opponents] = LaneReach::rememberedPlayers(
-      state, carrierIndex, now, secondsPerTick, rules.perception, rules.scoring.minConfidence);
+      state, carrierIndex, time, rules.perception, rules.scoring.minConfidence);
 
   std::vector<PassCandidate> candidates;
   candidates.reserve(teammates.size());

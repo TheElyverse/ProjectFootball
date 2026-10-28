@@ -37,8 +37,8 @@ class DefensiveScorer {
         playerIndex_(playerIndex),
         region_(&region),
         rules_(&rules),
-        remembered_(rememberedPlayers(state, playerIndex, rules.now, rules.secondsPerTick,
-                                      *rules.perception, rules.positioning->minConfidence)) {}
+        remembered_(rememberedPlayers(state, playerIndex, rules.time, *rules.perception,
+                                      rules.positioning->minConfidence)) {}
 
   [[nodiscard]] const PlayerMatchState& player() const { return state_->players()[playerIndex_]; }
 
@@ -103,8 +103,7 @@ class DefensiveScorer {
                                       const std::optional<SimCore::PlayerId> subject) const {
     const DefensiveConfig& config = *rules_->config;
     const double penalty = ActionGeometry::regionPenalty(*state_, playerIndex_, target, *region_,
-                                                         {.now = rules_->now,
-                                                          .secondsPerTick = rules_->secondsPerTick,
+                                                         {.time = rules_->time,
                                                           .positioning = rules_->positioning,
                                                           .perception = rules_->perception});
     const auto& grid = state_->pitchControl();

@@ -125,11 +125,10 @@ double reachAt(const double standing, const double rise, const double offset,
   return standing + std::max(0.0, rise - (0.5 * gravity * offset * offset));
 }
 
-bool isInTheAir(const MatchState& state, const std::size_t playerIndex, const SimCore::SimTick now,
-                const double secondsPerTick, const AerialConfig& config) {
+bool isInTheAir(const MatchState& state, const std::size_t playerIndex,
+                const SimCore::StepTime time, const AerialConfig& config) {
   const auto& jumped = state.tactical(playerIndex).lastJump;
-  return jumped && static_cast<double>(now.value() - jumped->value()) * secondsPerTick <
-                       config.landingSeconds;
+  return jumped && time.secondsSince(*jumped) < config.landingSeconds;
 }
 
 BallReach aerialReach(const MatchState& state, const std::size_t playerIndex, const bool hands,
@@ -155,7 +154,7 @@ bool mayRiseAbove(const BallState& ball, const double height, const BallPhysics&
 
 std::optional<BallClaim> findAerialContact(const MatchState& state, const BallState& ball,
                                            const BallStep& moved, const BallPhysics& physics,
-                                           const SimCore::SimTick now, const double secondsPerTick,
+                                           const SimCore::StepTime time,
                                            const ReceptionConfig& reception,
                                            const AerialConfig& config,
                                            const std::span<const std::size_t> excluded) {
@@ -169,16 +168,16 @@ std::optional<BallClaim> findAerialContact(const MatchState& state, const BallSt
       return false;
     }
     const PlayerMatchState& player = state.players()[playerIndex];
-    const Vec2 stepped = stepPlayerMovement(player, secondsPerTick).position;
+    const Vec2 stepped = stepPlayerMovement(player, time.secondsPerTick).position;
     const auto contact = findContact(player.position, stepped, ball.position, moved.ball.position,
                                      reception.handsRadius);
     const double fraction = contact ? contact->contactFraction : 0.0;
     return hasHands(state, playerIndex, along(player.position, stepped, fraction),
                     along(ball.position, moved.ball.position, fraction));
   };
-  return findFirstReach(state, ball, moved, physics, now, secondsPerTick, reception, excluded,
+  return findFirstReach(state, ball, moved, physics, time, reception, excluded,
                         [&](const std::size_t playerIndex) -> std::optional<BallReach> {
-                          if (isInTheAir(state, playerIndex, now, secondsPerTick, config)) {
+                          if (isInTheAir(state, playerIndex, time, config)) {
                             return std::nullopt;
                           }
                           return aerialReach(state, playerIndex, handsOnContact(playerIndex),
@@ -188,9 +187,8 @@ std::optional<BallClaim> findAerialContact(const MatchState& state, const BallSt
 
 std::vector<AerialChallenger> findChallengers(
     const MatchState& state, const BallState& ball, const BallStep& moved, const BallClaim& first,
-    const BallPhysics& physics, const SimCore::SimTick now, const double secondsPerTick,
-    const ReceptionConfig& reception, const AerialConfig& config,
-    const std::span<const std::size_t> excluded) {
+    const BallPhysics& physics, const SimCore::StepTime time, const ReceptionConfig& reception,
+    const AerialConfig& config, const std::span<const std::size_t> excluded) {
   const double fraction = first.contact.contactFraction;
   const Vec2 where = along(ball.position, moved.ball.position, fraction);
   const double height = ballHeightAfter(ball, physics, fraction * moved.seconds);
@@ -199,13 +197,12 @@ std::vector<AerialChallenger> findChallengers(
   for (std::size_t index = 0; const PlayerMatchState& player : state.players()) {
     const std::size_t playerIndex = index++;
     const bool isFirst = playerIndex == first.playerIndex;
-    if (!isFirst &&
-        (!mayCompete(state, ball, playerIndex, now, secondsPerTick, reception, excluded) ||
-         isInTheAir(state, playerIndex, now, secondsPerTick, config))) {
+    if (!isFirst && (!mayCompete(state, ball, playerIndex, time, reception, excluded) ||
+                     isInTheAir(state, playerIndex, time, config))) {
       continue;
     }
     const Vec2 position =
-        along(player.position, stepPlayerMovement(player, secondsPerTick).position, fraction);
+        along(player.position, stepPlayerMovement(player, time.secondsPerTick).position, fraction);
     const bool hands = hasHands(state, playerIndex, position, where);
     const BallReach reach = aerialReach(state, playerIndex, hands, reception, config);
     const double away = SimCore::distance(position, where);

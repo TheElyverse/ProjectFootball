@@ -90,7 +90,7 @@ struct BallClaim {
 [[nodiscard]] std::optional<BallClaim> findBallClaim(const MatchState& state, const BallState& ball,
                                                      const BallStep& moved,
                                                      const BallPhysics& physics,
-                                                     SimCore::SimTick now, double secondsPerTick,
+                                                     SimCore::StepTime time,
                                                      const ReceptionConfig& config,
                                                      std::span<const std::size_t> excluded = {});
 
@@ -99,19 +99,16 @@ struct BallClaim {
 // `outfield` says -- a body in the way of a shot rather than a foot on the ball
 // (docs/on-ball.md#shooting). What the first player to reach it does with it is
 // the caller's to decide.
-[[nodiscard]] std::optional<BallClaim> findBallContact(const MatchState& state,
-                                                       const BallState& ball, const BallStep& moved,
-                                                       const BallPhysics& physics,
-                                                       SimCore::SimTick now, double secondsPerTick,
-                                                       const ReceptionConfig& config,
-                                                       const BallReach& outfield,
-                                                       std::span<const std::size_t> excluded = {});
+[[nodiscard]] std::optional<BallClaim> findBallContact(
+    const MatchState& state, const BallState& ball, const BallStep& moved,
+    const BallPhysics& physics, SimCore::StepTime time, const ReceptionConfig& config,
+    const BallReach& outfield, std::span<const std::size_t> excluded = {});
 
 // Whether the player at this index competes for the free ball in the step of
-// tick now at all: he is not `excluded`, not busy with a dive (isDiving()),
+// `time` at all: he is not `excluded`, not busy with a dive (isDiving()),
 // and not the ball's last touch within reclaimDelaySeconds of it.
 [[nodiscard]] bool mayCompete(const MatchState& state, const BallState& ball,
-                              std::size_t playerIndex, SimCore::SimTick now, double secondsPerTick,
+                              std::size_t playerIndex, SimCore::StepTime time,
                               const ReceptionConfig& config, std::span<const std::size_t> excluded);
 
 // Whether the player at this index gets to the ball with his hands, he at
@@ -133,8 +130,8 @@ struct BallClaim {
 // are this search with their own reaches.
 [[nodiscard]] std::optional<BallClaim> findFirstReach(
     const MatchState& state, const BallState& ball, const BallStep& moved,
-    const BallPhysics& physics, SimCore::SimTick now, double secondsPerTick,
-    const ReceptionConfig& config, std::span<const std::size_t> excluded,
+    const BallPhysics& physics, SimCore::StepTime time, const ReceptionConfig& config,
+    std::span<const std::size_t> excluded,
     const std::function<std::optional<BallReach>(std::size_t)>& reachOf);
 
 // Throws std::invalid_argument unless every value is finite and not

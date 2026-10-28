@@ -54,18 +54,15 @@ namespace {
     const MatchStepContext& context, const MatchState& current, const std::size_t index,
     const DesiredRegion& region, const TacticalMovementRules& rules, const bool withBall) {
   if (isGoalkeeper(current, index)) {
-    return generateKeeperSupportCandidates(current, index, region, context.tick(),
-                                           context.secondsPerTick(), rules.offBall,
+    return generateKeeperSupportCandidates(current, index, region, context.time(), rules.offBall,
                                            rules.positioning, rules.perception);
   }
   if (withBall) {
-    return generateOffBallCandidates(current, index, region, context.tick(),
-                                     context.secondsPerTick(), rules.offBall, rules.positioning,
-                                     rules.perception);
+    return generateOffBallCandidates(current, index, region, context.time(), rules.offBall,
+                                     rules.positioning, rules.perception);
   }
   return generateDefensiveCandidates(current, index, region,
-                                     {.now = context.tick(),
-                                      .secondsPerTick = context.secondsPerTick(),
+                                     {.time = context.time(),
                                       .config = &rules.defensive,
                                       .positioning = &rules.positioning,
                                       .perception = &rules.perception});
@@ -165,9 +162,7 @@ namespace {
   }
   const DefensiveConfig& config = rules.defensive;
   const bool idle = !ball.lastTouch || ball.lastTouch->playerId != ball.owner ||
-                    static_cast<double>(context.tick().value() - ball.lastTouch->tick.value()) *
-                            context.secondsPerTick() >
-                        config.idleSeconds;
+                    context.time().secondsSince(ball.lastTouch->tick) > config.idleSeconds;
   if (!idle) {
     return std::nullopt;
   }
@@ -221,8 +216,8 @@ namespace {
     return goalkeeperRegion(current, index, phase, rules.goalkeeper, rules.shotRange,
                             context.random(SimCore::RandomNumberGeneratorDomain::kExecution));
   }
-  return chooseDesiredRegion(current, index, phase, context.tick(), context.secondsPerTick(),
-                             rules.positioning, rules.perception);
+  return chooseDesiredRegion(current, index, phase, context.time(), rules.positioning,
+                             rules.perception);
 }
 
 // Decides the player's action when one is due and keeps it otherwise. The

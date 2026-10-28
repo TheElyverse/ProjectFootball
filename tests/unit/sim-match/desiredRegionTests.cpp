@@ -166,7 +166,8 @@ TEST_CASE("A position's cost has inspectable components", "[desiredRegion]") {
   const MatchState& state = simulation.state();
   const Vec2 target = tacticalTarget(state, 1, TacticalPhase::kProgression);
   const auto costAt = [&](const Vec2 candidate) {
-    return evaluatePosition(state, 1, candidate, target, simulation.tick(), kSecondsPerTick,
+    return evaluatePosition(state, 1, candidate, target,
+                            {.tick = simulation.tick(), .secondsPerTick = kSecondsPerTick},
                             PositioningConfig{}, PerceptionConfig{});
   };
   const auto atTarget = costAt(target);
@@ -205,7 +206,8 @@ TEST_CASE("Hysteresis keeps a region that is almost as good", "[desiredRegion]")
 
   const auto choose = [&](const PositioningConfig& config) {
     return chooseDesiredRegion(simulation.state(), 3, TacticalPhase::kDefensiveBlock,
-                               simulation.tick(), kSecondsPerTick, config, PerceptionConfig{});
+                               {.tick = simulation.tick(), .secondsPerTick = kSecondsPerTick},
+                               config, PerceptionConfig{});
   };
   REQUIRE(choose(PositioningConfig{}).center == previous.center);
   PositioningConfig eager;
@@ -225,8 +227,9 @@ TEST_CASE("Smoothing moves a region at most maxShiftMeters at a time", "[desired
                               .commands = {}});
   REQUIRE(simulation.step().has_value());
   const DesiredRegion region =
-      chooseDesiredRegion(simulation.state(), 3, TacticalPhase::kDefensiveBlock, simulation.tick(),
-                          kSecondsPerTick, PositioningConfig{}, PerceptionConfig{});
+      chooseDesiredRegion(simulation.state(), 3, TacticalPhase::kDefensiveBlock,
+                          {.tick = simulation.tick(), .secondsPerTick = kSecondsPerTick},
+                          PositioningConfig{}, PerceptionConfig{});
   REQUIRE_THAT(distanceBetween(region.center, previous.center), WithinAbs(3.0, 1e-9));
   REQUIRE(region.center.x > previous.center.x);
   REQUIRE(region.tacticalTarget == target);

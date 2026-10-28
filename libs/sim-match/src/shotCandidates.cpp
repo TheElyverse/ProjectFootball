@@ -305,8 +305,7 @@ void validate(const ShotScoringConfig& config) {
 
 std::vector<ShotCandidate> generateShotCandidates(const MatchState& state,
                                                   const std::size_t shooterIndex,
-                                                  const SimCore::SimTick now,
-                                                  const double secondsPerTick,
+                                                  const SimCore::StepTime time,
                                                   const ShotCandidateRules& rules) {
   const ShotScoringConfig& scoring = rules.scoring;
   const PlayerMatchState& shooter = state.players()[shooterIndex];
@@ -321,7 +320,7 @@ std::vector<ShotCandidate> generateShotCandidates(const MatchState& state,
   const double lowPostY = goal.postAtMinY().y;
 
   const std::vector<Remembered> opponents =
-      LaneReach::rememberedPlayers(state, shooterIndex, now, secondsPerTick, rules.perception,
+      LaneReach::rememberedPlayers(state, shooterIndex, time, rules.perception,
                                    scoring.minConfidence)
           .opponents;
   double nearestOpponent = std::numeric_limits<double>::infinity();
