@@ -15,12 +15,12 @@ dribbles.
 ## Pass candidates
 
 Before a player on the ball decides, he lists his passing options and scores
-each of them — from what he believes, not from the true state. Candidate
-generation lives in `sim-match` (`passCandidates.hpp`) as a pure function,
-`generatePassCandidates(state, carrierIndex, time, rules)`. It is
-the *generate candidates* and *estimate utility* part of the decision pipeline
-(implementation plan, section 6.6); choosing among the candidates and playing the
-pass are separate steps.
+each — from what he believes, not the true state. Candidate generation is a pure
+function in `sim-match` (`passCandidates.hpp`),
+`generatePassCandidates(state, carrierIndex, time, rules)`: the *generate
+candidates* and *estimate utility* steps of the decision pipeline
+(implementation plan, section 6.6). Choosing and playing the pass are separate
+steps.
 
 ### Only what the carrier remembers
 
@@ -67,21 +67,15 @@ of that point (`estimateArrivalSeconds()` minus the radius covered at full speed
 4. The pass survives every opponent: `interceptionRisk = 1 − Π (1 − risk)`.
 
 **Contributions.** `passContributions(candidate, scoring)` splits the utility
-into its weighted parts — `completion` and `progression` add, `pressure` and
-`risk` subtract, and `directness` is the scoring's `loftedBias` for a lofted
-pass, 0 for a ground one — whose sum is the utility bit for bit; the candidate
-generator computes the utility this way. `dominantContribution()` names the
-part with the largest absolute value, the reason a decision trace gives for a
-choice.
+into weighted parts: `completion` and `progression` add, `pressure` and `risk`
+subtract, and `directness` is the scoring's `loftedBias` for a lofted pass (0
+for a ground one). Their sum is the utility, bit for bit; the generator computes
+it this way. `dominantContribution()` names the part with the largest absolute
+value — the reason a decision trace gives.
 
-The scores use arithmetic and square roots only — no exponential or logistic
-function — so they are identical on every platform.
-
-**Attacking direction.** Home attacks `+x` and away `−x` (`attackingDirection()`);
-the sandbox has no halves, and every scenario places home at `x = 0` (see
-[match state](match-engine.md#match-state)). When rules let teams switch ends, the direction
-must come from the match state instead, and `attackingDirection()` is the one
-place to change.
+The scores use only arithmetic and square roots, so they are identical on every
+platform. Progression follows `attackingDirection()`
+([match state](match-engine.md#match-state)).
 
 ### Valid candidates
 
@@ -95,19 +89,17 @@ A candidate can be played unless it is
 | `kUnlikely`   | `completion` below `minCompletion` (0.35)                        |
 
 Invalid candidates stay in the list with their reason, so a decision can be
-explained. When no candidate is valid, the carrier has no pass to play and keeps
-the ball.
+explained. Without a valid candidate the carrier has no pass to play.
 
 ### Order
 
-Valid candidates come first, by descending utility, then the invalid ones; equal
-utilities are ordered by receiver id, a ground pass before a lofted one to the
-same receiver (`orderPassCandidates()`). A goalkeeper's long balls
-([goalkeeper distribution](goalkeeper.md#long-balls)) are lofted
-candidates scored the same way (`scorePassCandidate()`), with the risk of
-losing the ball where it comes down as their interception risk, and join his
-ground passes in one list. The same state always gives the same list,
-with every score component visible.
+Valid candidates come first, by descending utility, then the invalid ones;
+equal utilities go by receiver id, a ground pass before a lofted one to the same
+receiver (`orderPassCandidates()`). A goalkeeper's long balls
+([goalkeeper distribution](goalkeeper.md#long-balls)) are lofted candidates
+scored the same way (`scorePassCandidate()`), with the risk of losing the ball
+where it comes down as interception risk, in the same list. The same state
+always gives the same list.
 
 ### Configuration
 
@@ -130,9 +122,9 @@ with every score component visible.
 
 ### What this is not
 
-Passes go to where the receiver is believed to be, not into his run or into
-space; there is no tactical fit, no personality and no cognitive error in the
-estimates yet.
+- Passes go to where the receiver is believed to be, not into his run or into
+  space.
+- No tactical fit, no personality, no cognitive error in the estimates yet.
 
 ## Pass decisions
 
@@ -185,25 +177,24 @@ after a carrier got his touched ball back
 
 ### Without a valid option
 
-A carrier who finds no valid option does not stand on the ball for good. He
-looks around for one, and plays the best he has once he has looked long
-enough. Only a goalkeeper holding the ball in his hands keeps his own rule.
+A carrier without a valid option does not stand on the ball for good: he looks
+around for one and, after long enough, plays the best he has. Only a goalkeeper
+with the ball in his hands has his own rule.
 
-The same holds for a carrier who has options but holds the ball instead, or
-carries it without gaining anything -- less than `minCarryDistance` toward the
-goal, no better shot, nobody bypassed ([ball carrying](#holding-on-and-getting-stuck)):
-he looks around for a better option, and once stuck plays the ball. A carry
-that gains something goes on, and his look around keeps its time through it.
+The same holds for a carrier who holds the ball despite options, or carries it
+without gaining anything — less than `minCarryDistance` toward goal, no better
+shot, nobody bypassed ([ball carrying](#holding-on-and-getting-stuck)): he looks
+for a better option and, once stuck, plays the ball. A carry that gains
+something goes on, and his look around keeps its time through it.
 
-**He looks over his shoulder.** Each decision without an option he looks at
-the next of his look targets (`lookTargets()`, `carrierScan.hpp`) until the
-next decision, 0.2 s and two [perception](players.md#perception) updates later. He
-turns his head, not his body: the look is a direction of its own, his scan's
-`gaze`, which perception uses instead of his facing while he has the ball.
-His body and the ball in front of it stay as they are. The scan
-(`CarrierScan` in his tactical state) belongs to his possession: it ends
-when he plays the ball, and counts for nothing once he has lost it or
-touched it again other than to carry it on.
+**He looks over his shoulder.** At each decision without an option he looks at
+the next of his look targets (`lookTargets()`, `carrierScan.hpp`) until the next
+decision, 0.2 s and two [perception](players.md#perception) updates later. He
+turns his head, not his body: perception uses his scan's `gaze` instead of his
+facing while he has the ball, and body and ball stay put. The scan
+(`CarrierScan` in his tactical state) belongs to his possession: it ends when he
+plays the ball, and counts for nothing once he has lost it or touched it other
+than to carry it on.
 
 **Where he looks.** The look targets come in two sides, taken from his
 facing:
@@ -247,21 +238,18 @@ Among the valid options, `chooseOnBall()` picks option `i` with probability
 p_i = exp((u_i − u_max) / T) / Σ exp((u_j − u_max) / T)
 ```
 
-for utilities `u` and the temperature `T` (0.15). The best option is the most
-likely, but not certain: two options 0.1 apart in utility are chosen about 2 : 1.
-A lower temperature makes the choice greedier, a higher one more varied.
+for utilities `u` and temperature `T` (0.15). The best option is the most
+likely, not certain: two options 0.1 apart are chosen about 2 : 1. A lower
+temperature is greedier, a higher one more varied.
 
-The draw comes from the simulation's `kAi` random stream, one number per choice
-and none when there is nothing to choose. The exponential is `stableExp()` from
-`sim-core`, built from basic arithmetic, so the same seed makes the same choices
-on every platform; `std::exp` may differ in the last bit between standard
-libraries.
+The draw comes from the `kAi` random stream: one number per choice, none when
+there is nothing to choose. The exponential is `stableExp()`, so the same seed
+makes the same choices on every platform.
 
 ### Timing
 
 A decision in the step of tick `t` becomes the pending action; the ball system
-executes it in the step of `t + 1`, when the ball leaves the passer. Choosing and
-playing are separate steps, and several things keep a pass from being played
+executes it in the step of `t + 1`. Several rules keep a pass from being played
 twice:
 
 - no decision while his action is pending,
@@ -308,26 +296,27 @@ phase instruction ([tactics](tactics.md#tactic-model)) before the carrier decide
 | `minCompletion`     | `1.3 - 0.6 r`, at most 1 | offers less likely passes too        |
 
 `r = 0.5`, the reference tactic's value, leaves the scoring unchanged, so a
-team without a tactic and the reference tactic decide alike. A goalkeeper's
-scoring also carries his tactic's directness as the `loftedBias` of his long
-balls ([goalkeeper distribution](goalkeeper.md#the-tactics-dial)). The factors are
-deliberately simple and linear: they make the styles distinguishable without a
-second tuning surface next to the scoring itself.
+team without a tactic decides like the reference tactic. A goalkeeper's scoring
+also carries his tactic's directness as the `loftedBias` of his long balls
+([goalkeeper distribution](goalkeeper.md#the-tactics-dial)). The factors are
+simple and linear on purpose: they separate the styles without a second tuning
+surface.
 
 ### What this is not
 
-A player on the ball kicks long only as a goalkeeper or when he has nothing
-else. Where he looks ignores the opponents around him; shielding the ball from
-a presser is his move in a [duel](duels.md#duels-on-the-ball). Off-ball players do not decide here; see
-[off-ball movement](team-tactics.md#off-ball-movement) and [reception](ball.md#reception-interceptions-and-loose-balls).
+- He kicks long only as a goalkeeper or when he has nothing else.
+- Where he looks ignores the opponents around him; shielding the ball is his
+  move in a [duel](duels.md#duels-on-the-ball).
+- Off-ball players decide elsewhere: [off-ball movement](team-tactics.md#off-ball-movement)
+  and [reception](ball.md#reception-interceptions-and-loose-balls).
 
 ## Passing
 
-A pass is split into what the player decides and how well he executes it, as
-everywhere in the simulation (implementation plan, section 6.6). The decision is
-a `PassIntent`; execution turns it into a ball velocity with a random error. The
-rules live in `sim-match` (`passing.hpp`), and the [ball movement](ball.md#ball-movement)
-system executes passes.
+A pass is split into what the player decides and how well he executes it
+(implementation plan, section 6.6). The decision is a `PassIntent`; execution
+turns it into a ball velocity with a random error. The rules are in `sim-match`
+(`passing.hpp`); the [ball movement](ball.md#ball-movement) system executes
+passes.
 
 ### The intent
 
@@ -338,11 +327,10 @@ every state created from a spec starts without one.
 
 Two things create an intent:
 
-- the decision system of a player on the ball (coming with decisions), and
+- the [pass decision](#pass-decisions) of the player on the ball, and
 - a `PassCommand{playerId, target, speed, receiver}`, so a scenario or test can
-  request one specific pass and watch it being executed. The command is
-  validated when scheduled: the passer and receiver must exist, the target must
-  be finite and the speed positive and finite.
+  request one specific pass. It is validated when scheduled: passer and receiver
+  must exist, the target must be finite and the speed positive and finite.
 
 `planPassSpeed(distance, physics, config)` is the speed a pass over a distance
 needs to reach its target still rolling at `arrivalSpeed` (4 m/s):
@@ -364,15 +352,14 @@ In the next step it runs, the ball system plays the pending pass:
 3. **Kick.** `executePass()` gives the ball its velocity: from where the ball is
    toward the target, at the intended speed, off by a random execution error:
    - direction: up to `directionError` (0.03) meters off line per meter along
-     it, uniformly distributed — about ±1.7°,
-      - speed: up to `speedError` (5 %) harder or softer, uniformly distributed,
-   - both grown by pressure: with an opponent within `pressureRadius` (3 m)
-     of the passer, the errors are multiplied by `1 + pressureErrorFactor ×
-     pressure`, where pressure is one minus the product of
-     min(1, distance / `pressureRadius`) over the opponents -- 1 − distance /
-     `pressureRadius` for a lone opponent, more for several close by
-     (`passPressure()`, from true positions: pressure is physical). At full pressure the default factor of 1 doubles them; an
-     unpressed pass is exactly as before,
+     it, uniformly distributed — about ±1.7°;
+   - speed: up to `speedError` (5 %) harder or softer, uniformly distributed;
+   - both grown by pressure: with opponents within `pressureRadius` (3 m) of the
+     passer, the errors are multiplied by `1 + pressureErrorFactor × pressure`.
+     Pressure is one minus the product of min(1, distance / `pressureRadius`)
+     over the opponents — 1 − distance / `pressureRadius` for one opponent, more
+     for several (`passPressure()`, from true positions: pressure is physical).
+     At full pressure the default factor of 1 doubles the errors;
    - never faster than `maxSpeed`.
 
    A target on the ball itself is played along the passer's facing.
@@ -385,9 +372,9 @@ A `PassCommand` for tick `t` is applied at the start of that step and executed
 in the same step. An intent the decision system writes during tick `t` is
 executed in the step of tick `t + 1`.
 
-The execution error draws two numbers from the simulation's `kExecution` random
-stream per executed pass, always two, so the same seed reproduces every pass. A
-test can set both errors to zero to predict a pass exactly.
+The execution error draws exactly two numbers from the `kExecution` stream per
+executed pass, so the same seed reproduces every pass. A test can set both
+errors to zero to predict a pass exactly.
 
 ### Configuration
 
@@ -421,25 +408,24 @@ a goalkeeper plays one ([goalkeeper distribution](goalkeeper.md#distribution)).
 
 ### What this is not
 
-Every pass but a goalkeeper's long ball is a ground pass: the ball leaves the
-foot on the grass, without vertical velocity or spin, however much of a third
-dimension the [ball model](ball.md#ball-movement) now has. Outfield players have no
-chip or lofted pass, and nobody spins one — and the
-error does not yet depend on the passer's technique, pressure or body shape — the
-capabilities that will shape it arrive with the player model. Who gets the ball
-afterwards is decided by [reception](ball.md#reception-interceptions-and-loose-balls).
+- Every pass but a goalkeeper's long ball is a ground pass, without vertical
+  velocity or spin: outfield players have no chip or lofted pass, and nobody
+  spins one.
+- The error depends on pressure, not yet on the passer's technique or body
+  shape; those come with the player model.
+- Who gets the ball is decided by
+  [reception](ball.md#reception-interceptions-and-loose-balls).
 
 ## Shot decisions
 
-A player on the ball weighs shooting against passing. He looks at the goal he
-attacks, splits it into zones, judges for each what his shot would become —
-blocked, saved, a goal, a second ball — and offers his best shot to the same
+A player on the ball weighs shooting against his other options. He splits the
+goal he attacks into zones, judges for each what his shot would become —
+blocked, saved, a goal, a second ball — and offers his best shot to the
 [choice](#pass-decisions) his passes compete in. The decision records where he
-aims; how well he strikes it is [execution](#shooting)'s business. Candidate generation lives
-in `sim-match` (`shotCandidates.hpp`) as the pure function
-`generateShotCandidates(state, shooterIndex, time, rules)`; the
-choice and the pending shot live in the decision system of
-[pass decisions](#pass-decisions).
+aims; how well he strikes it is [execution](#shooting). Candidate generation is
+a pure function in `sim-match` (`shotCandidates.hpp`),
+`generateShotCandidates(state, shooterIndex, time, rules)`; the choice and the
+pending shot belong to the [pass decision](#pass-decisions) system.
 
 ```text
 perception → shot candidates      → one softmax with the passes → ShotIntent  → strike
@@ -472,13 +458,12 @@ Three things rule out every shot at once, before anything is scored:
 | `kGoalUnseen`| the goal's center is outside his field of view: he looks away -- along his facing, or his look over his shoulder ([pass decisions](#without-a-valid-option)) |
 | `kTooNarrow` | the goal looks narrower than `minOpening` (0.1)                        |
 
-A player facing away from the goal would have forgotten the keeper within
-seconds and judged every shot an open goal; turning to shoot comes with the
-on-ball actions. The **opening** is how wide the goal looks: the distance
-between the directions to its two posts as unit vectors, `2·sin(angle / 2)`
-(`goalOpening()`) — about the angle in radians for a narrow goal, 2 on the goal
-line between the posts, computed without trigonometry so that it is the same on
-every platform.
+A player facing away would have forgotten the keeper and judge every shot an
+open goal; he first turns ([ball carrying](#ball-carrying)). The **opening** is
+how wide the goal looks: the distance between the unit vectors to its two posts,
+`2·sin(angle / 2)` (`goalOpening()`) — about the angle in radians for a narrow
+goal, 2 on the goal line between the posts — computed without trigonometry, so
+the same on every platform.
 
 ### The aiming grid
 
@@ -491,8 +476,8 @@ point on the goal line and a height:
   close to the post or crossbar as his spread lets the shot stay inside, but
   never closer than `frameMargin` (0.1 m) and never beyond the zone's center.
 
-So a pinpoint finisher aims a tenth of a meter inside the post; an average one
-keeps his spread inside the frame; a wild one aims at the zone's center.
+So a pinpoint finisher aims 0.1 m inside the post, an average one keeps his
+spread inside the frame, and a wild one aims at the zone's center.
 
 ### The spread
 
@@ -507,10 +492,10 @@ spread = (spreadAtZero + spreadPerMeter · distance)
 
 with `distance` to the goal's center and `pressure = max(0, 1 − d / pressureRadius)`
 for the nearest remembered opponent at `d`. An average finisher (0.5) spreads
-0.2 m plus 4 cm per meter; a pinpoint one a tenth of that, a wild one almost
-twice. The triangle's distribution function is quadratic, so the share of the
-spread in each zone is exact arithmetic. A shot aimed low skids along the grass:
-the lowest row takes everything below its top.
+0.2 m plus 4 cm per meter, a pinpoint one a tenth of that, a wild one almost
+twice. The triangle's distribution function is quadratic, so each zone's share
+is exact arithmetic. A low shot skids along the grass: the lowest row takes
+everything below its top.
 
 ### What becomes of a shot at a zone
 
@@ -563,11 +548,10 @@ ball. `shotContributions(candidate, scoring)` splits the utility into `goal`,
 `dominantShotContribution()` names the largest, the reason a
 [decision trace](tooling.md#decision-trace) gives.
 
-**Keeping the ball** is the alternative a shot is measured against: it is worth
-0, so a shot is only offered at a positive utility. `w_k` (1.0) matches what a
-completed pass is worth (`completionWeight`), so losing the ball costs as much as
-keeping it is worth. An explicit option to hold the ball arrives with the other
-on-ball actions.
+**Keeping the ball** is worth 0, so a shot is only offered at a positive
+utility. `w_k` (1.0) matches what a completed pass is worth
+(`completionWeight`): losing the ball costs as much as keeping it is worth.
+Holding the ball is also an explicit option ([ball carrying](#ball-carrying)).
 
 ### Valid candidates
 
@@ -616,21 +600,18 @@ point and height at `shotSpeed`, off by his execution error.
 
 ### Scenarios and guardrails
 
-The `clear-chance`, `hopeless-angle` and `blocked-lane` [scenarios](scenarios.md#scenario-catalogue)
-check the decision over 100 seeds: an eight-meter chance with only the keeper to
-beat is taken at least 90 times, a goal seen from the goal line six meters wide of
-the post is `too narrow` every time and the free teammate gets the ball, and with
-a defender two meters in front the player passes more often than he shoots. The
-reduced P2 [style benchmark](tooling.md#sim-benchmark) requires every side to shoot 1 to
+The `clear-chance`, `hopeless-angle` and `blocked-lane`
+[scenarios](scenarios.md#the-shot-scenarios) check the decision over 100 seeds:
+an eight-meter chance with only the keeper to beat is taken at least 90 times;
+from the goal line six meters wide of the post the goal is `too narrow` every
+time and the free teammate gets the ball; with a defender two meters in front the
+player passes more often than he shoots. The reduced P2
+[style benchmark](tooling.md#p2-acceptance) requires every side to shoot 0.5 to
 40 times per six-minute match.
 
 At the time of writing, an average finisher facing a keeper on his line judges
 his best shot from straight in front of the goal at a goal chance of about 0.67
-from 8 m, 0.41 from 12 m, 0.09 from 18 m and 0.06 from 22 m. In the six-minute
-style benchmark a side shoots 3 to 13 times, pressing the most: it wins the ball
-high up the pitch. That is more than real football, and about half of the shots
-go in — keepers take up their place ([goalkeeper](goalkeeper.md#positioning-and-sweeping)) but do not
-stop shots yet — and the balance will be refined with shot stopping.
+from 8 m, 0.41 from 12 m, 0.09 from 18 m and 0.06 from 22 m.
 
 ### Configuration
 
@@ -668,22 +649,18 @@ stop shots yet — and the balance will be refined with shot stopping.
 
 ### What this is not
 
-The shooter judges a shot by a straight line from the ball to a point of the
-goal, slowing like a rolling ball, and the ball as a point: he knows neither the
-[flight](#shooting) his strike really takes nor the thickness of the posts.
-How well a player
-decides and how badly he misjudges his chances do not depend on him yet; every
-player chooses with the same temperature. He cannot turn toward the goal, carry
-the ball into a better position or hold it on purpose; those are the on-ball
-actions still to come.
+- He judges a shot as a straight line from the ball to a point of the goal,
+  slowing like a rolling ball, the ball a point: he knows neither the
+  [flight](#shooting) his strike takes nor the thickness of the posts.
+- How well he decides and misjudges his chances does not depend on him yet;
+  every player chooses with the same temperature.
 
 ## Shooting
 
-A [shot decision](#shot-decisions) says where a player aims. Shot execution
-says what he makes of it: how the ball leaves his foot, what it meets on its way
-— a defender, the keeper, the frame of the goal — and what it has become when it
-is over: a goal, a save, a block or a miss. The strike lives in `sim-match`
-(`shooting.hpp`), the goal frame in `goalFrame.hpp`, and the
+A [shot decision](#shot-decisions) says where a player aims; execution says
+what he makes of it: how the ball leaves his foot, what it meets — a defender,
+the keeper, the frame — and what it becomes: a goal, a save, a block or a miss.
+The strike is in `sim-match` (`shooting.hpp`), the frame in `goalFrame.hpp`; the
 [ball system](ball.md#ball-movement) puts them together.
 
 ```text
@@ -706,8 +683,8 @@ rises and falls once and does not touch the ground on the way.
   target that would need more — the top corner from two meters — gets the
   nearest the shooter can do.
 
-That is the strike of a player who makes no mistake. A real one does, and
-`executeShot()` draws his error from the `kExecution` stream, always six draws:
+That is a perfect strike. `executeShot()` adds the player's error, always six
+draws from the `kExecution` stream:
 
 | Error          | Size                                         | Skill                     |
 |----------------|----------------------------------------------|---------------------------|
@@ -919,36 +896,32 @@ before he has reacted.
 
 ### What this is not
 
-The keeper's positioning and his shot stopping are their own systems
-([goalkeeper](goalkeeper.md#positioning-and-sweeping), [shot stopping](goalkeeper.md#shot-stopping)). Outfield players do
-not block on purpose — a body in the way is a body in the way. A header at
-goal is a shot like any other ([aerial duels](duels.md#aerial-duels-and-headers)), struck from
-the head instead of the foot. The shot decision still judges a shot by a straight line and a
-point-sized ball; it does not know the flight or the thickness of the frame.
-There is no curl, no chip and no choice of how to strike the ball. A goal
-counts and is kicked off, but no match ends with a result yet.
+- Outfield players do not block on purpose; a body in the way is a body in
+  the way. The keeper is [his own system](goalkeeper.md#shot-stopping).
+- A header at goal is a shot like any other
+  ([aerial duels](duels.md#aerial-duels-and-headers)), struck from the head.
+- No curl, no chip, no choice of how to strike the ball.
+- A goal counts and is kicked off, but no match ends with a result yet.
 
 ## Ball carrying
 
-Between receiving the ball and releasing it, a player on the ball can hold it,
-turn with it, carry it into space or dribble past an opponent (GDD section 8.5).
-These are on-ball actions like passing and shooting: the
-[pass decision](#pass-decisions) generates them as candidates, scores them
-from the carrier's [perception](players.md#perception) only and chooses among them and
-the passes and the best shot with the same seeded softmax. How they are
-played -- the touch, its error, the ball rolling ahead of him -- is the
-execution half, in the ball system. Candidates and their scoring live in
-`sim-match` (`carryCandidate.hpp`, `carrying.hpp`).
+Between receiving and releasing the ball, a player can hold it, turn with it,
+carry it into space or dribble past an opponent (GDD section 8.5). The
+[pass decision](#pass-decisions) generates these as candidates, scores them
+from his [perception](players.md#perception) only, and chooses among them, the
+passes and the best shot with the same seeded softmax. The ball system executes
+them: the touch, its error, the ball rolling ahead of him. Candidates and
+scoring are in `sim-match` (`carryCandidate.hpp`, `carrying.hpp`).
 
 ### The touch: the ball leaves his feet
 
-A carrier does not glue the ball to his feet while he runs. Every turn, carry
-or dribble starts with a **touch**: the ball leaves his feet as a short, slow
-pass ahead of him and rolls freely until he gets to it again. He keeps
-possession all along -- `BallState::owner` stays his, so team possession,
-[tactical phases](team-tactics.md#match-phases), pressing and analytics see one possession --
-but the ball moves on its own, and `BallState::touch` (`CarryTouch`) records the
-tick of the touch and how many seconds after it he may play it again.
+Every turn, carry or dribble starts with a **touch**: the ball leaves his feet
+as a short, slow pass ahead of him and rolls freely until he reaches it again.
+He keeps possession all along — `BallState::owner` stays his, so team
+possession, [tactical phases](team-tactics.md#match-phases), pressing and
+analytics see one possession — but the ball moves on its own.
+`BallState::touch` (`CarryTouch`) records the touch's tick and how many seconds
+later he may play it again.
 
 - **Who gets to it.** The ball rolls, leaves the pitch and goes into a goal as a
   free ball would. The first player to reach it takes it, by the
@@ -964,52 +937,48 @@ tick of the touch and how many seconds after it he may play it again.
 - **It leaves the pitch.** A touched ball that leaves the pitch is nobody's, and
   the [restart](match-engine.md#restarts) system settles who plays on.
 
-While the ball is ahead of him, nobody takes him on in a [duel](duels.md#duels-on-the-ball) --
-there is nothing at his feet to fight for -- and a duel he is in ends. An
-opponent wins it by getting to it: the earliest of those who get to it before
-him [chases it](ball.md#going-after-the-ball) to where he can intercept
-it. A touch he keeps, nobody chases.
+While the ball is ahead of him, nobody takes him on in a
+[duel](duels.md#duels-on-the-ball) — there is nothing at his feet — and a duel
+he is in ends. An opponent wins it by reaching it: the earliest of those who
+reach it before him [chases it](ball.md#going-after-the-ball). A touch he keeps,
+nobody chases.
 
 #### The touch's error
 
 The touch is a pass: `executePass()` sends the ball toward the touch's target
-at its planned speed, both off by a random error from the `kExecution`
-stream, grown by the [pressure](#passing) on him. The error is the pass
-error scaled by the touch's **error factor**, from `maxTouchError` (3) at a
-`ballControl` of 0 down to `minTouchError` (0.5) at 1, linear in between; a
-dribble's again by a factor from `maxDribbleError` (1.5) at a `dribbling` of 0
-down to `minDribbleError` (0.5) at 1. A heavy touch -- too fast, or off line --
-leaves the ball farther from where he meets it, and an opponent may get there
-first: losing the ball is the same geometry as keeping it, never a roll of its
-own. The speed error stays at most `0.9 / (1 + pressureErrorFactor)` (`0.45`
-by default) however large the factor, so that pressure cannot stop the ball
-dead or turn it round.
+at its planned speed, both off by a random error from the `kExecution` stream,
+grown by [pressure](#passing). The error is the pass error times the touch's
+**error factor**: from `maxTouchError` (3) at a `ballControl` of 0 to
+`minTouchError` (0.5) at 1, linear; a dribble's times a factor from
+`maxDribbleError` (1.5) at a `dribbling` of 0 to `minDribbleError` (0.5) at 1.
+A heavy touch leaves the ball farther from where he meets it, so an opponent may
+get there first: losing the ball is geometry, never a roll of its own. The
+speed error stays at most `0.9 / (1 + pressureErrorFactor)` (`0.45` by
+default), so pressure cannot stop the ball dead or turn it round.
 
 #### Running with the ball
 
-With the ball at his feet or rolling ahead of him, a player runs no faster than
-`runningSpeed()` (`playerMovement.hpp`): his `maxSpeed` times a factor from
+With the ball at his feet or rolling ahead, a player runs at most
+`runningSpeed()` (`playerMovement.hpp`): `maxSpeed` times a factor from
 `BallPhysics::minCarrySpeedFactor` (0.8) at no ball control to
-`maxCarrySpeedFactor` (0.95) at full control, linear in between. His
-acceleration does not change. Every system that moves a player or predicts his
-move -- the movement system, the ball at his feet, who gets to a ball first --
-uses the same `stepPlayerMovement()` at that speed. A goalkeeper holding the
-ball in his hands runs as fast as without it.
+`maxCarrySpeedFactor` (0.95) at full control, linear. Acceleration does not
+change. Every system that moves him or predicts his move uses
+`stepPlayerMovement()` at that speed. A goalkeeper with the ball in his hands
+runs at full speed.
 
-While the ball rolls ahead of him, he runs after it every tick: to where he
-meets it, by `findInterception()` (`pursuit.hpp`) at his running speed with it.
-Where that point lies within 45 degrees of where he runs, he runs on through it,
-as far again as his run still goes beyond it -- not at all where it lies past
-his run's target --, rather than braking for the ball; elsewhere he brakes to
-take it.
+While the ball rolls ahead, he runs every tick to where he meets it
+(`findInterception()`, `pursuit.hpp`, at his speed with the ball). If that point
+lies within 45 degrees of his run, he runs on through it — as far again as his
+run goes beyond it, not past the run's target — instead of braking; otherwise he
+brakes to take it.
 
 ### The options
 
 `generateCarryCandidates()` lists a carrier's options with the ball at his
-feet, from his memory only -- the opponents he remembers with at least
+feet, from his memory only: opponents he remembers with at least
 `minConfidence` (0.3), where he believes they are now. A goalkeeper with the
-ball in his hands has none: he only distributes it. With carrying switched off
-(`enabled`) there are none either.
+ball in his hands has none (he only distributes it), and neither does anyone
+with carrying switched off (`enabled`).
 
 #### Hold
 
@@ -1078,9 +1047,9 @@ for a carry, gives no dribble. His
 (1.2) times a carry's at 0 to `quickDribbleShare` (0.8) at 1, so a good
 dribbler plays the ball past faster, and errs less.
 
-Whether he gets past follows from the geometry: whether the opponent reaches
-the ball before he does. There is no feint and no duel; the duels and tackles
-of the P3 baseline will add them.
+Whether he gets past is geometry: whether the opponent reaches the ball
+first. There is no feint; a dribble plays the ball past instead of fighting a
+[duel](duels.md#duels-on-the-ball) for it.
 
 ### Scoring
 
@@ -1108,9 +1077,9 @@ line into the corner gains nothing, so a player does not wander off into it.
 
 **The shot** from a point is the goal's opening there (`goalOpening()`) over
 `fullOpening` (0.6), at most 1, falling linearly with the distance to the goal's
-centre to 0 at `shotDistance` (25 m). It counts as an improvement over the ball's
-spot: near goal, a carry that opens the angle is worth more, and one that only
-keeps it nothing. The shot candidates themselves decide at the next touch.
+centre to 0 at `shotDistance` (25 m). Only the improvement over the ball's spot
+counts: a carry that opens the angle is worth more, one that keeps it nothing.
+The shot candidates decide at the next touch.
 
 `carryContributions()` returns the weighted parts, whose sum is the utility bit
 for bit; `dominantContribution()` names the largest.
@@ -1156,10 +1125,9 @@ stops him where he is.
 #### When he decides
 
 He decides only with the ball at his feet: at the decision interval, and in the
-tick after he got his touched ball back, whatever the interval. While it rolls
-ahead of him there is nothing to decide -- he cannot pass a ball three meters
-in front of him. His own touches do not make him a new owner: the hold time of
-a ball he has just taken does not apply while his run is active.
+tick after he got his touched ball back. While it rolls ahead there is nothing
+to decide. His own touches do not make him a new owner: the hold time of a
+freshly taken ball does not apply while his run is active.
 
 #### Looking ahead
 
@@ -1173,13 +1141,13 @@ once he is `lookBackSeconds` (0.3 s) from meeting it.
 
 #### Holding on and getting stuck
 
-Holding the ball, or carrying it without gaining anything -- less than
-`minCarryDistance` toward the goal, no better shot, nobody bypassed -- he
-[looks round for an option](#without-a-valid-option), a better
-one if he has any, and once stuck for `stuckSeconds` plays his best pass or kicks
-the ball long either way. Carrying it on with a gain, his look round keeps its
-time: it ends only when he plays or loses the ball. So a player who keeps
-gaining ground is never stopped, and one who goes round in circles is.
+Holding the ball, or carrying it without gain — less than `minCarryDistance`
+toward goal, no better shot, nobody bypassed — he
+[looks round for an option](#without-a-valid-option) and, stuck for
+`stuckSeconds`, plays his best pass or kicks long. A carry with a gain keeps the
+look round's time; it ends only when he plays or loses the ball. So a player
+who keeps gaining ground is never stopped, and one who goes round in circles
+is.
 
 ### Events and diagnostics
 
@@ -1189,8 +1157,8 @@ gaining ground is never stopped, and one who goes round in circles is.
 | `DribbleEnded`     | `carrier`, `opponent`, `outcome`, `position` | he gets the ball back -- `beaten` if it is then farther up the pitch than the opponent, `kept` otherwise -- or loses it: `lost`; none if his touch goes in |
 | `BallWon`          | ... `cause`                              | `looseTouch` for an opponent who got to the touched ball |
 
-No event marks a single touch: there are hundreds a match, and the decision
-trace shows them.
+No event marks a single touch (there are hundreds a match); the decision trace
+shows them.
 
 The [decision diagnostic](match-engine.md#decision-diagnostics) holds every
 carry candidate with its scores and the weights they were scored with, and the
@@ -1247,7 +1215,8 @@ covering defender and takes it past him on one side.
 
 ### What this is not
 
-Fatigue does not affect the touch yet: there is no energy model. There is no
-feint: an opponent wins a touched ball only by getting to it first, and a ball
-at the carrier's feet in a [duel](duels.md#duels-on-the-ball). A carry does not aim to
-open a passing lane to a teammate, and nobody carries the ball for a cross.
+- Fatigue does not affect the touch: there is no energy model.
+- No feint: an opponent wins a touched ball only by reaching it first, a ball at
+  the feet in a [duel](duels.md#duels-on-the-ball).
+- A carry does not aim to open a passing lane, and nobody carries the ball for
+  a cross.
