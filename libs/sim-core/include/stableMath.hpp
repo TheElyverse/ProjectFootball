@@ -154,6 +154,120 @@ namespace Detail {
   return sign * Detail::arcTangentAtMostOne(magnitude);
 }
 
+// Sine and cosine of one angle, from one range reduction.
+struct SineCosine {
+  double sine = 0.0;
+  double cosine = 1.0;
+};
+
+namespace Detail {
+
+// sin(r) for |r| <= pi/4: the Taylor series up to r^17 in Horner form over r²,
+// r·(1 - r²/3!·(...)). The first omitted term is below 1e-19 there.
+[[nodiscard]] inline double sineAtMostQuarterPi(const double reduced) noexcept {
+  // 1/17!, -1/15!, ..., -1/3!: the Horner coefficients, the highest power first.
+  constexpr std::array<double, 8> kCoefficients{
+      1.0 / 355687428096000.0, -1.0 / 1307674368000.0, 1.0 / 6227020800.0, -1.0 / 39916800.0,
+      1.0 / 362880.0,          -1.0 / 5040.0,          1.0 / 120.0,        -1.0 / 6.0};
+  const double square = reduced * reduced;
+  double sum = 0.0;
+  for (const double coefficient : kCoefficients) {
+    sum = (sum * square) + coefficient;
+  }
+  return reduced + (reduced * (square * sum));
+}
+
+// cos(r) for |r| <= pi/4: the Taylor series up to r^18 in Horner form over r².
+// The first omitted term is below 1e-20 there.
+[[nodiscard]] inline double cosineAtMostQuarterPi(const double reduced) noexcept {
+  // -1/18!, 1/16!, ..., -1/2!: the Horner coefficients, the highest power first.
+  constexpr std::array<double, 9> kCoefficients{-1.0 / 6402373705728000.0,
+                                                1.0 / 20922789888000.0,
+                                                -1.0 / 87178291200.0,
+                                                1.0 / 479001600.0,
+                                                -1.0 / 3628800.0,
+                                                1.0 / 40320.0,
+                                                -1.0 / 720.0,
+                                                1.0 / 24.0,
+                                                -1.0 / 2.0};
+  const double square = reduced * reduced;
+  double sum = 0.0;
+  for (const double coefficient : kCoefficients) {
+    sum = (sum * square) + coefficient;
+  }
+  return 1.0 + (square * sum);
+}
+
+}  // namespace Detail
+
+// sin(angle) and cos(angle), angle in radians, from basic arithmetic only, so
+// the result is bit-identical on every platform. std::sin and std::cos are not:
+// like std::exp (see stableExp) they need not be correctly rounded, and a
+// last-bit difference in a turned velocity is enough to make a replay diverge.
+//
+// Cody-Waite range reduction angle = k·pi/2 + r with |r| <= pi/4, pi/2 split
+// into three parts of 33 bits and a tail, so every product k·part is exact for
+// |k| < 2^20, then the Taylor series of sin(r) and cos(r) and the quadrant k
+// mod 4. The magnitude is reduced and the sine takes the angle's sign, so the
+// sine is exactly odd and the cosine exactly even. Within
+// |angle| <= kMaxStableAngle the result is within two units in the last place
+// of 1 of the true value (docs/match-engine.md#stable-math). Beyond it, and for
+// a non-finite angle, both are NaN.
+inline constexpr double kMaxStableAngle = 0x1p20 * (std::numbers::pi / 2.0);
+
+[[nodiscard]] inline SineCosine stableSineCosine(const double angle) noexcept {
+  const double magnitude = std::abs(angle);
+  if (!(magnitude <= kMaxStableAngle)) {
+    const double notANumber = std::numeric_limits<double>::quiet_NaN();
+    return {.sine = notANumber, .cosine = notANumber};
+  }
+  constexpr double kTwoOverPi = 2.0 * std::numbers::inv_pi;
+  // pi/2 = kHalfPi1 + kHalfPi2 + kHalfPi3 + kHalfPi3Tail, the first three with
+  // 33 significant bits each (fdlibm's split).
+  constexpr double kHalfPi1 = 1.57079632673412561417e+00;
+  constexpr double kHalfPi2 = 6.07710050630396597660e-11;
+  constexpr double kHalfPi3 = 2.02226624871116645580e-21;
+  constexpr double kHalfPi3Tail = 8.47842766036889956997e-32;
+  const double quarterTurns = std::floor((magnitude * kTwoOverPi) + 0.5);
+  double reduced = magnitude - (quarterTurns * kHalfPi1);
+  reduced -= quarterTurns * kHalfPi2;
+  reduced -= quarterTurns * kHalfPi3;
+  reduced -= quarterTurns * kHalfPi3Tail;
+
+  const double sine = Detail::sineAtMostQuarterPi(reduced);
+  const double cosine = Detail::cosineAtMostQuarterPi(reduced);
+  // 0 <= k <= 2^20, so the quadrant k mod 4 is exact in an int.
+  SineCosine result;
+  switch (static_cast<int>(quarterTurns) % 4) {
+    case 0:
+      result = {.sine = sine, .cosine = cosine};
+      break;
+    case 1:
+      result = {.sine = cosine, .cosine = -sine};
+      break;
+    case 2:
+      result = {.sine = -sine, .cosine = -cosine};
+      break;
+    default:
+      result = {.sine = -cosine, .cosine = sine};
+      break;
+  }
+  if (std::signbit(angle)) {
+    result.sine = -result.sine;
+  }
+  return result;
+}
+
+// sin(angle) in radians, bit-identical on every platform; see stableSineCosine().
+[[nodiscard]] inline double stableSine(const double angle) noexcept {
+  return stableSineCosine(angle).sine;
+}
+
+// cos(angle) in radians, bit-identical on every platform; see stableSineCosine().
+[[nodiscard]] inline double stableCosine(const double angle) noexcept {
+  return stableSineCosine(angle).cosine;
+}
+
 // The value `amount` of the way from `from` toward `toward`: from + amount ×
 // (toward − from), always this one expression. std::lerp is not: it picks
 // among formulas to be exact at the ends and monotonic, and libstdc++, MSVC

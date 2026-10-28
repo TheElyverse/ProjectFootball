@@ -183,6 +183,8 @@ Three helpers exist for shot and goalkeeper code:
   behind the goal line gets the same angle as its mirror image, so callers check
   where they stand themselves.
 
+### Stable math
+
 Standard math functions such as `std::atan2`, `std::hypot`, `std::exp` and
 `std::cos` need not be correctly rounded; a last-bit difference between machines
 can make a replay diverge. `sim-core` therefore provides its own, built from
@@ -192,6 +194,24 @@ correctly rounded arithmetic and `std::sqrt`: the angle uses
 circles' containment — uses `SimCore::stableHypot()`: exactly
 `std::sqrt(x * x + y * y)` where the squares are safe, scaled by an exact power
 of two first where they would overflow or underflow.
+
+`SimCore::stableSine()`, `stableCosine()` and `stableSineCosine()`, which
+returns both from one range reduction, turn a velocity by an angle. They reduce
+the angle's magnitude by quarter turns (Cody-Waite, pi/2 split into three exact
+parts and a tail), sum the Taylor series of sine and cosine within a quarter
+turn either side of zero, all in correctly rounded arithmetic, and give the sine
+the angle's sign, so the sine is exactly odd and the cosine exactly even: a turn
+to the left mirrors one to the right bit for bit. Measured against the standard
+library and pinned by the tests, both at a value and as a hash over a dense
+sweep that any changed last bit breaks:
+
+| Angle                                         | Accuracy                                  |
+|-----------------------------------------------|-------------------------------------------|
+| within ±pi/4                                  | 2 · ε · the true value                    |
+| up to `kMaxStableAngle`, 2^20 · pi/2 (1.6 · 10⁶ rad) | 2 · ε, two units in the last place of 1 |
+
+Beyond `kMaxStableAngle` the reduction would no longer be exact, so both are
+NaN, as for a non-finite angle; the simulation turns by a few radians at most.
 
 ### Vector operations
 

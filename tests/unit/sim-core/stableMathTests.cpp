@@ -3,13 +3,20 @@
 #include <cmath>
 #include <limits>
 #include <numbers>
+#include <vector>
 
+#include "stableHash.hpp"
 #include "stableMath.hpp"
 
+using ElyverseFootball::SimCore::kMaxStableAngle;
 using ElyverseFootball::SimCore::stableArcTangent;
+using ElyverseFootball::SimCore::stableCosine;
 using ElyverseFootball::SimCore::stableExp;
+using ElyverseFootball::SimCore::StableHasher;
 using ElyverseFootball::SimCore::stableHypot;
 using ElyverseFootball::SimCore::stableLerp;
+using ElyverseFootball::SimCore::stableSine;
+using ElyverseFootball::SimCore::stableSineCosine;
 
 TEST_CASE("stableExp agrees with std::exp to the last bits", "[stableMath]") {
   REQUIRE(stableExp(0.0) == 1.0);
@@ -142,4 +149,97 @@ TEST_CASE("stableLerp goes the amount of the way from one value toward the other
   REQUIRE(stableLerp(2.0, 6.0, 1.0) == 6.0);
   REQUIRE(stableLerp(6.0, 2.0, 0.25) == 5.0);
   REQUIRE(stableLerp(2.0, 6.0, 1.5) == 8.0);
+}
+
+TEST_CASE("stableSineCosine agrees with std::sin and std::cos to the last bits", "[stableMath]") {
+  constexpr double kEpsilon = std::numeric_limits<double>::epsilon();
+  // Within a quarter turn either side of zero no reduction happens: relative accuracy.
+  for (int step = -1000; step <= 1000; ++step) {
+    const double angle = static_cast<double>(step) * (std::numbers::pi / 4.0) / 1000.0;
+    CAPTURE(angle);
+    const auto [sine, cosine] = stableSineCosine(angle);
+    REQUIRE(std::abs(sine - std::sin(angle)) <= 2.0 * kEpsilon * std::abs(std::sin(angle)));
+    REQUIRE(std::abs(cosine - std::cos(angle)) <= 2.0 * kEpsilon * std::abs(std::cos(angle)));
+  }
+  // Beyond it, -1000 to 1000 rad and around a million: within two units in the
+  // last place of 1.
+  for (int step = -73000; step <= 73000; ++step) {
+    const double angle = static_cast<double>(step) * 0.0137;
+    CAPTURE(angle);
+    const auto [sine, cosine] = stableSineCosine(angle);
+    REQUIRE(std::abs(sine - std::sin(angle)) <= 2.0 * kEpsilon);
+    REQUIRE(std::abs(cosine - std::cos(angle)) <= 2.0 * kEpsilon);
+  }
+  for (const double angle : {1e6, -1e6 - 0.5, 1.6e6, kMaxStableAngle, -kMaxStableAngle}) {
+    CAPTURE(angle);
+    REQUIRE(std::abs(stableSine(angle) - std::sin(angle)) <= 2.0 * kEpsilon);
+    REQUIRE(std::abs(stableCosine(angle) - std::cos(angle)) <= 2.0 * kEpsilon);
+  }
+}
+
+TEST_CASE("stableSineCosine handles the edges like std::sin and std::cos", "[stableMath]") {
+  REQUIRE(stableSine(0.0) == 0.0);
+  REQUIRE(stableCosine(0.0) == 1.0);
+  REQUIRE(std::signbit(stableSine(-0.0)));
+  REQUIRE(stableSine(std::numeric_limits<double>::denorm_min()) ==
+          std::numeric_limits<double>::denorm_min());
+  REQUIRE(stableSine(std::numbers::pi / 2.0) == 1.0);
+  REQUIRE(stableCosine(std::numbers::pi) == -1.0);
+  REQUIRE(std::isnan(stableSine(std::numeric_limits<double>::quiet_NaN())));
+  REQUIRE(std::isnan(stableCosine(std::numeric_limits<double>::infinity())));
+  REQUIRE(std::isnan(stableSineCosine(-std::numeric_limits<double>::infinity()).sine));
+  // Beyond the range the reduction is exact for, no answer rather than a wrong one.
+  for (const double angle : {std::nextafter(kMaxStableAngle, 2e6), -2e6, 1.5e19, 1e300}) {
+    CAPTURE(angle);
+    REQUIRE(std::isnan(stableSine(angle)));
+    REQUIRE(std::isnan(stableCosine(angle)));
+  }
+}
+
+TEST_CASE("stableSineCosine is odd in the sine and even in the cosine", "[stableMath]") {
+  // Odd multiples of pi/4 lie halfway between two quarter turns, where a
+  // rounding that is not symmetric would reduce +x and -x differently.
+  std::vector<double> angles;
+  for (int step = 0; step <= 2000; ++step) {
+    angles.push_back(static_cast<double>(step) * 0.0731);
+  }
+  for (int eighth = 1; eighth <= 41; eighth += 2) {
+    angles.push_back(static_cast<double>(eighth) * (std::numbers::pi / 4.0));
+  }
+  for (const double angle : angles) {
+    CAPTURE(angle);
+    REQUIRE(stableSine(-angle) == -stableSine(angle));
+    REQUIRE(stableCosine(-angle) == stableCosine(angle));
+    const auto [sine, cosine] = stableSineCosine(angle);
+    REQUIRE(std::abs((sine * sine) + (cosine * cosine) - 1.0) <=
+            4.0 * std::numeric_limits<double>::epsilon());
+  }
+}
+
+TEST_CASE("stableSineCosine is pinned for values the ball physics depend on", "[stableMath]") {
+  // Golden values: a change to the algorithm changes every recorded replay.
+  REQUIRE(stableSine(1.0) == 0.8414709848078965);
+  REQUIRE(stableCosine(1.0) == 0.5403023058681398);
+  REQUIRE(stableSine(-2.5) == -0.5984721441039564);
+  REQUIRE(stableCosine(10.0) == -0.8390715290764524);
+  REQUIRE(stableSine(std::numbers::pi) == 1.2246467991473532e-16);
+  REQUIRE(stableCosine(std::numbers::pi / 2.0) == 6.123233995736766e-17);
+}
+
+TEST_CASE("stableSineCosine is pinned bit for bit over a dense sweep", "[stableMath]") {
+  // Every bit of 20,000 results in one hash: a platform, compiler or flag that
+  // changes a single last bit -- floating-point contraction into FMAs, for
+  // instance -- fails here, even where the golden values above still hold.
+  StableHasher hasher;
+  for (int step = -8000; step <= 8000; ++step) {
+    const auto [sine, cosine] = stableSineCosine(static_cast<double>(step) * 0.000785);
+    hasher.addDouble(sine);
+    hasher.addDouble(cosine);
+  }
+  for (int step = 1; step <= 2000; ++step) {
+    const auto [sine, cosine] = stableSineCosine(static_cast<double>(step) * 789.123);
+    hasher.addDouble(sine);
+    hasher.addDouble(cosine);
+  }
+  REQUIRE(hasher.value() == 0xfe03d14cf5f7ce3bULL);
 }

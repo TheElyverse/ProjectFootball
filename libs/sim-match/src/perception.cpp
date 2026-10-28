@@ -8,6 +8,7 @@
 
 #include "carrierScan.hpp"
 #include "configChecks.hpp"
+#include "stableMath.hpp"
 
 namespace ElyverseFootball::SimMatch {
 namespace {
@@ -27,32 +28,14 @@ void validate(const PerceptionConfig& config) {
   }
 }
 
-// cos(angle) for an angle in [0, pi], from basic arithmetic only, so the cone
-// edge is the same bit pattern on every platform: std::cos, like std::exp
-// (see SimCore::stableExp), need not be correctly rounded, and a last-bit
-// difference would decide differently for an entity right on the edge.
-//
-// The Taylor series of cos(angle / 2) up to the 22nd power, in Horner form
-// 1 - x²/(1·2)·(1 - x²/(3·4)·(1 - ...)), then cos(angle) = 2·cos²(angle / 2) - 1.
-// Halving keeps x within pi / 2, where the first omitted term is below 1e-19;
-// the result is within a few 1e-16 of the true cosine.
-[[nodiscard]] double stableCosine(const double angle) noexcept {
-  const double half = angle / 2.0;
-  const double square = half * half;
-  double sum = 1.0;
-  for (int power = 22; power >= 2; power -= 2) {
-    sum = 1.0 - ((square / static_cast<double>((power - 1) * power)) * sum);
-  }
-  return (2.0 * sum * sum) - 1.0;
-}
-
 // The cosine a position's direction must reach to lie in the vision cone:
-// cos(fov / 2) less a tolerance. stableCosine(pi / 2) is about 2e-16, not 0,
+// cos(fov / 2) less a tolerance. stableCosine(pi / 2) is about 6e-17, not 0,
 // so without the tolerance a player straight sideways would fall outside a
 // 180 degree cone despite the inclusive edge.
 [[nodiscard]] double coneCosine(const PerceptionConfig& config) noexcept {
   constexpr double kEdgeTolerance = 1e-9;
-  return stableCosine(config.fieldOfViewDegrees * std::numbers::pi / 360.0) - kEdgeTolerance;
+  return SimCore::stableCosine(config.fieldOfViewDegrees * std::numbers::pi / 360.0) -
+         kEdgeTolerance;
 }
 
 // canSee() with the cone's cosine already computed, so perceive() computes it
