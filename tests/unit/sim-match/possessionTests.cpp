@@ -11,6 +11,7 @@
 #include "ballMovement.hpp"
 #include "kickoffScenario.hpp"
 #include "matchCommand.hpp"
+#include "matchFixtures.hpp"
 #include "matchSetup.hpp"
 #include "matchSimulation.hpp"
 #include "matchState.hpp"
@@ -29,6 +30,7 @@ using ElyverseFootball::SimMatch::makeSevenASideKickoff;
 using ElyverseFootball::SimMatch::MatchCommandErrorCode;
 using ElyverseFootball::SimMatch::MatchConfig;
 using ElyverseFootball::SimMatch::MatchSetup;
+using ElyverseFootball::TestSupport::stepTimes;
 
 using ElyverseFootball::SimMatch::MatchSimulation;
 using ElyverseFootball::SimMatch::MatchState;
@@ -86,12 +88,6 @@ void requireBallWith(const MatchSimulation& simulation, const std::uint32_t play
   REQUIRE(ball.owner == PlayerId(playerId));
   REQUIRE(ball.position == carriedBallPosition(owner, BallPhysics{}, simulation.state().pitch()));
   REQUIRE(ball.velocity == owner.velocity);
-}
-
-void stepTimes(MatchSimulation& simulation, const int steps) {
-  for (int step = 0; step < steps; ++step) {
-    REQUIRE(simulation.step().has_value());
-  }
 }
 
 }  // namespace
@@ -218,7 +214,7 @@ TEST_CASE("A system cannot put the ball in an outfield player's hands", "[posses
 TEST_CASE("The carry distance must be finite and not negative", "[possession]") {
   BallPhysics physics;
   physics.carryDistance = -0.1;
-  REQUIRE_THROWS_AS(makeBallMovementSystem(physics), std::invalid_argument);
+  REQUIRE_THROWS_AS(makeBallMovementSystem({.physics = physics}), std::invalid_argument);
   physics.carryDistance = 0.0;
-  REQUIRE_NOTHROW(makeBallMovementSystem(physics));
+  REQUIRE_NOTHROW(makeBallMovementSystem({.physics = physics}));
 }

@@ -17,8 +17,9 @@ namespace ElyverseFootball::SimMatch {
 //
 // Home defends x = 0 and attacks +x; away is home's mirror image through the
 // halfway line. Player ids are 1..7 for home and 8..14 for away, in the layout
-// order documented in docs/match-state.md. Everyone stands still, and the ball
-// lies on the center spot, at rest unless ballVelocity sets it rolling.
+// order documented in docs/match-engine.md#match-state. Everyone stands still,
+// and the ball lies on the center spot, at rest unless ballVelocity sets it
+// rolling.
 //
 // The result cannot fail for a pitch that exists and a finite ball velocity:
 // every position is a fraction strictly between zero and one of the pitch

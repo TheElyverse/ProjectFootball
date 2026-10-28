@@ -17,7 +17,7 @@ inline constexpr double kDefaultCarryDistance = 0.5;  // m
 
 // How fast a player runs with the ball at his feet, as a share of his
 // maxSpeed: at the lowest ball control and at the highest, linear in between
-// (docs/ball-carrying.md).
+// (docs/on-ball.md#ball-carrying).
 inline constexpr double kDefaultMinCarrySpeedFactor = 0.8;
 inline constexpr double kDefaultMaxCarrySpeedFactor = 0.95;
 
@@ -29,8 +29,8 @@ inline constexpr double kDefaultGravity = 9.81;  // m/s²
 // per second. A real football feels a drag that grows with the square of its
 // speed, which no closed form solves; a linear drag does, and that is what
 // keeps a flight tick-rate independent and bit-identical on every platform
-// (docs/ball-movement.md). The default puts the terminal speed of a falling
-// ball at gravity / airDrag ≈ 30 m/s, which is about right.
+// (docs/ball.md#ball-movement). The default puts the terminal speed of a
+// falling ball at gravity / airDrag ≈ 30 m/s, which is about right.
 inline constexpr double kDefaultAirDrag = 0.33;  // 1/s
 
 // The share of its vertical speed a ball keeps when it bounces on grass.
@@ -56,7 +56,7 @@ inline constexpr double kDefaultRestingVerticalSpeed = 0.25;  // m/s
 // along the ground: the contact point of a ball spinning at ω moves at ω · r.
 inline constexpr double kBallRadius = 0.11;  // m
 
-// The physical constants of the ball model (docs/ball-movement.md). The
+// The physical constants of the ball model (docs/ball.md#ball-movement). The
 // rolling deceleration and gravity must be positive and finite, the carry
 // distance, the drag, the spin decay and the resting speed finite and not
 // negative, the three shares between 0 and 1, and the carry speed factors
@@ -91,19 +91,14 @@ void validate(const BallPhysics& physics);
 
 // The fraction t in (0, 1] of a move from start to end at which the ball
 // crosses the pitch boundary, for a start on the pitch and an end off it, and
-// 1 for a move that stays on. A free ball always moves along a straight line
-// in the pitch plane -- drag acts along its direction of travel and a bounce
-// only scales its speed -- so one fraction describes a whole tick, however
-// often the ball bounces within it.
+// 1 for a move that stays on; one fraction describes a whole tick however
+// often the ball bounces (docs/ball.md#pitch-boundary).
 [[nodiscard]] double pitchExitFraction(SimCore::Vec2 start, SimCore::Vec2 end,
                                        const Pitch& pitch) noexcept;
 
 // Where and when a ball in flight comes down, and how high it gets on the
-// way; empty for a ball that is already on the ground. Solved from the
-// closed-form flight rather than simulated, so a planner -- a chaser, later a
-// goalkeeper -- can ask where a ball will land without stepping the match.
-// The pitch boundary is not applied: this is the flight's own landing, and
-// what happens to a ball that leaves the pitch is for the systems to decide.
+// way; empty for a ball that is already on the ground. The flight's own
+// landing, without the pitch boundary (docs/ball.md#predicting-a-landing).
 struct BallLanding {
   SimCore::Vec2 position;
   double seconds = 0.0;
@@ -124,9 +119,10 @@ struct BallLanding {
 //
 // A ball that crosses a line is stopped on it and put down flat, which says
 // nothing about how high it was as it crossed, so reception asks this rather
-// than reading the height the step ended on (docs/reception.md). Seconds
-// beyond the step are the flight's own continuation; a ball on the grass is
-// at zero whatever it is asked.
+// than reading the height the step ended on
+// (docs/ball.md#reception-interceptions-and-loose-balls). Seconds beyond the
+// step are the flight's own continuation; a ball on the grass is at zero
+// whatever it is asked.
 [[nodiscard]] double ballHeightAfter(const BallState& ball, const BallPhysics& physics,
                                      double seconds) noexcept;
 
@@ -153,7 +149,7 @@ struct Launch {
 [[nodiscard]] std::optional<double> flightSpeed(double distance, double seconds,
                                                 const BallPhysics& physics) noexcept;
 
-// One tick of a free ball as described in docs/ball-movement.md.
+// One tick of a free ball as described in docs/ball.md#ball-movement.
 //
 // A ball on the grass rolls: ground friction slows it at a constant rate along
 // its direction of travel until it stops -- never reversing it. The
@@ -176,12 +172,12 @@ struct Launch {
 [[nodiscard]] BallState stepFreeBall(const BallState& ball, const BallPhysics& physics,
                                      const Pitch& pitch, double secondsPerTick) noexcept;
 
-// The same tick, with the part of it the ball travelled: the whole tick,
-// or the part up to the moment the ball left the pitch and stopped on the
-// line. stepFreeBall() leaves such a ball lying on the line, which says
-// nothing about when it got there -- and reception has to know, because a
-// contact somewhere along that shortened path happened earlier in the tick
-// than the same fraction of a whole one (docs/reception.md).
+// The same tick, with the part of it the ball travelled: the whole tick, or the
+// part up to the moment the ball left the pitch and stopped on the line.
+// stepFreeBall() leaves such a ball lying on the line, which says nothing about
+// when it got there -- and reception has to know, because a contact somewhere
+// along that shortened path happened earlier in the tick than the same fraction
+// of a whole one (docs/ball.md#reception-interceptions-and-loose-balls).
 struct BallStep {
   BallState ball;
   double seconds = 0.0;
@@ -189,5 +185,13 @@ struct BallStep {
 
 [[nodiscard]] BallStep stepFreeBallTimed(const BallState& ball, const BallPhysics& physics,
                                          const Pitch& pitch, double secondsPerTick) noexcept;
+
+// Where a controlled ball is: carryDistance ahead of its carrier along his
+// facing, moved onto the pitch if that lies off it -- a carrier on the line
+// does not carry the ball out of play (docs/ball.md#possession). A carried ball
+// is always on the ground.
+[[nodiscard]] SimCore::Vec2 carriedBallPosition(const PlayerMatchState& carrier,
+                                                const BallPhysics& physics,
+                                                const Pitch& pitch) noexcept;
 
 }  // namespace ElyverseFootball::SimMatch

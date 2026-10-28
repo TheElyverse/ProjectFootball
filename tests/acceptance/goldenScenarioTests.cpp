@@ -1,4 +1,4 @@
-// The P2 golden scenarios (docs/golden-scenarios.md): in each short,
+// The P2 golden scenarios (docs/scenarios.md#golden-scenarios): in each short,
 // hand-placed situation one tactical behaviour must show, checked through
 // events and diagnostics over fixed seeds. Every scenario also replays
 // identically.
@@ -85,7 +85,7 @@ TEST_CASE("Golden: in a 3v2 after a regain the carrier plays forward at once",
   using ElyverseFootball::SimMatch::DecisionOutcome;
   // The first action of the midfielder who won the ball, within 1.5 s of the
   // regain at tick 10, plays it forward: a pass to one of the three attackers,
-  // or a carry or a dribble up the pitch (docs/ball-carrying.md).
+  // or a carry or a dribble up the pitch (docs/on-ball.md#ball-carrying).
   const int forward =
       seedsWhere(&ElyverseFootball::SimMatch::makeTransitionThreeVersusTwo, 55,
                  [](const MatchSimulation& simulation) {

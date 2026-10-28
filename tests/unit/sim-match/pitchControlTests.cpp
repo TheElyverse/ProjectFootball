@@ -267,8 +267,8 @@ TEST_CASE("The pitch-control system rejects an invalid configuration", "[pitchCo
   REQUIRE_NOTHROW(makePitchControlSystem({}));
 }
 
-// Run with: sim-match-tests "[!benchmark]". docs/pitch-control.md records the
-// result.
+// Run with: sim-match-tests "[!benchmark]". docs/team-tactics.md#pitch-control
+// records the result.
 TEST_CASE("Pitch control refresh cost", "[!benchmark][pitchControl]") {
   const MatchState state = kickoff();
   BENCHMARK("seven-a-side, 2 m cells") {

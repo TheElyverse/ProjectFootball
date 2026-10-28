@@ -59,9 +59,11 @@ struct RememberedPlayers {
   std::vector<Remembered> opponents;
 };
 
-[[nodiscard]] inline RememberedPlayers rememberedPlayers(
-    const MatchState& state, const std::size_t carrierIndex, const SimCore::SimTick now,
-    const double secondsPerTick, const PerceptionConfig& perception, const double minConfidence) {
+[[nodiscard]] inline RememberedPlayers rememberedPlayers(const MatchState& state,
+                                                         const std::size_t carrierIndex,
+                                                         const SimCore::StepTime time,
+                                                         const PerceptionConfig& perception,
+                                                         const double minConfidence) {
   const PlayerMatchState& carrier = state.players()[carrierIndex];
   RememberedPlayers remembered;
   for (const Observation& observation : state.perception(carrierIndex).observations) {
@@ -74,7 +76,7 @@ struct RememberedPlayers {
     }
     const PlayerMatchState& actual = state.players()[*index];
     PlayerMatchState player = actual;
-    player.position = estimatePosition(observation, now, secondsPerTick, perception);
+    player.position = estimatePosition(observation, time, perception);
     player.velocity = observation.velocity;
     player.attributes = PlayerAttributes{};
     player.target = std::nullopt;

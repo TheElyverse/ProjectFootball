@@ -9,10 +9,7 @@
 #include <vector>
 
 #include "actionCandidate.hpp"
-#include "aerialDuels.hpp"
 #include "carryCandidate.hpp"
-#include "goalFrame.hpp"
-#include "goalkeeper.hpp"
 #include "ids.hpp"
 #include "matchState.hpp"
 #include "observation.hpp"
@@ -26,8 +23,35 @@
 
 namespace ElyverseFootball::SimMatch {
 
-// Domain events: immutable facts about what happened in a step, recorded by
-// the systems that made them happen (docs/match-events.md). Every event
+// A part of a goal frame: the post at the lower or the higher pitch y, or
+// the crossbar.
+enum class WoodworkPart : std::uint8_t {
+  kPostAtMinY,
+  kPostAtMaxY,
+  kCrossbar,
+};
+
+// "postAtMinY", "postAtMaxY", "crossbar"; "unknown" outside the enumerators.
+[[nodiscard]] std::string_view woodworkPartName(WoodworkPart part) noexcept;
+
+// What the keeper makes of a ball he could come for.
+struct SweepCall {
+  // The seconds he and the first attacker need to reach it; no attacker if
+  // none of them can.
+  double keeperSeconds = 0.0;
+  std::optional<double> attackerSeconds;
+  double misjudgement = 0.0;
+  // The head start he wants, already lowered by the hysteresis if he is
+  // coming.
+  double threshold = 0.0;
+  bool coming = false;
+
+  friend bool operator==(const SweepCall&, const SweepCall&) = default;
+};
+
+// Domain events: immutable facts about what happened in a step, recorded by the
+// systems that made them happen
+// (docs/match-engine.md#match-events-and-decision-diagnostics). Every event
 // carries the tick of its step.
 
 // A player kicked a pass: the ball left his foot toward target.
@@ -84,8 +108,9 @@ struct PossessionChanged {
   friend bool operator==(const PossessionChanged&, const PossessionChanged&) = default;
 };
 
-// A team with a tactic entered a new tactical phase (docs/match-phases.md).
-// previous is empty for the team's first phase.
+// A team with a tactic entered a new tactical phase
+// (docs/team-tactics.md#match-phases). previous is empty for the team's first
+// phase.
 struct PhaseChanged {
   SimCore::SimTick tick;
   TeamSide side = TeamSide::kHome;
@@ -107,10 +132,10 @@ struct TacticChanged {
   friend bool operator==(const TacticChanged&, const TacticChanged&) = default;
 };
 
-// The pitch control system updated its grid (docs/pitch-control.md): home's
-// share of the pitch -- away's is the rest -- and where the ball was. A
-// regular sample of the match, so analyses of territory and control need
-// nothing but events.
+// The pitch control system updated its grid
+// (docs/team-tactics.md#pitch-control): home's share of the pitch -- away's is
+// the rest -- and where the ball was. A regular sample of the match, so
+// analyses of territory and control need nothing but events.
 struct PitchControlSampled {
   SimCore::SimTick tick;
   double homeShare = 0.5;
@@ -119,8 +144,8 @@ struct PitchControlSampled {
   friend bool operator==(const PitchControlSampled&, const PitchControlSampled&) = default;
 };
 
-// Play restarted after the ball went out (docs/restarts.md): how, who got
-// the ball, and where it had left the pitch.
+// Play restarted after the ball went out (docs/match-engine.md#restarts): how,
+// who got the ball, and where it had left the pitch.
 struct RestartTaken {
   SimCore::SimTick tick;
   RestartKind kind = RestartKind::kThrowIn;
@@ -131,8 +156,8 @@ struct RestartTaken {
 };
 
 // How a player lost the ball he owned to an opponent: in a duel
-// (docs/duels.md), or the opponent got to it while it rolled ahead of him
-// after a touch (docs/ball-carrying.md).
+// (docs/duels.md#duels-on-the-ball), or the opponent got to it while it rolled
+// ahead of him after a touch (docs/on-ball.md#ball-carrying).
 enum class BallWonCause : std::uint8_t {
   kDuel,
   kLooseTouch,
@@ -152,8 +177,8 @@ struct BallWon {
   friend bool operator==(const BallWon&, const BallWon&) = default;
 };
 
-// A side started a coordinated press (docs/pressing.md): on whom, what
-// triggered it -- empty for a press of the pressing phase -- and who plays
+// A side started a coordinated press (docs/team-tactics.md#pressing): on whom,
+// what triggered it -- empty for a press of the pressing phase -- and who plays
 // which role.
 struct PressingStarted {
   SimCore::SimTick tick;
@@ -177,7 +202,7 @@ struct PressingEnded {
 // A player took a shot: the ball left his foot from `from` toward the aimed
 // point of the goal. Enough to reconstruct the chance; what became of it
 // follows in the events below, which name the shot by its shooter and the
-// tick of this event (docs/shooting.md).
+// tick of this event (docs/on-ball.md#shooting).
 struct ShotAttempted {
   SimCore::SimTick tick;
   SimCore::PlayerId shooter;
@@ -283,7 +308,7 @@ enum class SaveResult : std::uint8_t {
 
 // A shot passed the keeper of the goal it attacked, at the ball's position and
 // height: recorded when he touched it, and when it was on its way into his
-// goal and he did not (docs/shot-stopping.md).
+// goal and he did not (docs/goalkeeper.md#shot-stopping).
 struct SaveAttempted {
   SimCore::SimTick tick;
   SimCore::PlayerId keeper;
@@ -296,10 +321,36 @@ struct SaveAttempted {
   friend bool operator==(const SaveAttempted&, const SaveAttempted&) = default;
 };
 
-// Players went up for a high ball, where it was and how high when the first
-// of them got to it (docs/aerial-duels.md): everyone who did, how high each
-// got and whether that reached it, the one who won it -- nobody if none
-// reached it -- and what he did with it.
+// What the winner of an aerial contest did with the ball: headed it at
+// goal, to a teammate or down to one close by, or clear; or, a goalkeeper
+// with his hands, caught it or punched it clear.
+enum class AerialPlay : std::uint8_t {
+  kShot,
+  kPass,
+  kKnockDown,
+  kClearance,
+  kCaught,
+  kPunched,
+};
+
+// "shot", "pass", "knockDown", "clearance", "caught", "punched"; "unknown"
+// outside the enumerators.
+[[nodiscard]] std::string_view aerialPlayName(AerialPlay play) noexcept;
+
+// One player who went up for a high ball: the highest ball centre his jump
+// met it with, and whether that reached it.
+struct AerialContestant {
+  SimCore::PlayerId player;
+  double reach = 0.0;  // m
+  bool reached = false;
+
+  friend bool operator==(const AerialContestant&, const AerialContestant&) = default;
+};
+
+// Players went up for a high ball, where it was and how high when the first of
+// them got to it (docs/duels.md#aerial-duels-and-headers): everyone who did,
+// how high each got and whether that reached it, the one who won it -- nobody
+// if none reached it -- and what he did with it.
 struct AerialContest {
   SimCore::SimTick tick;
   SimCore::Vec2 position;
@@ -312,7 +363,7 @@ struct AerialContest {
 };
 
 // A carrier knocked the ball past an opponent to go round him
-// (docs/ball-carrying.md): from where, and where the touch sends it.
+// (docs/on-ball.md#ball-carrying): from where, and where the touch sends it.
 struct DribbleAttempted {
   SimCore::SimTick tick;
   SimCore::PlayerId carrier;
@@ -346,8 +397,8 @@ struct DribbleEnded {
   friend bool operator==(const DribbleEnded&, const DribbleEnded&) = default;
 };
 
-// A defender took the carrier on for the ball at his feet (docs/duels.md),
-// where the ball was.
+// A defender took the carrier on for the ball at his feet
+// (docs/duels.md#duels-on-the-ball), where the ball was.
 struct DuelStarted {
   SimCore::SimTick tick;
   SimCore::PlayerId carrier;
@@ -414,14 +465,14 @@ enum class DecisionOutcome : std::uint8_t {
 // "dribbled"; "unknown" outside the enumerators.
 [[nodiscard]] std::string_view decisionOutcomeName(DecisionOutcome outcome) noexcept;
 
-// Whether the outcome plays the ball on with a touch (docs/ball-carrying.md):
-// turned, carried or dribbled.
+// Whether the outcome plays the ball on with a touch
+// (docs/on-ball.md#ball-carrying): turned, carried or dribbled.
 [[nodiscard]] bool isTouch(DecisionOutcome outcome) noexcept;
 
-// How a carrier came to his decision (docs/pass-decisions.md): by choosing
-// among his valid options, the usual way, or -- without one -- by looking for
-// one on the first or the other side, or by playing the best rejected pass or
-// clearing the ball once he has looked for long enough.
+// How a carrier came to his decision (docs/on-ball.md#pass-decisions): by
+// choosing among his valid options, the usual way, or -- without one -- by
+// looking for one on the first or the other side, or by playing the best
+// rejected pass or clearing the ball once he has looked for long enough.
 enum class OnBallReason : std::uint8_t {
   kChoice,
   kScanFirstSide,
@@ -456,13 +507,13 @@ struct DecisionDiagnostic {
   // shotContributions() with them explain each utility.
   PassScoringConfig scoring;
   ShotScoringConfig shotScoring;
-  // His options with the ball at his feet (docs/ball-carrying.md), and the
-  // weights they were scored with: carryContributions() with them explains
+  // His options with the ball at his feet (docs/on-ball.md#ball-carrying), and
+  // the weights they were scored with: carryContributions() with them explains
   // each utility.
   std::vector<CarryCandidate> carries;
   CarryScoringConfig carryScoring;
   // Whether he held the ball in his hands: his passes are then throws, his
-  // lofted passes punts (docs/goalkeeper-distribution.md).
+  // lofted passes punts (docs/goalkeeper.md#distribution).
   bool held = false;
   // How he came to it, and where it points him: the point he looks at while
   // he scans, the point he clears the ball to; empty otherwise.
@@ -486,15 +537,16 @@ struct ActionDiagnostic {
   // action.
   bool assigned = false;
   // Whether he was sent at a carrier standing on the ball
-  // (docs/pressing.md); then the candidates hold that one action.
+  // (docs/team-tactics.md#pressing); then the candidates hold that one action.
   bool idlePress = false;
 
   friend bool operator==(const ActionDiagnostic&, const ActionDiagnostic&) = default;
 };
 
 // Why a goalkeeper came for a free ball the opponent played or stayed home
-// (docs/goalkeeper.md): reported when he first judges a ball and when he
-// turns back from it. Like DecisionDiagnostic, debug output only.
+// (docs/goalkeeper.md#positioning-and-sweeping): reported when he first judges
+// a ball and when he turns back from it. Like DecisionDiagnostic, debug output
+// only.
 struct SweepDiagnostic {
   SimCore::SimTick tick;
   SimCore::PlayerId player;

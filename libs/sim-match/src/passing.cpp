@@ -2,20 +2,17 @@
 
 #include <algorithm>
 #include <cmath>
-#include <limits>
 #include <stdexcept>
 
+#include "configChecks.hpp"
 #include "randomDraws.hpp"
 
 namespace ElyverseFootball::SimMatch {
 namespace {
 
+using ConfigChecks::isFinite;
 using RandomDraws::symmetricUniform;
 using SimCore::Vec2;
-
-[[nodiscard]] bool isFinite(const double value) noexcept {
-  return std::abs(value) <= std::numeric_limits<double>::max();
-}
 
 }  // namespace
 

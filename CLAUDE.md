@@ -4,24 +4,13 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project status
 
-This repository is in **early bootstrap stage**. The P0 Foundation milestone (repo, CMake, CI, strong
-IDs, sim clock, deterministic RNG, a minimal event bus, and a CLI) exists under `libs/sim-core` and
-`apps/sim-cli`, and `libs/sim-tactics` holds the tactic data model and its file format (`docs/tactics.md`,
-`docs/tactic-format.md`, files under `data/tactics/`), and `libs/sim-match` has started with pitch geometry, the validated match state, the
-seven-a-side kickoff fixture, the fixed-timestep match loop with commands (`docs/match-loop.md`), and
-player and ball movement (`docs/player-movement.md`, `docs/ball-movement.md`), spatial queries,
-perception, possession, passing, reception, pass and shot decisions, shot execution with goals, the goalkeeper's own positioning and sweeping, his shot stopping and his distribution, aerial duels and headers, ball carrying and dribbling, duels on the ball (`docs/spatial-queries.md`,
-`docs/perception.md`, `docs/possession.md`, `docs/passing.md`, `docs/reception.md`,
-`docs/pass-candidates.md`, `docs/pass-decisions.md`, `docs/shot-decisions.md`, `docs/shooting.md`, `docs/goalkeeper.md`,
-`docs/shot-stopping.md`, `docs/goalkeeper-distribution.md`, `docs/aerial-duels.md`, `docs/ball-carrying.md`, `docs/duels.md`), tactical phases, pitch control, zones and team shape, desired regions, off-ball movement, the defensive block and pressing (`docs/match-phases.md`,
-`docs/pitch-control.md`, `docs/zones.md`, `docs/desired-region.md`, `docs/off-ball-movement.md`, `docs/defensive-shape.md`,
-`docs/pressing.md`), tactic changes by command and simplified restarts (`docs/match-loop.md`, `docs/restarts.md`)
-with events and diagnostics (`docs/match-events.md`, `docs/decision-trace.md`); `libs/sim-analytics` computes
-match statistics from events (`docs/match-analytics.md`); `apps/sim-benchmark` plays series and round robins of
-tactic matches (`docs/sim-benchmark.md`); a web debug viewer with tactical overlays lives in `apps/sim-viewer`
-(`docs/debug-viewer.md`); the P1 passing scenarios, the shot, goalkeeper, distribution and duel scenarios, the P2 tactical identities and golden scenarios come with
-their acceptance tests (`docs/scenarios.md`, `docs/tactical-identities.md`, `docs/golden-scenarios.md`);
-almost everything described in the design/implementation docs below is still unbuilt.
+This repository is in **early bootstrap stage**. The P0 foundation (`libs/sim-core`, `apps/sim-cli`), the
+tactic model (`libs/sim-tactics`), a seven-a-side match simulation with its P1/P2 acceptance scenarios
+(`libs/sim-match`), replays, analytics, the benchmark, the debug viewer and the UI spike exist; almost
+everything else in the design/implementation docs below is still unbuilt. `docs/README.md` indexes the topic
+docs that describe what exists, one per area (match engine, players, ball, on the ball, goalkeeper, duels,
+team tactics, tactics, scenarios, tooling, apps). Document a new system as a chapter of the topic doc it
+belongs to, and link to chapters by anchor (`docs/goalkeeper.md#shot-stopping`).
 When implementing a new system, check whether it belongs in an existing module (see layout below) before
 adding a new one.
 
@@ -60,7 +49,9 @@ libs/
   sim-core       IDs, time, RNG, events, base types (depends on: STL only)      [exists]
   sim-player     Capabilities, match/world player state, development           [planned]
   sim-tactics    Principles, phases, responsibilities, spatial targets         [exists: tactic model]
-  sim-match      Pitch, ball, perception, decisions, actions, rules            [exists: pitch, state, loop, movement, ball, perception, possession, passing, reception, decisions, shot decisions, shooting, goalkeeper, shot stopping, distribution, aerial duels, carrying, duels, events, phases, pitch control, zones, desired region, off-ball, defence, pressing, tactic changes, restarts, scenarios]
+  sim-match      Pitch, ball, perception, decisions, actions, rules            [exists: 7v7 match, see docs/README.md]
+                 headers in layers model → mechanics → loop → behaviour → setup,
+                 checked by tests/architecture (docs/match-engine.md#header-layers)
   sim-world      Calendar, clubs, competitions, economy, careers               [planned]
   sim-ai         Club planning, coach decisions, staff behavior                [planned]
   sim-analytics  Events, metrics, explanations (read-only over domain events)  [exists: match stats, series summaries]
@@ -72,7 +63,7 @@ apps/
   website        static landing page, HTML + Tailwind CSS v4 (pnpm)          [exists]
   sim-benchmark  series and style round robins of tactic matches, statistics [exists]
   manager-ui     React/TS/Tailwind manager UI, shown in Unreal's WebBrowser (pnpm) [exists: UI spike]
-  unreal-game    UE 5.8 project: sim-core adapter, hosts manager-ui (docs/ui-spike.md) [exists: UI spike]
+  unreal-game    UE 5.8 project: sim-core adapter, hosts manager-ui (docs/apps.md#ui-spike) [exists: UI spike]
   sim-replay, world-editor                                                     [planned]
 data/            schemas, tactics, competitions, fixtures (JSON/YAML, schema-validated) [exists: tactics]
 tests/unit/      Catch2 tests, mirrors libs/ by subdirectory                   [exists: sim-core, sim-tactics, sim-match, sim-replay, sim-analytics, sim-benchmark]
@@ -117,26 +108,26 @@ Run a single test (Catch2 tag or exact name), after building:
 ./build/debug/tests/unit/sim-match-tests "[matchSimulation]"
 ```
 
-Run a scenario headlessly and play its replay back (see `docs/replay-format.md`, `docs/scenarios.md`):
+Run a scenario headlessly and play its replay back (see `docs/tooling.md#replay-format`, `docs/scenarios.md#scenario-catalogue`):
 ```
 ./build/debug/apps/sim-cli/sim-cli --scenario kickoff --seed 42 --ticks 300 --replay-out /tmp/replay.json
 ./build/debug/apps/sim-cli/sim-cli --play /tmp/replay.json
 ```
 
-Record debug frames and watch them in the web viewer (Node.js 22+, see `docs/debug-viewer.md`):
+Record debug frames and watch them in the web viewer (Node.js 22+, see `docs/tooling.md#debug-viewer`):
 ```
 ./build/debug/apps/sim-cli/sim-cli --scenario m0-acceptance --seed 42 --frames-out frames.json
 cd apps/sim-viewer && pnpm install && pnpm run build && pnpm run serve ../../frames.json
 cd apps/sim-viewer && pnpm test
 ```
 
-Build and preview the static website (see `docs/website.md`):
+Build and preview the static website (see `docs/apps.md#website`):
 ```
 cd apps/website && pnpm install && pnpm run build && pnpm run serve
 ```
 
 Develop the manager UI in a browser with mock data, build it and the Unreal project (UE 5.8, editor closed),
-or package a distributable Linux build into `build/package/Linux` (see `docs/ui-spike.md`):
+or package a distributable Linux build into `build/package/Linux` (see `docs/apps.md#ui-spike`):
 ```
 cd apps/manager-ui && pnpm install && pnpm run dev
 cd apps/manager-ui && pnpm run build
@@ -151,14 +142,14 @@ ctest --preset debug --label-regex acceptance
 ```
 
 Play two tactic files against each other, write match statistics, and trace a player's decisions in the replay
-(see `docs/tactical-identities.md`, `docs/match-analytics.md`, `docs/decision-trace.md`):
+(see `docs/tactics.md#tactical-identities`, `docs/tooling.md#match-analytics`, `docs/tooling.md#decision-trace`):
 ```
 ./build/debug/apps/sim-cli/sim-cli --home-tactic data/tactics/pressing.json --away-tactic data/tactics/counter.json \
   --seed 3 --ticks 1800 --replay-out /tmp/replay.json --stats-out /tmp/stats.json
 ./build/debug/apps/sim-cli/sim-cli --play /tmp/replay.json --trace /tmp/trace.txt --trace-players 4
 ```
 
-Benchmark the tactical styles in a Release build (see `docs/sim-benchmark.md`); CI runs the reduced P2 round robin
+Benchmark the tactical styles in a Release build (see `docs/tooling.md#sim-benchmark`); CI runs the reduced P2 round robin
 in its `style-benchmark` job:
 ```
 cmake --preset release && cmake --build --preset release --target sim-benchmark

@@ -8,9 +8,9 @@
 
 namespace ElyverseFootball::SimTactics {
 
-// One atomic duty of a player in a tactic (docs/tactics.md). Roles such as
-// "winger" are presets that combine these; the match only ever reads the
-// atomic responsibilities, so a new role needs no new code.
+// One atomic duty of a player in a tactic (docs/tactics.md#tactic-model). Roles
+// such as "winger" are presets that combine these; the match only ever reads
+// the atomic responsibilities, so a new role needs no new code.
 enum class Responsibility : std::uint8_t {
   // Stay between the ball and the own goal, near the goal line.
   kGuardGoal,

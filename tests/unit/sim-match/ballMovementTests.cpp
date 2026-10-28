@@ -230,7 +230,7 @@ TEST_CASE("An interception's position interpolates the contact, not the tick's s
                                                       .tick = SimTick(0),
                                                       .receiver = std::nullopt});
                         }},
-                   makeBallMovementSystem({})},
+                   makeBallMovementSystem()},
        .commands = {}});
   REQUIRE(simulation.step().has_value());
   const auto events = simulation.events();
@@ -261,7 +261,7 @@ TEST_CASE("The system writes a flying ball's height, and nobody takes it at his 
   MatchSimulation simulation({.initialState = *std::move(state),
                               .seed = 3,
                               .ticksPerSecond = kDefaultTicksPerSecond,
-                              .systems = {makeBallMovementSystem({}), makePlayerMovementSystem()},
+                              .systems = {makeBallMovementSystem(), makePlayerMovementSystem()},
                               .commands = {}});
   for (int tick = 0; tick < 15; ++tick) {
     REQUIRE(simulation.step().has_value());
@@ -282,9 +282,9 @@ TEST_CASE("The ball moves independently of the players", "[ballMovement]") {
   // Straight up from the center spot while two players run elsewhere: a free
   // ball nobody reaches rolls the same whoever moves around it.
   const Vec2 kick{.x = 0.0, .y = 7.0};
-  MatchSimulation ballOnly = simulationOf(kick, {makeBallMovementSystem({})});
+  MatchSimulation ballOnly = simulationOf(kick, {makeBallMovementSystem()});
   MatchSimulation withPlayers = simulationOf(
-      kick, {makePlayerMovementSystem(), makeBallMovementSystem({})},
+      kick, {makePlayerMovementSystem(), makeBallMovementSystem()},
       {{.tick = SimTick(0),
         .command = MovePlayerCommand{.playerId = PlayerId(7), .target = {.x = 10.0, .y = 10.0}}},
        {.tick = SimTick(0),
@@ -300,8 +300,8 @@ TEST_CASE("The ball moves independently of the players", "[ballMovement]") {
 }
 
 TEST_CASE("Identical initial conditions produce identical ball trajectories", "[ballMovement]") {
-  MatchSimulation first = simulationOf({.x = -4.5, .y = 2.25}, {makeBallMovementSystem({})});
-  MatchSimulation second = simulationOf({.x = -4.5, .y = 2.25}, {makeBallMovementSystem({})});
+  MatchSimulation first = simulationOf({.x = -4.5, .y = 2.25}, {makeBallMovementSystem()});
+  MatchSimulation second = simulationOf({.x = -4.5, .y = 2.25}, {makeBallMovementSystem()});
 
   for (int tick = 0; tick < 200; ++tick) {
     REQUIRE(first.step().has_value());
@@ -314,6 +314,6 @@ TEST_CASE("The ball movement system rejects an invalid rolling deceleration", "[
   const double invalid = GENERATE(0.0, -1.0, std::numeric_limits<double>::infinity(),
                                   std::numeric_limits<double>::quiet_NaN());
   CAPTURE(invalid);
-  REQUIRE_THROWS_AS(makeBallMovementSystem({.rollingDeceleration = invalid}),
+  REQUIRE_THROWS_AS(makeBallMovementSystem({.physics = {.rollingDeceleration = invalid}}),
                     std::invalid_argument);
 }

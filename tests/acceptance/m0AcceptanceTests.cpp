@@ -124,7 +124,8 @@ TEST_CASE("M0: an extended run never produces an invalid state", "[acceptance][m
       REQUIRE(player.velocity.lengthSquared() <=
               player.attributes.maxSpeed * player.attributes.maxSpeed * (1.0 + 1e-12));
       // A player may stop behind a line he chased the ball to: positions off
-      // the pitch are football (docs/match-loop.md), targets off it are not.
+      // the pitch are football (docs/match-engine.md#match-loop), targets off
+      // it are not.
       if (player.target) {
         REQUIRE(pitch.contains(*player.target));
       }

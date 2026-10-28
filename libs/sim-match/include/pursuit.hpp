@@ -3,7 +3,7 @@
 #include <optional>
 #include <string_view>
 
-#include "ballMovement.hpp"
+#include "ballPhysics.hpp"
 #include "goalkeeper.hpp"
 #include "matchSimulation.hpp"
 #include "matchState.hpp"
@@ -19,8 +19,9 @@ namespace ElyverseFootball::SimMatch {
 // making a step arbitrarily slow. The defaults use 80.
 inline constexpr double kMaxPursuitSamples = 1000.0;
 
-// How players go after a free ball; see docs/reception.md. Part of
-// MatchConfig and therefore of every replay.
+// How players go after a free ball; see
+// docs/ball.md#reception-interceptions-and-loose-balls. Part of MatchConfig and
+// therefore of every replay.
 struct PursuitConfig {
   // 3 ticks at 30 Hz: chasers re-plan ten times a second.
   int intervalTicks = 3;
@@ -61,15 +62,24 @@ struct Interception {
 
 inline constexpr std::string_view kPursuitSystemName = "ball pursuit";
 
-// While the ball is free, sends one player per side after it: the one with
-// the earliest interception, ties to the lower id. He becomes his side's
-// chaser (MatchState::chaser()) and his movement target the interception
-// point, overriding any assigned target; everyone else keeps his. The last
-// player to touch the ball does not chase it while it still moves -- he just
-// passed it. A ball its owner touched on ahead of him (docs/ball-carrying.md)
-// is chased the same way by the other side, but only by those who get to it
-// before him, at his running speed with it: everyone else leaves it to him,
-// and a goalkeeper judges it against him.
+// What the pursuit system is configured with: the default configuration for
+// whatever a caller leaves out.
+struct PursuitRules {
+  BallPhysics physics{};
+  PursuitConfig pursuit{};
+  ReceptionConfig reception{};
+  GoalkeeperConfig goalkeeper{};
+};
+
+// While the ball is free, sends one player per side after it: the one with the
+// earliest interception, ties to the lower id. He becomes his side's chaser
+// (MatchState::chaser()) and his movement target the interception point,
+// overriding any assigned target; everyone else keeps his. The last player to
+// touch the ball does not chase it while it still moves -- he just passed it. A
+// ball its owner touched on ahead of him (docs/on-ball.md#ball-carrying) is
+// chased the same way by the other side, but only by those who get to it before
+// him, at his running speed with it: everyone else leaves it to him, and a
+// goalkeeper judges it against him.
 //
 // The reach comes from the reception configuration: a chaser runs to where he
 // can actually play the ball, not to a point it flies over -- a goalkeeper in
@@ -77,16 +87,15 @@ inline constexpr std::string_view kPursuitSystemName = "ball pursuit";
 //
 // A goalkeeper who would be his side's chaser of a ball the opponent played
 // last, at a point behind his defensive line, decides first whether he comes
-// (docs/goalkeeper.md): his
-// interception against the opponents' earliest, with the misjudgement he
-// draws from the kAi stream when he first judges that ball, by callSweep()
-// and his tactic's sweeping dial. He keeps the judgement in his tactical
-// state and reports it as a SweepDiagnostic when he first makes it or turns
-// back. A ball he stays home for he leaves; while he comes for one he judges
-// it again at every update, and turns back for good once a teammate is his
-// side's chaser. If he stays, his side's next earliest player chases the ball.
-// A keeper busy with a dive (isDiving(), docs/shot-stopping.md) chases
-// nothing until he is up again.
+// (docs/goalkeeper.md#positioning-and-sweeping): his interception against the
+// opponents' earliest, with the misjudgement he draws from the kAi stream when
+// he first judges that ball, by callSweep() and his tactic's sweeping dial. He
+// keeps the judgement in his tactical state and reports it as a SweepDiagnostic
+// when he first makes it or turns back. A ball he stays home for he leaves;
+// while he comes for one he judges it again at every update, and turns back for
+// good once a teammate is his side's chaser. If he stays, his side's next
+// earliest player chases the ball. A keeper busy with a dive (isDiving(),
+// docs/goalkeeper.md#shot-stopping) chases nothing until he is up again.
 //
 // The chaser's target belongs to pursuit. A player who stops being the
 // chaser -- someone else is closer, or anyone controls the ball -- has his
@@ -98,12 +107,6 @@ inline constexpr std::string_view kPursuitSystemName = "ball pursuit";
 // interval below one tick, a sample or horizon that is not positive and
 // finite, a horizon of more than kMaxPursuitSamples samples, or an invalid
 // goalkeeper configuration.
-[[nodiscard]] MatchSystem makePursuitSystem(const BallPhysics& physics, const PursuitConfig& config,
-                                            const ReceptionConfig& reception,
-                                            const GoalkeeperConfig& goalkeeper);
-[[nodiscard]] MatchSystem makePursuitSystem(const BallPhysics& physics, const PursuitConfig& config,
-                                            const ReceptionConfig& reception);
-[[nodiscard]] MatchSystem makePursuitSystem(const BallPhysics& physics,
-                                            const PursuitConfig& config);
+[[nodiscard]] MatchSystem makePursuitSystem(const PursuitRules& rules = {});
 
 }  // namespace ElyverseFootball::SimMatch

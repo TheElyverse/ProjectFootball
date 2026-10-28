@@ -2,30 +2,21 @@
 
 #include <algorithm>
 #include <cmath>
-#include <limits>
 #include <stdexcept>
 
+#include "configChecks.hpp"
 #include "randomDraws.hpp"
 
 namespace ElyverseFootball::SimMatch {
 namespace {
 
+using ConfigChecks::isFiniteNonNegative;
+using ConfigChecks::isPositiveFinite;
+using ConfigChecks::isShare;
 using RandomDraws::symmetricTriangular;
 using RandomDraws::symmetricUniform;
 using SimCore::unitOr;
 using SimCore::Vec2;
-
-[[nodiscard]] bool isFiniteNonNegative(const double value) noexcept {
-  return value >= 0.0 && value <= std::numeric_limits<double>::max();
-}
-
-[[nodiscard]] bool isPositiveFinite(const double value) noexcept {
-  return value > 0.0 && value <= std::numeric_limits<double>::max();
-}
-
-[[nodiscard]] bool isShare(const double value) noexcept {
-  return value >= 0.0 && value <= 1.0;
-}
 
 // However badly a ball is struck, it leaves the foot at no less than half and
 // no more than one and a half times the intended speed.
@@ -59,8 +50,8 @@ double skillErrorFactor(const double skill) noexcept {
 }
 
 ShotConditions shotConditions(const MatchState& state, const std::size_t shooterIndex,
-                              const Vec2 from, const ShotIntent& intent, const SimCore::SimTick now,
-                              const double secondsPerTick, const ShotConfig& config,
+                              const Vec2 from, const ShotIntent& intent,
+                              const SimCore::StepTime time, const ShotConfig& config,
                               const PassConfig& passing) {
   const PlayerMatchState& shooter = state.players()[shooterIndex];
   const Vec2 line = unitOr(intent.target - from, shooter.facing);
@@ -82,8 +73,7 @@ ShotConditions shotConditions(const MatchState& state, const std::size_t shooter
   if (const auto& reception = state.lastReception();
       reception && reception->player == shooter.playerId &&
       state.ball().lastTouch == BallTouch{.playerId = reception->player, .tick = reception->tick}) {
-    const double since =
-        static_cast<double>(now.value() - reception->tick.value()) * secondsPerTick;
+    const double since = time.secondsSince(reception->tick);
     if (since >= 0.0 && since < config.unsettledSeconds) {
       conditions.unsettled = std::min(1.0, reception->ballSpeed / config.unsettledBallSpeed) *
                              (1.0 - (since / config.unsettledSeconds));

@@ -8,17 +8,16 @@
 #include <utility>
 #include <variant>
 
+#include "teamFrame.hpp"
+
 namespace ElyverseFootball::SimAnalytics {
 namespace {
 
+using SimMatch::opponentOf;
 using SimMatch::TeamSide;
 
 [[nodiscard]] std::size_t indexOf(const TeamSide side) noexcept {
   return side == TeamSide::kHome ? 0U : 1U;
-}
-
-[[nodiscard]] TeamSide otherSide(const TeamSide side) noexcept {
-  return side == TeamSide::kHome ? TeamSide::kAway : TeamSide::kHome;
 }
 
 [[nodiscard]] std::optional<double> ratio(const double numerator, const double denominator) {
@@ -159,7 +158,7 @@ TeamStats MatchAnalyzer::statsOf(const TeamSide side, const std::int64_t possess
                                  const std::int64_t anyPossessionTicks,
                                  const std::int64_t longestOwnershipTicks) const {
   const SideTally& counts = sides_.at(indexOf(side));
-  const SideTally& opponent = sides_.at(indexOf(otherSide(side)));
+  const SideTally& opponent = sides_.at(indexOf(opponentOf(side)));
   return {
       .possessionShare =
           ratio(static_cast<double>(possessedTicks), static_cast<double>(anyPossessionTicks))

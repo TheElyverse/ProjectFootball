@@ -498,7 +498,7 @@ UI konsumiert Query Models / View Models aus dem Application Layer. Widgets lese
 
 ### 13.1 UI-Technologie
 
-Entscheidung nach dem UI-Spike (`apps/unreal-game`, `apps/manager-ui`, siehe `docs/ui-spike.md`): Die Manager-UI ist eine Web-App (React, TypeScript, Tailwind CSS) unter `apps/manager-ui`. Unreal zeigt sie über sein WebBrowser-Modul (CEF) an und rendert nur 3D-Inhalte wie den Spieltag selbst. Zielplattformen sind PC und Mobile; Konsolen sind ausgeschlossen, weil das dichte, tastaturorientierte Bedienkonzept dort nicht trägt.
+Entscheidung nach dem UI-Spike (`apps/unreal-game`, `apps/manager-ui`, siehe `docs/apps.md#ui-spike`): Die Manager-UI ist eine Web-App (React, TypeScript, Tailwind CSS) unter `apps/manager-ui`. Unreal zeigt sie über sein WebBrowser-Modul (CEF) an und rendert nur 3D-Inhalte wie den Spieltag selbst. Zielplattformen sind PC und Mobile; Konsolen sind ausgeschlossen, weil das dichte, tastaturorientierte Bedienkonzept dort nicht trägt.
 
 | **Baustein**    | **Rolle**                                                                                                                                                         |
 | --------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |

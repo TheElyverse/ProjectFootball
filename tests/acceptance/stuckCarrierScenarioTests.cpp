@@ -1,8 +1,8 @@
-// The stuck-carrier scenarios (docs/pass-decisions.md, docs/pressing.md): a
-// carrier without a valid option looks round for one and, still without one
-// after stuckSeconds, plays the best pass he rejected; a carrier who stands on
-// the ball is gone at by the nearest opponent even when the opponent's tactic
-// does not press.
+// The stuck-carrier scenarios (docs/on-ball.md#pass-decisions,
+// docs/team-tactics.md#pressing): a carrier without a valid option looks round
+// for one and, still without one after stuckSeconds, plays the best pass he
+// rejected; a carrier who stands on the ball is gone at by the nearest opponent
+// even when the opponent's tactic does not press.
 
 #include <catch2/catch_test_macros.hpp>
 #include <cstdint>
@@ -14,6 +14,7 @@
 
 #include "ids.hpp"
 #include "matchEvents.hpp"
+#include "matchFixtures.hpp"
 #include "matchSetup.hpp"
 #include "matchSimulation.hpp"
 #include "matchState.hpp"
@@ -27,7 +28,6 @@ using ElyverseFootball::SimMatch::ActionDiagnostic;
 using ElyverseFootball::SimMatch::DecisionDiagnostic;
 using ElyverseFootball::SimMatch::DecisionOutcome;
 using ElyverseFootball::SimMatch::DuelStarted;
-using ElyverseFootball::SimMatch::findScenario;
 using ElyverseFootball::SimMatch::hashMatchState;
 using ElyverseFootball::SimMatch::MatchEvent;
 using ElyverseFootball::SimMatch::MatchSetup;
@@ -36,20 +36,13 @@ using ElyverseFootball::SimMatch::OnBallReason;
 using ElyverseFootball::SimMatch::PassAttempted;
 using ElyverseFootball::SimMatch::startMatch;
 using ElyverseFootball::SimMatch::TeamSide;
+using ElyverseFootball::TestSupport::setupOf;
 
 namespace {
 
 constexpr std::uint64_t kSeeds = 10;
 constexpr PlayerId kCarrier{1};
 constexpr double kTicksPerSecond = 30.0;
-
-[[nodiscard]] MatchSetup setupOf(const std::string_view scenario, const std::uint64_t seed) {
-  const auto* definition = findScenario(scenario);
-  REQUIRE(definition != nullptr);
-  auto setup = definition->make(seed);
-  REQUIRE(setup.has_value());
-  return *std::move(setup);
-}
 
 [[nodiscard]] MatchSimulation start(const MatchSetup& setup) {
   MatchSimulation simulation = startMatch(setup);

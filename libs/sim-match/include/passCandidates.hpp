@@ -5,12 +5,13 @@
 #include <string_view>
 #include <vector>
 
-#include "ballMovement.hpp"
+#include "ballPhysics.hpp"
 #include "ids.hpp"
 #include "matchState.hpp"
 #include "passCandidate.hpp"
 #include "passing.hpp"
 #include "perception.hpp"
+#include "pitch.hpp"
 #include "reception.hpp"
 #include "simTime.hpp"
 #include "vec2.hpp"
@@ -26,11 +27,11 @@ namespace ElyverseFootball::SimMatch {
 inline constexpr double kMaxScoringWeight = 1e6;
 void validate(const PassScoringConfig& config);
 
-// The weighted parts of a candidate's utility (docs/pass-candidates.md):
-// completion and progression add, receiver pressure and interception risk
-// subtract, so those two are 0 or negative, and directness is the lofted
-// bias of a lofted pass, 0 for a ground pass. Their sum is the utility, bit
-// for bit. Kept apart so a decision can be explained.
+// The weighted parts of a candidate's utility
+// (docs/on-ball.md#pass-candidates): completion and progression add, receiver
+// pressure and interception risk subtract, so those two are 0 or negative, and
+// directness is the lofted bias of a lofted pass, 0 for a ground pass. Their
+// sum is the utility, bit for bit. Kept apart so a decision can be explained.
 struct PassContributions {
   double completion = 0.0;
   double progression = 0.0;
@@ -73,8 +74,7 @@ struct PassCandidateRules {
 // same list.
 [[nodiscard]] std::vector<PassCandidate> generatePassCandidates(const MatchState& state,
                                                                 std::size_t carrierIndex,
-                                                                SimCore::SimTick now,
-                                                                double secondsPerTick,
+                                                                SimCore::StepTime time,
                                                                 const PassCandidateRules& rules);
 
 // Scores a candidate whose receiver, target, distance, receiverConfidence
@@ -89,10 +89,5 @@ void scorePassCandidate(PassCandidate& candidate, SimCore::Vec2 from, TeamSide s
 // Puts valid candidates first by descending utility, then the rest; ties by
 // receiver id, a ground pass before a lofted one to the same receiver.
 void orderPassCandidates(std::vector<PassCandidate>& candidates);
-
-// The direction along x a side attacks: +1 for home, -1 for away. Fixed in
-// the sandbox, which has no halves and in which every scenario places home at
-// x = 0; the one place to change once rules let teams switch ends.
-[[nodiscard]] double attackingDirection(TeamSide side) noexcept;
 
 }  // namespace ElyverseFootball::SimMatch

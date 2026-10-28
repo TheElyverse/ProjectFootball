@@ -12,8 +12,8 @@
 namespace ElyverseFootball::SimMatch {
 
 // How players of a side without the ball decide what to do; see
-// docs/defensive-shape.md. Part of MatchConfig and therefore of every replay.
-// The decision cadence is OffBallConfig's.
+// docs/team-tactics.md#defensive-shape. Part of MatchConfig and therefore of
+// every replay. The decision cadence is OffBallConfig's.
 struct DefensiveConfig {
   // An opponent this close to a player's desired region is in his zone.
   double markRadius = 12.0;  // m
@@ -63,8 +63,7 @@ void validate(const DefensiveConfig& config);
 
 // What defensive decisions need to know besides the state and the player.
 struct DefensiveRules {
-  SimCore::SimTick now;
-  double secondsPerTick = 0.0;
+  SimCore::StepTime time;
   const DefensiveConfig* config = nullptr;
   const PositioningConfig* positioning = nullptr;
   const PerceptionConfig* perception = nullptr;

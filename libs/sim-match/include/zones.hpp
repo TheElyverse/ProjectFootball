@@ -11,11 +11,9 @@
 
 namespace ElyverseFootball::SimMatch {
 
-// Semantic zones of the pitch (docs/zones.md): the words tactics use --
-// wing, halfspace, between the lines -- as derived data. Zones are queries
-// over the pitch and the current state; no simulation rule treats a zone
-// boundary as a hard limit, so a player a centimetre across one is not in
-// a different game.
+// Semantic zones of the pitch (docs/team-tactics.md#zones-and-team-shape): the
+// words tactics use -- wing, halfspace, between the lines -- as queries over
+// the pitch and the current state, never as hard limits.
 
 // The five vertical lanes, from a side's point of view: left and right as
 // seen by a player attacking the opponent's goal.

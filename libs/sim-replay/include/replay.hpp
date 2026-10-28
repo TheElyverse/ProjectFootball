@@ -16,7 +16,7 @@
 namespace ElyverseFootball::SimReplay {
 
 // The version of the replay file format written by this build; see
-// docs/replay-format.md.
+// docs/tooling.md#replay-format.
 inline constexpr int kReplaySchemaVersion = 13;
 
 // One checkpoint per simulated second at the default 30 Hz.

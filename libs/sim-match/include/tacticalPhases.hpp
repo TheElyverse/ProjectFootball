@@ -12,7 +12,8 @@
 namespace ElyverseFootball::SimMatch {
 
 // How the match decides which tactical phase each team is in; see
-// docs/match-phases.md. Part of MatchConfig and therefore of every replay.
+// docs/team-tactics.md#match-phases. Part of MatchConfig and therefore of every
+// replay.
 struct PhaseConfig {
   // 10 ticks at 30 Hz: phases are re-evaluated three times a second, the
   // tactical evaluation rate of implementation plan section 6.3.

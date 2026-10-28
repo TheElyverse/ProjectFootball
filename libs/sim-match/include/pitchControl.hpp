@@ -10,7 +10,8 @@
 namespace ElyverseFootball::SimMatch {
 
 // How the pitch-control grid is built and refreshed; see
-// docs/pitch-control.md. Part of MatchConfig and therefore of every replay.
+// docs/team-tactics.md#pitch-control. Part of MatchConfig and therefore of
+// every replay.
 struct PitchControlConfig {
   // 10 ticks at 30 Hz: three refreshes a second, like the tactical phases.
   int intervalTicks = 10;

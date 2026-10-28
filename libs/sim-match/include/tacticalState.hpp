@@ -11,8 +11,8 @@
 namespace ElyverseFootball::SimMatch {
 
 // The parts of a candidate position's cost (implementation plan section 7.2,
-// docs/desired-region.md), each inspectable on its own before the tactic's
-// positioning weights combine them into total.
+// docs/team-tactics.md#desired-region), each inspectable on its own before the
+// tactic's positioning weights combine them into total.
 struct PositionCost {
   // Distance from the tactical target, in units of targetDistanceScale.
   double targetDistance = 0.0;
@@ -42,7 +42,8 @@ struct DesiredRegion {
   friend bool operator==(const DesiredRegion&, const DesiredRegion&) = default;
 };
 
-// What a player without the ball has decided to do (docs/off-ball-movement.md).
+// What a player without the ball has decided to do
+// (docs/team-tactics.md#off-ball-movement).
 enum class ActionType : std::uint8_t {
   // Stay in the desired region.
   kHoldPosition,
@@ -86,10 +87,10 @@ struct PlayerAction {
 };
 
 // A goalkeeper's judgement of a free ball the opponent played
-// (docs/goalkeeper.md): which ball -- the player and tick of its last touch
-// -- how far he misjudges his head start on it, and whether he decided to
-// come for it. He draws his misjudgement of each ball once and keeps it while
-// he follows that ball.
+// (docs/goalkeeper.md#positioning-and-sweeping): which ball -- the player and
+// tick of its last touch -- how far he misjudges his head start on it, and
+// whether he decided to come for it. He draws his misjudgement of each ball
+// once and keeps it while he follows that ball.
 struct SweepJudgement {
   SimCore::PlayerId touchedBy;
   SimCore::SimTick touchedAt;
@@ -102,7 +103,7 @@ struct SweepJudgement {
 // A point in a goalkeeper's plane, the upright plane through where he stood
 // when he went, square to the ball's way: how far across it, positive to the
 // left of the ball's way, and how high above the ground
-// (docs/shot-stopping.md).
+// (docs/goalkeeper.md#shot-stopping).
 struct PlanePoint {
   double across = 0.0;  // m
   double up = 0.0;      // m
@@ -134,12 +135,13 @@ struct KeeperDive {
   friend bool operator==(const KeeperDive&, const KeeperDive&) = default;
 };
 
-// A carrier looking for an option he does not have (docs/pass-decisions.md):
-// since the decision that first found none, how many looks he has taken, and
-// where he looks now -- a unit vector perception uses instead of his facing,
-// while his body and the ball stay as they are. It belongs to his possession
-// of the ball: activeScan() (carrierScan.hpp) ignores it once he has lost
-// the ball or touched it again other than to carry it on.
+// A carrier looking for an option he does not have
+// (docs/on-ball.md#pass-decisions): since the decision that first found none,
+// how many looks he has taken, and where he looks now -- a unit vector
+// perception uses instead of his facing, while his body and the ball stay as
+// they are. It belongs to his possession of the ball: activeScan()
+// (carrierScan.hpp) ignores it once he has lost the ball or touched it again
+// other than to carry it on.
 struct CarrierScan {
   SimCore::SimTick since;
   int looks = 0;
@@ -149,7 +151,7 @@ struct CarrierScan {
 };
 
 // What a player on the ball does besides passing and shooting
-// (docs/ball-carrying.md).
+// (docs/on-ball.md#ball-carrying).
 enum class CarryKind : std::uint8_t {
   // Keep the ball at his feet where he is.
   kHold,
@@ -164,12 +166,12 @@ enum class CarryKind : std::uint8_t {
 // "hold", "turn", "carry", "dribble"; "unknown" outside the enumerators.
 [[nodiscard]] std::string_view carryKindName(CarryKind kind) noexcept;
 
-// A carrier's run with the ball (docs/ball-carrying.md): what he chose and
-// where it takes him, whom he dribbles past, when he chose it, where he looks
-// first while the ball rolls ahead of him -- his best option when he chose --
-// and where he looks now, his last touch and when he last had the ball at his
-// feet again. dribbling is whether the dribble's outcome is still open. It
-// belongs to his possession: activeCarry() (carrying.hpp) ignores it once he
+// A carrier's run with the ball (docs/on-ball.md#ball-carrying): what he chose
+// and where it takes him, whom he dribbles past, when he chose it, where he
+// looks first while the ball rolls ahead of him -- his best option when he
+// chose -- and where he looks now, his last touch and when he last had the ball
+// at his feet again. dribbling is whether the dribble's outcome is still open.
+// It belongs to his possession: activeCarry() (carrying.hpp) ignores it once he
 // has lost the ball or anyone else has touched it.
 struct CarryRun {
   CarryKind kind = CarryKind::kCarry;
@@ -186,8 +188,9 @@ struct CarryRun {
 };
 
 // What a player does in a duel for the ball at the carrier's feet
-// (docs/duels.md): the carrier shields the ball, turns away with it or
-// accelerates past; the defender jockeys or commits to a lunge at the ball.
+// (docs/duels.md#duels-on-the-ball): the carrier shields the ball, turns away
+// with it or accelerates past; the defender jockeys or commits to a lunge at
+// the ball.
 enum class DuelMove : std::uint8_t {
   kShield,
   kTurnAway,
@@ -200,9 +203,9 @@ enum class DuelMove : std::uint8_t {
 // the enumerators.
 [[nodiscard]] std::string_view duelMoveName(DuelMove move) noexcept;
 
-// A duel a defender fights with the carrier (docs/duels.md): with whom, since
-// when, what each of them did last, and how well balanced each is -- from 0,
-// off his feet, to 1, square on them.
+// A duel a defender fights with the carrier (docs/duels.md#duels-on-the-ball):
+// with whom, since when, what each of them did last, and how well balanced each
+// is -- from 0, off his feet, to 1, square on them.
 struct Duel {
   SimCore::PlayerId carrier;
   SimCore::SimTick since;
@@ -220,17 +223,19 @@ struct Duel {
 struct PlayerTacticalState {
   std::optional<DesiredRegion> region;
   std::optional<PlayerAction> action;
-  // The duel he fights as the defender, with the carrier (docs/duels.md).
+  // The duel he fights as the defender, with the carrier
+  // (docs/duels.md#duels-on-the-ball).
   std::optional<Duel> duel;
   // A goalkeeper's judgement of the last free ball he could come for.
   std::optional<SweepJudgement> sweep;
   // A goalkeeper's answer to the last shot he faced, until he is up again.
   std::optional<KeeperDive> dive;
-  // When he last went up for a high ball (docs/aerial-duels.md): he goes up
-  // for no other until he has landed.
+  // When he last went up for a high ball
+  // (docs/duels.md#aerial-duels-and-headers): he goes up for no other until he
+  // has landed.
   std::optional<SimCore::SimTick> lastJump;
   // When a goalkeeper last released the ball from his hands
-  // (docs/goalkeeper-distribution.md): he may not take it in them again until
+  // (docs/goalkeeper.md#distribution): he may not take it in them again until
   // another player has touched it. Forgotten once one has.
   std::optional<SimCore::SimTick> handsReleased;
   // A carrier's look around for an option, while he has none.
@@ -238,15 +243,33 @@ struct PlayerTacticalState {
   // A carrier's run with the ball, while he turns, carries or dribbles.
   std::optional<CarryRun> carry = std::nullopt;
   // The tick he is back on his feet after stumbling in a duel: until then he
-  // takes no ball and starts no duel (docs/duels.md).
+  // takes no ball and starts no duel (docs/duels.md#duels-on-the-ball).
   std::optional<SimCore::SimTick> stumbledUntil = std::nullopt;
 
   friend bool operator==(const PlayerTacticalState&, const PlayerTacticalState&) = default;
 };
 
+// What keeps a player from playing on: the questions every system asks of
+// his tactical state rather than of the fields behind them, so a new way to
+// be out of play has one place to go.
+
 // Whether a player who stumbled in a duel is still off his feet at the start
 // of tick now: he stands, takes no ball, chases none and starts no duel
-// (docs/duels.md).
+// (docs/duels.md#duels-on-the-ball).
 [[nodiscard]] bool isStumbling(const PlayerTacticalState& tactical, SimCore::SimTick now) noexcept;
+
+// Whether the dive keeps him busy this long after he went: in the air or
+// down. A keeper who left the ball never is.
+[[nodiscard]] bool isBusy(const KeeperDive& dive, double seconds) noexcept;
+
+// Whether a goalkeeper is busy with a dive at the start of `time`: he takes
+// no ball and chases none until he is up again
+// (docs/goalkeeper.md#shot-stopping).
+[[nodiscard]] bool isDiving(const PlayerTacticalState& tactical, SimCore::StepTime time) noexcept;
+
+// Whether he is off his feet at the start of `time`, stumbling or diving:
+// he chases no ball and faces no shot.
+[[nodiscard]] bool isOffHisFeet(const PlayerTacticalState& tactical,
+                                SimCore::StepTime time) noexcept;
 
 }  // namespace ElyverseFootball::SimMatch

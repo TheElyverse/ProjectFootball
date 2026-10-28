@@ -11,6 +11,7 @@
 #include <utility>
 #include <vector>
 
+#include "matchFixtures.hpp"
 #include "matchSimulation.hpp"
 #include "matchState.hpp"
 #include "observation.hpp"
@@ -37,23 +38,12 @@ using ElyverseFootball::SimMatch::Pitch;
 using ElyverseFootball::SimMatch::PlayerMatchState;
 using ElyverseFootball::SimMatch::PlayerPerception;
 using ElyverseFootball::SimMatch::TeamSide;
+using ElyverseFootball::TestSupport::playerAt;
 
 namespace {
 
 constexpr double kSecondsPerTick = 1.0 / 30.0;
 const PerceptionConfig kConfig{};
-
-[[nodiscard]] PlayerMatchState playerAt(const std::uint32_t playerId, const TeamSide side,
-                                        const Vec2 position,
-                                        const Vec2 facing = {.x = 1.0, .y = 0.0}) {
-  return {.playerId = PlayerId(playerId),
-          .side = side,
-          .position = position,
-          .velocity = {},
-          .attributes = {},
-          .target = std::nullopt,
-          .facing = facing};
-}
 
 // Observer 1 at (20, 20) looking along +x. Player 2 ahead, player 3 behind at
 // 10 m, player 4 behind at 2 m; the ball ahead at 10 m.
@@ -158,7 +148,7 @@ TEST_CASE("Perceiving records what is seen, ordered, without the observer", "[pe
   const MatchState state = scene();
   PlayerPerception memory;
 
-  perceive(state, 0, SimTick(12), kSecondsPerTick, kConfig, memory);
+  perceive(state, 0, {.tick = SimTick(12), .secondsPerTick = kSecondsPerTick}, kConfig, memory);
 
   // Player 3 stands behind the observer beyond the awareness radius.
   REQUIRE(entitiesOf(memory) == std::vector{ObservedEntity::ball(),
@@ -229,14 +219,15 @@ TEST_CASE("An unseen entity's position is extrapolated for a limited time", "[pe
                                 .confidence = 0.5,
                                 .lastSeen = SimTick(30)};
 
-  REQUIRE(estimatePosition(observation, SimTick(30), kSecondsPerTick, kConfig) ==
-          observation.position);
-  const Vec2 halfSecond = estimatePosition(observation, SimTick(45), kSecondsPerTick, kConfig);
+  REQUIRE(estimatePosition(observation, {.tick = SimTick(30), .secondsPerTick = kSecondsPerTick},
+                           kConfig) == observation.position);
+  const Vec2 halfSecond = estimatePosition(
+      observation, {.tick = SimTick(45), .secondsPerTick = kSecondsPerTick}, kConfig);
   REQUIRE_THAT(halfSecond.x, WithinAbs(12.0, 1e-12));
   REQUIRE_THAT(halfSecond.y, WithinAbs(9.0, 1e-12));
   // Capped at one second.
-  REQUIRE(estimatePosition(observation, SimTick(300), kSecondsPerTick, kConfig) ==
-          Vec2{.x = 14.0, .y = 8.0});
+  REQUIRE(estimatePosition(observation, {.tick = SimTick(300), .secondsPerTick = kSecondsPerTick},
+                           kConfig) == Vec2{.x = 14.0, .y = 8.0});
 }
 
 TEST_CASE("The perception system rejects an invalid configuration", "[perception]") {
@@ -274,8 +265,8 @@ TEST_CASE("Remembered players are where the observer believes them", "[perceptio
   REQUIRE(simulation.step().has_value());
   // Observer 1 sees player 2 ahead and senses player 4 behind him; player 3,
   // 10 m behind, is out of sight.
-  const auto remembered =
-      rememberedPlayers(simulation.state(), 0, SimTick(1), kSecondsPerTick, kConfig, 0.3);
+  const auto remembered = rememberedPlayers(
+      simulation.state(), 0, {.tick = SimTick(1), .secondsPerTick = kSecondsPerTick}, kConfig, 0.3);
   REQUIRE(remembered.size() == 2);
   REQUIRE(remembered.at(0) == RememberedPlayer{.index = 2,
                                                .playerId = PlayerId(2),
@@ -284,6 +275,7 @@ TEST_CASE("Remembered players are where the observer believes them", "[perceptio
                                                .confidence = 1.0,
                                                .teammate = false});
   REQUIRE(remembered.at(1).playerId == PlayerId(4));
-  REQUIRE(
-      rememberedPlayers(simulation.state(), 0, SimTick(1), kSecondsPerTick, kConfig, 1.1).empty());
+  REQUIRE(rememberedPlayers(simulation.state(), 0,
+                            {.tick = SimTick(1), .secondsPerTick = kSecondsPerTick}, kConfig, 1.1)
+              .empty());
 }

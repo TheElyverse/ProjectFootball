@@ -18,7 +18,8 @@ namespace ElyverseFootball::Benchmark {
 // waiting on the line would blur every statistic.
 [[nodiscard]] SimMatch::MatchConfig benchmarkConfig();
 
-// A series of tactic matches between two tactics (docs/sim-benchmark.md).
+// A series of tactic matches between two tactics
+// (docs/tooling.md#sim-benchmark).
 struct BenchmarkSpec {
   SimTactics::Tactic home;
   SimTactics::Tactic away;
@@ -73,9 +74,9 @@ struct BenchmarkFailure {
 [[nodiscard]] std::string toBenchmarkJson(const BenchmarkSpec& spec,
                                           std::span<const MatchResult> results);
 
-// A round robin of tactical styles (docs/sim-benchmark.md): every ordered
-// pairing of the styles, each style against itself included, played as a
-// series of its own.
+// A round robin of tactical styles (docs/tooling.md#sim-benchmark): every
+// ordered pairing of the styles, each style against itself included, played as
+// a series of its own.
 struct RoundRobinSpec {
   std::vector<SimTactics::Tactic> styles;
   int matchesPerPairing = 10;

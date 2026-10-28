@@ -10,6 +10,7 @@
 #include "ballMovement.hpp"
 #include "kickoffScenario.hpp"
 #include "matchCommand.hpp"
+#include "matchFixtures.hpp"
 #include "matchSimulation.hpp"
 #include "matchState.hpp"
 #include "passing.hpp"
@@ -41,6 +42,7 @@ using ElyverseFootball::SimMatch::Pitch;
 using ElyverseFootball::SimMatch::planPassSpeed;
 using ElyverseFootball::SimMatch::PlayerMatchState;
 using ElyverseFootball::SimMatch::ScheduledCommand;
+using ElyverseFootball::TestSupport::stepTimes;
 
 namespace {
 
@@ -63,7 +65,7 @@ namespace {
       {.initialState = *std::move(state),
        .seed = seed,
        .ticksPerSecond = 30,
-       .systems = {makePlayerMovementSystem(), makeBallMovementSystem(BallPhysics{}, passing)},
+       .systems = {makePlayerMovementSystem(), makeBallMovementSystem({.passing = passing})},
        .commands = std::move(commands)});
 }
 
@@ -78,12 +80,6 @@ namespace {
                                  .target = target,
                                  .speed = speed,
                                  .receiver = std::nullopt}};
-}
-
-void stepTimes(MatchSimulation& simulation, const int steps) {
-  for (int step = 0; step < steps; ++step) {
-    REQUIRE(simulation.step().has_value());
-  }
 }
 
 [[nodiscard]] double lengthOf(const Vec2 vector) {

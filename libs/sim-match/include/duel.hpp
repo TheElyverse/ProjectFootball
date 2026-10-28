@@ -12,7 +12,8 @@
 namespace ElyverseFootball::SimMatch {
 
 // How a presser and the carrier fight for the ball at the carrier's feet; see
-// docs/duels.md. Part of MatchConfig and therefore of every replay.
+// docs/duels.md#duels-on-the-ball. Part of MatchConfig and therefore of every
+// replay.
 struct DuelConfig {
   // 3 ticks at 30 Hz: a duel takes a step ten times a second.
   int intervalTicks = 3;
@@ -147,8 +148,15 @@ enum class LungeResult : std::uint8_t {
 
 inline constexpr std::string_view kDuelSystemName = "duel";
 
+// What the duel system is configured with: the default configuration for
+// whatever a caller leaves out.
+struct DuelRules {
+  DuelConfig duels{};
+  BallPhysics physics{};
+};
+
 // Every config.intervalTicks ticks, takes the duel on the ball a step
-// (docs/duels.md):
+// (docs/duels.md#duels-on-the-ball):
 //
 //   1. A duel ends, kept, once the carrier no longer has the ball at his
 //      feet, the defender no longer presses him (ActionType::kPressCarrier)
@@ -181,8 +189,7 @@ inline constexpr std::string_view kDuelSystemName = "duel";
 // ball's position, owner, velocity and last touch, the carrier's pending
 // action when he loses the ball, the players' targets and their duels and
 // stumbles, nothing else. Throws std::invalid_argument for an invalid
-// configuration; the overload without ball physics uses the default.
-[[nodiscard]] MatchSystem makeDuelSystem(const DuelConfig& config, const BallPhysics& physics);
-[[nodiscard]] MatchSystem makeDuelSystem(const DuelConfig& config);
+// configuration.
+[[nodiscard]] MatchSystem makeDuelSystem(const DuelRules& rules = {});
 
 }  // namespace ElyverseFootball::SimMatch

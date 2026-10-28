@@ -25,10 +25,10 @@ namespace ElyverseFootball::SimMatch {
 inline constexpr int kMaxShotZones = 64;
 void validate(const ShotScoringConfig& config);
 
-// The weighted parts of a shot's utility (docs/shot-decisions.md): the goal
-// and the second ball add, losing the ball subtracts, so that one is 0 or
-// negative. Their sum is the utility, bit for bit. Kept apart so a decision
-// can be explained.
+// The weighted parts of a shot's utility (docs/on-ball.md#shot-decisions): the
+// goal and the second ball add, losing the ball subtracts, so that one is 0 or
+// negative. Their sum is the utility, bit for bit. Kept apart so a decision can
+// be explained.
 struct ShotContributions {
   double goal = 0.0;
   double secondBall = 0.0;
@@ -45,9 +45,6 @@ struct ShotContributions {
 // The part that contributed most to a utility, by absolute value: "goal",
 // "secondBall" or "possession". Ties go to the one listed first.
 [[nodiscard]] std::string_view dominantShotContribution(const ShotContributions& parts) noexcept;
-
-// The goal a side attacks: the one at the end attackingDirection() points to.
-[[nodiscard]] Goal attackedGoal(const Pitch& pitch, TeamSide side) noexcept;
 
 // How wide a goal looks from a point: the distance between the directions to
 // its two posts as unit vectors, 2·sin(angle / 2), in [0, 2]; about the angle
@@ -76,8 +73,7 @@ struct ShotCandidateRules {
 // state gives the same list.
 [[nodiscard]] std::vector<ShotCandidate> generateShotCandidates(const MatchState& state,
                                                                 std::size_t shooterIndex,
-                                                                SimCore::SimTick now,
-                                                                double secondsPerTick,
+                                                                SimCore::StepTime time,
                                                                 const ShotCandidateRules& rules);
 
 }  // namespace ElyverseFootball::SimMatch

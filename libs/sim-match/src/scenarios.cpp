@@ -8,7 +8,7 @@
 #include <utility>
 #include <vector>
 
-#include "ballMovement.hpp"
+#include "ballPhysics.hpp"
 #include "goldenScenarios.hpp"
 #include "ids.hpp"
 #include "kickoffScenario.hpp"
@@ -74,8 +74,8 @@ constexpr double kPitchWidth = kSandboxWidthMeters;
           .y = 4.0 + (4.0 * static_cast<double>(row))};
 }
 
-// The M0 acceptance scenario of docs/scenarios.md: every player moving, with
-// several target changes each, and a rolling ball.
+// The M0 acceptance scenario of docs/scenarios.md#scenario-catalogue: every
+// player moving, with several target changes each, and a rolling ball.
 [[nodiscard]] std::expected<MatchSetup, std::string> m0Acceptance(const std::uint64_t seed) {
   auto setup = kickoffWith(seed, {.x = 9.0, .y = 4.0});
   if (!setup) {
@@ -137,7 +137,7 @@ constexpr double kCarryMarkDistance = 1.5;  // m
   const Pitch pitch(kPitchLength, kPitchWidth);
   MatchConfig config;
   // Each fixture sets up one pass or shot decision: carrying the ball would
-  // answer a different question (docs/scenarios.md).
+  // answer a different question (docs/scenarios.md#scenario-catalogue).
   config.decisions.carrying.enabled = false;
   std::vector<PlayerMatchState> players;
   players.reserve(home.size() + away.size());
@@ -219,10 +219,8 @@ constexpr double kCarryMarkDistance = 1.5;  // m
   return placed(seed, kHome, kAway);
 }
 
-// Player 1 faces the away goal with every teammate behind him, beyond his
-// awareness radius: at first he sees no one to pass to. He looks over his
-// shoulder, finds them and plays back. The away side waits in its own half,
-// too far away to matter.
+// Player 1 faces the away goal, every teammate behind him beyond his
+// awareness radius (docs/scenarios.md#the-p1-passing-scenarios).
 [[nodiscard]] std::expected<MatchSetup, std::string> noPassingOption(const std::uint64_t seed) {
   constexpr Side kHome{{{.x = 30.0, .y = 20.0, .facingX = 1.0},
                         {.x = 20.0, .y = 10.0, .facingX = 1.0},
@@ -241,10 +239,9 @@ constexpr double kCarryMarkDistance = 1.5;  // m
   return placed(seed, kHome, kAway);
 }
 
-// Player 1 faces the away goal with every teammate ahead of him, each with an
-// away player in the lane two meters in front of him: every pass he sees is
-// too likely to be cut out. Nobody stands behind him. He looks round for
-// stuckSeconds, then plays the best of the passes he rejected.
+// Player 1 faces the away goal, every teammate ahead of him with an away
+// player in the lane two meters in front
+// (docs/scenarios.md#the-stuck-carrier-scenarios).
 [[nodiscard]] std::expected<MatchSetup, std::string> noOptionForced(const std::uint64_t seed) {
   constexpr Side kHome{{{.x = 30.0, .y = 20.0, .facingX = 1.0},
                         {.x = 42.0, .y = 8.0, .facingX = -1.0},
@@ -263,12 +260,9 @@ constexpr double kCarryMarkDistance = 1.5;  // m
   return placed(seed, kHome, kAway);
 }
 
-// Player 1 stands with his back to away's goal, every teammate more than a
-// long pass away; he never acts on his own (stuckSeconds is out of reach).
-// Away plays the reference tactic without any pressing, a centre back -- the
-// second away player, 9 -- a meter and a half goal-side of him, its forwards
-// far off in home's half: after idleSeconds the centre back goes at him
-// regardless.
+// Player 1 with his back to away's goal, every teammate more than a long pass
+// away; away's centre back, player 9, a meter and a half goal-side of him
+// (docs/scenarios.md#the-stuck-carrier-scenarios).
 constexpr Side kIdleHome{{{.x = 46.0, .y = 20.0, .facingX = -1.0},
                           {.x = 8.0, .y = 10.0, .facingX = 1.0},
                           {.x = 8.0, .y = 30.0, .facingX = 1.0},
@@ -301,9 +295,10 @@ constexpr Side kIdleAway{{{.x = 58.0, .y = 20.0, .facingX = -1.0},
 }
 
 // ---------------------------------------------------------------------------
-// Shot scenarios (docs/shot-decisions.md): home player 1 on the ball near the
-// away goal, which away player 8 keeps -- the away side plays the reference
-// tactic, whose first slot guards the goal -- and home plays without one.
+// Shot scenarios (docs/on-ball.md#shot-decisions): home player 1 on the ball
+// near the away goal, which away player 8 keeps -- the away side plays the
+// reference tactic, whose first slot guards the goal -- and home plays without
+// one.
 
 // Away with the reference tactic: away player 8 keeps goal.
 [[nodiscard]] std::expected<MatchSetup, std::string> againstKeeper(const std::uint64_t seed,
@@ -368,9 +363,8 @@ constexpr Side kClearChanceAway{{{.x = 59.5, .y = 20.0, .facingX = -1.0},
   return setup;
 }
 
-// Player 1 has run on to the goal line, six meters wide of the post, and looks
-// infield: from there the goal is a sliver, and his teammate 2, free at the
-// edge of the area, is the option.
+// Player 1 on the goal line six meters wide of the post, teammate 2 free at
+// the edge of the area (docs/scenarios.md#the-shot-scenarios).
 [[nodiscard]] std::expected<MatchSetup, std::string> hopelessAngle(const std::uint64_t seed) {
   constexpr Side kHome{{{.x = 59.0, .y = 11.85, .facingX = 0.0, .facingY = 1.0},
                         {.x = 50.0, .y = 20.0, .facingX = 1.0},
@@ -389,9 +383,8 @@ constexpr Side kClearChanceAway{{{.x = 59.5, .y = 20.0, .facingX = -1.0},
   return againstKeeper(seed, kHome, kAway);
 }
 
-// Player 1, twelve meters out in front of the goal, has away player 9 two
-// meters in front of him, square in the way of every shot; his teammate 2
-// stands free to his left.
+// Player 1 twelve meters out, away player 9 two meters in front of him,
+// teammate 2 free to his left (docs/scenarios.md#the-shot-scenarios).
 [[nodiscard]] std::expected<MatchSetup, std::string> blockedLane(const std::uint64_t seed) {
   constexpr Side kHome{{{.x = 48.0, .y = 20.0, .facingX = 1.0},
                         {.x = 52.0, .y = 32.0, .facingX = 1.0},
@@ -411,9 +404,10 @@ constexpr Side kClearChanceAway{{{.x = 59.5, .y = 20.0, .facingX = -1.0},
 }
 
 // ---------------------------------------------------------------------------
-// Goalkeeper scenarios (docs/goalkeeper.md): away keeps goal with the
-// reference tactic, its keeper player 8 a perfect judge of a ball played in
-// behind, so whether he comes is the model's call and not a misjudgement.
+// Goalkeeper scenarios (docs/goalkeeper.md#positioning-and-sweeping): away
+// keeps goal with the reference tactic, its keeper player 8 a perfect judge of
+// a ball played in behind, so whether he comes is the model's call and not a
+// misjudgement.
 
 // The setup with away's keeper given a keeperAnticipation of 1.
 [[nodiscard]] std::expected<MatchSetup, std::string> withSureKeeper(
@@ -437,9 +431,8 @@ constexpr Side kClearChanceAway{{{.x = 59.5, .y = 20.0, .facingX = -1.0},
 }
 
 // Home player 1 carries the ball across the pitch 27 m in front of away's
-// goal, out of shooting range, and keeps it all the way. Away's outfield
-// players neither press nor mark, so the keeper's position is all that moves
-// with the ball.
+// goal; away's outfield players neither press nor mark
+// (docs/scenarios.md#the-goalkeeper-scenarios).
 [[nodiscard]] std::expected<MatchSetup, std::string> keeperArc(const std::uint64_t seed) {
   constexpr Side kHome{{{.x = 33.0, .y = 4.0, .facingX = 1.0},
                         kHomeBehind[0],
@@ -512,7 +505,7 @@ constexpr Side kClearChanceAway{{{.x = 59.5, .y = 20.0, .facingX = -1.0},
 }
 
 // ---------------------------------------------------------------------------
-// Distribution scenarios (docs/goalkeeper-distribution.md): home plays the
+// Distribution scenarios (docs/goalkeeper.md#distribution): home plays the
 // reference tactic in the order of its slots -- keeper, centre backs,
 // holding midfielder, wingers, striker -- so player 1 is its keeper, on the
 // ball in his own penalty area from the start; away plays without a tactic
@@ -556,11 +549,9 @@ constexpr Side kClearChanceAway{{{.x = 59.5, .y = 20.0, .facingX = -1.0},
   return setup;
 }
 
-// Home's keeper holds the ball and his tactic wants him to play out
-// (directness 0.1). His centre backs stand wide and free; away stands a
-// meter in front of his holding midfielder, in the lane from the keeper, and
-// a meter off his wingers and striker, so every long ball would be a
-// fifty-fifty.
+// Home's keeper holds the ball (directness 0.1), his centre backs wide and
+// free, away a meter off his midfielder, wingers and striker
+// (docs/scenarios.md#the-distribution-scenarios).
 constexpr Side kBuildUpHome{{{.x = 3.0, .y = 20.0, .facingX = 1.0},
                              {.x = 12.0, .y = 10.0, .facingX = 1.0},
                              {.x = 12.0, .y = 30.0, .facingX = 1.0},
@@ -580,21 +571,17 @@ constexpr Side kBuildUpAway{{{.x = 59.0, .y = 20.0, .facingX = -1.0},
   return keeperOnTheBall(seed, kBuildUpHome, kBuildUpAway, true, 0.1);
 }
 
-// keeper-build-up with home's keeper facing his own goal, as after taking a
-// ball that rolled back to him: every option is behind him, out of sight,
-// until he turns.
+// keeper-build-up with home's keeper facing his own goal
+// (docs/scenarios.md#the-distribution-scenarios).
 [[nodiscard]] std::expected<MatchSetup, std::string> keeperTurned(const std::uint64_t seed) {
   Side home = kBuildUpHome;
   home[0].facingX = -1.0;
   return keeperOnTheBall(seed, home, kBuildUpAway, true, 0.1);
 }
 
-// Home's keeper has the ball at his feet, his tactic neutral about going
-// long (directness 0.5). Away presses high: a forward stands four meters to
-// his side, out of the way of a long ball, and three more stand in the lanes
-// to his centre backs and his holding midfielder. Home's wingers and striker
-// wait upfield, beyond the longest ground pass, away's last two defenders
-// deep behind them.
+// Home's keeper with the ball at his feet (directness 0.5), away pressing in
+// the lanes to his short options, home's front three beyond the longest
+// ground pass (docs/scenarios.md#the-distribution-scenarios).
 [[nodiscard]] std::expected<MatchSetup, std::string> keeperLongKick(const std::uint64_t seed) {
   constexpr Side kHome{{{.x = 4.0, .y = 20.0, .facingX = 1.0},
                         {.x = 12.0, .y = 10.0, .facingX = 1.0},
@@ -613,9 +600,8 @@ constexpr Side kBuildUpAway{{{.x = 59.0, .y = 20.0, .facingX = -1.0},
   return keeperOnTheBall(seed, kHome, kAway, false, 0.5);
 }
 
-// Home player 1, wide of away's goal, plays the ball over its goal line:
-// restarts are on, so away's keeper, player 8, takes the goal kick. Away
-// plays the reference tactic; home's other players wait in their own half.
+// Home player 1 wide of away's goal, restarts on, away with the reference
+// tactic (docs/scenarios.md#the-distribution-scenarios).
 [[nodiscard]] std::expected<MatchSetup, std::string> goalKick(const std::uint64_t seed) {
   constexpr Side kHome{{{.x = 50.0, .y = 36.0, .facingX = 1.0},
                         kHomeBehind[0],
@@ -648,11 +634,9 @@ constexpr Side kBuildUpAway{{{.x = 59.0, .y = 20.0, .facingX = -1.0},
 }
 
 // ---------------------------------------------------------------------------
-// Carry scenarios (docs/ball-carrying.md): home player 1 on the ball at
-// (20, 20) facing away's goal with carrying switched on, every teammate behind
-// him with an away player in the lane a meter and a half in front of him --
-// every pass is too likely to be cut out, so he has nobody to pass to. Home
-// plays without a tactic, so its players stand still, and so does away.
+// Carry scenarios (docs/scenarios.md#the-carry-scenarios): home player 1 on
+// the ball at (20, 20) with carrying on, every pass marked, neither side with
+// a tactic.
 
 constexpr Side kCarryHome{{{.x = 20.0, .y = 20.0, .facingX = 1.0},
                            {.x = 8.0, .y = 8.0, .facingX = 1.0},
@@ -687,26 +671,23 @@ constexpr Side kCarryHome{{{.x = 20.0, .y = 20.0, .facingX = 1.0},
   return setup;
 }
 
-// Away's first player stands deep, on its goal line: open space in front of
-// player 1. He carries the ball into it.
+// Away's first player stands deep, on its goal line.
 [[nodiscard]] std::expected<MatchSetup, std::string> carryIntoSpace(const std::uint64_t seed) {
   return carrying(seed, {.x = 59.0, .y = 20.0, .facingX = -1.0});
 }
 
-// Away's first player, player 8, covers the middle at (38, 20): player 1
-// carries the ball at him and takes it past him on one side.
+// Away's first player, player 8, covers the middle at (38, 20).
 [[nodiscard]] std::expected<MatchSetup, std::string> dribblePastDefender(const std::uint64_t seed) {
   return carrying(seed, {.x = 38.0, .y = 20.0, .facingX = -1.0});
 }
 
 // ---------------------------------------------------------------------------
-// Duel scenarios (docs/duels.md): the idle carrier's fixture, in which the
-// centre back, player 9, takes player 1 on once he has stood on the ball for
-// idleSeconds. Who is stronger and better on the ball decides how the duel
-// tends to go; it is decided step by step all the same.
+// Duel scenarios (docs/duels.md#duels-on-the-ball): the idle carrier's fixture,
+// in which the centre back, player 9, takes player 1 on once he has stood on
+// the ball for idleSeconds. Who is stronger and better on the ball decides how
+// the duel tends to go; it is decided step by step all the same.
 
-// A weak carrier with a poor touch against a strong centre back: pushed off
-// his feet or tackled once he turns, he loses the ball.
+// A weak carrier with a poor touch against a strong centre back.
 [[nodiscard]] std::expected<MatchSetup, std::string> duelBallWon(const std::uint64_t seed) {
   Side home = kIdleHome;
   Side away = kIdleAway;
@@ -716,8 +697,7 @@ constexpr Side kCarryHome{{{.x = 20.0, .y = 20.0, .facingX = 1.0},
   return idleCarrier(seed, home, away);
 }
 
-// A strong carrier with a fine touch against a weak centre back: he shields
-// the ball, pushes the defender off balance and gets away from him.
+// A strong carrier with a fine touch against a weak centre back.
 [[nodiscard]] std::expected<MatchSetup, std::string> duelBallKept(const std::uint64_t seed) {
   Side home = kIdleHome;
   Side away = kIdleAway;
@@ -870,7 +850,8 @@ std::expected<MatchSetup, std::string> makeTacticMatch(TeamTactics tactics,
   if (!fixture) {
     return std::unexpected("invalid tactic match: " + fixture.error().front().message);
   }
-  // Home kicks off, from the same line-up as after a goal (docs/restarts.md).
+  // Home kicks off, from the same line-up as after a goal
+  // (docs/match-engine.md#restarts).
   const MatchConfig config;
   const auto lineUp = lineUpForKickoff(*fixture, TeamSide::kHome, config.ball);
   if (!lineUp) {

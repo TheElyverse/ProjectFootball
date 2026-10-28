@@ -2,15 +2,15 @@
 
 #include <cstddef>
 
-#include "ballMovement.hpp"
+#include "ballPhysics.hpp"
 #include "matchState.hpp"
 #include "random.hpp"
 #include "vec2.hpp"
 
 namespace ElyverseFootball::SimMatch {
 
-// How players kick ground passes; see docs/passing.md. Part of MatchConfig
-// and therefore of every replay.
+// How players kick ground passes; see docs/on-ball.md#passing. Part of
+// MatchConfig and therefore of every replay.
 struct PassConfig {
   // The speed a planned pass should still have when it reaches its target.
   double arrivalSpeed = 4.0;  // m/s
@@ -28,7 +28,8 @@ struct PassConfig {
   // Under full pressure both execution errors grow by this factor: 1 doubles
   // them. Without pressure they stay as they are.
   double pressureErrorFactor = 1.0;
-  // The hardest lofted kick, along the ground (docs/goalkeeper-distribution.md).
+  // The hardest lofted kick, along the ground
+  // (docs/goalkeeper.md#distribution).
   double maxLoftedSpeed = 28.0;  // m/s
   // A lofted kick strays this many times as far as a ground pass, in
   // direction and in pace.

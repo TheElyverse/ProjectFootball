@@ -6,9 +6,9 @@
 #include <optional>
 #include <string>
 
-#include "passCandidates.hpp"
 #include "shotStopping.hpp"
 #include "stableMath.hpp"
+#include "teamFrame.hpp"
 
 namespace ElyverseFootball::SimMatch {
 namespace {
@@ -140,8 +140,7 @@ namespace {
                                                        const MatchStepContext& context,
                                                        const ShotStoppingConfig& saves) {
   const double secondsPerTick = context.secondsPerTick();
-  const double since =
-      static_cast<double>(context.tick().value() - dive.tick.value()) * secondsPerTick;
+  const double since = context.time().secondsSince(dive.tick);
   if (!isBusy(dive, since)) {
     return std::nullopt;
   }
@@ -158,7 +157,9 @@ namespace {
 
 }  // namespace
 
-MatchSystem makePlayerMovementSystem(const ShotStoppingConfig& saves, const BallPhysics& physics) {
+MatchSystem makePlayerMovementSystem(const PlayerMovementRules& rules) {
+  const ShotStoppingConfig& saves = rules.saves;
+  const BallPhysics& physics = rules.physics;
   validate(saves);
   validate(physics);
   return {.name = std::string(kPlayerMovementSystemName),
@@ -186,14 +187,6 @@ MatchSystem makePlayerMovementSystem(const ShotStoppingConfig& saves, const Ball
               ++index;
             }
           }};
-}
-
-MatchSystem makePlayerMovementSystem(const ShotStoppingConfig& saves) {
-  return makePlayerMovementSystem(saves, BallPhysics{});
-}
-
-MatchSystem makePlayerMovementSystem() {
-  return makePlayerMovementSystem(ShotStoppingConfig{});
 }
 
 }  // namespace ElyverseFootball::SimMatch

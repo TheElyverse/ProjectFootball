@@ -1,8 +1,8 @@
-// The duel scenarios (docs/duels.md): a centre back takes on a carrier with
-// his back to goal once he has stood on the ball for idleSeconds. Who is
-// stronger and better on the ball decides how the duel tends to go -- won by
-// the defender, kept by the carrier, or knocked loose for others to chase --
-// but every duel is decided step by step.
+// The duel scenarios (docs/duels.md#duels-on-the-ball): a centre back takes on
+// a carrier with his back to goal once he has stood on the ball for
+// idleSeconds. Who is stronger and better on the ball decides how the duel
+// tends to go -- won by the defender, kept by the carrier, or knocked loose for
+// others to chase -- but every duel is decided step by step.
 
 #include <catch2/catch_test_macros.hpp>
 #include <cstdint>
@@ -13,6 +13,7 @@
 
 #include "ids.hpp"
 #include "matchEvents.hpp"
+#include "matchFixtures.hpp"
 #include "matchSetup.hpp"
 #include "matchSimulation.hpp"
 #include "matchState.hpp"
@@ -25,28 +26,19 @@ using ElyverseFootball::SimCore::SimTick;
 using ElyverseFootball::SimMatch::DuelEnded;
 using ElyverseFootball::SimMatch::DuelOutcome;
 using ElyverseFootball::SimMatch::DuelStarted;
-using ElyverseFootball::SimMatch::findScenario;
 using ElyverseFootball::SimMatch::hashMatchState;
 using ElyverseFootball::SimMatch::MatchEvent;
-using ElyverseFootball::SimMatch::MatchSetup;
 using ElyverseFootball::SimMatch::MatchSimulation;
 using ElyverseFootball::SimMatch::PossessionChanged;
 using ElyverseFootball::SimMatch::startMatch;
 using ElyverseFootball::SimMatch::TeamSide;
+using ElyverseFootball::TestSupport::setupOf;
 
 namespace {
 
 constexpr PlayerId kCarrier{1};
 constexpr PlayerId kFirstAway{8};
 constexpr int kSeeds = 30;
-
-[[nodiscard]] MatchSetup setupOf(const std::string_view scenario, const std::uint64_t seed) {
-  const auto* definition = findScenario(scenario);
-  REQUIRE(definition != nullptr);
-  auto setup = definition->make(seed);
-  REQUIRE(setup.has_value());
-  return *std::move(setup);
-}
 
 // The first duel on the carrier, and who has the ball once it is over: the
 // carrier after a duel he kept or was fouled in, the winner after one he

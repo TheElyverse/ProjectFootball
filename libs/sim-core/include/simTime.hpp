@@ -33,6 +33,20 @@ class SimTick {
   ValueType value_ = 0;
 };
 
+// A tick and how long one lasts: what time-dependent rules need of the clock,
+// and the one way they turn ticks into seconds.
+struct StepTime {
+  SimTick tick;
+  double secondsPerTick = 0.0;
+
+  // Seconds from `earlier` to this tick; negative for a later one.
+  [[nodiscard]] constexpr double secondsSince(const SimTick earlier) const noexcept {
+    return static_cast<double>(tick.value() - earlier.value()) * secondsPerTick;
+  }
+
+  friend constexpr bool operator==(const StepTime&, const StepTime&) = default;
+};
+
 // Fixed-step simulation clock. Advancing the clock is the only way simulation
 // time moves forward -- there is no wall-clock/delta-time coupling, so
 // replays stay deterministic regardless of host performance. See

@@ -7,6 +7,7 @@
 #include <stdexcept>
 #include <string>
 
+#include "configChecks.hpp"
 #include "responsibility.hpp"
 #include "stableMath.hpp"
 #include "tactic.hpp"
@@ -16,6 +17,9 @@
 namespace ElyverseFootball::SimMatch {
 namespace {
 
+using ConfigChecks::isFiniteNonNegative;
+using ConfigChecks::isPositiveFinite;
+using ConfigChecks::isShare;
 using SimCore::stableLerp;
 using SimCore::Vec2;
 using SimTactics::Responsibility;
@@ -24,13 +28,11 @@ using SimTactics::TacticalPhase;
 }  // namespace
 
 void validate(const PositioningConfig& config) {
-  constexpr double kMax = std::numeric_limits<double>::max();
-  const auto positive = [](const double value) { return value > 0.0 && value <= kMax; };
-  const bool valid = config.intervalTicks >= 1 && positive(config.candidateSpacing) &&
-                     positive(config.targetDistanceScale) && positive(config.spacingRadius) &&
-                     positive(config.pressureRadius) && config.minConfidence >= 0.0 &&
-                     config.minConfidence <= 1.0 && config.hysteresisCost >= 0.0 &&
-                     config.hysteresisCost <= kMax && positive(config.maxShiftMeters);
+  const bool valid =
+      config.intervalTicks >= 1 && isPositiveFinite(config.candidateSpacing) &&
+      isPositiveFinite(config.targetDistanceScale) && isPositiveFinite(config.spacingRadius) &&
+      isPositiveFinite(config.pressureRadius) && isShare(config.minConfidence) &&
+      isFiniteNonNegative(config.hysteresisCost) && isPositiveFinite(config.maxShiftMeters);
   if (!valid) {
     throw std::invalid_argument("tactical movement: invalid configuration");
   }
@@ -39,7 +41,8 @@ void validate(const PositioningConfig& config) {
 namespace {
 
 // Wing and halfspace centre lines, as fractions of the pitch width from the
-// touchline on a slot's side of the pitch (docs/zones.md).
+// touchline on a slot's side of the pitch
+// (docs/team-tactics.md#zones-and-team-shape).
 constexpr double kWingCentre = 0.1;
 constexpr double kHalfspaceCentre = 0.3;
 
@@ -66,16 +69,10 @@ struct ShapeSpan {
   double maxWidth = -std::numeric_limits<double>::infinity();
 };
 
-[[nodiscard]] bool guardsGoal(const SimTactics::TacticSlot& slot) noexcept {
-  return std::ranges::any_of(slot.responsibilities, [](const auto& entry) {
-    return entry.responsibility == Responsibility::kGuardGoal;
-  });
-}
-
 [[nodiscard]] ShapeSpan outfieldSpan(const SimTactics::Tactic& tactic) noexcept {
   ShapeSpan span;
   for (const SimTactics::TacticSlot& slot : tactic.slots()) {
-    if (guardsGoal(slot)) {
+    if (slot.guardsGoal()) {
       continue;
     }
     span.minDepth = std::min(span.minDepth, slot.position.depth);
@@ -122,7 +119,7 @@ Vec2 tacticalTarget(const MatchState& state, const std::size_t playerIndex,
   const SimTactics::Tactic& tactic = tacticOf(state, side);
   const std::size_t slotNumber = slotIndex(state, playerIndex);
   const SimTactics::TacticSlot& slot = tactic.slots()[slotNumber];
-  if (guardsGoal(slot)) {
+  if (slot.guardsGoal()) {
     throw std::invalid_argument("desired region: the goalkeeper keeps goal by goalkeeperTarget()");
   }
 
@@ -165,9 +162,8 @@ Vec2 tacticalTarget(const MatchState& state, const std::size_t playerIndex,
 }
 
 PositionCost evaluatePosition(const MatchState& state, const std::size_t playerIndex,
-                              const Vec2 candidate, const Vec2 target, const SimCore::SimTick now,
-                              const double secondsPerTick, const PositioningConfig& config,
-                              const PerceptionConfig& perception) {
+                              const Vec2 candidate, const Vec2 target, const SimCore::StepTime time,
+                              const PositioningConfig& config, const PerceptionConfig& perception) {
   const PlayerMatchState& player = state.players()[playerIndex];
   const TeamSide side = player.side;
   const SimTactics::Tactic& tactic = tacticOf(state, side);
@@ -175,8 +171,8 @@ PositionCost evaluatePosition(const MatchState& state, const std::size_t playerI
   cost.targetDistance =
       std::sqrt((candidate - target).lengthSquared()) / config.targetDistanceScale;
 
-  for (const RememberedPlayer& other : rememberedPlayers(state, playerIndex, now, secondsPerTick,
-                                                         perception, config.minConfidence)) {
+  for (const RememberedPlayer& other :
+       rememberedPlayers(state, playerIndex, time, perception, config.minConfidence)) {
     const double distance = std::sqrt((other.position - candidate).lengthSquared());
     if (other.teammate) {
       const double crowding = std::max(0.0, 1.0 - (distance / config.spacingRadius));
@@ -208,15 +204,13 @@ PositionCost evaluatePosition(const MatchState& state, const std::size_t playerI
 }
 
 DesiredRegion chooseDesiredRegion(const MatchState& state, const std::size_t playerIndex,
-                                  const TacticalPhase phase, const SimCore::SimTick now,
-                                  const double secondsPerTick, const PositioningConfig& config,
+                                  const TacticalPhase phase, const SimCore::StepTime time,
+                                  const PositioningConfig& config,
                                   const PerceptionConfig& perception) {
   const Pitch& pitch = state.pitch();
   const Vec2 target = tacticalTarget(state, playerIndex, phase);
   const auto costOf = [&](const Vec2 candidate) {
-    return evaluatePosition(state, playerIndex, candidate, target, now, secondsPerTick, config,
-                            perception)
-        .total;
+    return evaluatePosition(state, playerIndex, candidate, target, time, config, perception).total;
   };
 
   Vec2 best = target;
@@ -248,8 +242,7 @@ DesiredRegion chooseDesiredRegion(const MatchState& state, const std::size_t pla
   }
   return {.tacticalTarget = target,
           .center = center,
-          .cost = evaluatePosition(state, playerIndex, center, target, now, secondsPerTick, config,
-                                   perception)};
+          .cost = evaluatePosition(state, playerIndex, center, target, time, config, perception)};
 }
 
 }  // namespace ElyverseFootball::SimMatch

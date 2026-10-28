@@ -5,13 +5,14 @@
 #include <string_view>
 
 #include "ballPhysics.hpp"
+#include "matchEvents.hpp"
 #include "matchState.hpp"
 #include "pitch.hpp"
 
 namespace ElyverseFootball::SimMatch {
 
-// The goal frame as something a ball hits; see docs/shooting.md. Part of
-// MatchConfig and therefore of every replay.
+// The goal frame as something a ball hits; see docs/on-ball.md#shooting. Part
+// of MatchConfig and therefore of every replay.
 struct WoodworkConfig {
   // Posts and crossbar are round, this thick from their axis. The posts
   // stand on the goal line at the pitch geometry's posts, and the crossbar
@@ -26,17 +27,6 @@ struct WoodworkConfig {
 // Throws std::invalid_argument unless the radius is positive and finite and
 // the restitution lies in [0, 1].
 void validate(const WoodworkConfig& config);
-
-// A part of a goal frame: the post at the lower or the higher pitch y, or
-// the crossbar.
-enum class WoodworkPart : std::uint8_t {
-  kPostAtMinY,
-  kPostAtMaxY,
-  kCrossbar,
-};
-
-// "postAtMinY", "postAtMaxY", "crossbar"; "unknown" outside the enumerators.
-[[nodiscard]] std::string_view woodworkPartName(WoodworkPart part) noexcept;
 
 // A free ball meeting a goal frame: which, when, and the ball at that moment
 // as it arrives and as it leaves. The rebound mirrors the ball's speed into

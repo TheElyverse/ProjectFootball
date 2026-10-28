@@ -41,7 +41,7 @@ ball — record it, and play the recording back:
 
 Both print the simulated time and the final state and event hashes; playback
 verifies that the recording reproduces tick for tick. `--list-scenarios` shows
-what else there is to run, and the [debug viewer](docs/debug-viewer.md) plays
+what else there is to run, and the [debug viewer](docs/tooling.md#debug-viewer) plays
 `frames.json` back in the browser, down to what each player sees and why he
 passed where he did.
 

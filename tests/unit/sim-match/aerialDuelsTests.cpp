@@ -1,6 +1,7 @@
-// Aerial duels and headers (docs/aerial-duels.md): the jump, who wins a high
-// ball, what the winner heads it into -- a goal, a clearance --, a ball
-// nobody reaches, the same delivery along the ground, and the keeper's hands.
+// Aerial duels and headers (docs/duels.md#aerial-duels-and-headers): the jump,
+// who wins a high ball, what the winner heads it into -- a goal, a clearance
+// --, a ball nobody reaches, the same delivery along the ground, and the
+// keeper's hands.
 
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
@@ -18,6 +19,7 @@
 #include "goalFrame.hpp"
 #include "ids.hpp"
 #include "matchEvents.hpp"
+#include "matchFixtures.hpp"
 #include "matchSimulation.hpp"
 #include "matchState.hpp"
 #include "passing.hpp"
@@ -82,6 +84,7 @@ using ElyverseFootball::SimMatch::validate;
 using ElyverseFootball::SimMatch::WoodworkConfig;
 using ElyverseFootball::SimTactics::referenceTacticSpec;
 using ElyverseFootball::SimTactics::Tactic;
+using ElyverseFootball::TestSupport::eventsOf;
 
 namespace {
 
@@ -194,10 +197,7 @@ struct Box {
       {.initialState = boxState(box, ball),
        .seed = seed,
        .ticksPerSecond = kTicksPerSecond,
-       .systems = {makePlayerMovementSystem(),
-                   makeBallMovementSystem(BallPhysics{}, PassConfig{}, ReceptionConfig{},
-                                          RestartConfig{}, ShotConfig{}, WoodworkConfig{},
-                                          ShotStoppingConfig{}, aerial)},
+       .systems = {makePlayerMovementSystem(), makeBallMovementSystem({.aerial = aerial})},
        .commands = {}});
 }
 
@@ -209,17 +209,6 @@ struct Box {
     events.insert(events.end(), simulation.events().begin(), simulation.events().end());
   }
   return events;
-}
-
-template <typename Event>
-[[nodiscard]] std::vector<Event> eventsOf(const std::vector<MatchEvent>& events) {
-  std::vector<Event> found;
-  for (const MatchEvent& event : events) {
-    if (const auto* typed = std::get_if<Event>(&event)) {
-      found.push_back(*typed);
-    }
-  }
-  return found;
 }
 
 [[nodiscard]] AerialContest onlyContest(const std::vector<MatchEvent>& events) {

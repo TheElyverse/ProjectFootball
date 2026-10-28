@@ -6,6 +6,7 @@
 #include <stdexcept>
 
 #include "actionGeometry.hpp"
+#include "configChecks.hpp"
 #include "pressingActions.hpp"
 #include "responsibility.hpp"
 #include "teamFrame.hpp"
@@ -16,6 +17,9 @@ namespace {
 
 using ActionGeometry::directionTo;
 using ActionGeometry::distanceBetween;
+using ConfigChecks::isFiniteNonNegative;
+using ConfigChecks::isPositiveFinite;
+using ConfigChecks::isShare;
 using SimCore::Vec2;
 using SimTactics::Responsibility;
 
@@ -33,8 +37,8 @@ class DefensiveScorer {
         playerIndex_(playerIndex),
         region_(&region),
         rules_(&rules),
-        remembered_(rememberedPlayers(state, playerIndex, rules.now, rules.secondsPerTick,
-                                      *rules.perception, rules.positioning->minConfidence)) {}
+        remembered_(rememberedPlayers(state, playerIndex, rules.time, *rules.perception,
+                                      rules.positioning->minConfidence)) {}
 
   [[nodiscard]] const PlayerMatchState& player() const { return state_->players()[playerIndex_]; }
 
@@ -99,8 +103,7 @@ class DefensiveScorer {
                                       const std::optional<SimCore::PlayerId> subject) const {
     const DefensiveConfig& config = *rules_->config;
     const double penalty = ActionGeometry::regionPenalty(*state_, playerIndex_, target, *region_,
-                                                         {.now = rules_->now,
-                                                          .secondsPerTick = rules_->secondsPerTick,
+                                                         {.time = rules_->time,
                                                           .positioning = rules_->positioning,
                                                           .perception = rules_->perception});
     const auto& grid = state_->pitchControl();
@@ -236,19 +239,17 @@ void addPressingCandidates(const DefensiveScorer& scorer, const RememberedPlayer
 }  // namespace
 
 void validate(const DefensiveConfig& config) {
-  constexpr double kMax = std::numeric_limits<double>::max();
-  const auto positive = [](const double value) { return value > 0.0 && value <= kMax; };
-  const auto weight = [](const double value) { return value >= 0.0 && value <= kMax; };
-  const bool valid = positive(config.markRadius) && positive(config.markDistance) &&
-                     positive(config.trackRadius) && positive(config.runnerSpeed) &&
-                     weight(config.trackLeadSeconds) && positive(config.coverDistance) &&
-                     positive(config.pressRadius) && positive(config.pressDistance) &&
-                     weight(config.idleSeconds) && positive(config.idlePressRadius) &&
-                     weight(config.laneMinDistance) && positive(config.effortScale) &&
-                     config.holdResponsibility >= 0.0 && config.holdResponsibility <= 1.0 &&
-                     positive(config.temperature) && weight(config.responsibilityWeight) &&
-                     weight(config.regionWeight) && weight(config.spaceWeight) &&
-                     weight(config.urgencyWeight) && weight(config.effortWeight);
+  const bool valid =
+      isPositiveFinite(config.markRadius) && isPositiveFinite(config.markDistance) &&
+      isPositiveFinite(config.trackRadius) && isPositiveFinite(config.runnerSpeed) &&
+      isFiniteNonNegative(config.trackLeadSeconds) && isPositiveFinite(config.coverDistance) &&
+      isPositiveFinite(config.pressRadius) && isPositiveFinite(config.pressDistance) &&
+      isFiniteNonNegative(config.idleSeconds) && isPositiveFinite(config.idlePressRadius) &&
+      isFiniteNonNegative(config.laneMinDistance) && isPositiveFinite(config.effortScale) &&
+      isShare(config.holdResponsibility) && isPositiveFinite(config.temperature) &&
+      isFiniteNonNegative(config.responsibilityWeight) &&
+      isFiniteNonNegative(config.regionWeight) && isFiniteNonNegative(config.spaceWeight) &&
+      isFiniteNonNegative(config.urgencyWeight) && isFiniteNonNegative(config.effortWeight);
   if (!valid) {
     throw std::invalid_argument("defensive decisions: invalid configuration");
   }

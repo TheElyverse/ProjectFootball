@@ -1,5 +1,5 @@
-// The carry scenarios (docs/ball-carrying.md): a carrier with nobody to pass
-// to carries the ball into open space with touch after touch, and takes it
+// The carry scenarios (docs/on-ball.md#ball-carrying): a carrier with nobody to
+// pass to carries the ball into open space with touch after touch, and takes it
 // past a covering defender with a dribble.
 
 #include <catch2/catch_test_macros.hpp>
@@ -12,6 +12,7 @@
 
 #include "ids.hpp"
 #include "matchEvents.hpp"
+#include "matchFixtures.hpp"
 #include "matchSetup.hpp"
 #include "matchSimulation.hpp"
 #include "matchState.hpp"
@@ -27,26 +28,17 @@ using ElyverseFootball::SimMatch::DecisionOutcome;
 using ElyverseFootball::SimMatch::DribbleAttempted;
 using ElyverseFootball::SimMatch::DribbleEnded;
 using ElyverseFootball::SimMatch::DribbleOutcome;
-using ElyverseFootball::SimMatch::findScenario;
 using ElyverseFootball::SimMatch::hashMatchState;
 using ElyverseFootball::SimMatch::MatchEvent;
-using ElyverseFootball::SimMatch::MatchSetup;
 using ElyverseFootball::SimMatch::MatchSimulation;
 using ElyverseFootball::SimMatch::MatchState;
 using ElyverseFootball::SimMatch::startMatch;
+using ElyverseFootball::TestSupport::setupOf;
 
 namespace {
 
 constexpr PlayerId kCarrier{1};
 constexpr PlayerId kDefender{8};
-
-[[nodiscard]] MatchSetup setupOf(const std::string_view scenario, const std::uint64_t seed) {
-  const auto* definition = findScenario(scenario);
-  REQUIRE(definition != nullptr);
-  auto setup = definition->make(seed);
-  REQUIRE(setup.has_value());
-  return *std::move(setup);
-}
 
 // While the ball rolls ahead of its owner after a touch, it is still his, on
 // the pitch, and on the ground.

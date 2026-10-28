@@ -8,9 +8,10 @@
 
 namespace ElyverseFootball::SimTactics {
 
-// The situation a team is in, as its tactic sees it (docs/tactics.md). Four
-// phases with the ball, three without. A tactic gives instructions per phase;
-// the match decides which phase each team is in.
+// The situation a team is in, as its tactic sees it
+// (docs/tactics.md#tactic-model). Four phases with the ball, three without. A
+// tactic gives instructions per phase; the match decides which phase each team
+// is in.
 enum class TacticalPhase : std::uint8_t {
   // In possession, the ball in the own third.
   kBuildUp,

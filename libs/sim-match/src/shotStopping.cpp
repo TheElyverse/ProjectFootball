@@ -6,6 +6,7 @@
 #include <stdexcept>
 #include <string>
 
+#include "configChecks.hpp"
 #include "randomDraws.hpp"
 #include "shooting.hpp"
 #include "stableMath.hpp"
@@ -15,21 +16,12 @@
 namespace ElyverseFootball::SimMatch {
 namespace {
 
+using ConfigChecks::isFiniteNonNegative;
+using ConfigChecks::isPositiveFinite;
+using ConfigChecks::isShare;
 using RandomDraws::symmetricTriangular;
 using RandomDraws::symmetricUniform;
 using SimCore::Vec2;
-
-[[nodiscard]] bool isFiniteNonNegative(const double value) noexcept {
-  return value >= 0.0 && value <= std::numeric_limits<double>::max();
-}
-
-[[nodiscard]] bool isPositiveFinite(const double value) noexcept {
-  return value > 0.0 && value <= std::numeric_limits<double>::max();
-}
-
-[[nodiscard]] bool isShare(const double value) noexcept {
-  return value >= 0.0 && value <= 1.0;
-}
 
 // Across a plane square to this way along the ground: its left.
 [[nodiscard]] Vec2 acrossOf(const Vec2 normal) noexcept {
@@ -141,17 +133,6 @@ std::optional<std::size_t> facingKeeper(const MatchState& state, const BallState
     }
   }
   return std::nullopt;
-}
-
-bool isBusy(const KeeperDive& dive, const double seconds) noexcept {
-  return seconds < dive.landSeconds + dive.recoverySeconds;
-}
-
-bool isDiving(const MatchState& state, const std::size_t playerIndex, const SimCore::SimTick now,
-              const double secondsPerTick) {
-  const auto& dive = state.tactical(playerIndex).dive;
-  return dive &&
-         isBusy(*dive, static_cast<double>(now.value() - dive->tick.value()) * secondsPerTick);
 }
 
 PlanePoint readyHands(const ShotStoppingConfig& config) noexcept {
@@ -397,7 +378,9 @@ SaveTouch executeSave(const BallState& ball, const KeeperDive& dive, const doubl
   return touch;
 }
 
-MatchSystem makeShotStoppingSystem(const ShotStoppingConfig& config, const BallPhysics& physics) {
+MatchSystem makeShotStoppingSystem(const ShotStoppingRules& rules) {
+  const ShotStoppingConfig& config = rules.saves;
+  const BallPhysics& physics = rules.physics;
   validate(config);
   validate(physics);
   return {.name = std::string(kShotStoppingSystemName),
@@ -411,15 +394,12 @@ MatchSystem makeShotStoppingSystem(const ShotStoppingConfig& config, const BallP
             // A keeper off his feet after a duel dives for nothing.
             const auto& answered = current.tactical(*keeper).dive;
             if ((answered && answers(*answered, ball)) ||
-                isDiving(current, *keeper, context.tick(), context.secondsPerTick()) ||
-                isStumbling(next.tactical(*keeper), context.tick())) {
+                isOffHisFeet(next.tactical(*keeper), context.time())) {
               return;
             }
             // A facing keeper faces a ball with a last touch.
             const auto touched = ball.lastTouch.value_or(BallTouch{});
-            const double since =
-                static_cast<double>(context.tick().value() - touched.tick.value()) *
-                context.secondsPerTick();
+            const double since = context.time().secondsSince(touched.tick);
             const PlayerAttributes& attributes = current.players()[*keeper].attributes;
             if (since < reactionSeconds(attributes.keeperReflexes, config)) {
               return;

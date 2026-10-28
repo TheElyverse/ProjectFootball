@@ -15,7 +15,7 @@
 
 namespace ElyverseFootball::SimMatch {
 
-// How a goalkeeper stops shots; see docs/shot-stopping.md. Part of
+// How a goalkeeper stops shots; see docs/goalkeeper.md#shot-stopping. Part of
 // MatchConfig and therefore of every replay.
 struct ShotStoppingConfig {
   // How long after the ball is struck or deflected he goes: at
@@ -97,15 +97,6 @@ inline constexpr std::string_view kShotStoppingSystemName = "shot stopping";
                                                       const std::optional<ShotRecord>& shot,
                                                       const BallPhysics& physics,
                                                       const ShotStoppingConfig& config);
-
-// Whether the dive keeps him busy this long after he went: in the air or
-// down. A keeper who left the ball never is.
-[[nodiscard]] bool isBusy(const KeeperDive& dive, double seconds) noexcept;
-
-// Whether the player at this index is busy with a dive at the start of tick
-// `now`.
-[[nodiscard]] bool isDiving(const MatchState& state, std::size_t playerIndex, SimCore::SimTick now,
-                            double secondsPerTick);
 
 // Where his hands are as he stands set: above his feet at readyHeight.
 [[nodiscard]] PlanePoint readyHands(const ShotStoppingConfig& config) noexcept;
@@ -210,6 +201,13 @@ struct SaveTouch {
                                     const ShotStoppingConfig& config,
                                     SimCore::RandomNumberGenerator& random) noexcept;
 
+// What the shot stopping system is configured with: the default
+// configuration for whatever a caller leaves out.
+struct ShotStoppingRules {
+  ShotStoppingConfig saves{};
+  BallPhysics physics{};
+};
+
 // Every tick: once the keeper facing a shot's flight (facingKeeper()) has
 // had his reaction time since the ball was struck or deflected, he decides
 // his dive against it (decideDive(), from the kAi stream) and keeps it in
@@ -218,7 +216,6 @@ struct SaveTouch {
 // him by it and the ball system executes it where the ball passes his plane.
 // Writes players' tactical states only. Throws std::invalid_argument for an
 // invalid configuration.
-[[nodiscard]] MatchSystem makeShotStoppingSystem(const ShotStoppingConfig& config,
-                                                 const BallPhysics& physics);
+[[nodiscard]] MatchSystem makeShotStoppingSystem(const ShotStoppingRules& rules = {});
 
 }  // namespace ElyverseFootball::SimMatch

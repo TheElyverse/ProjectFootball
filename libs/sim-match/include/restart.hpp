@@ -6,9 +6,10 @@
 #include <string_view>
 #include <vector>
 
-#include "ballMovement.hpp"
+#include "ballPhysics.hpp"
 #include "matchSimulation.hpp"
 #include "matchState.hpp"
+#include "pitch.hpp"
 #include "restartKind.hpp"
 #include "vec2.hpp"
 
@@ -16,8 +17,8 @@ namespace ElyverseFootball::SimMatch {
 
 // Whether the ball is out of play: free, at rest on the ground, and on a
 // touchline or goal line, where a ball that leaves the pitch stops
-// (docs/ball-movement.md). A ball still in the air, even one directly over the
-// line, is in play.
+// (docs/ball.md#ball-movement). A ball still in the air, even one directly over
+// the line, is in play.
 [[nodiscard]] bool isOutOfPlay(const BallState& ball, const Pitch& pitch) noexcept;
 [[nodiscard]] bool isOutOfPlay(const MatchState& state) noexcept;
 
@@ -43,7 +44,7 @@ struct RestartPlan {
 
 // Where a goal kick is taken from: on the front edge of the goal area at the
 // goal line the ball left the pitch over at `out`, level with where it left
-// it but no wider than the goal area (docs/restarts.md).
+// it but no wider than the goal area (docs/match-engine.md#restarts).
 [[nodiscard]] SimCore::Vec2 goalKickSpot(const Pitch& pitch, SimCore::Vec2 out) noexcept;
 
 // Where everybody stands for a kickoff, and who takes it.
@@ -56,15 +57,15 @@ struct KickoffLineUp {
   friend bool operator==(const KickoffLineUp&, const KickoffLineUp&) = default;
 };
 
-// The line-up for a kickoff by this side (docs/restarts.md), empty if it has
-// no player. Every player stands in his side's starting formation in his own
-// half: his slot of the tactic's base shape at half its depth, or for a
+// The line-up for a kickoff by this side (docs/match-engine.md#restarts), empty
+// if it has no player. Every player stands in his side's starting formation in
+// his own half: his slot of the tactic's base shape at half its depth, or for a
 // scripted side, which has no formation, where he is, moved straight back to
 // the halfway line if he is beyond it. An opponent inside the centre circle
 // steps straight back onto it. The taker is the kicking side's player nearest
 // to the centre spot in that formation, ties to the lower player index; he
-// stands carryDistance behind the spot, so the ball at his feet lies on it,
-// or on his goal line if the pitch is shorter than that.
+// stands carryDistance behind the spot, so the ball at his feet lies on it, or
+// on his goal line if the pitch is shorter than that.
 [[nodiscard]] std::optional<KickoffLineUp> lineUpForKickoff(const MatchState& state,
                                                             TeamSide kicking,
                                                             const BallPhysics& ball);
@@ -73,6 +74,13 @@ struct KickoffLineUp {
 [[nodiscard]] SimCore::Vec2 kickoffFacing(TeamSide side) noexcept;
 
 inline constexpr std::string_view kRestartSystemName = "restart";
+
+// What the restart system is configured with: the default configuration for
+// whatever a caller leaves out.
+struct RestartRules {
+  RestartConfig restarts{};
+  BallPhysics physics{};
+};
 
 // Every tick while enabled: if a goalkeeper has held the ball in his hands
 // longer than maxHoldSeconds since he took it -- his last touch -- and has no
@@ -92,7 +100,7 @@ inline constexpr std::string_view kRestartSystemName = "restart";
 // a match: without movement targets, pending actions, memories, tactical
 // states, presses or chasers. Disabled, it does nothing. Throws
 // std::invalid_argument for a negative or non-finite maxHoldSeconds.
-// ball places the ball at the taker's feet.
-[[nodiscard]] MatchSystem makeRestartSystem(const RestartConfig& config, const BallPhysics& ball);
+// The ball physics place the ball at the taker's feet.
+[[nodiscard]] MatchSystem makeRestartSystem(const RestartRules& rules = {});
 
 }  // namespace ElyverseFootball::SimMatch

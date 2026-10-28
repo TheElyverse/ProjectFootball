@@ -54,6 +54,9 @@ class MatchStepContext {
  public:
   [[nodiscard]] SimCore::SimTick tick() const noexcept { return tick_; }
   [[nodiscard]] double secondsPerTick() const noexcept { return secondsPerTick_; }
+  [[nodiscard]] SimCore::StepTime time() const noexcept {
+    return {.tick = tick_, .secondsPerTick = secondsPerTick_};
+  }
 
   // The simulation's stream for a domain. Systems draw in their fixed update
   // order, so the draws are part of what a replay reproduces.

@@ -9,6 +9,7 @@
 
 #include "ballPhysics.hpp"
 #include "ids.hpp"
+#include "matchEvents.hpp"
 #include "matchState.hpp"
 #include "random.hpp"
 #include "reception.hpp"
@@ -17,9 +18,9 @@
 
 namespace ElyverseFootball::SimMatch {
 
-// How players go up for a high ball, who wins it and what he does with it;
-// see docs/aerial-duels.md. Part of MatchConfig and therefore of every
-// replay.
+// How players go up for a high ball, who wins it and what he does with it; see
+// docs/duels.md#aerial-duels-and-headers. Part of MatchConfig and therefore of
+// every replay.
 struct AerialConfig {
   // The highest a standing player meets the ball with his head, as the
   // height of its centre, and how close to him along the ground it must come.
@@ -96,32 +97,6 @@ struct AerialConfig {
 // the dropped share lies in [0, 1] and the speed error below 1.
 void validate(const AerialConfig& config);
 
-// What the winner of an aerial contest did with the ball: headed it at
-// goal, to a teammate or down to one close by, or clear; or, a goalkeeper
-// with his hands, caught it or punched it clear.
-enum class AerialPlay : std::uint8_t {
-  kShot,
-  kPass,
-  kKnockDown,
-  kClearance,
-  kCaught,
-  kPunched,
-};
-
-// "shot", "pass", "knockDown", "clearance", "caught", "punched"; "unknown"
-// outside the enumerators.
-[[nodiscard]] std::string_view aerialPlayName(AerialPlay play) noexcept;
-
-// One player who went up for a high ball: the highest ball centre his jump
-// met it with, and whether that reached it.
-struct AerialContestant {
-  SimCore::PlayerId player;
-  double reach = 0.0;  // m
-  bool reached = false;
-
-  friend bool operator==(const AerialContestant&, const AerialContestant&) = default;
-};
-
 // How high a jump lifts a player of this jumping.
 [[nodiscard]] double jumpRise(double jumping, const AerialConfig& config) noexcept;
 
@@ -139,10 +114,9 @@ struct AerialContestant {
 [[nodiscard]] double reachAt(double standing, double rise, double offset, double gravity) noexcept;
 
 // Whether the player at this index has gone up for a ball within
-// landingSeconds before the start of tick now, and so goes up for no other.
+// landingSeconds before the start of `time`, and so goes up for no other.
 [[nodiscard]] bool isInTheAir(const MatchState& state, std::size_t playerIndex,
-                              SimCore::SimTick now, double secondsPerTick,
-                              const AerialConfig& config);
+                              SimCore::StepTime time, const AerialConfig& config);
 
 // How far and how high the player at this index gets to a high ball at best:
 // with his hands if `hands`, with his head otherwise, his jump timed
@@ -164,9 +138,8 @@ struct AerialContestant {
 // a search for a ball that never rises above controlHeight (mayRiseAbove()).
 [[nodiscard]] std::optional<BallClaim> findAerialContact(
     const MatchState& state, const BallState& ball, const BallStep& moved,
-    const BallPhysics& physics, SimCore::SimTick now, double secondsPerTick,
-    const ReceptionConfig& reception, const AerialConfig& config,
-    std::span<const std::size_t> excluded = {});
+    const BallPhysics& physics, SimCore::StepTime time, const ReceptionConfig& reception,
+    const AerialConfig& config, std::span<const std::size_t> excluded = {});
 
 // A player going up for a high ball, as the duel sees him: how high he
 // stands and jumps, with his hands or not, how long after the ball he gets
@@ -188,9 +161,8 @@ struct AerialChallenger {
 // and the ball are at that moment.
 [[nodiscard]] std::vector<AerialChallenger> findChallengers(
     const MatchState& state, const BallState& ball, const BallStep& moved, const BallClaim& first,
-    const BallPhysics& physics, SimCore::SimTick now, double secondsPerTick,
-    const ReceptionConfig& reception, const AerialConfig& config,
-    std::span<const std::size_t> excluded = {});
+    const BallPhysics& physics, SimCore::StepTime time, const ReceptionConfig& reception,
+    const AerialConfig& config, std::span<const std::size_t> excluded = {});
 
 // One challenger's jump: how far off he timed it, the share of timingError
 // that is (his mistiming, at most 1), how high that took him and whether it
@@ -283,14 +255,10 @@ struct HeaderStrike {
   double height = 0.0;
 };
 
-// The execution half of a header, from the ball where it meets the head:
-// the ball leaves toward the target on the flight that brings it to the
-// intended height there at the intended speed -- at most maxHeaderSpeed --,
-// its aim strayed across and up by a triangular error and its pace by a
-// uniform one, all widened by errorFactor -- always five draws from random.
-// A flight the drag stops short of goes up at 45 degrees, and however its
-// pace strays, it leaves no faster than maxHeaderSpeed in all. A target on
-// the ball itself is headed along the player's facing.
+// The execution half of a header, from the ball where it meets the head: the
+// flight toward the target, strayed by errors widened by errorFactor, never
+// faster than maxHeaderSpeed; always five draws from random
+// (docs/duels.md#the-header).
 [[nodiscard]] HeaderStrike executeHeader(const HeaderIntent& intent, const BallState& ball,
                                          const PlayerMatchState& player, double errorFactor,
                                          const AerialConfig& config, const BallPhysics& physics,

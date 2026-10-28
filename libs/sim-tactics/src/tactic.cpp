@@ -96,10 +96,7 @@ void validateSlots(const std::vector<TacticSlot>& slots, ErrorList& errors) {
     checkOnPitch(slot.position.depth, "depth");
     checkOnPitch(slot.position.width, "width");
     validateResponsibilities(index, slot, errors);
-    const bool keeper = std::ranges::any_of(slot.responsibilities, [](const auto& entry) {
-      return entry.responsibility == Responsibility::kGuardGoal;
-    });
-    if (keeper && ++goalkeepers > 1) {
+    if (slot.guardsGoal() && ++goalkeepers > 1) {
       errors.add(TacticErrorCode::kTooManyGoalkeepers,
                  std::format("slots[{}].responsibilities", index),
                  "a second slot guards the goal; a tactic has at most one goalkeeper");
@@ -155,6 +152,12 @@ void validatePhase(const TacticalPhase phase, const PhaseInstruction& instructio
 }
 
 }  // namespace
+
+bool TacticSlot::guardsGoal() const noexcept {
+  return std::ranges::any_of(responsibilities, [](const SlotResponsibility& entry) {
+    return entry.responsibility == Responsibility::kGuardGoal;
+  });
+}
 
 std::expected<Tactic, std::vector<TacticError>> Tactic::create(TacticSpec spec) {
   ErrorList errors;

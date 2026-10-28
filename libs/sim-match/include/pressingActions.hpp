@@ -7,8 +7,8 @@
 namespace ElyverseFootball::SimMatch {
 
 // The geometry of the individual actions pressing is built from (PF-012,
-// docs/pressing.md): pressing the carrier, blocking a passing lane and
-// covering the presser. Pure functions of positions, so each can be tested
+// docs/team-tactics.md#pressing): pressing the carrier, blocking a passing lane
+// and covering the presser. Pure functions of positions, so each can be tested
 // on its own; the defensive decisions (defensiveActions.hpp) offer them as
 // candidates.
 

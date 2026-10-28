@@ -4,6 +4,7 @@
 #include <string_view>
 #include <vector>
 
+#include "defensiveActions.hpp"
 #include "matchSimulation.hpp"
 #include "matchState.hpp"
 #include "perception.hpp"
@@ -14,7 +15,8 @@
 namespace ElyverseFootball::SimMatch {
 
 // When and how a side with a tactic starts a coordinated press; see
-// docs/pressing.md. Part of MatchConfig and therefore of every replay.
+// docs/team-tactics.md#pressing. Part of MatchConfig and therefore of every
+// replay.
 struct PressingConfig {
   // 6 ticks at 30 Hz: pressing is reconsidered five times a second.
   int intervalTicks = 6;
@@ -62,10 +64,11 @@ struct SpottedTrigger {
 // The first trigger of the side's tactic, in the tactic's order, that one of
 // its outfield players within triggerRadius of the ball spots in what he
 // observes -- he must have seen the carrier (or, for a slow pass, the ball)
-// within the last perception interval (docs/pressing.md). Empty if none.
+// within the last perception interval (docs/team-tactics.md#pressing). Empty if
+// none.
 [[nodiscard]] std::optional<SpottedTrigger> spotTrigger(const MatchState& state,
-                                                        TeamSide pressingSide, SimCore::SimTick now,
-                                                        double secondsPerTick,
+                                                        TeamSide pressingSide,
+                                                        SimCore::StepTime time,
                                                         const PressingConfig& config,
                                                         const PerceptionConfig& perception);
 
@@ -74,12 +77,7 @@ struct SpottedTrigger {
 [[nodiscard]] int pressJoiners(double intensity, const PressingConfig& config) noexcept;
 
 // Who plays which role in a press on the carrier with this many joiners, by
-// the players' positions: the outfield player nearest the carrier presses;
-// with three or more joiners the one nearest the spot behind the presser
-// covers; the rest block the lanes to the carrier's nearest options, each
-// option taken by the free player who stands nearest his blocking spot.
-// Fewer roles if the side has fewer outfield players or the carrier fewer
-// options. Ties go to the lower id.
+// the players' positions (docs/team-tactics.md#who-joins-in-which-role).
 struct PressRequest {
   SimCore::PlayerId carrier;
   int joiners = 0;
@@ -91,6 +89,15 @@ struct PressRequest {
                                                             const PressRequest& request);
 
 inline constexpr std::string_view kPressingSystemName = "team pressing";
+
+// What the pressing system is configured with: the default configuration for
+// whatever a caller leaves out. coverDistance is the defensive decisions' own,
+// so a cover in a press stands where one outside it would.
+struct PressingRules {
+  PressingConfig pressing{};
+  PerceptionConfig perception{};
+  double coverDistance = DefensiveConfig{}.coverDistance;
+};
 
 // Every config.intervalTicks ticks, for every side with a tactic and a phase:
 //
@@ -106,8 +113,6 @@ inline constexpr std::string_view kPressingSystemName = "team pressing";
 // The tactical movement gives the players in a press their role's action.
 // Writes presses only. Throws std::invalid_argument for an invalid
 // configuration.
-[[nodiscard]] MatchSystem makePressingSystem(const PressingConfig& config,
-                                             const PerceptionConfig& perception,
-                                             double coverDistance);
+[[nodiscard]] MatchSystem makePressingSystem(const PressingRules& rules = {});
 
 }  // namespace ElyverseFootball::SimMatch

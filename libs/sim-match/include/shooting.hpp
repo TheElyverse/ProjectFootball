@@ -12,7 +12,7 @@
 namespace ElyverseFootball::SimMatch {
 
 // How players strike shots and what a body in the way does to one; see
-// docs/shooting.md. Part of MatchConfig and therefore of every replay.
+// docs/on-ball.md#shooting. Part of MatchConfig and therefore of every replay.
 struct ShotConfig {
   // How far from his aim a shot may go at the goal line, to either side and up
   // or down: the half-width of a triangular spread, at zero distance and per
@@ -87,14 +87,14 @@ struct ShotConditions {
 };
 
 // The conditions of a shot by the player at this index, struck from `from`
-// at the intent's target in the step of tick now. Physical, so from true
+// at the intent's target in the step at `time`. Physical, so from true
 // positions: the pressure of the opponents close to him, the shooter's own motion,
 // which foot the target asks for -- left is the side of growing pitch y for
 // a player facing growing pitch x -- and the ball he last received.
 [[nodiscard]] ShotConditions shotConditions(const MatchState& state, std::size_t shooterIndex,
                                             SimCore::Vec2 from, const ShotIntent& intent,
-                                            SimCore::SimTick now, double secondsPerTick,
-                                            const ShotConfig& config, const PassConfig& passing);
+                                            SimCore::StepTime time, const ShotConfig& config,
+                                            const PassConfig& passing);
 
 // How much the conditions widen a player's errors: 1 in the clear, standing
 // or running at his shot, on his strong foot, with a settled ball.

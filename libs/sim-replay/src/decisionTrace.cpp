@@ -92,7 +92,7 @@ using SimMatch::MatchEvent;
 }
 
 // What he does with the ball at his feet instead of passing or shooting
-// (docs/ball-carrying.md), with the parts of its utility.
+// (docs/on-ball.md#ball-carrying), with the parts of its utility.
 [[nodiscard]] std::string carryLine(const DecisionDiagnostic& decision, const std::size_t chosen,
                                     const std::string& line, const std::string& context) {
   const SimMatch::CarryCandidate& carry = decision.carries.at(chosen);
@@ -136,7 +136,7 @@ using SimMatch::MatchEvent;
 }
 
 // How the ball goes: a pass along the ground or a long kick, from the hands
-// a throw or a punt (docs/goalkeeper-distribution.md).
+// a throw or a punt (docs/goalkeeper.md#distribution).
 [[nodiscard]] std::string_view passVerb(const SimMatch::PassCandidate& pass, const bool held) {
   if (pass.lofted) {
     return held ? "punts to" : "kicks long to";
@@ -356,8 +356,9 @@ PassOutcome attributeInterception(const SimMatch::PassIntercepted& event,
   if (const auto truth = truePositions.find(event.interceptor); truth != truePositions.end()) {
     const double secondsPerTick = 1.0 / static_cast<double>(matchConfig.ticksPerSecond);
     const double off =
-        SimCore::distance(SimMatch::estimatePosition(*observed, decision.tick, secondsPerTick,
-                                                     matchConfig.perception),
+        SimCore::distance(SimMatch::estimatePosition(
+                              *observed, {.tick = decision.tick, .secondsPerTick = secondsPerTick},
+                              matchConfig.perception),
                           truth->second);
     if (off > config.perceptionErrorMeters) {
       outcome.cause = FailureCause::kPerception;

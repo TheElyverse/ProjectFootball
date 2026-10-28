@@ -6,11 +6,15 @@
 #include <stdexcept>
 
 #include "ballPhysics.hpp"
+#include "configChecks.hpp"
 #include "laneReach.hpp"
 
 namespace ElyverseFootball::SimMatch {
 namespace {
 
+using ConfigChecks::isFiniteNonNegative;
+using ConfigChecks::isPositiveFinite;
+using ConfigChecks::isWithin;
 using LaneReach::Remembered;
 using SimCore::Vec2;
 
@@ -32,17 +36,11 @@ using SimCore::Vec2;
 }  // namespace
 
 void validate(const DistributionConfig& config) {
-  const auto finiteIn = [](const double value, const double min, const double max) {
-    return value >= min && value <= max;  // false for NaN
-  };
-  constexpr double kMax = std::numeric_limits<double>::max();
   const bool valid =
-      finiteIn(config.holdSeconds, 0.0, kMax) && finiteIn(config.clearSeconds, 0.0, kMax) &&
-      finiteIn(config.throwRange, 0.0, kMax) && config.throwRange > 0.0 &&
-      finiteIn(config.minLongDistance, 0.0, kMax) && finiteIn(config.flightSeconds, 0.0, kMax) &&
-      config.flightSeconds > 0.0 && finiteIn(config.contestMarginSeconds, 0.0, kMax) &&
-      config.contestMarginSeconds > 0.0 &&
-      finiteIn(config.directnessWeight, 0.0, kMaxScoringWeight);
+      isFiniteNonNegative(config.holdSeconds) && isFiniteNonNegative(config.clearSeconds) &&
+      isPositiveFinite(config.throwRange) && isFiniteNonNegative(config.minLongDistance) &&
+      isPositiveFinite(config.flightSeconds) && isPositiveFinite(config.contestMarginSeconds) &&
+      isWithin(config.directnessWeight, 0.0, kMaxScoringWeight);
   if (!valid) {
     throw std::invalid_argument("distribution: invalid configuration");
   }
@@ -54,8 +52,7 @@ double directnessBias(const double directness, const DistributionConfig& config)
 
 std::vector<PassCandidate> generateLongBallCandidates(const MatchState& state,
                                                       const std::size_t carrierIndex,
-                                                      const SimCore::SimTick now,
-                                                      const double secondsPerTick,
+                                                      const SimCore::StepTime time,
                                                       const PassCandidateRules& rules,
                                                       const DistributionConfig& config) {
   const PlayerMatchState& carrier = state.players()[carrierIndex];
@@ -65,7 +62,7 @@ std::vector<PassCandidate> generateLongBallCandidates(const MatchState& state,
   constexpr double kNever = std::numeric_limits<double>::infinity();
 
   const auto [teammates, opponents] = LaneReach::rememberedPlayers(
-      state, carrierIndex, now, secondsPerTick, rules.perception, rules.scoring.minConfidence);
+      state, carrierIndex, time, rules.perception, rules.scoring.minConfidence);
 
   std::vector<PassCandidate> candidates;
   candidates.reserve(teammates.size());

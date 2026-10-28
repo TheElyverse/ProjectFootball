@@ -115,7 +115,8 @@ struct Chance {
 
 [[nodiscard]] std::vector<ShotCandidate> shotsOf(const MatchState& state,
                                                  const ShotCandidateRules& rules = {}) {
-  return generateShotCandidates(state, 0, SimTick(1), kSecondsPerTick, rules);
+  return generateShotCandidates(state, 0, {.tick = SimTick(1), .secondsPerTick = kSecondsPerTick},
+                                rules);
 }
 
 [[nodiscard]] std::vector<ShotCandidate> shotsAt(const Chance& chance,
@@ -234,7 +235,8 @@ TEST_CASE("A carrier sees the goal along where he looks, not where he faces", "[
     while (simulation.tick() < SimTick(4)) {
       REQUIRE(simulation.step().has_value());
     }
-    return generateShotCandidates(simulation.state(), 0, simulation.tick(), kSecondsPerTick, {});
+    return generateShotCandidates(
+        simulation.state(), 0, {.tick = simulation.tick(), .secondsPerTick = kSecondsPerTick}, {});
   };
   constexpr Vec2 kTowardGoal{.x = 1.0, .y = 0.0};
   constexpr Vec2 kAway{.x = -1.0, .y = 0.0};

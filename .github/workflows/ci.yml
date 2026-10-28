@@ -60,7 +60,7 @@ jobs:
         run: ctest --preset ci --label-regex acceptance --output-on-failure
 
     # P2 acceptance, reduced: the three tactical identities in a round robin,
-  # in a Release build within its time budget (docs/sim-benchmark.md).
+  # in a Release build within its time budget (docs/tooling.md#sim-benchmark).
   style-benchmark:
     runs-on: ubuntu-latest
     env:

@@ -8,7 +8,7 @@
 namespace ElyverseFootball::SimAnalytics {
 
 // Every statistics file starts with this format name and version; see
-// docs/match-analytics.md.
+// docs/tooling.md#match-analytics.
 inline constexpr std::string_view kStatsFormat = "elyverse-match-stats";
 inline constexpr int kStatsFormatVersion = 1;
 

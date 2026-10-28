@@ -24,9 +24,9 @@ namespace {
 constexpr double kLengthMeters = 60.0;
 constexpr double kWidthMeters = 40.0;
 
-// The documented layout of docs/match-state.md, spelled out independently of
-// the implementation: home in its own half, away mirrored through the halfway
-// line, ids counted upwards from one, nobody moving.
+// The documented layout of docs/match-engine.md#match-state, spelled out
+// independently of the implementation: home in its own half, away mirrored
+// through the halfway line, ids counted upwards from one, nobody moving.
 constexpr std::array<Vec2, 7> kExpectedHomePositions{{
     {.x = 0.05 * kLengthMeters, .y = 0.50 * kWidthMeters},
     {.x = 0.22 * kLengthMeters, .y = 0.22 * kWidthMeters},

@@ -14,8 +14,8 @@
 namespace ElyverseFootball::SimMatch {
 
 // How teammates of the ball carrier decide what to do without the ball; see
-// docs/off-ball-movement.md. Part of MatchConfig and therefore of every
-// replay.
+// docs/team-tactics.md#off-ball-movement. Part of MatchConfig and therefore of
+// every replay.
 struct OffBallConfig {
   // Players this close to the ball decide every nearIntervalTicks, the rest
   // every farIntervalTicks: relevance decides how often a player thinks.
@@ -64,26 +64,26 @@ void validate(const OffBallConfig& config);
                                   double laneRadius) noexcept;
 
 // The options of the player at this index, a teammate of the carrier, with
-// region his current desired region: holding it, supporting the carrier,
-// moving into space, running in behind the opponent's line -- if he
-// remembers enough of it to see a line -- creating width and occupying the
-// halfspace on his side of the pitch. Scored from his own memory, his
-// team's pitch control and his tactic (docs/off-ball-movement.md), in that
-// fixed order. Deterministic.
+// region his current desired region: holding it, supporting the carrier, moving
+// into space, running in behind the opponent's line -- if he remembers enough
+// of it to see a line -- creating width and occupying the halfspace on his side
+// of the pitch. Scored from his own memory, his team's pitch control and his
+// tactic (docs/team-tactics.md#off-ball-movement), in that fixed order.
+// Deterministic.
 [[nodiscard]] std::vector<ActionCandidate> generateOffBallCandidates(
     const MatchState& state, std::size_t playerIndex, const DesiredRegion& region,
-    SimCore::SimTick now, double secondsPerTick, const OffBallConfig& config,
-    const PositioningConfig& positioning, const PerceptionConfig& perception);
+    SimCore::StepTime time, const OffBallConfig& config, const PositioningConfig& positioning,
+    const PerceptionConfig& perception);
 
 // The options of a goalkeeper whose team has the ball, with region his
 // current desired region: holding it and supporting the carrier from inside
 // his own penalty area, scored as generateOffBallCandidates() scores them. He
 // neither moves into space nor runs in behind, wide or into the halfspace
-// (docs/goalkeeper.md). Deterministic.
+// (docs/goalkeeper.md#positioning-and-sweeping). Deterministic.
 [[nodiscard]] std::vector<ActionCandidate> generateKeeperSupportCandidates(
     const MatchState& state, std::size_t playerIndex, const DesiredRegion& region,
-    SimCore::SimTick now, double secondsPerTick, const OffBallConfig& config,
-    const PositioningConfig& positioning, const PerceptionConfig& perception);
+    SimCore::StepTime time, const OffBallConfig& config, const PositioningConfig& positioning,
+    const PerceptionConfig& perception);
 
 // Whether the player at this index decides again at tick now, with or
 // without the ball: he has no action yet, his team won or lost the ball

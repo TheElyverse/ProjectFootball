@@ -2,22 +2,19 @@
 
 #include <algorithm>
 #include <cmath>
-#include <limits>
 #include <numbers>
 #include <stdexcept>
 #include <string>
 
 #include "carrierScan.hpp"
+#include "configChecks.hpp"
 
 namespace ElyverseFootball::SimMatch {
 namespace {
 
+using ConfigChecks::isFiniteNonNegative;
 using SimCore::SimTick;
 using SimCore::Vec2;
-
-[[nodiscard]] bool isFiniteNonNegative(const double value) noexcept {
-  return value >= 0.0 && value <= std::numeric_limits<double>::max();
-}
 
 void validate(const PerceptionConfig& config) {
   const bool valid = config.intervalTicks >= 1 && isFiniteNonNegative(config.viewDistance) &&
@@ -28,11 +25,6 @@ void validate(const PerceptionConfig& config) {
   if (!valid) {
     throw std::invalid_argument("perception: invalid configuration");
   }
-}
-
-[[nodiscard]] double secondsBetween(const SimTick earlier, const SimTick later,
-                                    const double secondsPerTick) noexcept {
-  return static_cast<double>(later.value() - earlier.value()) * secondsPerTick;
 }
 
 // cos(angle) for an angle in [0, pi], from basic arithmetic only, so the cone
@@ -98,14 +90,14 @@ bool canSee(const PlayerMatchState& observer, const Vec2 position,
   return isVisible(observer, position, config, coneCosine(config));
 }
 
-Vec2 estimatePosition(const Observation& observation, const SimTick now,
-                      const double secondsPerTick, const PerceptionConfig& config) noexcept {
-  const double age = secondsBetween(observation.lastSeen, now, secondsPerTick);
+Vec2 estimatePosition(const Observation& observation, const SimCore::StepTime time,
+                      const PerceptionConfig& config) noexcept {
+  const double age = time.secondsSince(observation.lastSeen);
   return observation.position + (observation.velocity * std::min(age, config.extrapolationSeconds));
 }
 
-void perceive(const MatchState& state, const std::size_t observerIndex, const SimTick now,
-              const double secondsPerTick, const PerceptionConfig& config,
+void perceive(const MatchState& state, const std::size_t observerIndex,
+              const SimCore::StepTime time, const PerceptionConfig& config,
               PlayerPerception& memory) {
   // He sees along where he looks, which is not always where he faces.
   PlayerMatchState observer = state.players()[observerIndex];
@@ -119,14 +111,14 @@ void perceive(const MatchState& state, const std::size_t observerIndex, const Si
   const double minCosine = coneCosine(config);
   const auto observe = [&](const ObservedEntity entity, const Vec2 position, const Vec2 velocity) {
     if (isVisible(observer, position, config, minCosine)) {
-      observations.push_back(seen(entity, position, velocity, now));
+      observations.push_back(seen(entity, position, velocity, time.tick));
       return;
     }
     const Observation* remembered = previous.find(entity);
     if (remembered == nullptr) {
       return;
     }
-    const double age = secondsBetween(remembered->lastSeen, now, secondsPerTick);
+    const double age = time.secondsSince(remembered->lastSeen);
     if (age >= config.memorySeconds) {
       return;
     }
@@ -145,8 +137,8 @@ void perceive(const MatchState& state, const std::size_t observerIndex, const Si
 }
 
 std::vector<RememberedPlayer> rememberedPlayers(const MatchState& state,
-                                                const std::size_t observerIndex, const SimTick now,
-                                                const double secondsPerTick,
+                                                const std::size_t observerIndex,
+                                                const SimCore::StepTime time,
                                                 const PerceptionConfig& config,
                                                 const double minConfidence) {
   const TeamSide side = state.players()[observerIndex].side;
@@ -161,7 +153,7 @@ std::vector<RememberedPlayer> rememberedPlayers(const MatchState& state,
     }
     remembered.push_back({.index = *index,
                           .playerId = observation.entity.playerId(),
-                          .position = estimatePosition(observation, now, secondsPerTick, config),
+                          .position = estimatePosition(observation, time, config),
                           .velocity = observation.velocity,
                           .confidence = observation.confidence,
                           .teammate = state.players()[*index].side == side});
@@ -176,8 +168,7 @@ MatchSystem makePerceptionSystem(const PerceptionConfig& config) {
               [config](const MatchStepContext& context, const MatchState& current,
                        MatchStateWriter& next) {
                 for (std::size_t index = 0; index < current.players().size(); ++index) {
-                  perceive(current, index, context.tick(), context.secondsPerTick(), config,
-                           next.perception(index));
+                  perceive(current, index, context.time(), config, next.perception(index));
                 }
               },
           .intervalTicks = config.intervalTicks,

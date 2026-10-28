@@ -10,7 +10,8 @@ import {
 } from "./frames.js";
 import type { Viewport } from "./geometry.js";
 
-// The tactical layers the viewer can draw over a frame (docs/debug-viewer.md).
+// The tactical layers the viewer can draw over a frame
+// (docs/tooling.md#debug-viewer).
 export interface Overlays {
   readonly pitchControl: boolean;
   readonly zones: boolean;

@@ -9,12 +9,18 @@
 #include <tuple>
 #include <utility>
 
+#include "configChecks.hpp"
 #include "laneReach.hpp"
 #include "spatialQueries.hpp"
+#include "teamFrame.hpp"
 
 namespace ElyverseFootball::SimMatch {
 namespace {
 
+using ConfigChecks::isFiniteNonNegative;
+using ConfigChecks::isPositiveFinite;
+using ConfigChecks::isShare;
+using ConfigChecks::isWithin;
 using SimCore::Vec2;
 
 using LaneReach::ballSeconds;
@@ -117,42 +123,33 @@ std::string_view dominantContribution(const PassContributions& parts) noexcept {
 }
 
 void validate(const PassScoringConfig& config) {
-  const auto finiteIn = [](const double value, const double min, const double max) {
-    return value >= min && value <= max;  // false for NaN
-  };
-  constexpr double kMax = std::numeric_limits<double>::max();
-  const bool valid =
-      finiteIn(config.minConfidence, 0.0, 1.0) && finiteIn(config.minCompletion, 0.0, 1.0) &&
-      finiteIn(config.minPassDistance, 0.0, kMax) && finiteIn(config.maxPassDistance, 0.0, kMax) &&
-      config.maxPassDistance > config.minPassDistance &&
-      finiteIn(config.interceptionMarginSeconds, 0.0, kMax) &&
-      config.interceptionMarginSeconds > 0.0 && finiteIn(config.pressureRadius, 0.0, kMax) &&
-      config.pressureRadius > 0.0 && finiteIn(config.completionWeight, 0.0, kMaxScoringWeight) &&
-      finiteIn(config.progressionWeight, 0.0, kMaxScoringWeight) &&
-      finiteIn(config.pressureWeight, 0.0, kMaxScoringWeight) &&
-      finiteIn(config.riskWeight, 0.0, kMaxScoringWeight) &&
-      finiteIn(config.loftedBias, -kMaxScoringWeight, kMaxScoringWeight);
+  const bool valid = isShare(config.minConfidence) && isShare(config.minCompletion) &&
+                     isFiniteNonNegative(config.minPassDistance) &&
+                     isFiniteNonNegative(config.maxPassDistance) &&
+                     config.maxPassDistance > config.minPassDistance &&
+                     isPositiveFinite(config.interceptionMarginSeconds) &&
+                     isPositiveFinite(config.pressureRadius) &&
+                     isWithin(config.completionWeight, 0.0, kMaxScoringWeight) &&
+                     isWithin(config.progressionWeight, 0.0, kMaxScoringWeight) &&
+                     isWithin(config.pressureWeight, 0.0, kMaxScoringWeight) &&
+                     isWithin(config.riskWeight, 0.0, kMaxScoringWeight) &&
+                     isWithin(config.loftedBias, -kMaxScoringWeight, kMaxScoringWeight);
   if (!valid) {
     throw std::invalid_argument("pass scoring: invalid configuration");
   }
 }
 
-double attackingDirection(const TeamSide side) noexcept {
-  return side == TeamSide::kHome ? 1.0 : -1.0;
-}
-
 std::vector<PassCandidate> generatePassCandidates(const MatchState& state,
                                                   const std::size_t carrierIndex,
-                                                  const SimCore::SimTick now,
-                                                  const double secondsPerTick,
+                                                  const SimCore::StepTime time,
                                                   const PassCandidateRules& rules) {
   const PlayerMatchState& carrier = state.players()[carrierIndex];
   const Vec2 from = state.ball().position;
 
   // Everyone the carrier remembers well enough, at the positions he believes
-  // they have now.
+  // they have time.tick.
   const auto [teammates, opponents] = LaneReach::rememberedPlayers(
-      state, carrierIndex, now, secondsPerTick, rules.perception, rules.scoring.minConfidence);
+      state, carrierIndex, time, rules.perception, rules.scoring.minConfidence);
 
   std::vector<PassCandidate> candidates;
   candidates.reserve(teammates.size());

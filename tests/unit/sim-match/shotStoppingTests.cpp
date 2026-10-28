@@ -1,6 +1,7 @@
-// How the goalkeeper stops shots (docs/shot-stopping.md): his reaction, the
-// reach of his dive, his reading of the ball, and what becomes of a shot he
-// meets -- caught, parried back into play or behind, or out of his reach.
+// How the goalkeeper stops shots (docs/goalkeeper.md#shot-stopping): his
+// reaction, the reach of his dive, his reading of the ball, and what becomes of
+// a shot he meets -- caught, parried back into play or behind, or out of his
+// reach.
 
 #include <algorithm>
 #include <catch2/catch_test_macros.hpp>
@@ -18,6 +19,7 @@
 #include "ballPhysics.hpp"
 #include "ids.hpp"
 #include "matchEvents.hpp"
+#include "matchFixtures.hpp"
 #include "matchSimulation.hpp"
 #include "matchState.hpp"
 #include "passing.hpp"
@@ -96,6 +98,7 @@ using ElyverseFootball::SimMatch::validate;
 using ElyverseFootball::SimMatch::WoodworkConfig;
 using ElyverseFootball::SimTactics::referenceTacticSpec;
 using ElyverseFootball::SimTactics::Tactic;
+using ElyverseFootball::TestSupport::eventsOf;
 
 namespace {
 
@@ -215,12 +218,11 @@ struct Chance {
                next.setPendingAction(0, intent);
              }
            }},
-      makeShotStoppingSystem(chance.saves, BallPhysics{}),
-      makePlayerMovementSystem(chance.saves),
-      makeBallMovementSystem(BallPhysics{}, PassConfig{}, ReceptionConfig{}, restarts, exact(),
-                             WoodworkConfig{}, chance.saves)};
+      makeShotStoppingSystem({.saves = chance.saves}),
+      makePlayerMovementSystem({.saves = chance.saves}),
+      makeBallMovementSystem({.restarts = restarts, .shooting = exact(), .saves = chance.saves})};
   if (chance.restarts) {
-    systems.push_back(makeRestartSystem(restarts, BallPhysics{}));
+    systems.push_back(makeRestartSystem({.restarts = restarts}));
   }
   if (chance.keeperDown) {
     systems.insert(systems.begin(),
@@ -249,17 +251,6 @@ struct Chance {
     events.insert(events.end(), simulation.events().begin(), simulation.events().end());
   }
   return events;
-}
-
-template <typename Event>
-[[nodiscard]] std::vector<Event> eventsOf(const std::vector<MatchEvent>& events) {
-  std::vector<Event> found;
-  for (const MatchEvent& event : events) {
-    if (const auto* typed = std::get_if<Event>(&event)) {
-      found.push_back(*typed);
-    }
-  }
-  return found;
 }
 
 // The one save attempt of the one shot the events hold; it names the shot.
@@ -526,7 +517,9 @@ TEST_CASE("A diving keeper moves tick by tick and is down once the ball passed",
   for (int tick = 0; tick < 3 * kTicksPerSecond; ++tick) {
     REQUIRE(simulation.step().has_value());
     across.push_back(simulation.state().players()[7].position.y - kKeeper.y);
-    const bool down = isDiving(simulation.state(), 7, simulation.tick(), 1.0 / kTicksPerSecond);
+    const bool down =
+        isDiving(simulation.state().tactical(7),
+                 {.tick = simulation.tick(), .secondsPerTick = 1.0 / kTicksPerSecond});
     wasDown = wasDown || down;
     upAgain = upAgain || (wasDown && !down);
   }

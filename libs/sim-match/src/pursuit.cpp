@@ -9,6 +9,7 @@
 #include <tuple>
 #include <vector>
 
+#include "configChecks.hpp"
 #include "desiredRegion.hpp"
 #include "playerMovement.hpp"
 #include "shotStopping.hpp"
@@ -19,11 +20,11 @@
 namespace ElyverseFootball::SimMatch {
 namespace {
 
+using ConfigChecks::isPositiveFinite;
+
 void validate(const PursuitConfig& config) {
-  constexpr double kMax = std::numeric_limits<double>::max();
-  const bool valid = config.intervalTicks >= 1 && config.sampleSeconds > 0.0 &&
-                     config.sampleSeconds <= kMax && config.horizonSeconds > 0.0 &&
-                     config.horizonSeconds <= kMax &&
+  const bool valid = config.intervalTicks >= 1 && isPositiveFinite(config.sampleSeconds) &&
+                     isPositiveFinite(config.horizonSeconds) &&
                      config.horizonSeconds / config.sampleSeconds <= kMaxPursuitSamples;
   if (!valid) {
     throw std::invalid_argument("pursuit: invalid configuration");
@@ -121,8 +122,7 @@ void leaveToOwner(const MatchState& current,
     const bool owns = ball.owner == player.playerId;
     const bool justPassed =
         moving && ball.lastTouch && ball.lastTouch->playerId == player.playerId && !owns;
-    const bool down = isDiving(current, index, context.tick(), context.secondsPerTick()) ||
-                      isStumbling(current.tactical(index), context.tick());
+    const bool down = isOffHisFeet(current.tactical(index), context.time());
     // His hands only while he may still use them, as when he claims it.
     const auto hands = isGoalkeeper(current, index) && !hasReleasedBall(current, index)
                            ? std::optional(HandsReach{.end = ownGoalEnd(player.side),
@@ -280,9 +280,11 @@ void chaseFor(const MatchStepContext& context, const MatchState& current, MatchS
 
 }  // namespace
 
-MatchSystem makePursuitSystem(const BallPhysics& physics, const PursuitConfig& config,
-                              const ReceptionConfig& reception,
-                              const GoalkeeperConfig& goalkeeper) {
+MatchSystem makePursuitSystem(const PursuitRules& rules) {
+  const BallPhysics& physics = rules.physics;
+  const PursuitConfig& config = rules.pursuit;
+  const ReceptionConfig& reception = rules.reception;
+  const GoalkeeperConfig& goalkeeper = rules.goalkeeper;
   validate(config);
   validate(reception);
   validate(goalkeeper);
@@ -309,15 +311,6 @@ MatchSystem makePursuitSystem(const BallPhysics& physics, const PursuitConfig& c
           },
       .intervalTicks = config.intervalTicks,
       .phaseTicks = 0};
-}
-
-MatchSystem makePursuitSystem(const BallPhysics& physics, const PursuitConfig& config,
-                              const ReceptionConfig& reception) {
-  return makePursuitSystem(physics, config, reception, GoalkeeperConfig{});
-}
-
-MatchSystem makePursuitSystem(const BallPhysics& physics, const PursuitConfig& config) {
-  return makePursuitSystem(physics, config, ReceptionConfig{});
 }
 
 }  // namespace ElyverseFootball::SimMatch

@@ -9,7 +9,7 @@
 #include <stdexcept>
 
 #include "actionGeometry.hpp"
-#include "passCandidates.hpp"
+#include "configChecks.hpp"
 #include "responsibility.hpp"
 #include "tactic.hpp"
 #include "tacticalPhases.hpp"
@@ -18,6 +18,9 @@
 namespace ElyverseFootball::SimMatch {
 namespace {
 
+using ConfigChecks::isFiniteNonNegative;
+using ConfigChecks::isPositiveFinite;
+using ConfigChecks::isShare;
 using SimCore::Vec2;
 using SimTactics::Responsibility;
 
@@ -35,8 +38,7 @@ constexpr double kMinimumRun = 3.0;  // m
 
 // What an off-ball decision is scored against: the settings of the decision.
 struct OffBallRules {
-  SimCore::SimTick now;
-  double secondsPerTick = 0.0;
+  SimCore::StepTime time;
   const OffBallConfig* config = nullptr;
   const PositioningConfig* positioning = nullptr;
   const PerceptionConfig* perception = nullptr;
@@ -52,13 +54,12 @@ class Scorer {
       : state_(&state),
         playerIndex_(playerIndex),
         region_(&region),
-        now_(rules.now),
-        secondsPerTick_(rules.secondsPerTick),
+        time_(rules.time),
         config_(rules.config),
         positioning_(rules.positioning),
         perception_(rules.perception),
-        remembered_(rememberedPlayers(state, playerIndex, rules.now, rules.secondsPerTick,
-                                      *rules.perception, rules.positioning->minConfidence)),
+        remembered_(rememberedPlayers(state, playerIndex, rules.time, *rules.perception,
+                                      rules.positioning->minConfidence)),
         carrier_(state.ball().position),
         carrierId_(state.ball().owner) {
     for (const RememberedPlayer& other : remembered_) {
@@ -105,11 +106,9 @@ class Scorer {
   [[nodiscard]] ActionCandidate score(const ActionType type, const Vec2 target,
                                       const double responsibility, const double urgency,
                                       const std::optional<SimCore::PlayerId> subject) const {
-    const double penalty = ActionGeometry::regionPenalty(state(), playerIndex_, target, region(),
-                                                         {.now = now_,
-                                                          .secondsPerTick = secondsPerTick_,
-                                                          .positioning = positioning_,
-                                                          .perception = perception_});
+    const double penalty = ActionGeometry::regionPenalty(
+        state(), playerIndex_, target, region(),
+        {.time = time_, .positioning = positioning_, .perception = perception_});
     ActionScores scores{
         .responsibility = config().responsibilityWeight * responsibility,
         .region = -config().regionWeight * penalty,
@@ -216,8 +215,7 @@ class Scorer {
   const MatchState* state_;
   std::size_t playerIndex_;
   const DesiredRegion* region_;
-  SimCore::SimTick now_;
-  double secondsPerTick_;
+  SimCore::StepTime time_;
   const OffBallConfig* config_;
   const PositioningConfig* positioning_;
   const PerceptionConfig* perception_;
@@ -229,18 +227,16 @@ class Scorer {
 }  // namespace
 
 void validate(const OffBallConfig& config) {
-  constexpr double kMax = std::numeric_limits<double>::max();
-  const auto positive = [](const double value) { return value > 0.0 && value <= kMax; };
-  const auto weight = [](const double value) { return value >= 0.0 && value <= kMax; };
-  const bool valid = positive(config.nearBallRadius) && config.nearIntervalTicks >= 1 &&
-                     config.farIntervalTicks >= 1 && positive(config.supportDistance) &&
-                     positive(config.spaceSearchRadius) && positive(config.runDepth) &&
-                     positive(config.laneRadius) && positive(config.pressedRadius) &&
-                     positive(config.effortScale) && config.holdResponsibility >= 0.0 &&
-                     config.holdResponsibility <= 1.0 && positive(config.temperature) &&
-                     weight(config.responsibilityWeight) && weight(config.regionWeight) &&
-                     weight(config.spaceWeight) && weight(config.laneWeight) &&
-                     weight(config.urgencyWeight) && weight(config.effortWeight);
+  const bool valid =
+      isPositiveFinite(config.nearBallRadius) && config.nearIntervalTicks >= 1 &&
+      config.farIntervalTicks >= 1 && isPositiveFinite(config.supportDistance) &&
+      isPositiveFinite(config.spaceSearchRadius) && isPositiveFinite(config.runDepth) &&
+      isPositiveFinite(config.laneRadius) && isPositiveFinite(config.pressedRadius) &&
+      isPositiveFinite(config.effortScale) && isShare(config.holdResponsibility) &&
+      isPositiveFinite(config.temperature) && isFiniteNonNegative(config.responsibilityWeight) &&
+      isFiniteNonNegative(config.regionWeight) && isFiniteNonNegative(config.spaceWeight) &&
+      isFiniteNonNegative(config.laneWeight) && isFiniteNonNegative(config.urgencyWeight) &&
+      isFiniteNonNegative(config.effortWeight);
   if (!valid) {
     throw std::invalid_argument("off-ball decisions: invalid configuration");
   }
@@ -260,14 +256,11 @@ double laneOpenness(const Vec2 from, const Vec2 until,
 
 std::vector<ActionCandidate> generateOffBallCandidates(
     const MatchState& state, const std::size_t playerIndex, const DesiredRegion& region,
-    const SimCore::SimTick now, const double secondsPerTick, const OffBallConfig& config,
-    const PositioningConfig& positioning, const PerceptionConfig& perception) {
-  const Scorer scorer(state, playerIndex, region,
-                      {.now = now,
-                       .secondsPerTick = secondsPerTick,
-                       .config = &config,
-                       .positioning = &positioning,
-                       .perception = &perception});
+    const SimCore::StepTime time, const OffBallConfig& config, const PositioningConfig& positioning,
+    const PerceptionConfig& perception) {
+  const Scorer scorer(
+      state, playerIndex, region,
+      {.time = time, .config = &config, .positioning = &positioning, .perception = &perception});
 
   const PlayerMatchState& player = state.players()[playerIndex];
   const Pitch& pitch = state.pitch();
@@ -306,14 +299,11 @@ std::vector<ActionCandidate> generateOffBallCandidates(
 
 std::vector<ActionCandidate> generateKeeperSupportCandidates(
     const MatchState& state, const std::size_t playerIndex, const DesiredRegion& region,
-    const SimCore::SimTick now, const double secondsPerTick, const OffBallConfig& config,
-    const PositioningConfig& positioning, const PerceptionConfig& perception) {
-  const Scorer scorer(state, playerIndex, region,
-                      {.now = now,
-                       .secondsPerTick = secondsPerTick,
-                       .config = &config,
-                       .positioning = &positioning,
-                       .perception = &perception});
+    const SimCore::StepTime time, const OffBallConfig& config, const PositioningConfig& positioning,
+    const PerceptionConfig& perception) {
+  const Scorer scorer(
+      state, playerIndex, region,
+      {.time = time, .config = &config, .positioning = &positioning, .perception = &perception});
   const PitchRect area = state.pitch().penaltyArea(ownGoalEnd(state.players()[playerIndex].side));
   return {scorer.score(ActionType::kHoldPosition, region.center, config.holdResponsibility, 0.0,
                        std::nullopt),

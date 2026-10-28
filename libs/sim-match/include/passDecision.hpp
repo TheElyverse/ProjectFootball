@@ -14,7 +14,7 @@
 
 namespace ElyverseFootball::SimMatch {
 
-// How players on the ball decide; see docs/pass-decisions.md. Part of
+// How players on the ball decide; see docs/on-ball.md#pass-decisions. Part of
 // MatchConfig and therefore of every replay.
 struct DecisionConfig {
   // 6 ticks at 30 Hz: a player on the ball decides five times a second.
@@ -26,10 +26,10 @@ struct DecisionConfig {
   double temperature = 0.15;
   PassScoringConfig scoring;
   ShotScoringConfig shooting;
-  // How the goalkeeper distributes the ball (docs/goalkeeper-distribution.md).
+  // How the goalkeeper distributes the ball (docs/goalkeeper.md#distribution).
   DistributionConfig distribution;
   // A carrier without a valid option looks around for one this long, then
-  // plays the best pass he rejected (docs/pass-decisions.md).
+  // plays the best pass he rejected (docs/on-ball.md#pass-decisions).
   double stuckSeconds = 3.0;
   // Without any pass to play, he kicks the ball long this far inside a
   // touchline, and no closer than clearGoalLineMargin to the opponent's
@@ -37,7 +37,7 @@ struct DecisionConfig {
   double clearTouchlineMargin = 5.0;  // m
   double clearGoalLineMargin = 10.0;  // m
   // How he weighs holding, turning, carrying and dribbling
-  // (docs/ball-carrying.md).
+  // (docs/on-ball.md#ball-carrying).
   CarryScoringConfig carrying;
 
   friend bool operator==(const DecisionConfig&, const DecisionConfig&) = default;
@@ -76,18 +76,18 @@ struct OnBallChoice {
                                                        double temperature,
                                                        SimCore::RandomNumberGenerator& random);
 
-// Scoring adjusted to how much risk a carrier's tactic accepts, passingRisk
-// in [0, 1] (docs/pass-decisions.md): progression counts (0.5 + risk) times
-// as much, interception risk (1.5 - risk) times, and the completion a pass
-// needs to be offered (1.3 - 0.6 risk) times, at most 1. At 0.5 -- the
+// Scoring adjusted to how much risk a carrier's tactic accepts, passingRisk in
+// [0, 1] (docs/on-ball.md#pass-decisions): progression counts (0.5 + risk)
+// times as much, interception risk (1.5 - risk) times, and the completion a
+// pass needs to be offered (1.3 - 0.6 risk) times, at most 1. At 0.5 -- the
 // reference tactic's -- nothing changes.
 [[nodiscard]] PassScoringConfig scoringForRisk(const PassScoringConfig& scoring,
                                                double passingRisk) noexcept;
 
-// Shot scoring adjusted to the same passingRisk (docs/shot-decisions.md): a
-// goal counts (0.5 + risk) times as much, losing the ball (1.5 - risk) times,
-// and the goal chance a shot needs to be offered (1.3 - 0.6 risk) times, at
-// most 1. At 0.5 nothing changes.
+// Shot scoring adjusted to the same passingRisk
+// (docs/on-ball.md#shot-decisions): a goal counts (0.5 + risk) times as much,
+// losing the ball (1.5 - risk) times, and the goal chance a shot needs to be
+// offered (1.3 - 0.6 risk) times, at most 1. At 0.5 nothing changes.
 [[nodiscard]] ShotScoringConfig shotScoringForRisk(const ShotScoringConfig& scoring,
                                                    double passingRisk) noexcept;
 
@@ -96,9 +96,9 @@ inline constexpr std::string_view kPassDecisionSystemName = "pass decision";
 // Every tick, while the ball rolls ahead of its owner after a touch, he runs
 // after it, to where findInterception() (pursuit.hpp) says he meets it at his
 // running speed with it, and looks about for his next decision
-// (docs/ball-carrying.md): at his run's focus until the touch's seconds have
-// passed, then at the first of his lookTargets() (carrierScan.hpp), and back
-// at the ball once he is lookBackSeconds from meeting it.
+// (docs/on-ball.md#ball-carrying): at his run's focus until the touch's seconds
+// have passed, then at the first of his lookTargets() (carrierScan.hpp), and
+// back at the ball once he is lookBackSeconds from meeting it.
 //
 // With the ball at his feet or in his hands, every config.intervalTicks
 // ticks -- and in the tick after he got his touched ball back -- the player
@@ -118,7 +118,7 @@ inline constexpr std::string_view kPassDecisionSystemName = "pass decision";
 //      (carryScoringForPhase()), if it has one. A goalkeeper adds his long
 //      balls (generateLongBallCandidates()), biased by his tactic's
 //      directness (directnessBias()), and from his hands throws no farther
-//      than the distribution's throwRange (docs/goalkeeper-distribution.md).
+//      than the distribution's throwRange (docs/goalkeeper.md#distribution).
 //   4. He picks one of the valid passes, the best valid shot and the valid
 //      carries with chooseByUtility(), drawing from the kAi random stream,
 //      and writes it as his pending action -- the ball system plays it in

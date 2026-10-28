@@ -1,5 +1,5 @@
-// What becomes of a shot in the ball system (docs/shooting.md): a goal, the
-// woodwork, a block, a deflection, a save or a miss, each with its events.
+// What becomes of a shot in the ball system (docs/on-ball.md#shooting): a goal,
+// the woodwork, a block, a deflection, a save or a miss, each with its events.
 
 #include <algorithm>
 #include <catch2/catch_test_macros.hpp>
@@ -15,6 +15,7 @@
 #include "goalFrame.hpp"
 #include "ids.hpp"
 #include "matchEvents.hpp"
+#include "matchFixtures.hpp"
 #include "matchSimulation.hpp"
 #include "matchState.hpp"
 #include "passing.hpp"
@@ -56,7 +57,6 @@ using ElyverseFootball::SimMatch::PassReceived;
 using ElyverseFootball::SimMatch::PassRecord;
 using ElyverseFootball::SimMatch::Pitch;
 using ElyverseFootball::SimMatch::PlayerMatchState;
-using ElyverseFootball::SimMatch::PossessionChanged;
 using ElyverseFootball::SimMatch::ReceptionConfig;
 using ElyverseFootball::SimMatch::RestartConfig;
 using ElyverseFootball::SimMatch::RestartKind;
@@ -77,6 +77,7 @@ using ElyverseFootball::SimMatch::WoodworkConfig;
 using ElyverseFootball::SimMatch::WoodworkPart;
 using ElyverseFootball::SimTactics::referenceTacticSpec;
 using ElyverseFootball::SimTactics::Tactic;
+using ElyverseFootball::TestSupport::eventsOf;
 
 namespace {
 
@@ -158,10 +159,10 @@ struct Chance {
   const RestartConfig restarts{.enabled = chance.restarts};
   std::vector<MatchSystem> systems{
       makePlayerMovementSystem(),
-      makeBallMovementSystem(BallPhysics{}, PassConfig{}, ReceptionConfig{}, restarts,
-                             chance.shooting, WoodworkConfig{}, chance.saves)};
+      makeBallMovementSystem(
+          {.restarts = restarts, .shooting = chance.shooting, .saves = chance.saves})};
   if (chance.restarts) {
-    systems.push_back(makeRestartSystem(restarts, BallPhysics{}));
+    systems.push_back(makeRestartSystem({.restarts = restarts}));
   }
   return systems;
 }
@@ -201,17 +202,6 @@ struct Chance {
     events.insert(events.end(), simulation.events().begin(), simulation.events().end());
   }
   return events;
-}
-
-template <typename Event>
-[[nodiscard]] std::vector<Event> eventsOf(const std::vector<MatchEvent>& events) {
-  std::vector<Event> found;
-  for (const MatchEvent& event : events) {
-    if (const auto* typed = std::get_if<Event>(&event)) {
-      found.push_back(*typed);
-    }
-  }
-  return found;
 }
 
 // The one outcome of the one shot the events hold.

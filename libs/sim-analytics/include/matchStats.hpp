@@ -18,7 +18,7 @@ enum class PitchThird : std::uint8_t {
 
 inline constexpr std::size_t kThirdCount = 3;
 
-// One side's numbers over a match (docs/match-analytics.md). Counts are
+// One side's numbers over a match (docs/tooling.md#match-analytics). Counts are
 // exact; rates and means are empty where their denominator is zero.
 struct TeamStats {
   // Share of the time either side had the ball that this side had it.

@@ -64,4 +64,17 @@ bool isStumbling(const PlayerTacticalState& tactical, const SimCore::SimTick now
   return tactical.stumbledUntil && now < *tactical.stumbledUntil;
 }
 
+bool isBusy(const KeeperDive& dive, const double seconds) noexcept {
+  return seconds < dive.landSeconds + dive.recoverySeconds;
+}
+
+bool isDiving(const PlayerTacticalState& tactical, const SimCore::StepTime time) noexcept {
+  const auto& dive = tactical.dive;
+  return dive && isBusy(*dive, time.secondsSince(dive->tick));
+}
+
+bool isOffHisFeet(const PlayerTacticalState& tactical, const SimCore::StepTime time) noexcept {
+  return isStumbling(tactical, time.tick) || isDiving(tactical, time);
+}
+
 }  // namespace ElyverseFootball::SimMatch

@@ -5,6 +5,7 @@
 #include "ballPhysics.hpp"
 #include "matchSimulation.hpp"
 #include "matchState.hpp"
+#include "shotStopping.hpp"
 #include "vec2.hpp"
 
 namespace ElyverseFootball::SimMatch {
@@ -17,22 +18,18 @@ struct PlayerKinematics {
   friend bool operator==(const PlayerKinematics&, const PlayerKinematics&) = default;
 };
 
-// One tick of the movement model described in docs/player-movement.md: the
-// player steers toward his target at up to maxSpeed, changes his velocity by
-// at most acceleration * secondsPerTick, and brakes in time to stop on the
+// One tick of the movement model described in docs/players.md#player-movement:
+// the player steers toward his target at up to maxSpeed, changes his velocity
+// by at most acceleration * secondsPerTick, and brakes in time to stop on the
 // target instead of running past it. Without a target he slows to a stop.
-//
-// A pure function of the player and the tick length, so other systems -- the
-// ball following its carrier, arrival-time estimates -- can predict movement
-// with exactly the same rule.
 [[nodiscard]] PlayerKinematics stepPlayerMovement(const PlayerMatchState& player,
                                                   double secondsPerTick) noexcept;
 
-// The fastest a player runs: his maxSpeed, and a share of it with the ball
-// at his feet or rolling ahead of him -- minCarrySpeedFactor at no ball
-// control, maxCarrySpeedFactor at full control, linear in between
-// (docs/ball-carrying.md). A goalkeeper holding the ball in his hands runs as
-// fast as without it.
+// The fastest a player runs: his maxSpeed, and a share of it with the ball at
+// his feet or rolling ahead of him -- minCarrySpeedFactor at no ball control,
+// maxCarrySpeedFactor at full control, linear in between
+// (docs/on-ball.md#ball-carrying). A goalkeeper holding the ball in his hands
+// runs as fast as without it.
 [[nodiscard]] double runningSpeed(const PlayerMatchState& player, const BallState& ball,
                                   const BallPhysics& physics) noexcept;
 
@@ -67,9 +64,8 @@ inline constexpr double kFacingRunSpeed = 1.0;  // m/s
                                             SimCore::Vec2 ballPosition) noexcept;
 
 // facingAfterMove() toward this ball, except that a goalkeeper who holds it
-// in his hands and no longer runs looks up the pitch, where his options are,
-// rather than at the ball in front of him: he would otherwise keep looking
-// wherever he took it, at his own goal after a ball rolled back to him.
+// in his hands and no longer runs looks up the pitch
+// (docs/goalkeeper.md#the-ball-in-his-hands).
 [[nodiscard]] SimCore::Vec2 facingAfterMove(const PlayerMatchState& player,
                                             const PlayerKinematics& moved,
                                             const BallState& ball) noexcept;
@@ -78,17 +74,20 @@ inline constexpr std::string_view kPlayerMovementSystemName = "player movement";
 
 struct ShotStoppingConfig;
 
-// Moves every player one tick with stepPlayerMovement() at his
-// runningSpeed(), as asMoving() has him, and turns him with facingAfterMove()
-// toward the ball as the systems before it left it -- except a goalkeeper
-// busy with a dive, whom it puts where his dive takes him, under his hands
-// (bodyAt(), docs/shot-stopping.md), whatever his target, without turning
-// him. Writes player positions, velocities and facings, every tick. Throws
-// std::invalid_argument for an invalid configuration; the overloads without
-// one use the default.
-[[nodiscard]] MatchSystem makePlayerMovementSystem(const ShotStoppingConfig& saves,
-                                                   const BallPhysics& physics);
-[[nodiscard]] MatchSystem makePlayerMovementSystem(const ShotStoppingConfig& saves);
-[[nodiscard]] MatchSystem makePlayerMovementSystem();
+// What the movement system is configured with: the default configuration
+// for whatever a caller leaves out.
+struct PlayerMovementRules {
+  ShotStoppingConfig saves{};
+  BallPhysics physics{};
+};
+
+// Moves every player one tick with stepPlayerMovement() at his runningSpeed(),
+// as asMoving() has him, and turns him with facingAfterMove() toward the ball
+// as the systems before it left it -- except a goalkeeper busy with a dive,
+// whom it puts where his dive takes him, under his hands (bodyAt(),
+// docs/goalkeeper.md#shot-stopping), whatever his target, without turning him.
+// Writes player positions, velocities and facings, every tick. Throws
+// std::invalid_argument for an invalid configuration.
+[[nodiscard]] MatchSystem makePlayerMovementSystem(const PlayerMovementRules& rules = {});
 
 }  // namespace ElyverseFootball::SimMatch

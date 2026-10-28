@@ -54,7 +54,8 @@ inline constexpr double kSandboxWidthMeters = 40.0;
 //
 // The Laws fix every one of these and give a range only for the pitch itself,
 // so the two dimensions are the only thing to configure; a pitch of another
-// size scales the standard markings below (docs/match-geometry.md).
+// size scales the standard markings below
+// (docs/match-engine.md#match-geometry).
 struct PitchMarkings {
   // Between the posts, and from the ground to the underside of the crossbar.
   double goalWidthMeters = 0.0;

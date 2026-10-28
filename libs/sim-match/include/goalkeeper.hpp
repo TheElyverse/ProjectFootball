@@ -3,6 +3,7 @@
 #include <cstddef>
 #include <optional>
 
+#include "matchEvents.hpp"
 #include "matchState.hpp"
 #include "random.hpp"
 #include "tacticalPhase.hpp"
@@ -11,8 +12,9 @@
 
 namespace ElyverseFootball::SimMatch {
 
-// How the goalkeeper keeps his goal; see docs/goalkeeper.md. Part of
-// MatchConfig and therefore of every replay.
+// How the goalkeeper keeps his goal; see
+// docs/goalkeeper.md#positioning-and-sweeping. Part of MatchConfig and
+// therefore of every replay.
 struct GoalkeeperConfig {
   // Against a shot he stands this far off his goal line.
   double lineDepth = 1.5;  // m
@@ -81,21 +83,6 @@ void validate(const GoalkeeperConfig& config);
 // is too bold. Two draws from `random`.
 [[nodiscard]] double drawMisjudgement(double anticipation, const GoalkeeperConfig& config,
                                       SimCore::RandomNumberGenerator& random) noexcept;
-
-// What the keeper makes of a ball he could come for.
-struct SweepCall {
-  // The seconds he and the first attacker need to reach it; no attacker if
-  // none of them can.
-  double keeperSeconds = 0.0;
-  std::optional<double> attackerSeconds;
-  double misjudgement = 0.0;
-  // The head start he wants, already lowered by the hysteresis if he is
-  // coming.
-  double threshold = 0.0;
-  bool coming = false;
-
-  friend bool operator==(const SweepCall&, const SweepCall&) = default;
-};
 
 // Decides whether the keeper comes: he does if the attacker's seconds minus
 // his own, plus his misjudgement, reach the threshold for his sweeping dial,

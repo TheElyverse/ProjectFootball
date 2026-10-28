@@ -8,10 +8,12 @@
 #include <utility>
 #include <vector>
 
+#include "matchFixtures.hpp"
 #include "matchSimulation.hpp"
 #include "matchState.hpp"
 #include "passCandidates.hpp"
 #include "perception.hpp"
+#include "teamFrame.hpp"
 #include "vec2.hpp"
 
 using Catch::Matchers::WithinAbs;
@@ -33,22 +35,11 @@ using ElyverseFootball::SimMatch::passRejectionName;
 using ElyverseFootball::SimMatch::Pitch;
 using ElyverseFootball::SimMatch::PlayerMatchState;
 using ElyverseFootball::SimMatch::TeamSide;
+using ElyverseFootball::TestSupport::playerAt;
 
 namespace {
 
 constexpr double kSecondsPerTick = 1.0 / 30.0;
-
-[[nodiscard]] PlayerMatchState playerAt(const std::uint32_t playerId, const TeamSide side,
-                                        const Vec2 position,
-                                        const Vec2 facing = {.x = 1.0, .y = 0.0}) {
-  return {.playerId = PlayerId(playerId),
-          .side = side,
-          .position = position,
-          .velocity = {},
-          .attributes = {},
-          .target = std::nullopt,
-          .facing = facing};
-}
 
 // Three a side. Home 1 has the ball at (20, 20) and looks toward the away
 // goal; home 2 and 3 stand 15 m ahead, one on each side.
@@ -99,7 +90,7 @@ constexpr double kSecondsPerTick = 1.0 / 30.0;
 [[nodiscard]] std::vector<PassCandidate> candidatesOf(const MatchState& state,
                                                       const PassCandidateRules& rules = {},
                                                       const SimTick now = SimTick(1)) {
-  return generatePassCandidates(state, 0, now, kSecondsPerTick, rules);
+  return generatePassCandidates(state, 0, {.tick = now, .secondsPerTick = kSecondsPerTick}, rules);
 }
 
 [[nodiscard]] PassCandidate candidateFor(const std::vector<PassCandidate>& candidates,

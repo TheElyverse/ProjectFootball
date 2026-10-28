@@ -2,20 +2,18 @@
 
 #include <algorithm>
 #include <cmath>
-#include <limits>
 #include <stdexcept>
 #include <string>
 #include <utility>
 
+#include "configChecks.hpp"
 #include "matchState.hpp"
 #include "stableMath.hpp"
 
 namespace ElyverseFootball::SimMatch {
 namespace {
 
-[[nodiscard]] bool isPositiveFinite(const double value) noexcept {
-  return value > 0.0 && value <= std::numeric_limits<double>::max();
-}
+using ConfigChecks::isPositiveFinite;
 
 // A cell index along one axis, from a coordinate in cells, clamped to
 // [0, last].

@@ -60,6 +60,7 @@ add_executable(sim-match-tests
 target_link_libraries(sim-match-tests PRIVATE
         ElyverseFootball::sim-match
         Catch2::Catch2WithMain
+        pf_test_support
         pf_compiler_warnings
 )
 catch_discover_tests(sim-match-tests)

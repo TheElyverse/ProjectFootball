@@ -1,7 +1,7 @@
-// The goalkeeper scenarios (docs/goalkeeper.md): away's keeper, player 8,
-// moves along the bisector of his goal's angle as the ball crosses in front
-// of it, comes for a through ball he reaches first, and leaves one home's
-// striker reaches first.
+// The goalkeeper scenarios (docs/goalkeeper.md#positioning-and-sweeping):
+// away's keeper, player 8, moves along the bisector of his goal's angle as the
+// ball crosses in front of it, comes for a through ball he reaches first, and
+// leaves one home's striker reaches first.
 
 #include <algorithm>
 #include <catch2/catch_test_macros.hpp>

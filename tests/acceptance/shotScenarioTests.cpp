@@ -1,8 +1,8 @@
-// The shot scenarios (docs/shot-decisions.md): player 1's first decision on
-// the ball, over many seeds, shoots at a clear chance, passes from a hopeless
-// angle, and mostly passes past a defender in the way. A shot blocked as it is
-// struck is a loose ball, not an intercepted pass, and a clear chance is
-// mostly scored (docs/shooting.md).
+// The shot scenarios (docs/on-ball.md#shot-decisions): player 1's first
+// decision on the ball, over many seeds, shoots at a clear chance, passes from
+// a hopeless angle, and mostly passes past a defender in the way. A shot
+// blocked as it is struck is a loose ball, not an intercepted pass, and a clear
+// chance is mostly scored (docs/on-ball.md#shooting).
 
 #include <algorithm>
 #include <catch2/catch_test_macros.hpp>

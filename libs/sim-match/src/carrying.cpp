@@ -9,17 +9,22 @@
 #include <tuple>
 #include <utility>
 
+#include "configChecks.hpp"
 #include "laneReach.hpp"
 #include "passCandidates.hpp"
 #include "playerMovement.hpp"
 #include "shotCandidates.hpp"
 #include "spatialQueries.hpp"
 #include "stableMath.hpp"
+#include "teamFrame.hpp"
 #include "zones.hpp"
 
 namespace ElyverseFootball::SimMatch {
 namespace {
 
+using ConfigChecks::isFiniteNonNegative;
+using ConfigChecks::isPositiveFinite;
+using ConfigChecks::isShare;
 using SimCore::stableLerp;
 using SimCore::Vec2;
 
@@ -366,14 +371,6 @@ void scoreCandidate(CarryCandidate& candidate, const MatchState& state, const Ve
   return candidate;
 }
 
-[[nodiscard]] bool isShare(const double value) noexcept {
-  return value >= 0.0 && value <= 1.0;  // false for NaN
-}
-
-[[nodiscard]] bool isPositiveFinite(const double value) noexcept {
-  return value > 0.0 && value <= std::numeric_limits<double>::max();
-}
-
 [[nodiscard]] bool isWeight(const double value) noexcept {
   return value >= 0.0 && value <= kMaxScoringWeight;
 }
@@ -402,30 +399,28 @@ void scoreCandidate(CarryCandidate& candidate, const MatchState& state, const Ve
 }  // namespace
 
 void validate(const CarryScoringConfig& config) {
-  constexpr double kMax = std::numeric_limits<double>::max();
   const bool valid =
       isShare(config.minConfidence) && isShare(config.minKeepChance) &&
       isShare(config.dribbleCone) && isShare(config.sameDirection) && isShare(config.touchShare) &&
       isPositiveFinite(config.horizonSeconds) && isPositiveFinite(config.minCarryDistance) &&
-      isPositiveFinite(config.gapRadius) && config.pitchMargin >= 0.0 &&
-      config.pitchMargin <= kMax && config.safetySeconds >= 0.0 && config.safetySeconds <= kMax &&
-      isPositiveFinite(config.lossMarginSeconds) && isPositiveFinite(config.touchSeconds) &&
-      config.lookBackSeconds >= 0.0 && config.lookBackSeconds <= kMax &&
+      isPositiveFinite(config.gapRadius) && isFiniteNonNegative(config.pitchMargin) &&
+      isFiniteNonNegative(config.safetySeconds) && isPositiveFinite(config.lossMarginSeconds) &&
+      isPositiveFinite(config.touchSeconds) && isFiniteNonNegative(config.lookBackSeconds) &&
       isPositiveFinite(config.minTouchDistance) &&
       config.maxTouchDistance >= config.minTouchDistance &&
       isPositiveFinite(config.maxTouchDistance) && isPositiveFinite(config.turnDistance) &&
-      isPositiveFinite(config.dribbleRadius) && config.dribbleClearance >= 0.0 &&
-      config.dribbleClearance <= kMax && isPositiveFinite(config.dribbleBeyond) &&
-      isPositiveFinite(config.maxTouchError) && isPositiveFinite(config.minTouchError) &&
-      isPositiveFinite(config.maxDribbleError) && isPositiveFinite(config.minDribbleError) &&
-      isPositiveFinite(config.slowDribbleShare) && isPositiveFinite(config.quickDribbleShare) &&
-      isPositiveFinite(config.shotDistance) && isPositiveFinite(config.fullOpening) &&
-      isPositiveFinite(config.pressureRadius) && isWeight(config.keepWeight) &&
-      isWeight(config.progressionWeight) && isWeight(config.spaceWeight) &&
-      isWeight(config.shotWeight) && isWeight(config.bypassWeight) && isWeight(config.riskWeight) &&
-      isWeight(config.holdWeight) && isWeight(config.turnCost) && config.turnSeconds >= 0.0 &&
-      config.turnSeconds <= kMax && isValid(config.buildUp) && isValid(config.progression) &&
-      isValid(config.finalThird) && isValid(config.attackingTransition);
+      isPositiveFinite(config.dribbleRadius) && isFiniteNonNegative(config.dribbleClearance) &&
+      isPositiveFinite(config.dribbleBeyond) && isPositiveFinite(config.maxTouchError) &&
+      isPositiveFinite(config.minTouchError) && isPositiveFinite(config.maxDribbleError) &&
+      isPositiveFinite(config.minDribbleError) && isPositiveFinite(config.slowDribbleShare) &&
+      isPositiveFinite(config.quickDribbleShare) && isPositiveFinite(config.shotDistance) &&
+      isPositiveFinite(config.fullOpening) && isPositiveFinite(config.pressureRadius) &&
+      isWeight(config.keepWeight) && isWeight(config.progressionWeight) &&
+      isWeight(config.spaceWeight) && isWeight(config.shotWeight) &&
+      isWeight(config.bypassWeight) && isWeight(config.riskWeight) && isWeight(config.holdWeight) &&
+      isWeight(config.turnCost) && isFiniteNonNegative(config.turnSeconds) &&
+      isValid(config.buildUp) && isValid(config.progression) && isValid(config.finalThird) &&
+      isValid(config.attackingTransition);
   if (!valid) {
     throw std::invalid_argument("carry scoring: invalid configuration");
   }
@@ -503,8 +498,7 @@ std::string_view dominantContribution(const CarryContributions& parts) noexcept 
 
 std::vector<CarryCandidate> generateCarryCandidates(const MatchState& state,
                                                     const std::size_t carrierIndex,
-                                                    const SimCore::SimTick now,
-                                                    const double secondsPerTick,
+                                                    const SimCore::StepTime time,
                                                     const CarryCandidateRules& rules) {
   if (!rules.scoring.enabled || state.ball().held) {
     return {};
@@ -512,8 +506,8 @@ std::vector<CarryCandidate> generateCarryCandidates(const MatchState& state,
   const CarryScoringConfig& scoring = rules.scoring;
   const PlayerMatchState carrier = carrierRunning(state, carrierIndex, rules.ball);
   const Vec2 from = state.ball().position;
-  const auto opponents = LaneReach::rememberedPlayers(state, carrierIndex, now, secondsPerTick,
-                                                      rules.perception, scoring.minConfidence)
+  const auto opponents = LaneReach::rememberedPlayers(state, carrierIndex, time, rules.perception,
+                                                      scoring.minConfidence)
                              .opponents;
 
   std::vector<CarryCandidate> candidates;

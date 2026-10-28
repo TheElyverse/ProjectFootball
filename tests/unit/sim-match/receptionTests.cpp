@@ -11,6 +11,7 @@
 
 #include "ballMovement.hpp"
 #include "matchCommand.hpp"
+#include "matchFixtures.hpp"
 #include "matchSetup.hpp"
 #include "matchSimulation.hpp"
 #include "matchState.hpp"
@@ -42,18 +43,17 @@ using ElyverseFootball::SimMatch::MatchState;
 using ElyverseFootball::SimMatch::MatchStateWriter;
 using ElyverseFootball::SimMatch::MatchStepContext;
 using ElyverseFootball::SimMatch::MatchSystem;
-using ElyverseFootball::SimMatch::MovePlayerCommand;
 using ElyverseFootball::SimMatch::PassCommand;
 using ElyverseFootball::SimMatch::Pitch;
 using ElyverseFootball::SimMatch::planPassSpeed;
 using ElyverseFootball::SimMatch::PlayerMatchState;
 using ElyverseFootball::SimMatch::PursuitConfig;
 using ElyverseFootball::SimMatch::ReceptionConfig;
-using ElyverseFootball::SimMatch::ScheduledCommand;
 using ElyverseFootball::SimMatch::startMatch;
 using ElyverseFootball::SimMatch::stepFreeBall;
 using ElyverseFootball::SimMatch::stepFreeBallTimed;
 using ElyverseFootball::SimMatch::TeamSide;
+using ElyverseFootball::TestSupport::playerAt;
 
 namespace {
 
@@ -67,17 +67,6 @@ constexpr double kReach = ReceptionConfig{}.controlHeight;
 [[nodiscard]] const Pitch& pitch() {
   static const Pitch kPitch(60.0, 40.0);
   return kPitch;
-}
-
-[[nodiscard]] PlayerMatchState playerAt(const std::uint32_t playerId, const TeamSide side,
-                                        const Vec2 position) {
-  return {.playerId = PlayerId(playerId),
-          .side = side,
-          .position = position,
-          .velocity = {},
-          .attributes = {},
-          .target = std::nullopt,
-          .facing = {.x = 1.0, .y = 0.0}};
 }
 
 // The step a tick makes of the ball: the same ball, moved to where it ends up,
@@ -279,9 +268,9 @@ TEST_CASE("Simultaneous claims are decided by time, distance, then id", "[recept
                                        {.x = 20.3, .y = 20.0},
                                        {.x = 55.0, .y = 5.0}},
                                       freeBall({.x = 19.0, .y = 20.0}, {.x = 20.0, .y = 0.0}));
-    const auto claim =
-        findBallClaim(state, state.ball(), movedTo(state.ball(), {.x = 23.0, .y = 20.0}),
-                      BallPhysics{}, SimTick(0), kSecondsPerTick, config);
+    const auto claim = findBallClaim(
+        state, state.ball(), movedTo(state.ball(), {.x = 23.0, .y = 20.0}), BallPhysics{},
+        {.tick = SimTick(0), .secondsPerTick = kSecondsPerTick}, config);
     REQUIRE(claimant(claim) == 3);
   }
   SECTION("at the same moment the closer player wins") {
@@ -291,9 +280,9 @@ TEST_CASE("Simultaneous claims are decided by time, distance, then id", "[recept
                                        {.x = 20.0, .y = 19.5},
                                        {.x = 55.0, .y = 5.0}},
                                       freeBall({.x = 20.0, .y = 20.0}));
-    const auto claim =
-        findBallClaim(state, state.ball(), movedTo(state.ball(), state.ball().position),
-                      BallPhysics{}, SimTick(0), kSecondsPerTick, config);
+    const auto claim = findBallClaim(
+        state, state.ball(), movedTo(state.ball(), state.ball().position), BallPhysics{},
+        {.tick = SimTick(0), .secondsPerTick = kSecondsPerTick}, config);
     REQUIRE(claimant(claim) == 3);
   }
   SECTION("at the same moment and distance the lower id wins") {
@@ -302,9 +291,9 @@ TEST_CASE("Simultaneous claims are decided by time, distance, then id", "[recept
                                        {.x = 20.0, .y = 20.5},
                                        {.x = 55.0, .y = 5.0}},
                                       freeBall({.x = 20.0, .y = 20.0}));
-    const auto claim =
-        findBallClaim(state, state.ball(), movedTo(state.ball(), state.ball().position),
-                      BallPhysics{}, SimTick(0), kSecondsPerTick, config);
+    const auto claim = findBallClaim(
+        state, state.ball(), movedTo(state.ball(), state.ball().position), BallPhysics{},
+        {.tick = SimTick(0), .secondsPerTick = kSecondsPerTick}, config);
     REQUIRE(claimant(claim) == 2);
   }
 }
@@ -323,9 +312,9 @@ TEST_CASE("A ball over a player's head is not taken at his feet", "[reception]")
                                        {.x = 50.0, .y = 35.0},
                                        {.x = 55.0, .y = 5.0}},
                                       ball);
-    return findBallClaim(state, state.ball(),
-                         movedTo(state.ball(), {.x = 20.5, .y = 20.0}, state.ball().height),
-                         BallPhysics{}, SimTick(0), kSecondsPerTick, config);
+    return findBallClaim(
+        state, state.ball(), movedTo(state.ball(), {.x = 20.5, .y = 20.0}, state.ball().height),
+        BallPhysics{}, {.tick = SimTick(0), .secondsPerTick = kSecondsPerTick}, config);
   };
 
   // Chest high, it is his; over his head it flies past him.
@@ -351,7 +340,8 @@ TEST_CASE("A ball that leaves the pitch over a head is not claimed on the line",
     const BallStep step = stepFreeBallTimed(state.ball(), BallPhysics{}, pitch(), kSecondsPerTick);
     REQUIRE(step.ball.height == 0.0);
     REQUIRE(step.seconds < kSecondsPerTick);
-    return findBallClaim(state, state.ball(), step, BallPhysics{}, SimTick(0), kSecondsPerTick,
+    return findBallClaim(state, state.ball(), step, BallPhysics{},
+                         {.tick = SimTick(0), .secondsPerTick = kSecondsPerTick},
                          ReceptionConfig{});
   };
 
@@ -386,11 +376,13 @@ TEST_CASE("The passer cannot take his own pass back at once", "[reception]") {
   const ReceptionConfig config;
 
   REQUIRE_FALSE(findBallClaim(state, state.ball(), movedTo(state.ball(), {.x = 20.7, .y = 20.0}),
-                              BallPhysics{}, SimTick(12), kSecondsPerTick, config)
+                              BallPhysics{},
+                              {.tick = SimTick(12), .secondsPerTick = kSecondsPerTick}, config)
                     .has_value());
   // 0.3 s = 9 ticks later he may.
-  REQUIRE(claimant(findBallClaim(state, state.ball(), movedTo(state.ball(), {.x = 20.7, .y = 20.0}),
-                                 BallPhysics{}, SimTick(19), kSecondsPerTick, config)) == 1);
+  REQUIRE(claimant(findBallClaim(
+              state, state.ball(), movedTo(state.ball(), {.x = 20.7, .y = 20.0}), BallPhysics{},
+              {.tick = SimTick(19), .secondsPerTick = kSecondsPerTick}, config)) == 1);
 }
 
 TEST_CASE("An interception is the earliest point reached before the ball", "[reception]") {
@@ -434,7 +426,7 @@ TEST_CASE("The ball path is predicted no further than the horizon", "[reception]
 
 TEST_CASE("Pursuit rejects a configuration it cannot run in bounded time", "[reception]") {
   const auto rejects = [](const PursuitConfig& config) {
-    REQUIRE_THROWS_AS(makePursuitSystem(BallPhysics{}, config), std::invalid_argument);
+    REQUIRE_THROWS_AS(makePursuitSystem({.pursuit = config}), std::invalid_argument);
   };
   constexpr double kNaN = std::numeric_limits<double>::quiet_NaN();
   constexpr double kInfinity = std::numeric_limits<double>::infinity();
@@ -450,8 +442,8 @@ TEST_CASE("Pursuit rejects a configuration it cannot run in bounded time", "[rec
 
   // Exactly at the limit is fine, and so are the defaults.
   REQUIRE_NOTHROW(makePursuitSystem(
-      BallPhysics{}, {.intervalTicks = 3, .sampleSeconds = 0.125, .horizonSeconds = 125.0}));
-  REQUIRE_NOTHROW(makePursuitSystem(BallPhysics{}, PursuitConfig{}));
+      {.pursuit = {.intervalTicks = 3, .sampleSeconds = 0.125, .horizonSeconds = 125.0}}));
+  REQUIRE_NOTHROW(makePursuitSystem());
 }
 
 TEST_CASE("One player per side goes after a free ball", "[reception]") {
@@ -529,7 +521,7 @@ TEST_CASE("A player who is no longer the closest stops chasing", "[reception]") 
       .intervalTicks = 1000,
       .phaseTicks = 0};
   // Pursuit first runs in the step from tick 1, after player 3 was sent.
-  MatchSystem pursuit = makePursuitSystem(BallPhysics{}, {});
+  MatchSystem pursuit = makePursuitSystem();
   pursuit.phaseTicks = 1;
   MatchSimulation simulation({.initialState = state,
                               .seed = 5,

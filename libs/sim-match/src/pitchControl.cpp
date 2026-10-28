@@ -10,16 +10,18 @@
 #include <utility>
 #include <vector>
 
+#include "configChecks.hpp"
 #include "spatialQueries.hpp"
 
 namespace ElyverseFootball::SimMatch {
 namespace {
 
+using ConfigChecks::isPositiveFinite;
+
 void validate(const PitchControlConfig& config) {
   constexpr double kMax = std::numeric_limits<double>::max();
   const bool valid = config.intervalTicks >= 1 && config.cellSize >= kMinPitchControlCellSize &&
-                     config.cellSize <= kMax && config.controlSeconds > 0.0 &&
-                     config.controlSeconds <= kMax;
+                     config.cellSize <= kMax && isPositiveFinite(config.controlSeconds);
   if (!valid) {
     throw std::invalid_argument("pitch control: invalid configuration");
   }
