@@ -14,9 +14,9 @@ be, how players move off the ball, and how the team defends and presses.
 
 ## Match phases
 
-A [tactic](tactics.md#tactic-model) gives instructions per tactical phase, so the match has to
-know which phase each team is in. The tactical phase system (`tacticalPhases.hpp`)
-decides that from possession, the ball's position and recent possession changes.
+A [tactic](tactics.md#tactic-model) gives instructions per tactical phase. The
+tactical phase system (`tacticalPhases.hpp`) decides each team's phase from
+possession, the ball's position and recent possession changes.
 
 ### Team possession
 
@@ -52,11 +52,10 @@ fraction of the pitch length. While nobody has had the ball the rules without
 the ball apply, with no transition. A scripted side, one without a tactic, has
 no phase.
 
-**Hysteresis.** A team leaves a third only once the ball is `hysteresisMeters`
-past the boundary into the neighbouring third, and switches between pressing and
-block only once the ball is that far past the pressing line. A ball rolling
-along a boundary keeps the phase it had instead of flickering between two. A
-ball that jumps two thirds at once, and the end of a transition, switch at once.
+**Hysteresis.** A team changes third, or switches between pressing and block,
+only once the ball is `hysteresisMeters` past the boundary, so a ball rolling
+along a boundary does not flicker the phase. A ball that jumps two thirds at
+once, and the end of a transition, switch at once.
 
 ### The system
 
@@ -72,9 +71,8 @@ possession and the phases, nothing else. When a side's phase changes it records
 a `PhaseChanged` [event](match-engine.md#match-events-and-decision-diagnostics) with the side, the previous phase
 (empty for the first) and the new one.
 
-`classifyPhase()` is the rule above as a pure function of a `PhaseSituation`, and
-`updatePossession()` the possession update, so both can be tested and reused
-without running a match.
+`classifyPhase()` (the rule above, from a `PhaseSituation`) and
+`updatePossession()` are pure functions, testable without a match.
 
 ### Example
 
@@ -87,11 +85,10 @@ home, with the ball deep in away's half beyond its pressing line, in `pressing`.
 
 ## Pitch control
 
-Pitch control estimates which team can control which part of the pitch, and how
-clearly: the space a team owns is where its players get to first. It builds on
-the arrival-time estimate of [spatial queries](players.md#spatial-queries)
-(`estimateArrivalSeconds()`) and lives in `sim-match` (`pitchControlGrid.hpp`,
-`pitchControl.hpp`).
+Pitch control estimates which team controls which part of the pitch, and how
+clearly: a team owns the space its players reach first. It builds on
+`estimateArrivalSeconds()` ([spatial queries](players.md#spatial-queries)) and
+lives in `sim-match` (`pitchControlGrid.hpp`, `pitchControl.hpp`).
 
 ### The grid
 
@@ -111,15 +108,14 @@ centre, from where he is and how he moves, by the
 control(side) = 1 / (1 + e^((own arrival - other arrival) / controlSeconds))
 ```
 
-Both teams arriving together share a cell at 1/2; a team `controlSeconds` (0.5 s)
-earlier holds about 0.73 of it, a team a second earlier about 0.88. The
-exponential is `stableExp()`, so control is the same on every platform, and the
-two sides' controls are the same expression with the arrival times swapped:
-mirrored positions give bit-for-bit mirrored control.
+Arriving together, both teams hold 1/2; a team `controlSeconds` (0.5 s)
+earlier holds about 0.73, a second earlier about 0.88. The exponential is
+`stableExp()`, so control is the same on every platform; both sides use the same
+expression with the arrival times swapped, so mirrored positions give
+bit-for-bit mirrored control.
 
-Pitch control is a team-level spatial service, not a player's belief: it uses the
-true positions and velocities, like the ball pursuit does. Decisions that weigh
-space use it as the team's sense of where there is room.
+Pitch control is a team-level service, not a player's belief: like ball pursuit
+it uses true positions and velocities.
 
 ### Queries
 
@@ -167,20 +163,17 @@ estimates for seven-a-side with 2 m cells. The micro-benchmark in
 | Release | 86 µs                                            |
 | Debug   | 700 µs                                           |
 
-Measured on the two-core Linux container the project's cloud sessions use, GCC
-13. At three refreshes a second that is about 0.3 ms of Release time per
-simulated second. The cost grows with the number of cells: halving the cell size
-quadruples it.
+Measured on a two-core Linux container with GCC 13. At three refreshes a
+second that is about 0.3 ms of Release time per simulated second. Halving the
+cell size quadruples the cost.
 
 ## Zones and team shape
 
-Tactics speak of wings, halfspaces, thirds, the space between the lines and
-behind them. `sim-match` provides these as **derived data** (`zones.hpp`):
-queries over the pitch and the current state. No simulation rule treats a zone
-boundary as a hard limit -- a player a centimetre across one is not in a
-different game -- so responsibilities like "provide width" or "occupy
-halfspace" can be evaluated against zones without zones steering anything by
-themselves (implementation plan section 6.4).
+Tactics speak of wings, halfspaces, thirds, the space between and behind the
+lines. `sim-match` provides these as **derived data** (`zones.hpp`): queries
+over the pitch and the current state. No rule treats a zone boundary as a hard
+limit; responsibilities like "provide width" are evaluated against zones, but
+zones steer nothing themselves (implementation plan section 6.4).
 
 ### Static zones
 
@@ -237,24 +230,23 @@ Dynamic zones follow a team's current shape:
 | `behindLine(opponent, shape)`          | from his defensive line to his goal line, full width: where runs in behind go |
 | `restDefenceZone(side, ballPosition)`  | 5 to 20 m behind the ball, toward the own goal and never past it, across the centre and both halfspaces: where a side in possession keeps players against a counterattack |
 
-The rest-defence distances are `kRestDefenceNear` and `kRestDefenceFar`; the lane
-fraction is `kLaneFraction`. Like the tactic model's heights, they are sandbox
-choices and documented here rather than tuned per tactic.
+The rest-defence distances are `kRestDefenceNear` and `kRestDefenceFar`, the
+lane fraction `kLaneFraction`: sandbox choices, not tuned per tactic.
 
 ## Desired region
 
-A player of a side with a [tactic](tactics.md#tactic-model) does not run to a fixed point.
-He weighs a small landscape of positions around where his tactic wants him and
-settles on the cheapest (implementation plan section 7.2):
+A player of a side with a [tactic](tactics.md#tactic-model) does not run to a
+fixed point. He weighs positions around where his tactic wants him and takes the
+cheapest (implementation plan section 7.2):
 
 ```text
 PositionCost = TacticalTargetDistance + SpacingPenalty + PressureCost
              + OccupancyPenalty + TransitionRisk
 ```
 
-The result is his **desired region**, and its centre his movement target: the
-same `target` the [movement model](players.md#player-movement) has always run to. There is
-no separate movement path. `desiredRegion.hpp` holds the pieces.
+The result is his **desired region**; its centre is his movement target, the
+ordinary `target` of the [movement model](players.md#player-movement).
+`desiredRegion.hpp` holds the pieces.
 
 ### The tactical target
 
@@ -358,9 +350,9 @@ the ball in the same step keeps pursuit's target.
 
 ## Off-ball movement
 
-When a side with a [tactic](tactics.md#tactic-model) has the ball, the carrier's teammates do
-not just hold their shape: each decides what to do without the ball, with the
-same pipeline a player on the ball uses to [pass](on-ball.md#pass-decisions):
+When a side with a [tactic](tactics.md#tactic-model) has the ball, each of the
+carrier's teammates decides what to do without it, with the pipeline the player
+on the ball uses to [pass](on-ball.md#pass-decisions):
 
 ```text
 perception → candidates and utilities → softmax choice → action → movement target
@@ -527,23 +519,21 @@ reference tactic against a scripted away side:
 
 ## Pressing
 
-Pressing is built from individual defensive actions (PF-012) that players of a
-side with a [tactic](tactics.md#tactic-model) choose in their
-[defensive decisions](#defensive-shape), from the duel a presser takes the
-carrier on in, and from what pressure does to the carrier's pass.
+Pressing has three parts: the defensive actions players of a side with a
+[tactic](tactics.md#tactic-model) choose in their
+[defensive decisions](#defensive-shape) (PF-012), the duel a presser takes the
+carrier on in, and what pressure does to the carrier's pass.
 
 ### The actions
 
 Each action's geometry is a pure function of positions (`pressingActions.hpp`),
 so it can be tested on its own:
 
-- **Pressing the carrier** (`pressCarrier`). `pressTarget()` aims `pressDistance`
-  (1 m) from the carrier, on his line to the option he most likely plays -- his
-  nearest teammate the presser remembers. The presser's run closes that pass
-  while it closes the carrier down: an angle, not the shortest path, which would
-  stop on the presser's own side of the carrier and leave the lane open. Without
-  an option he aims goal-side of the carrier. Offered to a player within
-  `pressRadius` (15 m) of a carrier he remembers.
+- **Pressing the carrier** (`pressCarrier`). `pressTarget()` aims
+  `pressDistance` (1 m) from the carrier, on his line to his likeliest option —
+  the nearest teammate the presser remembers — so the run closes that pass as
+  it closes him down. Without an option he aims goal-side of the carrier.
+  Offered within `pressRadius` (15 m) of a carrier he remembers.
 - **Blocking a lane** (`blockLane`). `laneBlockTarget()` is the point of the lane
   from the carrier to the option nearest the player, at least `laneMinDistance`
   (2 m) from either end -- between them, not on top of one; the middle of a lane
@@ -558,28 +548,24 @@ Pressing and blocking weigh the `closePressingLine` responsibility; the phase's
 `pressingIntensity` and how close the player is urge them. Every candidate names
 its action, target and subject in the diagnostics.
 
-While the carrier's ball rolls ahead of him after a touch
-([ball carrying](on-ball.md#ball-carrying)), a player pressing him goes on at him,
-not at the ball, unless he gets to it before the carrier: then the ball
-pursuit system sends him after it, as after a free ball
-([reception](ball.md#going-after-the-ball)) -- a touch too heavy is
-there to be won.
+While the carrier's ball rolls ahead after a touch
+([ball carrying](on-ball.md#ball-carrying)), a presser goes on at the carrier,
+not the ball — unless he reaches it first; then pursuit sends him after it as
+after a free ball ([reception](ball.md#going-after-the-ball)).
 
 ### A carrier who stands on the ball
 
-A side that does not press -- a deep block, a phase with a low
-`pressingIntensity` -- would otherwise let a carrier stand on the ball as long
-as he likes, even with a defender a step away. So the
-[tactical movement](#desired-region) sends one player at him regardless:
-once the carrier has had the ball for more than `idleSeconds` (2 s) since his
-last touch, the nearest outfield player of the other side within
-`idlePressRadius` (3 m) of him -- the first in player order on a tie --
-decides `pressCarrier`, aimed `pressDistance` goal-side of him, whatever his
-phase's pressing. A role in a coordinated press comes first; a goalkeeper
-holding the ball in his hands is never pressed. His teammates react through
-the ordinary decisions: covering a teammate who presses, the block's shift
-toward the ball. The decision trace marks the action `idlePress`. Both
-values belong to `DefensiveConfig` ([defensive shape](#defensive-shape)).
+Without pressing — a deep block, a low `pressingIntensity` — a carrier could
+stand on the ball forever, even with a defender a step away. So the
+[tactical movement](#desired-region) sends one player at him: once the carrier
+has had the ball for more than `idleSeconds` (2 s) since his last touch, the
+nearest opponent outfield player within `idlePressRadius` (3 m) — first in
+player order on a tie — decides `pressCarrier`, aimed `pressDistance`
+goal-side of him, whatever his phase. A role in a coordinated press comes
+first; a goalkeeper with the ball in his hands is never pressed. Teammates
+react through their ordinary decisions. The decision trace marks the action
+`idlePress`. Both values are in `DefensiveConfig`
+([defensive shape](#defensive-shape)).
 
 ### Winning the ball
 
@@ -595,14 +581,14 @@ side wins the ball at the carrier's feet only by pressing him.
 A pressed carrier plays worse: [pass execution](on-ball.md#passing) grows both errors by
 `1 + pressureErrorFactor × pressure`, where pressure is 1 − distance /
 `pressureRadius` (3 m) for a lone opponent, and each further opponent within
-that radius leaves the carrier less free: pressure is one minus the product of
+that radius adds to it: pressure is one minus the product of
 min(1, distance / `pressureRadius`) over them. At full pressure the errors
-double. So a press can also win the ball through the pass it forces -- more so
-when teammates close in with the presser than when he presses alone.
+double. So a press also wins the ball through the pass it forces, more so with
+teammates closing in.
 
 ### Coordinated presses
 
-Individual actions only win the ball when teammates work together. The "team
+Individual actions win the ball only when teammates work together. The "team
 pressing" system (`teamPressing.hpp`) runs five times a second, before the
 tactical movement, for every side with a tactic (GDD section 8.7).
 
@@ -664,10 +650,10 @@ press in progress is part of the state, `MatchState::press(side)`.
 
 #### Coordination pays
 
-`tests/acceptance/p2AcceptanceTests.cpp` plays ten one-minute matches against the
-reference tactic with home pressing high on four triggers: once at intensity
-0.25, a lone presser, once at 1.0, four players. The coordinated press wins the
-ball in a clearly larger share of its presses -- the lone presser leaves the
-carrier's lanes open and is passed around more often, and the teammates close
-to the carrier spoil the passes he does play. Over forty seeds the coordinated
-press regains the ball in 0.36 of its presses, the lone presser in 0.30.
+`tests/acceptance/p2AcceptanceTests.cpp` plays ten one-minute matches against
+the reference tactic, home pressing high on four triggers: once at intensity
+0.25 (a lone presser), once at 1.0 (four players). The coordinated press wins
+the ball in a clearly larger share of its presses: the lone presser leaves lanes
+open, and close teammates spoil the passes the carrier does play. Over forty
+seeds the coordinated press regains the ball in 0.36 of its presses, the lone
+presser in 0.30.
