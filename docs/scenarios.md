@@ -330,7 +330,7 @@ All three run alike every time.
 seven-a-side kickoff fixture with a tactic on each side, lined up for a
 [kickoff](match-engine.md#the-kickoff) by home — each side in its tactic's base
 shape in its own half, the ball on the centre spot — the standard
-configuration, and `GiveBall` to home's taker, the striker (player 7) of every
+configuration, and a `GiveBallCommand` to home's taker, the striker (player 7) of every
 preset, at tick 0. `makeTacticMatch()` builds it
 for any two tactics that fit seven a side; the catalog entry uses the reference
 tactic on both sides. The CLI swaps in tactic files:

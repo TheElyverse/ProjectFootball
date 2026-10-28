@@ -923,7 +923,7 @@ and a whistle, the time a kickoff takes is theirs to decide.
 **The same kickoff starts a match.** The [tactic match](scenarios.md#the-tactic-match)
 begins in this line-up with home kicking off, whether restarts are enabled or
 not; only the restart after a goal needs them. Its opening kickoff is a
-`GiveBall` command and records no `RestartTaken`.
+`GiveBallCommand` and records no `RestartTaken`.
 
 ### What this is not
 

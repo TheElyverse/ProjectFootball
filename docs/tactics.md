@@ -331,8 +331,8 @@ their names, and a new style is a new file.
 | `pressingLine` | 0.55 | 0.85 (rarely presses) | 0.4 (presses early) |
 | Pressing triggers | poor first touch, back pass | none | all five |
 | `lineHeight` out of possession | 0.35–0.4 | 0.15 | 0.4–0.45 |
-| `pressingIntensity` | 0.4, 1.0 in defensive transition (counterpress) | 0.1–0.25 | 1.0 |
-| `passingRisk` | 0.2–0.35 | 0.6, 0.9 in attacking transition | 0.5–0.75 |
+| `pressingIntensity` | 0.4, 0.6 when pressing, 1.0 in defensive transition (counterpress) | 0.1–0.25 | 1.0 |
+| `passingRisk` | 0.2–0.35 | 0.6–0.8, 0.9 in attacking transition | 0.5–0.75 |
 | `runFrequency` | 0.2–0.35 | 0.5–0.9 | 0.3–0.7 |
 | `blockWidth` in possession | 0.9–0.95 | 0.8 | 0.85 |
 
