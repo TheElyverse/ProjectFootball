@@ -81,9 +81,17 @@ struct PassCandidateRules {
 // and lofted are set, its pass played from `from` by a player of `side`:
 // `arrives` is the chance that no remembered opponent gets to the ball first,
 // and nearestOpponent the distance of the opponent nearest the target. Sets
-// interceptionRisk, completion, progression, receiverPressure and utility.
+// interceptionRisk, judgedInterceptionRisk, completion, progression,
+// receiverPressure and utility.
 void scorePassCandidate(PassCandidate& candidate, SimCore::Vec2 from, TeamSide side, double arrives,
                         double nearestOpponent, const Pitch& pitch,
+                        const PassScoringConfig& scoring) noexcept;
+
+// Scores a scored candidate again with the interception risk as the passer
+// judges it, judgedRisk in [0, 1] (docs/on-ball.md#decision-making): sets
+// judgedInterceptionRisk, completion and utility, and -- for a candidate valid
+// or rejected only as kUnlikely -- whether it is still likely enough.
+void judgePassCandidate(PassCandidate& candidate, double judgedRisk,
                         const PassScoringConfig& scoring) noexcept;
 
 // Puts valid candidates first by descending utility, then the rest; ties by

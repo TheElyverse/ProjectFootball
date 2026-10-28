@@ -71,7 +71,8 @@ using SimMatch::TeamSide;
                         {"heading", player.attributes.heading},
                         {"strength", player.attributes.strength},
                         {"ballControl", player.attributes.ballControl},
-                        {"dribbling", player.attributes.dribbling}};
+                        {"dribbling", player.attributes.dribbling},
+                        {"decisionMaking", player.attributes.decisionMaking}};
   json["target"] = player.target ? vec2Json(*player.target) : Json(nullptr);
   json["facing"] = vec2Json(player.facing);
   return json;
@@ -362,7 +363,8 @@ constexpr std::int64_t kMaxGoals = 1'000'000;
                          .heading = attributes.member("heading").number(),
                          .strength = attributes.member("strength").number(),
                          .ballControl = attributes.member("ballControl").number(),
-                         .dribbling = attributes.member("dribbling").number()},
+                         .dribbling = attributes.member("dribbling").number(),
+                         .decisionMaking = attributes.member("decisionMaking").number()},
           .target = target.isNull() ? std::nullopt : std::optional(readVec2(target)),
           .facing = readVec2(field.member("facing"))};
 }
@@ -633,6 +635,8 @@ void fieldsOf(Visitor& visit, SimMatch::DecisionConfig& decisions) {
   visit.integer("intervalTicks", decisions.intervalTicks, 1, kMaxIntervalTicks);
   visit.number("minHoldSeconds", decisions.minHoldSeconds);
   visit.number("temperature", decisions.temperature);
+  visit.number("skillTemperatureSpread", decisions.skillTemperatureSpread);
+  visit.number("maxMisjudgement", decisions.maxMisjudgement);
   visit.object("scoring", decisions.scoring);
   visit.object("shooting", decisions.shooting);
   visit.object("distribution", decisions.distribution);

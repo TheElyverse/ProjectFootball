@@ -78,6 +78,8 @@ inline constexpr double kDefaultStrength = 0.5;
 // ballControl and dribbling.
 inline constexpr double kDefaultBallControl = 0.5;
 inline constexpr double kDefaultDribbling = 0.5;
+// An average decider, on the scale of decisionMaking.
+inline constexpr double kDefaultDecisionMaking = 0.5;
 
 // The foot a player strikes the ball with.
 enum class Foot : std::uint8_t {
@@ -107,7 +109,9 @@ enum class Foot : std::uint8_t {
 // (docs/duels.md#aerial-duels-and-headers). ballControl, in [0, 1], is how
 // closely his touches follow his intent and how fast he can run with the ball,
 // dribbling, in [0, 1], how cleanly and quickly he takes the ball past an
-// opponent (docs/on-ball.md#ball-carrying).
+// opponent (docs/on-ball.md#ball-carrying). decisionMaking, in [0, 1], is how
+// reliably he picks his best option on the ball and, below the default, how far
+// he misjudges his options (docs/on-ball.md#decision-making).
 struct PlayerAttributes {
   double maxSpeed = kDefaultMaxSpeed;
   double acceleration = kDefaultAcceleration;
@@ -124,6 +128,7 @@ struct PlayerAttributes {
   double strength = kDefaultStrength;
   double ballControl = kDefaultBallControl;
   double dribbling = kDefaultDribbling;
+  double decisionMaking = kDefaultDecisionMaking;
 
   friend bool operator==(const PlayerAttributes&, const PlayerAttributes&) = default;
 };

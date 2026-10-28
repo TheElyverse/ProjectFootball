@@ -101,7 +101,7 @@ PassContributions passContributions(const PassCandidate& candidate,
   return {.completion = scoring.completionWeight * candidate.completion,
           .progression = scoring.progressionWeight * candidate.progression,
           .pressure = -(scoring.pressureWeight * candidate.receiverPressure),
-          .risk = -(scoring.riskWeight * candidate.interceptionRisk),
+          .risk = -(scoring.riskWeight * candidate.judgedInterceptionRisk),
           .directness = candidate.lofted ? scoring.loftedBias : 0.0};
 }
 
@@ -193,11 +193,24 @@ void scorePassCandidate(PassCandidate& candidate, const Vec2 from, const TeamSid
   // NOLINTEND(bugprone-easily-swappable-parameters)
   const Vec2 offset = candidate.target - from;
   candidate.interceptionRisk = 1.0 - arrives;
+  candidate.judgedInterceptionRisk = candidate.interceptionRisk;
   candidate.completion = arrives * candidate.receiverConfidence;
   candidate.progression =
       std::clamp(attackingDirection(side) * offset.x / pitch.lengthMeters(), -1.0, 1.0);
   candidate.receiverPressure = std::max(0.0, 1.0 - (nearestOpponent / scoring.pressureRadius));
   candidate.utility = passContributions(candidate, scoring).total();
+}
+
+void judgePassCandidate(PassCandidate& candidate, const double judgedRisk,
+                        const PassScoringConfig& scoring) noexcept {
+  candidate.judgedInterceptionRisk = judgedRisk;
+  candidate.completion = (1.0 - judgedRisk) * candidate.receiverConfidence;
+  candidate.utility = passContributions(candidate, scoring).total();
+  if (candidate.rejection == PassRejection::kValid ||
+      candidate.rejection == PassRejection::kUnlikely) {
+    candidate.rejection = candidate.completion < scoring.minCompletion ? PassRejection::kUnlikely
+                                                                       : PassRejection::kValid;
+  }
 }
 
 void orderPassCandidates(std::vector<PassCandidate>& candidates) {

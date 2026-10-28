@@ -275,6 +275,7 @@ generated ones. All skills lie in [0, 1]:
 | `keeperReflexes`, `keeperHandling` | 0.5 | [shot stopping](goalkeeper.md#shot-stopping) |
 | `jumping`, `heading`, `strength` | 0.5 | [aerial duels](duels.md#aerial-duels-and-headers); strength also [duels](duels.md#duels-on-the-ball) |
 | `ballControl`, `dribbling` | 0.5 | [ball carrying](on-ball.md#ball-carrying); ball control also [duels](duels.md#duels-on-the-ball) |
+| `decisionMaking` | 0.5 (`kDefaultDecisionMaking`) | [decision-making](on-ball.md#decision-making): how reliably he picks and how well he estimates on the ball |
 
 The ball's `owner` controls it, empty while free; `lastTouch` is the last player
 to kick or take it ([possession](ball.md#possession)). `held` means the owner

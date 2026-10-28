@@ -76,4 +76,23 @@ struct ShotCandidateRules {
                                                                 SimCore::StepTime time,
                                                                 const ShotCandidateRules& rules);
 
+// A shot's block, save and goal chances, each in [0, 1].
+struct ShotChances {
+  double block = 0.0;
+  double save = 0.0;
+  double goal = 0.0;
+
+  friend bool operator==(const ShotChances&, const ShotChances&) = default;
+};
+
+// Scores a candidate whose position allows a shot with the chances as the
+// shooter judges them (docs/on-ball.md#decision-making): sets the judged
+// chances, the second ball, utility and rejection.
+void judgeShotCandidate(ShotCandidate& candidate, const ShotChances& judged,
+                        const ShotScoringConfig& scoring) noexcept;
+
+// Puts valid candidates first by descending utility, then the rest; ties by
+// column, then row.
+void orderShotCandidates(std::vector<ShotCandidate>& candidates);
+
 }  // namespace ElyverseFootball::SimMatch

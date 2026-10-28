@@ -396,14 +396,15 @@ TEST_CASE("MatchState::create accepts a shot technique and a weak foot in [0, 1]
   }
 }
 
-TEST_CASE("MatchState::create accepts a jump, heading and strength in [0, 1] only",
-          "[matchState]") {
+TEST_CASE("MatchState::create accepts the outfield skills in [0, 1] only", "[matchState]") {
   const double value = GENERATE(0.0, 1.0, -0.01, 1.01, std::numeric_limits<double>::quiet_NaN());
-  const auto [skill, name] = GENERATE(std::pair{&PlayerAttributes::jumping, "jumping"},
-                                      std::pair{&PlayerAttributes::heading, "heading"},
-                                      std::pair{&PlayerAttributes::strength, "strength"},
-                                      std::pair{&PlayerAttributes::ballControl, "ball control"},
-                                      std::pair{&PlayerAttributes::dribbling, "dribbling"});
+  const auto [skill, name] =
+      GENERATE(std::pair{&PlayerAttributes::jumping, "jumping"},
+               std::pair{&PlayerAttributes::heading, "heading"},
+               std::pair{&PlayerAttributes::strength, "strength"},
+               std::pair{&PlayerAttributes::ballControl, "ball control"},
+               std::pair{&PlayerAttributes::dribbling, "dribbling"},
+               std::pair{&PlayerAttributes::decisionMaking, "decision making"});
   CAPTURE(value, name);
   MatchStateSpec spec = validSpec();
   spec.players.at(5).attributes.*skill = value;

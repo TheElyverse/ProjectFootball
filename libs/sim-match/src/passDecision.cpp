@@ -18,6 +18,7 @@
 #include "passCandidates.hpp"
 #include "playerMovement.hpp"
 #include "pursuit.hpp"
+#include "randomDraws.hpp"
 #include "shotCandidates.hpp"
 #include "teamFrame.hpp"
 #include "zones.hpp"
@@ -33,7 +34,9 @@ void validate(const DecisionConfig& config) {
                      isPositiveFinite(config.temperature) &&
                      isFiniteNonNegative(config.stuckSeconds) &&
                      isFiniteNonNegative(config.clearTouchlineMargin) &&
-                     isFiniteNonNegative(config.clearGoalLineMargin);
+                     isFiniteNonNegative(config.clearGoalLineMargin) &&
+                     config.skillTemperatureSpread >= 0.0 && config.skillTemperatureSpread < 1.0 &&
+                     ConfigChecks::isWithin(config.maxMisjudgement, 0.0, 1.0);
   if (!valid) {
     throw std::invalid_argument("pass decision: invalid configuration");
   }
@@ -431,10 +434,14 @@ void decideOnBall(const MatchStepContext& context, const MatchState& current,
                   const std::size_t carrier, const OnBallRules& rules, MatchStateWriter& next) {
   const BallState& ball = current.ball();
   const SimCore::PlayerId player = current.players()[carrier].playerId;
-  const OnBallOptions options = optionsOf(context, current, carrier, rules);
-  auto chosen =
-      chooseOnBall(options.passes, options.shots, options.carries, rules.config.temperature,
-                   context.random(SimCore::RandomNumberGeneratorDomain::kAi));
+  OnBallOptions options = optionsOf(context, current, carrier, rules);
+  const double decisionMaking = current.players()[carrier].attributes.decisionMaking;
+  misjudgeOptions(options.passes, options.shots, misjudgementWidth(rules.config, decisionMaking),
+                  options.rules.passes.scoring, options.rules.shots.scoring,
+                  context.random(SimCore::RandomNumberGeneratorDomain::kCognition));
+  auto chosen = chooseOnBall(options.passes, options.shots, options.carries,
+                             choiceTemperature(rules.config, decisionMaking),
+                             context.random(SimCore::RandomNumberGeneratorDomain::kAi));
   if (!chosen && ball.held &&
       heldSeconds(ball, context.time()) >= rules.config.distribution.clearSeconds) {
     chosen = clearance(options.passes);
@@ -530,6 +537,56 @@ std::optional<OnBallChoice> chooseOnBall(const std::span<const PassCandidate> pa
   }
   const std::size_t index = carryIndices[*chosen - carryStart];
   return OnBallChoice{.outcome = carryOutcome(carries[index].kind), .index = index};
+}
+
+double choiceTemperature(const DecisionConfig& config, const double decisionMaking) noexcept {
+  return config.temperature *
+         (1.0 + (config.skillTemperatureSpread * (kDefaultDecisionMaking - decisionMaking) /
+                 kDefaultDecisionMaking));
+}
+
+double misjudgementWidth(const DecisionConfig& config, const double decisionMaking) noexcept {
+  if (decisionMaking >= kDefaultDecisionMaking) {
+    return 0.0;
+  }
+  return config.maxMisjudgement * (1.0 - (decisionMaking / kDefaultDecisionMaking));
+}
+
+void misjudgeOptions(std::vector<PassCandidate>& passes, std::vector<ShotCandidate>& shots,
+                     const double width, const PassScoringConfig& passScoring,
+                     const ShotScoringConfig& shotScoring, SimCore::RandomNumberGenerator& random) {
+  if (!(width > 0.0)) {
+    return;
+  }
+  const auto misjudged = [&random, width](const double estimate) {
+    return std::clamp(estimate + (width * RandomDraws::symmetricTriangular(random)), 0.0, 1.0);
+  };
+  for (PassCandidate& pass : passes) {
+    if (pass.rejection == PassRejection::kValid || pass.rejection == PassRejection::kUnlikely) {
+      judgePassCandidate(pass, misjudged(pass.interceptionRisk), passScoring);
+    }
+  }
+  orderPassCandidates(passes);
+  if (shots.empty() || !isScored(shots.front().rejection)) {
+    return;
+  }
+  // One misjudgement of the situation for every zone: errors drawn per zone
+  // would make the best of them look better than it is.
+  const auto error = [&random, width] { return width * RandomDraws::symmetricTriangular(random); };
+  const double blockError = error();
+  const double saveError = error();
+  const double goalError = error();
+  const auto shifted = [](const double estimate, const double shift) {
+    return std::clamp(estimate + shift, 0.0, 1.0);
+  };
+  for (ShotCandidate& shot : shots) {
+    judgeShotCandidate(shot,
+                       {.block = shifted(shot.blockRisk, blockError),
+                        .save = shifted(shot.saveRisk, saveError),
+                        .goal = shifted(shot.goalChance, goalError)},
+                       shotScoring);
+  }
+  orderShotCandidates(shots);
 }
 
 PassScoringConfig scoringForRisk(const PassScoringConfig& scoring,

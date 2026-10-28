@@ -28,7 +28,7 @@ inline constexpr int kDefaultTicksPerSecond = 30;
 // One independent stream per RandomNumberGeneratorDomain, indexed by the
 // domain's value. Part of the simulation, so a copy of a simulation continues
 // with the same draws as the original.
-using MatchRandomStreams = std::array<SimCore::RandomNumberGenerator, 5>;
+using MatchRandomStreams = std::array<SimCore::RandomNumberGenerator, 6>;
 
 // Which decisions to explain when diagnostics are on: those of some players,
 // in a range of ticks. The default explains every decision. A narrow filter

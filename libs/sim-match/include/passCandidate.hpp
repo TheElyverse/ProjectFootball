@@ -64,7 +64,11 @@ struct PassCandidate {
   double receiverConfidence = 0.0;
   // Chance that some remembered opponent reaches the pass first, in [0, 1].
   double interceptionRisk = 0.0;
-  // (1 - interceptionRisk) · receiverConfidence, in [0, 1].
+  // The interception risk as he judges it, which completion and utility
+  // use: interceptionRisk itself, unless a poor decider misjudged it
+  // (docs/on-ball.md#decision-making).
+  double judgedInterceptionRisk = 0.0;
+  // (1 - judgedInterceptionRisk) · receiverConfidence, in [0, 1].
   double completion = 0.0;
   // Meters gained toward the opponent's goal line over the pitch length, in
   // [-1, 1].

@@ -131,6 +131,7 @@ TEST_CASE("toDebugFramesJson rounds to three decimals and lists decision candida
         sawCandidate = true;
         CHECK(candidate.contains("utility"));
         CHECK(candidate.contains("rejection"));
+        CHECK(candidate.at("judgedInterceptionRisk") == candidate.at("interceptionRisk"));
       }
     }
   }
