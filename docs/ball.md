@@ -11,7 +11,7 @@ owns it, and how a player gains control of a free ball.
 
 A free ball rolls on the pitch, flies through the air and bounces on the grass.
 The physics live in `sim-match` (`ballPhysics.hpp`) as pure functions; the
-system `makeBallMovementSystem(BallPhysics)` (`ballMovement.hpp`) plugs them
+system `makeBallMovementSystem(BallMovementRules)` (`ballMovement.hpp`) plugs them
 into the [match loop](match-engine.md#match-loop), runs every tick and writes the ball's
 position, velocity, height, vertical velocity and spin. A free ball knows
 nothing about players: it moves the same with or without them. A controlled

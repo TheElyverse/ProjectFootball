@@ -198,11 +198,6 @@ constexpr std::array kCarrierMoves{DuelMove::kShield, DuelMove::kTurnAway, DuelM
 constexpr auto kDecisions = SimCore::RandomNumberGeneratorDomain::kAi;
 
 // What the duel system works with.
-struct DuelRules {
-  DuelConfig config;
-  BallPhysics physics;
-};
-
 // Whether there is a ball at its owner's feet to fight for: not one rolling
 // ahead of him after a touch, nor one a goalkeeper holds in his hands.
 [[nodiscard]] bool canBeTakenOn(const BallState& ball) noexcept {
@@ -290,7 +285,7 @@ void loosenBall(const MatchStepContext& context, const MatchState& current,
 void moveOn(const MatchStepContext& context, const MatchState& current,
             const std::size_t carrierIndex, const std::size_t defenderIndex, Duel duel,
             const DuelRules& rules, MatchStateWriter& next) {
-  const DuelConfig& config = rules.config;
+  const DuelConfig& config = rules.duels;
   const DuelGeometry geometry = geometryOf(current, carrierIndex, defenderIndex);
   const Pitch& pitch = current.pitch();
   if (!next.pendingAction(carrierIndex)) {
@@ -351,7 +346,7 @@ struct Lunge {
 void stepDuel(const MatchStepContext& context, const MatchState& current,
               const std::size_t defenderIndex, const Duel& duel, const DuelRules& rules,
               MatchStateWriter& next) {
-  const DuelConfig& config = rules.config;
+  const DuelConfig& config = rules.duels;
   const BallState& ball = current.ball();
   const PlayerMatchState& defender = current.players()[defenderIndex];
   const auto carrierIndex = findPlayerIndex(current, duel.carrier);
@@ -452,7 +447,7 @@ void stepDuel(const MatchStepContext& context, const MatchState& current,
 // a presser is there to take him on.
 void startDuel(const MatchStepContext& context, const MatchState& current, const DuelRules& rules,
                MatchStateWriter& next) {
-  const DuelConfig& config = rules.config;
+  const DuelConfig& config = rules.duels;
   const BallState& ball = current.ball();
   if (!ball.owner || !canBeTakenOn(ball)) {
     return;
@@ -479,28 +474,23 @@ void startDuel(const MatchStepContext& context, const MatchState& current, const
 
 }  // namespace
 
-MatchSystem makeDuelSystem(const DuelConfig& config, const BallPhysics& physics) {
-  validate(config);
-  validate(physics);
-  return {
-      .name = std::string(kDuelSystemName),
-      .update =
-          [rules = DuelRules{.config = config, .physics = physics}](
-              const MatchStepContext& context, const MatchState& current, MatchStateWriter& next) {
-            for (std::size_t index = 0; index < current.players().size(); ++index) {
-              if (const auto& duel = current.tactical(index).duel) {
-                stepDuel(context, current, index, *duel, rules, next);
-                return;
-              }
-            }
-            startDuel(context, current, rules, next);
-          },
-      .intervalTicks = config.intervalTicks,
-      .phaseTicks = 0};
-}
-
-MatchSystem makeDuelSystem(const DuelConfig& config) {
-  return makeDuelSystem(config, BallPhysics{});
+MatchSystem makeDuelSystem(const DuelRules& rules) {
+  validate(rules.duels);
+  validate(rules.physics);
+  return {.name = std::string(kDuelSystemName),
+          .update =
+              [rules](const MatchStepContext& context, const MatchState& current,
+                      MatchStateWriter& next) {
+                for (std::size_t index = 0; index < current.players().size(); ++index) {
+                  if (const auto& duel = current.tactical(index).duel) {
+                    stepDuel(context, current, index, *duel, rules, next);
+                    return;
+                  }
+                }
+                startDuel(context, current, rules, next);
+              },
+          .intervalTicks = rules.duels.intervalTicks,
+          .phaseTicks = 0};
 }
 
 }  // namespace ElyverseFootball::SimMatch

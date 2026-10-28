@@ -281,9 +281,11 @@ void chaseFor(const MatchStepContext& context, const MatchState& current, MatchS
 
 }  // namespace
 
-MatchSystem makePursuitSystem(const BallPhysics& physics, const PursuitConfig& config,
-                              const ReceptionConfig& reception,
-                              const GoalkeeperConfig& goalkeeper) {
+MatchSystem makePursuitSystem(const PursuitRules& rules) {
+  const BallPhysics& physics = rules.physics;
+  const PursuitConfig& config = rules.pursuit;
+  const ReceptionConfig& reception = rules.reception;
+  const GoalkeeperConfig& goalkeeper = rules.goalkeeper;
   validate(config);
   validate(reception);
   validate(goalkeeper);
@@ -310,15 +312,6 @@ MatchSystem makePursuitSystem(const BallPhysics& physics, const PursuitConfig& c
           },
       .intervalTicks = config.intervalTicks,
       .phaseTicks = 0};
-}
-
-MatchSystem makePursuitSystem(const BallPhysics& physics, const PursuitConfig& config,
-                              const ReceptionConfig& reception) {
-  return makePursuitSystem(physics, config, reception, GoalkeeperConfig{});
-}
-
-MatchSystem makePursuitSystem(const BallPhysics& physics, const PursuitConfig& config) {
-  return makePursuitSystem(physics, config, ReceptionConfig{});
 }
 
 }  // namespace ElyverseFootball::SimMatch

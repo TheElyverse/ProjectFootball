@@ -159,10 +159,10 @@ struct Chance {
   const RestartConfig restarts{.enabled = chance.restarts};
   std::vector<MatchSystem> systems{
       makePlayerMovementSystem(),
-      makeBallMovementSystem(BallPhysics{}, PassConfig{}, ReceptionConfig{}, restarts,
-                             chance.shooting, WoodworkConfig{}, chance.saves)};
+      makeBallMovementSystem(
+          {.restarts = restarts, .shooting = chance.shooting, .saves = chance.saves})};
   if (chance.restarts) {
-    systems.push_back(makeRestartSystem(restarts, BallPhysics{}));
+    systems.push_back(makeRestartSystem({.restarts = restarts}));
   }
   return systems;
 }

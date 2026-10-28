@@ -232,7 +232,9 @@ SimCore::Vec2 kickoffFacing(const TeamSide side) noexcept {
   return {.x = attackingDirection(side), .y = 0.0};
 }
 
-MatchSystem makeRestartSystem(const RestartConfig& config, const BallPhysics& ball) {
+MatchSystem makeRestartSystem(const RestartRules& rules) {
+  const RestartConfig& config = rules.restarts;
+  const BallPhysics& ball = rules.physics;
   // False for NaN.
   const bool valid =
       config.maxHoldSeconds >= 0.0 && config.maxHoldSeconds <= std::numeric_limits<double>::max();

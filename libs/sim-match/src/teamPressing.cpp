@@ -372,8 +372,10 @@ struct PressStart {
 
 }  // namespace
 
-MatchSystem makePressingSystem(const PressingConfig& config, const PerceptionConfig& perception,
-                               const double coverDistance) {
+MatchSystem makePressingSystem(const PressingRules& rules) {
+  const PressingConfig& config = rules.pressing;
+  const PerceptionConfig& perception = rules.perception;
+  const double coverDistance = rules.coverDistance;
   validate(config);
   return {
       .name = std::string(kPressingSystemName),

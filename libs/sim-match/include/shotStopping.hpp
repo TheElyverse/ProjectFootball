@@ -201,6 +201,13 @@ struct SaveTouch {
                                     const ShotStoppingConfig& config,
                                     SimCore::RandomNumberGenerator& random) noexcept;
 
+// What the shot stopping system is configured with: the default
+// configuration for whatever a caller leaves out.
+struct ShotStoppingRules {
+  ShotStoppingConfig saves{};
+  BallPhysics physics{};
+};
+
 // Every tick: once the keeper facing a shot's flight (facingKeeper()) has
 // had his reaction time since the ball was struck or deflected, he decides
 // his dive against it (decideDive(), from the kAi stream) and keeps it in
@@ -209,7 +216,6 @@ struct SaveTouch {
 // him by it and the ball system executes it where the ball passes his plane.
 // Writes players' tactical states only. Throws std::invalid_argument for an
 // invalid configuration.
-[[nodiscard]] MatchSystem makeShotStoppingSystem(const ShotStoppingConfig& config,
-                                                 const BallPhysics& physics);
+[[nodiscard]] MatchSystem makeShotStoppingSystem(const ShotStoppingRules& rules = {});
 
 }  // namespace ElyverseFootball::SimMatch

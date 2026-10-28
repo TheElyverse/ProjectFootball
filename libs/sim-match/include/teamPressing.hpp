@@ -4,6 +4,7 @@
 #include <string_view>
 #include <vector>
 
+#include "defensiveActions.hpp"
 #include "matchSimulation.hpp"
 #include "matchState.hpp"
 #include "perception.hpp"
@@ -94,6 +95,15 @@ struct PressRequest {
 
 inline constexpr std::string_view kPressingSystemName = "team pressing";
 
+// What the pressing system is configured with: the default configuration for
+// whatever a caller leaves out. coverDistance is the defensive decisions' own,
+// so a cover in a press stands where one outside it would.
+struct PressingRules {
+  PressingConfig pressing{};
+  PerceptionConfig perception{};
+  double coverDistance = DefensiveConfig{}.coverDistance;
+};
+
 // Every config.intervalTicks ticks, for every side with a tactic and a phase:
 //
 //   - A press in progress ends when the side has the ball (ball regained),
@@ -108,8 +118,6 @@ inline constexpr std::string_view kPressingSystemName = "team pressing";
 // The tactical movement gives the players in a press their role's action.
 // Writes presses only. Throws std::invalid_argument for an invalid
 // configuration.
-[[nodiscard]] MatchSystem makePressingSystem(const PressingConfig& config,
-                                             const PerceptionConfig& perception,
-                                             double coverDistance);
+[[nodiscard]] MatchSystem makePressingSystem(const PressingRules& rules = {});
 
 }  // namespace ElyverseFootball::SimMatch

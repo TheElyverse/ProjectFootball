@@ -378,7 +378,9 @@ SaveTouch executeSave(const BallState& ball, const KeeperDive& dive, const doubl
   return touch;
 }
 
-MatchSystem makeShotStoppingSystem(const ShotStoppingConfig& config, const BallPhysics& physics) {
+MatchSystem makeShotStoppingSystem(const ShotStoppingRules& rules) {
+  const ShotStoppingConfig& config = rules.saves;
+  const BallPhysics& physics = rules.physics;
   validate(config);
   validate(physics);
   return {.name = std::string(kShotStoppingSystemName),

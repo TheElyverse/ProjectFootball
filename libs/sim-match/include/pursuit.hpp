@@ -62,6 +62,15 @@ struct Interception {
 
 inline constexpr std::string_view kPursuitSystemName = "ball pursuit";
 
+// What the pursuit system is configured with: the default configuration for
+// whatever a caller leaves out.
+struct PursuitRules {
+  BallPhysics physics{};
+  PursuitConfig pursuit{};
+  ReceptionConfig reception{};
+  GoalkeeperConfig goalkeeper{};
+};
+
 // While the ball is free, sends one player per side after it: the one with the
 // earliest interception, ties to the lower id. He becomes his side's chaser
 // (MatchState::chaser()) and his movement target the interception point,
@@ -98,12 +107,6 @@ inline constexpr std::string_view kPursuitSystemName = "ball pursuit";
 // interval below one tick, a sample or horizon that is not positive and
 // finite, a horizon of more than kMaxPursuitSamples samples, or an invalid
 // goalkeeper configuration.
-[[nodiscard]] MatchSystem makePursuitSystem(const BallPhysics& physics, const PursuitConfig& config,
-                                            const ReceptionConfig& reception,
-                                            const GoalkeeperConfig& goalkeeper);
-[[nodiscard]] MatchSystem makePursuitSystem(const BallPhysics& physics, const PursuitConfig& config,
-                                            const ReceptionConfig& reception);
-[[nodiscard]] MatchSystem makePursuitSystem(const BallPhysics& physics,
-                                            const PursuitConfig& config);
+[[nodiscard]] MatchSystem makePursuitSystem(const PursuitRules& rules = {});
 
 }  // namespace ElyverseFootball::SimMatch

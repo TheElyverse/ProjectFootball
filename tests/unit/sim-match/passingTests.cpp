@@ -65,7 +65,7 @@ namespace {
       {.initialState = *std::move(state),
        .seed = seed,
        .ticksPerSecond = 30,
-       .systems = {makePlayerMovementSystem(), makeBallMovementSystem(BallPhysics{}, passing)},
+       .systems = {makePlayerMovementSystem(), makeBallMovementSystem({.passing = passing})},
        .commands = std::move(commands)});
 }
 

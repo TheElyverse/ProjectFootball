@@ -423,7 +423,7 @@ TEST_CASE("The ball path is predicted no further than the horizon", "[reception]
 
 TEST_CASE("Pursuit rejects a configuration it cannot run in bounded time", "[reception]") {
   const auto rejects = [](const PursuitConfig& config) {
-    REQUIRE_THROWS_AS(makePursuitSystem(BallPhysics{}, config), std::invalid_argument);
+    REQUIRE_THROWS_AS(makePursuitSystem({.pursuit = config}), std::invalid_argument);
   };
   constexpr double kNaN = std::numeric_limits<double>::quiet_NaN();
   constexpr double kInfinity = std::numeric_limits<double>::infinity();
@@ -439,8 +439,8 @@ TEST_CASE("Pursuit rejects a configuration it cannot run in bounded time", "[rec
 
   // Exactly at the limit is fine, and so are the defaults.
   REQUIRE_NOTHROW(makePursuitSystem(
-      BallPhysics{}, {.intervalTicks = 3, .sampleSeconds = 0.125, .horizonSeconds = 125.0}));
-  REQUIRE_NOTHROW(makePursuitSystem(BallPhysics{}, PursuitConfig{}));
+      {.pursuit = {.intervalTicks = 3, .sampleSeconds = 0.125, .horizonSeconds = 125.0}}));
+  REQUIRE_NOTHROW(makePursuitSystem());
 }
 
 TEST_CASE("One player per side goes after a free ball", "[reception]") {
@@ -518,7 +518,7 @@ TEST_CASE("A player who is no longer the closest stops chasing", "[reception]") 
       .intervalTicks = 1000,
       .phaseTicks = 0};
   // Pursuit first runs in the step from tick 1, after player 3 was sent.
-  MatchSystem pursuit = makePursuitSystem(BallPhysics{}, {});
+  MatchSystem pursuit = makePursuitSystem();
   pursuit.phaseTicks = 1;
   MatchSimulation simulation({.initialState = state,
                               .seed = 5,

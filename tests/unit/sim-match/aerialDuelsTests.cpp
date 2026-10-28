@@ -197,10 +197,7 @@ struct Box {
       {.initialState = boxState(box, ball),
        .seed = seed,
        .ticksPerSecond = kTicksPerSecond,
-       .systems = {makePlayerMovementSystem(),
-                   makeBallMovementSystem(BallPhysics{}, PassConfig{}, ReceptionConfig{},
-                                          RestartConfig{}, ShotConfig{}, WoodworkConfig{},
-                                          ShotStoppingConfig{}, aerial)},
+       .systems = {makePlayerMovementSystem(), makeBallMovementSystem({.aerial = aerial})},
        .commands = {}});
 }
 

@@ -2,23 +2,35 @@
 
 #include <string_view>
 
+#include "aerialDuels.hpp"
 #include "ballPhysics.hpp"
+#include "goalFrame.hpp"
 #include "matchSimulation.hpp"
 #include "matchState.hpp"
+#include "passing.hpp"
 #include "pitch.hpp"
+#include "reception.hpp"
 #include "restartKind.hpp"
+#include "shooting.hpp"
+#include "shotStopping.hpp"
 #include "vec2.hpp"
 
 namespace ElyverseFootball::SimMatch {
 
 inline constexpr std::string_view kBallMovementSystemName = "ball movement";
 
-struct AerialConfig;
-struct PassConfig;
-struct ReceptionConfig;
-struct ShotConfig;
-struct ShotStoppingConfig;
-struct WoodworkConfig;
+// What the ball system is configured with: the default configuration for
+// whatever a caller leaves out.
+struct BallMovementRules {
+  BallPhysics physics{};
+  PassConfig passing{};
+  ReceptionConfig reception{};
+  RestartConfig restarts{};
+  ShotConfig shooting{};
+  WoodworkConfig woodwork{};
+  ShotStoppingConfig saves{};
+  AerialConfig aerial{};
+};
 
 // Moves the ball one tick, every tick:
 //
@@ -68,32 +80,12 @@ struct WoodworkConfig;
 // velocity of one who holds the ball from a dive, every player's last jump,
 // and clears the pending actions.
 // Throws std::invalid_argument for an invalid
-// configuration. The shorter overloads use the default configuration for what they omit.
+// configuration.
 //
 // Pair it with makePlayerMovementSystem(), both every tick, as
 // makeMatchSystems() does: a controlled ball follows the carrier's move as the
 // movement system makes it, and without that system the ball would end the
 // tick where the carrier would have gone.
-[[nodiscard]] MatchSystem makeBallMovementSystem(
-    const BallPhysics& physics, const PassConfig& passing, const ReceptionConfig& reception,
-    const RestartConfig& restarts, const ShotConfig& shooting, const WoodworkConfig& woodwork,
-    const ShotStoppingConfig& saves, const AerialConfig& aerial);
-[[nodiscard]] MatchSystem makeBallMovementSystem(
-    const BallPhysics& physics, const PassConfig& passing, const ReceptionConfig& reception,
-    const RestartConfig& restarts, const ShotConfig& shooting, const WoodworkConfig& woodwork,
-    const ShotStoppingConfig& saves);
-[[nodiscard]] MatchSystem makeBallMovementSystem(
-    const BallPhysics& physics, const PassConfig& passing, const ReceptionConfig& reception,
-    const RestartConfig& restarts, const ShotConfig& shooting, const WoodworkConfig& woodwork);
-[[nodiscard]] MatchSystem makeBallMovementSystem(const BallPhysics& physics,
-                                                 const PassConfig& passing,
-                                                 const ReceptionConfig& reception,
-                                                 const RestartConfig& restarts);
-[[nodiscard]] MatchSystem makeBallMovementSystem(const BallPhysics& physics,
-                                                 const PassConfig& passing,
-                                                 const ReceptionConfig& reception);
-[[nodiscard]] MatchSystem makeBallMovementSystem(const BallPhysics& physics,
-                                                 const PassConfig& passing);
-[[nodiscard]] MatchSystem makeBallMovementSystem(const BallPhysics& physics);
+[[nodiscard]] MatchSystem makeBallMovementSystem(const BallMovementRules& rules = {});
 
 }  // namespace ElyverseFootball::SimMatch

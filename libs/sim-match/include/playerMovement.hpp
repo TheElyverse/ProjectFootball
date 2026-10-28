@@ -5,6 +5,7 @@
 #include "ballPhysics.hpp"
 #include "matchSimulation.hpp"
 #include "matchState.hpp"
+#include "shotStopping.hpp"
 #include "vec2.hpp"
 
 namespace ElyverseFootball::SimMatch {
@@ -78,17 +79,20 @@ inline constexpr std::string_view kPlayerMovementSystemName = "player movement";
 
 struct ShotStoppingConfig;
 
+// What the movement system is configured with: the default configuration
+// for whatever a caller leaves out.
+struct PlayerMovementRules {
+  ShotStoppingConfig saves{};
+  BallPhysics physics{};
+};
+
 // Moves every player one tick with stepPlayerMovement() at his runningSpeed(),
 // as asMoving() has him, and turns him with facingAfterMove() toward the ball
 // as the systems before it left it -- except a goalkeeper busy with a dive,
 // whom it puts where his dive takes him, under his hands (bodyAt(),
 // docs/goalkeeper.md#shot-stopping), whatever his target, without turning him.
 // Writes player positions, velocities and facings, every tick. Throws
-// std::invalid_argument for an invalid configuration; the overloads without one
-// use the default.
-[[nodiscard]] MatchSystem makePlayerMovementSystem(const ShotStoppingConfig& saves,
-                                                   const BallPhysics& physics);
-[[nodiscard]] MatchSystem makePlayerMovementSystem(const ShotStoppingConfig& saves);
-[[nodiscard]] MatchSystem makePlayerMovementSystem();
+// std::invalid_argument for an invalid configuration.
+[[nodiscard]] MatchSystem makePlayerMovementSystem(const PlayerMovementRules& rules = {});
 
 }  // namespace ElyverseFootball::SimMatch

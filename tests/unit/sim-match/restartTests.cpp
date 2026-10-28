@@ -129,10 +129,10 @@ void requireLegalKickoff(const MatchState& state, const TeamSide kicking,
 TEST_CASE("The restart system rejects an invalid holding limit", "[restart]") {
   using ElyverseFootball::SimMatch::makeRestartSystem;
   using ElyverseFootball::SimMatch::RestartConfig;
-  REQUIRE_NOTHROW(makeRestartSystem(RestartConfig{.maxHoldSeconds = 0.0}, BallPhysics{}));
+  REQUIRE_NOTHROW(makeRestartSystem({.restarts = RestartConfig{.maxHoldSeconds = 0.0}}));
   for (const double seconds : {-1.0, std::numeric_limits<double>::infinity(), std::nan("")}) {
     CAPTURE(seconds);
-    REQUIRE_THROWS_AS(makeRestartSystem(RestartConfig{.maxHoldSeconds = seconds}, BallPhysics{}),
+    REQUIRE_THROWS_AS(makeRestartSystem({.restarts = RestartConfig{.maxHoldSeconds = seconds}}),
                       std::invalid_argument);
   }
 }
@@ -305,7 +305,7 @@ TEST_CASE("A restart gets a taker who stumbled in a duel up again", "[restart]")
                                ballAt({.x = 30.0, .y = 40.0}, 2)),
        .seed = 1,
        .ticksPerSecond = 30,
-       .systems = {down, makeRestartSystem(RestartConfig{.enabled = true}, BallPhysics{})},
+       .systems = {down, makeRestartSystem({.restarts = RestartConfig{.enabled = true}})},
        .commands = {}});
   REQUIRE(simulation.step().has_value());
   REQUIRE(simulation.state().ball().owner == PlayerId(3));

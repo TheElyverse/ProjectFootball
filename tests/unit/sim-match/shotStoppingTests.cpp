@@ -218,12 +218,11 @@ struct Chance {
                next.setPendingAction(0, intent);
              }
            }},
-      makeShotStoppingSystem(chance.saves, BallPhysics{}),
-      makePlayerMovementSystem(chance.saves),
-      makeBallMovementSystem(BallPhysics{}, PassConfig{}, ReceptionConfig{}, restarts, exact(),
-                             WoodworkConfig{}, chance.saves)};
+      makeShotStoppingSystem({.saves = chance.saves}),
+      makePlayerMovementSystem({.saves = chance.saves}),
+      makeBallMovementSystem({.restarts = restarts, .shooting = exact(), .saves = chance.saves})};
   if (chance.restarts) {
-    systems.push_back(makeRestartSystem(restarts, BallPhysics{}));
+    systems.push_back(makeRestartSystem({.restarts = restarts}));
   }
   if (chance.keeperDown) {
     systems.insert(systems.begin(),

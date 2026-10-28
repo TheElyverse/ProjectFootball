@@ -75,6 +75,13 @@ struct KickoffLineUp {
 
 inline constexpr std::string_view kRestartSystemName = "restart";
 
+// What the restart system is configured with: the default configuration for
+// whatever a caller leaves out.
+struct RestartRules {
+  RestartConfig restarts{};
+  BallPhysics physics{};
+};
+
 // Every tick while enabled: if a goalkeeper has held the ball in his hands
 // longer than maxHoldSeconds since he took it -- his last touch -- and has no
 // pending pass or shot that lets go of it in this step, the other side gets a
@@ -93,7 +100,7 @@ inline constexpr std::string_view kRestartSystemName = "restart";
 // a match: without movement targets, pending actions, memories, tactical
 // states, presses or chasers. Disabled, it does nothing. Throws
 // std::invalid_argument for a negative or non-finite maxHoldSeconds.
-// ball places the ball at the taker's feet.
-[[nodiscard]] MatchSystem makeRestartSystem(const RestartConfig& config, const BallPhysics& ball);
+// The ball physics place the ball at the taker's feet.
+[[nodiscard]] MatchSystem makeRestartSystem(const RestartRules& rules = {});
 
 }  // namespace ElyverseFootball::SimMatch

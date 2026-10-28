@@ -100,23 +100,11 @@ constexpr double kMaxTouchSpread = 0.9;
   return touch;
 }
 
-// What the ball system is configured with.
-struct BallRules {
-  BallPhysics physics;
-  PassConfig passing;
-  ReceptionConfig reception;
-  RestartConfig restarts;
-  ShotConfig shooting;
-  WoodworkConfig woodwork;
-  ShotStoppingConfig saves;
-  AerialConfig aerial;
-};
-
 // The ball as a shot leaves it: free, off the grass at the shooter's feet, on
 // the flight executeShot() strikes it on, and the shooter as its last touch.
 // Records the shot in the state and as an event.
 [[nodiscard]] BallState struck(const MatchState& state, const ShotIntent& intent,
-                               const BallRules& rules, const MatchStepContext& context,
+                               const BallMovementRules& rules, const MatchStepContext& context,
                                MatchStateWriter& next) {
   BallState ball = state.ball();
   // The shooter owns the ball, so he is in the state.
@@ -226,7 +214,7 @@ void resolveShot(const ShotRecord& shot, const ShotOutcome outcome, const MatchS
 // side got to it first.
 [[nodiscard]] ShotOutcome controlOutcome(const MatchState& state, const ShotRecord& shot,
                                          const BallState& ball, const BallClaim& claim,
-                                         const BallRules& rules) {
+                                         const BallMovementRules& rules) {
   const TeamSide shooterSide = sideOf(state, shot.shooter);
   if (shot.deflection) {
     return ShotOutcome::kBlocked;
@@ -284,7 +272,7 @@ void scoreGoal(const MatchState& state, const GoalEnd end, const BallState& ball
 // Leaves the ball with the player at this index, at his feet as he ends the
 // tick: on the ground, since that is where a player keeps a ball he has. He
 // moves as the movement system moved him, which saw the ball as `seen`.
-void carryBy(const std::size_t index, const BallState& seen, const BallRules& rules,
+void carryBy(const std::size_t index, const BallState& seen, const BallMovementRules& rules,
              const MatchStepContext& context, const MatchState& current, MatchStateWriter& next) {
   const PlayerMatchState owner =
       ownerAfterMove(asMoving(current.players()[index], next.tactical(index), context.tick()), seen,
@@ -302,7 +290,8 @@ void carryBy(const std::size_t index, const BallState& seen, const BallRules& ru
 // His run records the touch, and the first touch of a dribble records
 // DribbleAttempted.
 void touchOn(const MatchState& current, const std::size_t index, const CarryIntent& intent,
-             const BallRules& rules, const MatchStepContext& context, MatchStateWriter& next) {
+             const BallMovementRules& rules, const MatchStepContext& context,
+             MatchStateWriter& next) {
   const PlayerMatchState& carrier = current.players()[index];
   BallState ball = next.ball();
   ball.position = carriedBallPosition(carrier, rules.physics, current.pitch());
@@ -344,7 +333,8 @@ void touchOn(const MatchState& current, const std::size_t index, const CarryInte
 // ball comes from next, and next.pendingAction() is checked too, because a
 // duel earlier this same step may have already taken the ball and
 // dropped the action, and current would still show the stale pre-step values.
-[[nodiscard]] BallState playPendingAction(const BallRules& rules, const MatchStepContext& context,
+[[nodiscard]] BallState playPendingAction(const BallMovementRules& rules,
+                                          const MatchStepContext& context,
                                           const MatchState& current, MatchStateWriter& next) {
   BallState ball = next.ball();
   std::optional<PendingAction> owners;
@@ -407,7 +397,7 @@ struct FreeBall {
 };
 
 [[nodiscard]] FreeBall freeBallOf(const BallState& ball, const std::optional<ShotRecord>& lastShot,
-                                  const BallRules& rules, const Pitch& pitch,
+                                  const BallMovementRules& rules, const Pitch& pitch,
                                   const double secondsPerTick) {
   FreeBall free{
       .ball = ball,
@@ -429,7 +419,7 @@ struct FreeBall {
 // it, and returns where he touched it. A goalkeeper who takes it with his
 // hands (hasHands()) holds it, and stands where he took it.
 [[nodiscard]] Vec2 gainBall(const FreeBall& free, const BallClaim& claim,
-                            const PlayerMatchState& taker, const BallRules& rules,
+                            const PlayerMatchState& taker, const BallMovementRules& rules,
                             const MatchStepContext& context, const MatchState& current,
                             MatchStateWriter& next) {
   const BallState& ball = free.ball;
@@ -449,8 +439,8 @@ struct FreeBall {
 // records what that was: a pass received or intercepted or a loose ball
 // recovered, and the outcome of a shot.
 void takeBall(const FreeBall& free, const BallClaim& claim, const PlayerMatchState& taker,
-              const BallRules& rules, const MatchStepContext& context, const MatchState& current,
-              MatchStateWriter& next) {
+              const BallMovementRules& rules, const MatchStepContext& context,
+              const MatchState& current, MatchStateWriter& next) {
   const BallState& ball = free.ball;
   const Vec2 contactPosition = gainBall(free, claim, taker, rules, context, current, next);
   const MatchEvent event =
@@ -472,7 +462,7 @@ void takeBall(const FreeBall& free, const BallClaim& claim, const PlayerMatchSta
 // The shot as it comes off the outfield player who got in its way: he is its
 // last touch, the shot remembers him, and the ball flies on from there.
 [[nodiscard]] BallState deflectedBy(const BallClaim& contact, FreeBall& free,
-                                    const BallRules& rules, const MatchStepContext& context,
+                                    const BallMovementRules& rules, const MatchStepContext& context,
                                     MatchStateWriter& next) {
   const double moment = contact.contact.contactFraction * free.step.seconds;
   const Deflection deflection =
@@ -501,7 +491,7 @@ void takeBall(const FreeBall& free, const BallClaim& claim, const PlayerMatchSta
 // crossbar, is a goal; the line stops it flat, so the height it crossed at is
 // asked of the flight. And a shot that left the pitch or came to rest has
 // become what it will be. Returns whether the ball went in.
-bool settleFreeBall(const BallState& from, const FreeBall& free, const BallRules& rules,
+bool settleFreeBall(const BallState& from, const FreeBall& free, const BallMovementRules& rules,
                     const MatchStepContext& context, const MatchState& current,
                     MatchStateWriter& next) {
   const Pitch& pitch = current.pitch();
@@ -540,7 +530,8 @@ struct FacingKeeper {
   bool dived = false;
 };
 
-[[nodiscard]] std::optional<FacingKeeper> keeperFacing(const FreeBall& free, const BallRules& rules,
+[[nodiscard]] std::optional<FacingKeeper> keeperFacing(const FreeBall& free,
+                                                       const BallMovementRules& rules,
                                                        const MatchStepContext& context,
                                                        const MatchState& current,
                                                        MatchStateWriter& next) {
@@ -575,7 +566,7 @@ struct FacingKeeper {
 // Returns whether that was the ball's tick: held, or off him and on for the
 // rest of the tick; one that went past flies on as if he were not there.
 [[nodiscard]] bool meetKeeper(const FacingKeeper& keeper, const BallPassage& passage,
-                              const double start, FreeBall& free, const BallRules& rules,
+                              const double start, FreeBall& free, const BallMovementRules& rules,
                               const MatchStepContext& context, const MatchState& current,
                               MatchStateWriter& next) {
   const KeeperDive& dive = keeper.dive;
@@ -661,8 +652,9 @@ struct FacingKeeper {
 // The ball as it comes off the goal frame, if its flight hits it, and its
 // step on from there for the rest of the tick; the flight began `start` into
 // the tick. A shot that hits the frame records ShotHitWoodwork.
-[[nodiscard]] BallState offTheFrame(FreeBall& free, const double start, const BallRules& rules,
-                                    const MatchStepContext& context, const Pitch& pitch) {
+[[nodiscard]] BallState offTheFrame(FreeBall& free, const double start,
+                                    const BallMovementRules& rules, const MatchStepContext& context,
+                                    const Pitch& pitch) {
   if (!free.frameHit) {
     return free.ball;
   }
@@ -683,8 +675,9 @@ struct FacingKeeper {
 // The ball flying on from `from`, `start` into the tick, for the rest of it:
 // the keeper who faces it meets it where it passes him, and it comes off the
 // goal frame, but no other player gets to it before the next tick.
-void flyOn(const BallState& from, const double start, FreeBall& free, const BallRules& rules,
-           const MatchStepContext& context, const MatchState& current, MatchStateWriter& next) {
+void flyOn(const BallState& from, const double start, FreeBall& free,
+           const BallMovementRules& rules, const MatchStepContext& context,
+           const MatchState& current, MatchStateWriter& next) {
   free = freeBallOf(from, free.shot, rules, current.pitch(), context.secondsPerTick() - start);
   if (const auto keeper = keeperFacing(free, rules, context, current, next)) {
     if (const auto passage = findPlanePassage(from, keeper->dive, rules.physics, free.step.seconds);
@@ -705,8 +698,8 @@ void flyOn(const BallState& from, const double start, FreeBall& free, const Ball
 // reception of his from before no longer counts, so it earns no assist.
 void playHeader(const HeaderIntent& intent, const BallClaim& claim, const AerialChallenger& winner,
                 const AerialJump& jump, const BallState& there, const double moment, FreeBall& free,
-                const BallRules& rules, const MatchStepContext& context, const MatchState& current,
-                MatchStateWriter& next) {
+                const BallMovementRules& rules, const MatchStepContext& context,
+                const MatchState& current, MatchStateWriter& next) {
   const PlayerMatchState& player = current.players()[winner.playerIndex];
   if (free.shot) {
     resolveShot(*free.shot, controlOutcome(current, *free.shot, there, claim, rules), context,
@@ -765,9 +758,10 @@ void playHeader(const HeaderIntent& intent, const BallClaim& claim, const Aerial
 // is in the air until he lands, and joins `excluded`, which leaves out of
 // the contest who is in it. Returns whether anyone won it, which makes it
 // the ball's tick; nobody reaching it, it flies on as if they were not there.
-[[nodiscard]] bool contestInTheAir(const BallClaim& first, FreeBall& free, const BallRules& rules,
-                                   const MatchStepContext& context, const MatchState& current,
-                                   MatchStateWriter& next, std::vector<std::size_t>& excluded) {
+[[nodiscard]] bool contestInTheAir(const BallClaim& first, FreeBall& free,
+                                   const BallMovementRules& rules, const MatchStepContext& context,
+                                   const MatchState& current, MatchStateWriter& next,
+                                   std::vector<std::size_t>& excluded) {
   const double moment = first.contact.contactFraction * free.step.seconds;
   const BallState there = ballAfter(free.ball, rules.physics, moment);
   const std::vector<AerialChallenger> challengers =
@@ -844,8 +838,9 @@ void excludeStumbling(const MatchStepContext& context, const MatchState& current
 // frame; either way it flies on for the rest of the tick, and nothing else
 // gets to it before the next. A high ball nobody won flies on past everyone
 // who went up for it, to the keeper and to whoever else gets to it.
-void moveFreeBall(const BallState& ball, const BallRules& rules, const MatchStepContext& context,
-                  const MatchState& current, MatchStateWriter& next) {
+void moveFreeBall(const BallState& ball, const BallMovementRules& rules,
+                  const MatchStepContext& context, const MatchState& current,
+                  MatchStateWriter& next) {
   const Pitch& pitch = current.pitch();
   const double secondsPerTick = context.secondsPerTick();
   // The shot comes from the step's writer: one struck this step counts.
@@ -938,7 +933,7 @@ void endDribble(const MatchState& current, const std::size_t index, const Dribbl
 // A dribble is over: he beat the opponent if he is now nearer the goal he
 // attacks than him, along the attacking direction, otherwise he kept the ball
 // without getting past.
-void retake(const MatchState& current, const std::size_t index, const BallRules& rules,
+void retake(const MatchState& current, const std::size_t index, const BallMovementRules& rules,
             const MatchStepContext& context, MatchStateWriter& next) {
   const PlayerMatchState& carrier = current.players()[index];
   next.setBallTouch(std::nullopt);
@@ -962,8 +957,8 @@ void retake(const MatchState& current, const std::size_t index, const BallRules&
 // his feet or in his hands, and the owner has lost it -- BallWon, by a loose
 // touch.
 void loseTouch(const FreeBall& free, const BallClaim& claim, const std::size_t ownerIndex,
-               const BallRules& rules, const MatchStepContext& context, const MatchState& current,
-               MatchStateWriter& next) {
+               const BallMovementRules& rules, const MatchStepContext& context,
+               const MatchState& current, MatchStateWriter& next) {
   const PlayerId owner = current.players()[ownerIndex].playerId;
   const Vec2 contactPosition =
       gainBall(free, claim, current.players()[claim.playerIndex], rules, context, current, next);
@@ -988,8 +983,9 @@ void loseTouch(const FreeBall& free, const BallClaim& claim, const std::size_t o
 // his teammates leave it to him. Nobody reaching it, it rolls on, off the goal
 // frame and into the goal or out of play like any ball; one out of play is
 // nobody's.
-void moveTouchedBall(const BallState& ball, const BallRules& rules, const MatchStepContext& context,
-                     const MatchState& current, MatchStateWriter& next) {
+void moveTouchedBall(const BallState& ball, const BallMovementRules& rules,
+                     const MatchStepContext& context, const MatchState& current,
+                     MatchStateWriter& next) {
   const auto ownerIndex = findPlayerIndex(current, ball.owner.value_or(PlayerId::invalid()));
   if (!ownerIndex || !ball.touch) {
     return;
@@ -1039,8 +1035,8 @@ void moveTouchedBall(const BallState& ball, const BallRules& rules, const MatchS
 
 // The ball's tick: the pending pass or shot, then the ball with its owner or
 // on its own.
-void moveBall(const BallRules& rules, const MatchStepContext& context, const MatchState& current,
-              MatchStateWriter& next) {
+void moveBall(const BallMovementRules& rules, const MatchStepContext& context,
+              const MatchState& current, MatchStateWriter& next) {
   // 1. Play the pending pass or shot.
   const BallState ball = playPendingAction(rules, context, current, next);
 
@@ -1083,66 +1079,20 @@ void forgetReleases(const MatchState& current, MatchStateWriter& next) {
 
 }  // namespace
 
-MatchSystem makeBallMovementSystem(const BallPhysics& physics, const PassConfig& passing,
-                                   const ReceptionConfig& reception, const RestartConfig& restarts,
-                                   const ShotConfig& shooting, const WoodworkConfig& woodwork,
-                                   const ShotStoppingConfig& saves, const AerialConfig& aerial) {
-  validate(physics);
-  validate(passing);
-  validate(reception);
-  validate(shooting);
-  validate(woodwork);
-  validate(saves);
-  validate(aerial);
-  const BallRules rules{.physics = physics,
-                        .passing = passing,
-                        .reception = reception,
-                        .restarts = restarts,
-                        .shooting = shooting,
-                        .woodwork = woodwork,
-                        .saves = saves,
-                        .aerial = aerial};
+MatchSystem makeBallMovementSystem(const BallMovementRules& rules) {
+  validate(rules.physics);
+  validate(rules.passing);
+  validate(rules.reception);
+  validate(rules.shooting);
+  validate(rules.woodwork);
+  validate(rules.saves);
+  validate(rules.aerial);
   return {.name = std::string(kBallMovementSystemName),
           .update = [rules](const MatchStepContext& context, const MatchState& current,
                             MatchStateWriter& next) {
             moveBall(rules, context, current, next);
             forgetReleases(current, next);
           }};
-}
-
-MatchSystem makeBallMovementSystem(const BallPhysics& physics, const PassConfig& passing,
-                                   const ReceptionConfig& reception, const RestartConfig& restarts,
-                                   const ShotConfig& shooting, const WoodworkConfig& woodwork,
-                                   const ShotStoppingConfig& saves) {
-  return makeBallMovementSystem(physics, passing, reception, restarts, shooting, woodwork, saves,
-                                AerialConfig{});
-}
-
-MatchSystem makeBallMovementSystem(const BallPhysics& physics, const PassConfig& passing,
-                                   const ReceptionConfig& reception, const RestartConfig& restarts,
-                                   const ShotConfig& shooting, const WoodworkConfig& woodwork) {
-  return makeBallMovementSystem(physics, passing, reception, restarts, shooting, woodwork,
-                                ShotStoppingConfig{});
-}
-
-MatchSystem makeBallMovementSystem(const BallPhysics& physics, const PassConfig& passing,
-                                   const ReceptionConfig& reception,
-                                   const RestartConfig& restarts) {
-  return makeBallMovementSystem(physics, passing, reception, restarts, ShotConfig{},
-                                WoodworkConfig{});
-}
-
-MatchSystem makeBallMovementSystem(const BallPhysics& physics, const PassConfig& passing,
-                                   const ReceptionConfig& reception) {
-  return makeBallMovementSystem(physics, passing, reception, RestartConfig{});
-}
-
-MatchSystem makeBallMovementSystem(const BallPhysics& physics, const PassConfig& passing) {
-  return makeBallMovementSystem(physics, passing, ReceptionConfig{}, RestartConfig{});
-}
-
-MatchSystem makeBallMovementSystem(const BallPhysics& physics) {
-  return makeBallMovementSystem(physics, PassConfig{}, ReceptionConfig{}, RestartConfig{});
 }
 
 }  // namespace ElyverseFootball::SimMatch

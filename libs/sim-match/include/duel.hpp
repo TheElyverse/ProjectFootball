@@ -148,6 +148,13 @@ enum class LungeResult : std::uint8_t {
 
 inline constexpr std::string_view kDuelSystemName = "duel";
 
+// What the duel system is configured with: the default configuration for
+// whatever a caller leaves out.
+struct DuelRules {
+  DuelConfig duels{};
+  BallPhysics physics{};
+};
+
 // Every config.intervalTicks ticks, takes the duel on the ball a step
 // (docs/duels.md#duels-on-the-ball):
 //
@@ -182,8 +189,7 @@ inline constexpr std::string_view kDuelSystemName = "duel";
 // ball's position, owner, velocity and last touch, the carrier's pending
 // action when he loses the ball, the players' targets and their duels and
 // stumbles, nothing else. Throws std::invalid_argument for an invalid
-// configuration; the overload without ball physics uses the default.
-[[nodiscard]] MatchSystem makeDuelSystem(const DuelConfig& config, const BallPhysics& physics);
-[[nodiscard]] MatchSystem makeDuelSystem(const DuelConfig& config);
+// configuration.
+[[nodiscard]] MatchSystem makeDuelSystem(const DuelRules& rules = {});
 
 }  // namespace ElyverseFootball::SimMatch

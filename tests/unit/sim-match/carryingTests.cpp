@@ -148,7 +148,7 @@ void playTouch(MatchState state, MatchSystem touch, const int ticks,
     systems.push_back(std::move(system));
   }
   systems.push_back(makePlayerMovementSystem());
-  systems.push_back(makeBallMovementSystem(BallPhysics{}));
+  systems.push_back(makeBallMovementSystem());
   MatchSimulation simulation({.initialState = std::move(state),
                               .seed = 1,
                               .ticksPerSecond = 30,
@@ -481,7 +481,7 @@ TEST_CASE("An opponent chases a touched ball only if he gets there first", "[car
                   chased = chased || current.chaser(TeamSide::kAway) == PlayerId(3);
                 }
               },
-              {makePursuitSystem(BallPhysics{}, PursuitConfig{})});
+              {makePursuitSystem()});
     return chased;
   };
   REQUIRE(chasers(6.0, {.x = 32.0, .y = 20.0}));
@@ -590,5 +590,5 @@ TEST_CASE("Nobody takes on a carrier whose ball rolls ahead of him", "[carrying]
                 }
               }
             },
-            {pressing, makeDuelSystem(duels)});
+            {pressing, makeDuelSystem({.duels = duels})});
 }

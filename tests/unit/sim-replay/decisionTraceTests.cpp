@@ -373,7 +373,7 @@ TEST_CASE("A pass lost in a duel the step it is decided is traced as not played"
       {.initialState = *std::move(initial),
        .seed = 1,
        .ticksPerSecond = 30,
-       .systems = {fakeDecide, makeDuelSystem(sure), makeBallMovementSystem(BallPhysics{})},
+       .systems = {fakeDecide, makeDuelSystem({.duels = sure}), makeBallMovementSystem()},
        .commands = {}});
   simulation.setCollectDiagnostics(true);
   DecisionTracer tracer(MatchConfig{});

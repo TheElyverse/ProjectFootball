@@ -214,7 +214,7 @@ TEST_CASE("A system cannot put the ball in an outfield player's hands", "[posses
 TEST_CASE("The carry distance must be finite and not negative", "[possession]") {
   BallPhysics physics;
   physics.carryDistance = -0.1;
-  REQUIRE_THROWS_AS(makeBallMovementSystem(physics), std::invalid_argument);
+  REQUIRE_THROWS_AS(makeBallMovementSystem({.physics = physics}), std::invalid_argument);
   physics.carryDistance = 0.0;
-  REQUIRE_NOTHROW(makeBallMovementSystem(physics));
+  REQUIRE_NOTHROW(makeBallMovementSystem({.physics = physics}));
 }

@@ -156,13 +156,12 @@ struct Played {
                           const DuelConfig& config = {},
                           const ActionType type = ActionType::kPressCarrier,
                           const SimTick until = SimTick(1000000)) {
-  MatchSimulation simulation(
-      {.initialState = initial,
-       .seed = seed,
-       .ticksPerSecond = 30,
-       .systems = {decide(type, until), makeDuelSystem(config), makePlayerMovementSystem(),
-                   makeBallMovementSystem(BallPhysics{})},
-       .commands = {}});
+  MatchSimulation simulation({.initialState = initial,
+                              .seed = seed,
+                              .ticksPerSecond = 30,
+                              .systems = {decide(type, until), makeDuelSystem({.duels = config}),
+                                          makePlayerMovementSystem(), makeBallMovementSystem()},
+                              .commands = {}});
   Played played;
   while (simulation.tick() < SimTick(300) && !played.ended) {
     REQUIRE(simulation.step().has_value());
@@ -359,13 +358,12 @@ TEST_CASE("Nobody takes a ball knocked loose while he is off his feet", "[duel]"
   std::size_t loose = 0;
   for (std::uint64_t seed = 1; seed <= 100; ++seed) {
     CAPTURE(seed);
-    MatchSimulation simulation(
-        {.initialState = oneOnOne({.x = 31.5, .y = 20.0}),
-         .seed = seed,
-         .ticksPerSecond = 30,
-         .systems = {decide(ActionType::kPressCarrier), makeDuelSystem({}),
-                     makePlayerMovementSystem(), makeBallMovementSystem(BallPhysics{})},
-         .commands = {}});
+    MatchSimulation simulation({.initialState = oneOnOne({.x = 31.5, .y = 20.0}),
+                                .seed = seed,
+                                .ticksPerSecond = 30,
+                                .systems = {decide(ActionType::kPressCarrier), makeDuelSystem(),
+                                            makePlayerMovementSystem(), makeBallMovementSystem()},
+                                .commands = {}});
     std::optional<SimTick> knocked;
     while (simulation.tick() < SimTick(300) && !knocked) {
       REQUIRE(simulation.step().has_value());
@@ -444,8 +442,8 @@ TEST_CASE("A defender off his feet pushes nobody off the ball", "[duel]") {
         {.initialState = oneOnOne({.x = 31.0, .y = 20.0}, {.x = 1.0, .y = 0.0}, false, 1.0),
          .seed = seed,
          .ticksPerSecond = 30,
-         .systems = {decide(ActionType::kPressCarrier), down, makeDuelSystem(standing),
-                     makePlayerMovementSystem(), makeBallMovementSystem(BallPhysics{})},
+         .systems = {decide(ActionType::kPressCarrier), down, makeDuelSystem({.duels = standing}),
+                     makePlayerMovementSystem(), makeBallMovementSystem()},
          .commands = {}});
     while (simulation.tick() < SimTick(150)) {
       REQUIRE(simulation.step().has_value());
@@ -484,8 +482,8 @@ TEST_CASE("A ball won in a duel survives ball movement in the same step", "[duel
       {.initialState = oneOnOne({.x = 31.0, .y = 20.0}),
        .seed = 1,
        .ticksPerSecond = 30,
-       .systems = {decide(ActionType::kPressCarrier), passOnce, makeDuelSystem(sure),
-                   makeBallMovementSystem(BallPhysics{})},
+       .systems = {decide(ActionType::kPressCarrier), passOnce, makeDuelSystem({.duels = sure}),
+                   makeBallMovementSystem()},
        .commands = {}});
   // Tick 0: the presser decides. Tick 1: he takes the carrier on, who
   // decides his pass. Tick 2: he lunges.
@@ -508,7 +506,7 @@ TEST_CASE("A ball won in a duel survives ball movement in the same step", "[duel
 }
 
 TEST_CASE("The duel system rejects an invalid configuration", "[duel]") {
-  REQUIRE_THROWS_AS(makeDuelSystem({.intervalTicks = 0}), std::invalid_argument);
+  REQUIRE_THROWS_AS(makeDuelSystem({.duels = {.intervalTicks = 0}}), std::invalid_argument);
   DuelConfig config;
   config.engageRadius = 4.0;
   REQUIRE_THROWS_AS(validate(config), std::invalid_argument);
@@ -521,5 +519,5 @@ TEST_CASE("The duel system rejects an invalid configuration", "[duel]") {
   config = {};
   config.footRadius = -0.1;
   REQUIRE_THROWS_AS(validate(config), std::invalid_argument);
-  REQUIRE_NOTHROW(makeDuelSystem({}));
+  REQUIRE_NOTHROW(makeDuelSystem());
 }
