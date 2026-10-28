@@ -161,11 +161,11 @@ rolls ahead after a touch looks along his run's gaze for his next decision
 
 The cone compares against `cos(fov / 2) − 10⁻⁹`. `std::cos` may differ in the
 last bit between libraries, enough to make a replay diverge on an entity at the
-edge. Perception therefore computes the cosine with basic arithmetic: a Taylor
-series of `cos(fov / 4)`, doubled with `cos(2x) = 2·cos²(x) − 1`, accurate to a
-few 10⁻¹⁶ and bit-identical everywhere, once per observer and update. The
-tolerance keeps the edge inclusive: `cos(π/2)` comes out as about 2·10⁻¹⁶, not
-0, which would hide a player standing exactly sideways in the 180° cone.
+edge. Perception therefore uses `SimCore::stableCosine()`, bit-identical
+everywhere ([stable math](match-engine.md#stable-math)), once per observer
+and update. The tolerance keeps the edge inclusive: `cos(π/2)` comes out as
+about 6·10⁻¹⁷, not 0, which would hide a player standing exactly sideways in
+the 180° cone.
 
 ### Remembering and forgetting
 

@@ -88,7 +88,7 @@ w(t) = (w₀ + g/k) · e^(-k·t) - g/k            upwards
 for a drag `k` and gravity `g`; the height is the integral of `w`. Spin decays
 the same way. The solution is exact for any span, so ticks do not change a
 flight, and `SimCore::stableExp()` makes it bit-identical on every platform
-([match geometry](match-engine.md#match-geometry)).
+([stable math](match-engine.md#stable-math)).
 
 **Why a linear drag.** Quadratic drag needs a numerical integrator, which
 depends on step size and rounding; [replays](tooling.md#replay-format) cannot
@@ -181,8 +181,8 @@ velocity or spin. Crosses and outfield lofted passes will fill the third
 dimension further. Who wins a high ball is decided in the air
 ([aerial duels](duels.md#aerial-duels-and-headers)).
 
-- No sidespin and no curve: a Magnus force needs bit-identical trigonometry,
-  which `sim-core` does not have yet.
+- No sidespin and no curve yet, although `sim-core` has the bit-identical
+  trigonometry to turn a velocity ([stable math](match-engine.md#stable-math)).
 - Players perceive the ball's position on the pitch, not its height.
 - No air resistance while rolling, no wind.
 - The ball hits only grass, goal frame and, as a shot, a body.
