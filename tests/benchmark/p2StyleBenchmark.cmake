@@ -1,5 +1,5 @@
 # P2 acceptance, reduced for CI (docs/tooling.md#sim-benchmark): the three
-# tactical identities in a round robin of every pairing, eight six-minute
+# tactical identities in a round robin of every pairing, twenty six-minute
 # matches each. The run must finish within its time budget without an invalid
 # value, a sampled match of every pairing must replay identically, and the
 # styles must separate where their identities promise. Invoked by CTest with
@@ -15,8 +15,8 @@ execute_process(
         --style "${DATA_DIR}/tactics/possession.json"
         --style "${DATA_DIR}/tactics/counter.json"
         --style "${DATA_DIR}/tactics/pressing.json"
-        --matches 8 --minutes 6 --seed 1 --jobs 2 --verify-replays 1
-        --max-seconds-per-match 5 --max-seconds-total 120
+        --matches 20 --minutes 6 --seed 1 --jobs 2 --verify-replays 1
+        --max-seconds-per-match 5 --max-seconds-total 300
         --out "${results}"
         RESULT_VARIABLE result OUTPUT_VARIABLE output ERROR_VARIABLE error
         TIMEOUT 600
@@ -68,7 +68,8 @@ endforeach()
 # goals restart play from the centre, 1 to 9 since both sides line up for that
 # kickoff, 0.67 to 11.67 since the keeper dives, holds or parries shots and
 # picks up slow balls (possession against counter's deep block), 1.62 to 11.88
-# since players carry the ball (docs/on-ball.md#ball-carrying) -- with room
+# since players carry the ball (docs/on-ball.md#ball-carrying), 3.3 to 12.1
+# over twenty matches since they curl and chip (docs/on-ball.md#shot-types) -- with room
 # above; it guards against a change that stops the shooting or makes a shooting
 # gallery of the sandbox, not against balancing.
 set(minShots 0.5)

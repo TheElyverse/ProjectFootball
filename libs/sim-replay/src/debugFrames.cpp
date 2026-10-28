@@ -154,6 +154,7 @@ using SimMatch::MatchState;
   json["height"] = rounded(ball.height);
   json["verticalVelocity"] = rounded(ball.verticalVelocity);
   json["spin"] = rounded(ball.spin);
+  json["sideSpin"] = rounded(ball.sideSpin);
   json["owner"] = idJson(ball.owner);
   json["held"] = ball.held;
   json["lastTouch"] = ball.lastTouch ? Json(ball.lastTouch->playerId.value()) : Json(nullptr);
@@ -304,6 +305,7 @@ void addEventFields(Json& json, const SimMatch::ShotAttempted& event) {
   json["speed"] = rounded(event.speed);
   json["distance"] = rounded(event.distance);
   json["opening"] = rounded(event.opening);
+  json["shotType"] = SimMatch::shotTypeName(event.type);
 }
 
 void addEventFields(Json& json, const SimMatch::ShotDeflected& event) {

@@ -7,6 +7,7 @@
 #include <optional>
 #include <set>
 #include <stdexcept>
+#include <tuple>
 #include <utility>
 #include <vector>
 
@@ -40,6 +41,8 @@ using ElyverseFootball::SimMatch::shotContributions;
 using ElyverseFootball::SimMatch::ShotRejection;
 using ElyverseFootball::SimMatch::shotRejectionName;
 using ElyverseFootball::SimMatch::ShotScoringConfig;
+using ElyverseFootball::SimMatch::ShotType;
+using ElyverseFootball::SimMatch::shotTypeName;
 using ElyverseFootball::SimMatch::TeamSide;
 using ElyverseFootball::SimMatch::TeamTactics;
 using ElyverseFootball::SimTactics::referenceTacticSpec;
@@ -124,10 +127,12 @@ struct Chance {
   return shotsOf(perceived(chanceState(chance)), rules);
 }
 
+// The driven shot at a zone, or of another type.
 [[nodiscard]] ShotCandidate zone(const std::vector<ShotCandidate>& shots, const std::size_t column,
-                                 const std::size_t row) {
-  const auto found = std::ranges::find_if(
-      shots, [&](const ShotCandidate& shot) { return shot.column == column && shot.row == row; });
+                                 const std::size_t row, const ShotType type = ShotType::kDriven) {
+  const auto found = std::ranges::find_if(shots, [&](const ShotCandidate& shot) {
+    return shot.column == column && shot.row == row && shot.type == type;
+  });
   REQUIRE(found != shots.end());
   return found == shots.end() ? ShotCandidate{} : *found;
 }
@@ -141,18 +146,19 @@ TEST_CASE("Every zone of the goal is an aiming option", "[shotCandidates]") {
   const auto shots = shotsAt({.shooter = kClearChance});
   const auto goal = Pitch(60.0, 40.0).goal(GoalEnd::kMaxX);
 
-  REQUIRE(shots.size() == 35);
-  std::set<std::pair<std::size_t, std::size_t>> zones;
+  // Driven, curled either way and chipped at each of the 7 x 5 zones.
+  REQUIRE(shots.size() == std::size_t{4} * 35);
+  std::set<std::tuple<std::size_t, std::size_t, ShotType, double>> zones;
   for (const ShotCandidate& shot : shots) {
-    CAPTURE(shot.column, shot.row);
-    zones.emplace(shot.column, shot.row);
+    CAPTURE(shot.column, shot.row, shotTypeName(shot.type));
+    zones.emplace(shot.column, shot.row, shot.type, shot.curvature);
     REQUIRE(shot.target.x == 60.0);
     REQUIRE(goal.framesPoint(shot.target.y, shot.height));
     REQUIRE_THAT(shot.distance, WithinAbs(8.0, 1e-12));
     REQUIRE(shot.onTarget <= 1.0 + 1e-12);
     REQUIRE(shot.goalChance + shot.saveRisk <= shot.onTarget + 1e-12);
   }
-  REQUIRE(zones.size() == 35);
+  REQUIRE(zones.size() == std::size_t{4} * 35);
 }
 
 TEST_CASE("A clear chance aims away from the keeper", "[shotCandidates]") {
@@ -277,7 +283,10 @@ TEST_CASE("A shot worth less than keeping the ball is not offered", "[shotCandid
 
   for (const ShotCandidate& shot : shots) {
     REQUIRE(shot.utility <= 0.0);
-    REQUIRE(shot.rejection == ShotRejection::kNotWorthIt);
+    REQUIRE_FALSE(shot.isValid());
+    if (shot.type == ShotType::kDriven) {
+      REQUIRE(shot.rejection == ShotRejection::kNotWorthIt);
+    }
   }
 }
 
@@ -351,4 +360,18 @@ TEST_CASE("Shot scoring rejects an invalid configuration", "[shotCandidates]") {
                     std::invalid_argument);
   REQUIRE_THROWS_AS(validate(invalid([](auto& config) { config.shotSpeed = std::nan(""); })),
                     std::invalid_argument);
+}
+
+TEST_CASE("A chip he cannot strike steeply enough to get there is too far", "[shotCandidates]") {
+  // From 22 m a 12 m/s chip would have to leave steeper than 45 degrees.
+  const auto far = shotsAt({.shooter = {.x = 38.0, .y = 20.0}});
+  for (const ShotCandidate& shot : far) {
+    if (shot.type == ShotType::kChipped) {
+      CAPTURE(shot.column, shot.row);
+      REQUIRE(shot.rejection == ShotRejection::kTooFar);
+    }
+  }
+  // From eight meters he can.
+  const auto near = shotsAt({.shooter = kClearChance});
+  REQUIRE(zone(near, 3, 0, ShotType::kChipped).rejection != ShotRejection::kTooFar);
 }

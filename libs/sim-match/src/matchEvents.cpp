@@ -142,6 +142,7 @@ void addFields(StableHasher& hasher, const ShotAttempted& event) noexcept {
   hasher.addDouble(event.speed);
   hasher.addDouble(event.distance);
   hasher.addDouble(event.opening);
+  hasher.addByte(static_cast<std::uint8_t>(event.type));
 }
 
 void addFields(StableHasher& hasher, const ShotDeflected& event) noexcept {

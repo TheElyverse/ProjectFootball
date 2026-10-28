@@ -127,6 +127,7 @@ using SimMatch::TeamSide;
                   {"height", state.ball().height},
                   {"verticalVelocity", state.ball().verticalVelocity},
                   {"spin", state.ball().spin},
+                  {"sideSpin", state.ball().sideSpin},
                   {"owner", owner ? Json(owner->value()) : Json(nullptr)},
                   {"held", state.ball().held},
                   {"carryTouch", carryTouchJson(state.ball().touch)},
@@ -442,6 +443,7 @@ constexpr std::int64_t kMaxGoals = 1'000'000;
                 .height = ball.member("height").number(),
                 .verticalVelocity = ball.member("verticalVelocity").number(),
                 .spin = ball.member("spin").number(),
+                .sideSpin = ball.member("sideSpin").number(),
                 .held = ball.member("held").boolean(),
                 .touch = readCarryTouch(ball.member("carryTouch"))},
        .playersPerSide = static_cast<int>(field.member("playersPerSide").integerIn(1, 1000)),
@@ -481,6 +483,7 @@ void fieldsOf(Visitor& visit, SimMatch::BallPhysics& ball) {
   visit.number("bounceGrip", ball.bounceGrip);
   visit.number("spinTransfer", ball.spinTransfer);
   visit.number("spinDecay", ball.spinDecay);
+  visit.number("magnusCurvature", ball.magnusCurvature);
   visit.number("restingVerticalSpeed", ball.restingVerticalSpeed);
 }
 
@@ -545,6 +548,12 @@ void fieldsOf(Visitor& visit, SimMatch::ShotScoringConfig& shooting) {
   visit.integer("zoneColumns", shooting.zoneColumns, 0, SimMatch::kMaxShotZones);
   visit.integer("zoneRows", shooting.zoneRows, 0, SimMatch::kMaxShotZones);
   visit.number("shotSpeed", shooting.shotSpeed);
+  visit.number("curledSpeed", shooting.curledSpeed);
+  visit.number("chippedSpeed", shooting.chippedSpeed);
+  visit.number("curlSpin", shooting.curlSpin);
+  visit.number("spinError", shooting.spinError);
+  visit.number("speedError", shooting.speedError);
+  visit.number("maxLaunchSlope", shooting.maxLaunchSlope);
   visit.number("keeperDiveReach", shooting.keeperDiveReach);
   visit.number("keeperJumpReach", shooting.keeperJumpReach);
   visit.number("keeperDiveSeconds", shooting.keeperDiveSeconds);
@@ -774,6 +783,7 @@ void fieldsOf(Visitor& visit, SimMatch::ShotConfig& shooting) {
   visit.number("speedError", shooting.speedError);
   visit.number("maxLaunchSlope", shooting.maxLaunchSlope);
   visit.number("topspin", shooting.topspin);
+  visit.number("chipBackspin", shooting.chipBackspin);
   visit.number("spinError", shooting.spinError);
   visit.number("pressureErrorFactor", shooting.pressureErrorFactor);
   visit.number("balanceErrorFactor", shooting.balanceErrorFactor);

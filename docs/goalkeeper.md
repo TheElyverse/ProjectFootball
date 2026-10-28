@@ -219,7 +219,8 @@ plane**, the upright plane through where he stood when he went, square to the
 ball's way along the ground. A point of it is how far across from there —
 positive to the left of the ball's way — and how high (`PlanePoint`). A free
 ball travels in a straight line along the ground, so the ball passes his plane
-where it comes closest to him. Until it has passed him, nobody else's
+where it comes closest to him; a [curling](ball.md#curve) one passes it where
+its arc does. Until it has passed him, nobody else's
 reception counts him in.
 
 ### Reacting and deciding
@@ -235,8 +236,8 @@ reaction = slowestReaction − (slowestReaction − quickestReaction) · keeperR
 stopping system decides his dive, once per flight (`decideDive()`):
 
 1. **Perceive.** He follows the ball to his plane through where he stands now
-   with `predictBallPassage()` — the same flight the ball system moves it on —
-   and knows when it will get there.
+   with `predictPlanePassage()` — the same flight the ball system moves it on,
+   curve included — and knows when it will get there.
 2. **Read.** He misreads where it passes him by a triangular draw across and
    one up, each spread by `readError` (0.8 m) times `1 − keeperAnticipation`:
    two draws from the `kAi` stream, always. A keeper of anticipation 1 reads

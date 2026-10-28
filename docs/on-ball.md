@@ -517,7 +517,7 @@ Three things rule out every shot at once, before anything is scored:
 
 | Rejection    | When                                                                   |
 |--------------|------------------------------------------------------------------------|
-| `kTooFar`    | the ball is farther than `maxShotDistance` (25 m) from the goal's center |
+| `kTooFar`    | the ball is farther than `maxShotDistance` (25 m) from the goal's center; a [chip](#shot-types) alone is too far beyond what it can reach no steeper than `maxLaunchSlope` |
 | `kGoalUnseen`| the goal's center is outside his field of view: he looks away -- along his facing, or his look over his shoulder ([pass decisions](#without-a-valid-option)) |
 | `kTooNarrow` | the goal looks narrower than `minOpening` (0.1)                        |
 
@@ -562,11 +562,12 @@ everything below its top.
 
 ### What becomes of a shot at a zone
 
-For each zone's center, the shot is a straight line from the ball, rising from
-the ground to the zone's height at the goal line, struck at `shotSpeed` (25 m/s)
-and slowing like a rolling ball. As for passes, every half meter along it the
-shooter compares when the ball gets there with when a player can
-([pass candidates](#pass-candidates)):
+For each zone's center and each [shot type](#shot-types), the shot is a line from
+the ball -- straight, or for a curled shot the arc that reaches the zone --
+rising from the ground to the zone's height at the goal line, struck at its
+type's speed and slowing like a rolling ball; a chip flies its real flight
+instead. As for passes, every half meter along it the shooter compares when
+the ball gets there with when a player can ([pass candidates](#pass-candidates)):
 
 - **A blocker** — every remembered opponent but the keeper — gets a body part to
   the ball where it is no higher than `blockReach` (1.8 m). Standing within the
@@ -632,10 +633,51 @@ Every zone stays in the list with its reason, so a decision can be explained.
 Valid candidates come first, by descending utility, then the rest; ties by
 column, then row.
 
+### Shot types
+
+He chooses how to strike the ball as well as where (GDD §8.8): every zone is a
+candidate once per type, `ShotType` (`shotType.hpp`), and the best of all of
+them competes in the [choice](#the-choice).
+
+| Type      | Speed                  | Path he imagines | Spin it is struck with |
+|-----------|------------------------|------------------|------------------------|
+| `driven`  | `shotSpeed` (25 m/s)   | a straight line rising to the zone | topspin |
+| `curled`  | `curledSpeed` (20 m/s) | the arc to the zone of his curvature, bending left or right -- two candidates per zone | sidespin |
+| `chipped` | `chippedSpeed` (12 m/s) | the real flight to the zone at that speed along the ground: high, slow, against the drag | backspin |
+
+**Curled.** His curvature is `magnusCurvature · curlSpin · shotTechnique`
+([curve](ball.md#curve)): `curlSpin` (60 rad/s) at perfect technique, none at 0,
+when he has no curled candidates. The arc to a zone leaves off the straight
+line by half the angle it turns (`aimAlongArc()`), so it passes a wall or a
+defender in the way and still ends at the zone.
+
+**Chipped.** Slow along the ground, the ball has to rise high to get there: from
+16 m at 12 m/s it is 3.8 m up as it passes a keeper eight meters off his line.
+He knows the flight's time against the drag (`flightSeconds()`), so a keeper
+who gets back in time saves it. A chip that would have to leave steeper than
+`maxLaunchSlope` (1, as the [strike's](#the-strike)) cannot get there and is
+`too far`: at 12 m/s that is beyond about 18 m.
+
+**What his technique adds to the spread.** A curl and a chip stray further than
+a driven shot, by the error his technique gives the spin or the pace, widened by
+pressure as the [spread](#the-spread) is and scaled by
+`skillErrorFactor(shotTechnique)`:
+
+| Type      | Extra half-width of the spread, average technique |
+|-----------|-----------------------------------------------------|
+| `curled`  | `magnusCurvature · spinError · L² / 2`: the curve his spin's error (`spinError`, 15 rad/s) bends it off by at the goal, `L` from the ball to the goal's centre |
+| `chipped` | `2 · speedError · L · g·L / (2v²)`: the distance a pace error (`speedError`, 5 %) costs -- it grows with the square of the pace --, times the slope it comes down at |
+
+So an average player curls rarely: from 20 m his curl strays 2.4 m further. A
+player of perfect technique strays a tenth of that.
+
+Candidates are ordered as before; ties go by column, row, then type: driven,
+curled left, curled right, chipped.
+
 ### The choice
 
 `chooseOnBall()` offers the valid passes and the **best** valid shot — one shot,
-not every zone of the goal, or a player with seven good zones would shoot seven
+not every zone or type, or a player with seven good zones would shoot seven
 times as often — to the seeded softmax of [pass decisions](#pass-decisions),
 with the same [temperature](#decision-making) and exactly one draw from the
 `kAi` stream per decision. A side with a tactic scales the shot scoring by the `passingRisk` `r`
@@ -652,15 +694,16 @@ At `r = 0.5` nothing changes.
 ### The shot
 
 A chosen shot becomes the shooter's pending action, a `ShotIntent` with the aimed
-point, height and speed ([match state](match-engine.md#match-state)). The ball system strikes
+point, height and speed, its type and a curled shot's curvature
+([match state](match-engine.md#match-state)). The ball system strikes
 it in the next step, if he still has the ball, records `ShotAttempted` — shooter,
-where from, the aimed point and height, the speed, the distance and the opening —
-and the state's `lastShot()`. A ball won back from a shot is loose, not a pass
+where from, the aimed point and height, the speed, the distance, the opening and
+the type — and the state's `lastShot()`. A ball won back from a shot is loose, not a pass
 received or intercepted ([match events](match-engine.md#match-events-and-decision-diagnostics)).
 
 How the ball leaves his foot and what becomes of it — a goal, a save, a block,
 the woodwork, a miss — is [shooting](#shooting): the strike flies at the aimed
-point and height at `shotSpeed`, off by his execution error.
+point and height at its type's speed, off by his execution error.
 
 ### Scenarios and guardrails
 
@@ -689,7 +732,11 @@ from 8 m, 0.41 from 12 m, 0.09 from 18 m and 0.06 from 22 m.
 | `minOpening`         | 0.1     | a narrower goal offers no shot                           |
 | `zoneColumns`        | 7       | the aiming grid across the goal, at least 2              |
 | `zoneRows`           | 5       | the aiming grid up the goal, at least 1                  |
-| `shotSpeed`          | 25 m/s  | how fast a shot leaves the foot                          |
+| `shotSpeed`          | 25 m/s  | how fast a driven shot leaves the foot                   |
+| `curledSpeed`, `chippedSpeed` | 20 m/s, 12 m/s | how fast a curled and a chipped shot leave it ([shot types](#shot-types)) |
+| `curlSpin`           | 60 rad/s | the sidespin of a curl at perfect technique             |
+| `spinError`, `speedError` | 15 rad/s, 0.05 | the strike's errors at average technique, which widen a curl's and a chip's spread |
+| `maxLaunchSlope`     | 1       | the strike's steepest launch: a chip that needs more is `too far` |
 | `keeperDiveReach`    | 2 m     | the keeper's reach to either side at his feet            |
 | `keeperJumpReach`    | 2.6 m   | the keeper's reach straight up                           |
 | `keeperDiveSeconds`  | 0.5 s   | reaction and dive to the edge of his reach               |
@@ -713,9 +760,10 @@ from 8 m, 0.41 from 12 m, 0.09 from 18 m and 0.06 from 22 m.
 
 ### What this is not
 
-- He judges a shot as a straight line from the ball to a point of the goal,
-  slowing like a rolling ball, the ball a point: he knows neither the
-  [flight](#shooting) his strike takes nor the thickness of the posts.
+- He judges a driven or curled shot as a line from the ball to a point of the
+  goal, slowing like a rolling ball, the ball a point: he knows neither the
+  [flight](#shooting) his strike takes nor the thickness of the posts. Only a
+  chip he judges by its flight.
 - A poor decider's misjudgement is noise around his estimates, not a
   personality bias toward shooting or passing. Near 0 or 1 the clamp leaves
   it one-sided: a very safe pass looks a little riskier on average.
@@ -737,7 +785,8 @@ ShotIntent   → strike        → flight → body · frame · keeper · line �
 
 The ball system strikes a pending shot in the step after it was decided, if the
 shooter still has the ball at his feet. The ball leaves the grass at his feet on the flight
-that brings it to the aimed height at the aimed point of the goal line:
+that brings it to the aimed height at the aimed point of the goal line -- along
+its arc for a [curled](#shot-types) shot:
 `launchVerticalVelocity()` solves the closed-form flight of
 [ball movement](ball.md#ball-movement) for the vertical speed that does it, at the
 speed along the ground the decision chose (`ShotIntent::speed`). Such a flight
@@ -772,10 +821,23 @@ it is struck: whether it is skied or scuffed, how hard, and with what spin.
 However badly struck, a shot keeps between half and one and a half times its
 intended pace.
 
-A clean strike carries topspin, `topspin` (30 rad/s) times the shooter's
-technique. There is top- and backspin only: it decides how the ball comes off
-the grass when it bounces. Curling shots and shot types — the chip, the placed
-shot — need a sidespin the ball does not have yet.
+A clean strike carries the spin its [type](#shot-types) asks for, the spin error
+on top:
+
+- **driven**: topspin, `topspin` (30 rad/s) times the shooter's technique;
+- **chipped**: backspin, `chipBackspin` (20 rad/s) times his technique;
+- **curled**: no topspin, and the sidespin of the intent's curvature,
+  `curvature / magnusCurvature`. The ball leaves along `aimAlongArc()`, off the
+  straight line to the point it strays to by half the angle its path turns, and
+  the launch is solved for the arc's length. A curl that strays onto the grass
+  rolls straight at its point: only a flight curves ([curve](ball.md#curve)).
+  Its spin error bends the whole arc, so it ends up `k · L² / 2` off for an
+  error of curvature `k`, which the decision knows; however badly struck, it
+  bends no sharper than the sharpest arc `aimAlongArc()` would take to its
+  point, so it curls in and never loops.
+
+Top- and backspin decide how the ball comes off the grass when it bounces,
+sidespin how it [curves](ball.md#curve) in the air.
 
 #### What widens the error
 
@@ -912,6 +974,7 @@ never a pass received or intercepted.
 | `speedError`           | 0.05     | how much harder or softer an average strike is            |
 | `maxLaunchSlope`       | 1.0      | the steepest a ball leaves the foot: vertical over ground speed |
 | `topspin`              | 30 rad/s | the topspin of a clean strike at perfect technique        |
+| `chipBackspin`         | 20 rad/s | the backspin of a clean chip at perfect technique         |
 | `spinError`            | 15 rad/s | how far an average strike's spin is off                   |
 | `pressureErrorFactor`  | 1.0      | how much full pressure widens the errors                  |
 | `balanceErrorFactor`   | 1.0      | how much a shot fully off balance does                    |
@@ -965,7 +1028,7 @@ before he has reacted.
   the way. The keeper is [his own system](goalkeeper.md#shot-stopping).
 - A header at goal is a shot like any other
   ([aerial duels](duels.md#aerial-duels-and-headers)), struck from the head.
-- No curl, no chip, no choice of how to strike the ball.
+- He curls or chips only as a shot; crosses come with their own action.
 - A goal counts and is kicked off, but no match ends with a result yet.
 
 ## Ball carrying

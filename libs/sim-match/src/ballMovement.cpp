@@ -230,6 +230,7 @@ class BallTick {
     ball.height = 0.0;
     ball.verticalVelocity = intent.lofted ? loftedRise(intent, ball, physics) : 0.0;
     ball.spin = 0.0;
+    ball.sideSpin = 0.0;
     return ball;
   }
 
@@ -251,6 +252,7 @@ class BallTick {
     ball.velocity = strike.velocity;
     ball.verticalVelocity = strike.verticalVelocity;
     ball.spin = strike.spin;
+    ball.sideSpin = strike.sideSpin;
     ball.height = 0.0;
     ball.owner = std::nullopt;
     ball.held = false;
@@ -271,7 +273,8 @@ class BallTick {
                                    .struckHeight = strike.height,
                                    .speed = ball.velocity.length(),
                                    .distance = (goal.center - ball.position).length(),
-                                   .opening = goalOpening(ball.position, goal)});
+                                   .opening = goalOpening(ball.position, goal),
+                                   .type = intent.type});
     return ball;
   }
 
@@ -353,6 +356,7 @@ class BallTick {
     next().setBallHeight(0.0);
     next().setBallVerticalVelocity(0.0);
     next().setBallSpin(0.0);
+    next().setBallSideSpin(0.0);
   }
 
   // Plays the touch: the ball leaves the carrier's feet toward the intent's
@@ -378,6 +382,7 @@ class BallTick {
     next().setBallHeight(0.0);
     next().setBallVerticalVelocity(0.0);
     next().setBallSpin(0.0);
+    next().setBallSideSpin(0.0);
     next().setBallTouch(CarryTouch{.tick = context().tick(), .seconds = intent.seconds});
     next().setBallLastTouch(BallTouch{.playerId = intent.carrier, .tick = context().tick()});
     auto& run = next().tactical(index).carry;
@@ -551,6 +556,7 @@ class BallTick {
     next().setBallHeight(moved.height);
     next().setBallVerticalVelocity(moved.verticalVelocity);
     next().setBallSpin(moved.spin);
+    next().setBallSideSpin(moved.sideSpin);
 
     const bool left = isOutOfPlay(moved, pitch) && !isOutOfPlay(from, pitch);
     bool goal = false;
@@ -744,6 +750,7 @@ class BallTick {
     from.velocity = strike.velocity;
     from.verticalVelocity = strike.verticalVelocity;
     from.spin = 0.0;
+    from.sideSpin = 0.0;
     from.lastTouch = BallTouch{.playerId = player.playerId, .tick = context().tick()};
     next().setBallLastTouch(from.lastTouch);
     if (intent.play == AerialPlay::kShot) {
@@ -765,7 +772,8 @@ class BallTick {
                                      .struckHeight = strike.height,
                                      .speed = strike.velocity.length(),
                                      .distance = (goal.center - there.position).length(),
-                                     .opening = goalOpening(there.position, goal)});
+                                     .opening = goalOpening(there.position, goal),
+                                     .type = ShotType::kDriven});
     } else if (intent.receiver) {
       next().setLastPass(PassRecord{.passer = player.playerId,
                                     .from = there.position,

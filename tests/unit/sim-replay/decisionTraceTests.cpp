@@ -254,6 +254,15 @@ TEST_CASE("A shot is traced with its aim, its chances and its reason", "[decisio
   CAPTURE(misjudgedText);
   REQUIRE(
       misjudgedText.contains("goal chance 0.50, judged 0.70, save 0.30, block 0.10, judged 0.05"));
+
+  // A curled shot and a chip say how he struck them.
+  DecisionDiagnostic struck = decision;
+  struck.shots.front().type = ElyverseFootball::SimMatch::ShotType::kCurled;
+  REQUIRE(formatTrace(std::vector<TraceEntry>{PassDecisionTrace{.decision = struck, .outcome = {}}})
+              .starts_with("t=40 #7 curls a shot at (60.0, 21.2)"));
+  struck.shots.front().type = ElyverseFootball::SimMatch::ShotType::kChipped;
+  REQUIRE(formatTrace(std::vector<TraceEntry>{PassDecisionTrace{.decision = struck, .outcome = {}}})
+              .starts_with("t=40 #7 chips at (60.0, 21.2)"));
 }
 
 TEST_CASE("A decision without a shot says why the goal was not on", "[decisionTrace]") {

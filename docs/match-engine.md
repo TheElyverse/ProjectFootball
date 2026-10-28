@@ -248,7 +248,7 @@ play, `sim-tactics`. Nothing here advances time: the
 | `MatchState`       | the `Pitch`, the players in order, the `BallState`, the squad size per side, every player's perception memory, and each side's tactic |
 | `PlayerMatchState` | `playerId`, `side`, `position`, `velocity`, `attributes`, `target`, `facing`    |
 | `PlayerAttributes` | fixed for the match; see below                                                   |
-| `BallState`        | `position`, `velocity`, `height`, `verticalVelocity`, `spin`, `owner`, `lastTouch`, `held`, `touch` |
+| `BallState`        | `position`, `velocity`, `height`, `verticalVelocity`, `spin`, `sideSpin`, `owner`, `lastTouch`, `held`, `touch` |
 | `TeamSide`         | `kHome` or `kAway`                                                              |
 
 Positions are meters and velocities meters per second, in the plane of
@@ -284,10 +284,11 @@ holds it in his hands, a goalkeeper who took it with them
 be held, and a new owner has it at his feet until the ball system puts it in his
 hands. `touch` is the owner's touch while the ball rolls ahead of him
 ([ball carrying](on-ball.md#ball-carrying)); only an owned ball at the feet can
-be touched on. `height` and `verticalVelocity` (meters, m/s) and `spin` (top-
-or backspin, rad/s) are its third dimension ([ball movement](ball.md#ball-movement)).
+be touched on. `height` and `verticalVelocity` (meters, m/s), `spin` (top-
+or backspin, rad/s) and `sideSpin` (rad/s, curling left when positive,
+[curve](ball.md#curve)) are its third dimension ([ball movement](ball.md#ball-movement)).
 Validation rejects a non-finite height, a ball below the ground, and a vertical
-velocity or spin that is not finite or beyond `kMaxBallSpeed` and
+velocity or either spin that is not finite or beyond `kMaxBallSpeed` and
 `kMaxBallSpin`.
 
 Every player has a slot for an action he has decided and not yet done,
@@ -689,7 +690,7 @@ Every event carries the `tick` of its step and the players involved:
 | `PitchControlSampled` | `homeShare`, `ball`                                         | the [pitch control](team-tactics.md#pitch-control) grid is updated: home's share of the pitch and the ball's position, a regular sample for [analytics](tooling.md#match-analytics) |
 | `RestartTaken`       | `kind`, `player`, `position`                                 | play [restarts](#restarts) after the ball went out or into a goal: `throwIn`, `goalKick`, `corner` or `kickoff`, to `player`; `position` is where the ball left the pitch, the centre spot for a kickoff. `PossessionChanged` follows |
 | `TacticChanged`      | `side`, `tactic`, `contentHash`                              | a [tactic change command](#tactic-changes) applies; `tactic` is the new tactic's name |
-| `ShotAttempted`      | `shooter`, `from`, `target`, `height`, `struckAt`, `struckHeight`, `speed`, `distance`, `opening` | a [shot](on-ball.md#shot-decisions) leaves the shooter's foot toward the aimed point and height; `struckAt` and `struckHeight` are the point and height it really left for, off by his [execution](on-ball.md#shooting) error; `distance` and `opening` are to and of the goal. `PossessionChanged` follows |
+| `ShotAttempted`      | `shooter`, `from`, `target`, `height`, `struckAt`, `struckHeight`, `speed`, `distance`, `opening`, `type` | a [shot](on-ball.md#shot-decisions) leaves the shooter's foot toward the aimed point and height; `struckAt` and `struckHeight` are the point and height it really left for, off by his [execution](on-ball.md#shooting) error; `distance` and `opening` are to and of the goal; `type` is how he struck it, `driven`, `curled` or `chipped` ([shot types](on-ball.md#shot-types)), a header always `driven`. `PossessionChanged` follows |
 | `ShotDeflected`      | `shooter`, `shotTick`, `player`, `position`, `height`, `blocked` | a shot comes off an outfield player and flies on; `blocked` if it lost most of its speed |
 | `ShotHitWoodwork`    | `shooter`, `shotTick`, `part`, `position`, `height`          | a shot rebounds from `postAtMinY`, `postAtMaxY` or the `crossbar` |
 | `ShotResolved`       | `shooter`, `shotTick`, `outcome`                             | a shot has become what it will be, once per shot: `goal`, `saved`, `offTarget` or `blocked` |

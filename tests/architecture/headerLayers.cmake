@@ -10,7 +10,7 @@ set(layers model mechanics loop behaviour setup)
 set(model
         actionCandidate carryCandidate choicePolicy matchCommand matchEvents matchState
         matchStateHash observation passCandidate pitch pitchControlGrid pressingActions
-        restartKind shotCandidate tacticalState teamPress)
+        restartKind shotCandidate shotType tacticalState teamPress)
 # Pure functions of physics, geometry and execution, and the queries every
 # decision asks.
 set(mechanics
