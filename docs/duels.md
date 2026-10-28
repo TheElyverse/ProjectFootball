@@ -405,8 +405,8 @@ uniform one of `speedError` (10 %) — five draws from `kExecution`, always.
 The flight is planned at the intended speed, at most `maxHeaderSpeed`; one
 the drag stops short of goes up at 45 degrees. The pace error scales it along
 the ground and up alike, and a header never leaves faster than
-`maxHeaderSpeed` in all.
-Both are scaled by `headerErrorFactor()`: `skillErrorFactor()` of his
+`maxHeaderSpeed` in all; an aim on the ball itself is headed along his
+facing. Both errors are scaled by `headerErrorFactor()`: `skillErrorFactor()` of his
 heading, times `1 + mistimedErrorFactor · mistiming` — a fully mistimed header
 is three times as wide. The ball leaves without spin.
 

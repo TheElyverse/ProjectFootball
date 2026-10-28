@@ -642,6 +642,9 @@ by where the players stand:
    the goalkeeper, `keepsGoal()`), each option taken by the free player who stands nearest his
    blocking spot.
 
+A side with fewer outfield players, or a carrier with fewer options, gets
+fewer roles; ties go to the lower id.
+
 The tactical movement gives each player his role's action instead of letting him
 choose -- the presser cuts off the nearest option nobody blocks -- and the
 diagnostic marks it assigned. Everyone else keeps deciding for himself.

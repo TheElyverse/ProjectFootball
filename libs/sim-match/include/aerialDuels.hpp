@@ -255,14 +255,10 @@ struct HeaderStrike {
   double height = 0.0;
 };
 
-// The execution half of a header, from the ball where it meets the head:
-// the ball leaves toward the target on the flight that brings it to the
-// intended height there at the intended speed -- at most maxHeaderSpeed --,
-// its aim strayed across and up by a triangular error and its pace by a
-// uniform one, all widened by errorFactor -- always five draws from random.
-// A flight the drag stops short of goes up at 45 degrees, and however its
-// pace strays, it leaves no faster than maxHeaderSpeed in all. A target on
-// the ball itself is headed along the player's facing.
+// The execution half of a header, from the ball where it meets the head: the
+// flight toward the target, strayed by errors widened by errorFactor, never
+// faster than maxHeaderSpeed; always five draws from random
+// (docs/duels.md#the-header).
 [[nodiscard]] HeaderStrike executeHeader(const HeaderIntent& intent, const BallState& ball,
                                          const PlayerMatchState& player, double errorFactor,
                                          const AerialConfig& config, const BallPhysics& physics,

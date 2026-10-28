@@ -77,12 +77,7 @@ struct SpottedTrigger {
 [[nodiscard]] int pressJoiners(double intensity, const PressingConfig& config) noexcept;
 
 // Who plays which role in a press on the carrier with this many joiners, by
-// the players' positions: the outfield player nearest the carrier presses;
-// with three or more joiners the one nearest the spot behind the presser
-// covers; the rest block the lanes to the carrier's nearest options, each
-// option taken by the free player who stands nearest his blocking spot.
-// Fewer roles if the side has fewer outfield players or the carrier fewer
-// options. Ties go to the lower id.
+// the players' positions (docs/team-tactics.md#who-joins-in-which-role).
 struct PressRequest {
   SimCore::PlayerId carrier;
   int joiners = 0;

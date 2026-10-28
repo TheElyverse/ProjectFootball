@@ -91,19 +91,14 @@ void validate(const BallPhysics& physics);
 
 // The fraction t in (0, 1] of a move from start to end at which the ball
 // crosses the pitch boundary, for a start on the pitch and an end off it, and
-// 1 for a move that stays on. A free ball always moves along a straight line
-// in the pitch plane -- drag acts along its direction of travel and a bounce
-// only scales its speed -- so one fraction describes a whole tick, however
-// often the ball bounces within it.
+// 1 for a move that stays on; one fraction describes a whole tick however
+// often the ball bounces (docs/ball.md#pitch-boundary).
 [[nodiscard]] double pitchExitFraction(SimCore::Vec2 start, SimCore::Vec2 end,
                                        const Pitch& pitch) noexcept;
 
 // Where and when a ball in flight comes down, and how high it gets on the
-// way; empty for a ball that is already on the ground. Solved from the
-// closed-form flight rather than simulated, so a planner -- a chaser, later a
-// goalkeeper -- can ask where a ball will land without stepping the match.
-// The pitch boundary is not applied: this is the flight's own landing, and
-// what happens to a ball that leaves the pitch is for the systems to decide.
+// way; empty for a ball that is already on the ground. The flight's own
+// landing, without the pitch boundary (docs/ball.md#predicting-a-landing).
 struct BallLanding {
   SimCore::Vec2 position;
   double seconds = 0.0;

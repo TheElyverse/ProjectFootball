@@ -22,10 +22,6 @@ struct PlayerKinematics {
 // the player steers toward his target at up to maxSpeed, changes his velocity
 // by at most acceleration * secondsPerTick, and brakes in time to stop on the
 // target instead of running past it. Without a target he slows to a stop.
-//
-// A pure function of the player and the tick length, so other systems -- the
-// ball following its carrier, arrival-time estimates -- can predict movement
-// with exactly the same rule.
 [[nodiscard]] PlayerKinematics stepPlayerMovement(const PlayerMatchState& player,
                                                   double secondsPerTick) noexcept;
 
@@ -68,9 +64,8 @@ inline constexpr double kFacingRunSpeed = 1.0;  // m/s
                                             SimCore::Vec2 ballPosition) noexcept;
 
 // facingAfterMove() toward this ball, except that a goalkeeper who holds it
-// in his hands and no longer runs looks up the pitch, where his options are,
-// rather than at the ball in front of him: he would otherwise keep looking
-// wherever he took it, at his own goal after a ball rolled back to him.
+// in his hands and no longer runs looks up the pitch
+// (docs/goalkeeper.md#the-ball-in-his-hands).
 [[nodiscard]] SimCore::Vec2 facingAfterMove(const PlayerMatchState& player,
                                             const PlayerKinematics& moved,
                                             const BallState& ball) noexcept;
