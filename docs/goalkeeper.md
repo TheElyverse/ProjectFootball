@@ -9,16 +9,14 @@ stops shots, and what he does with the ball once he has it.
 
 ## Positioning and sweeping
 
-The goalkeeper is a role of his own, not an outfield player who happens to
-stand in goal (GDD section 8.8, implementation plan section 6.1, stage M4). The
-player whose tactic slot holds `guardGoal` (`isGoalkeeper()`) takes up his
-place in goal by its geometry, comes off his line for a ball played in behind
-his defence when he judges he is first to it, and takes a ball in his own
-penalty area with his hands. Stopping shots ([shot stopping](#shot-stopping))
-and what he does with the ball ([distribution](#distribution)) are
-their own systems. The model lives in `sim-match`
-(`goalkeeper.hpp`); the tactical movement system places him, the pursuit
-system decides whether he comes, and reception gives him his hands.
+The goalkeeper is a role of his own (GDD section 8.8, implementation plan
+section 6.1, stage M4). The player whose tactic slot holds `guardGoal`
+(`isGoalkeeper()`) takes his place in goal by its geometry, comes off his line
+for a ball in behind his defence when he judges he is first to it, and takes a
+ball in his own penalty area with his hands. [Shot stopping](#shot-stopping)
+and [distribution](#distribution) are their own systems. The model is in
+`sim-match` (`goalkeeper.hpp`): the tactical movement system places him,
+pursuit decides whether he comes, and reception gives him his hands.
 
 ```text
 ball, phase, tactic → goalkeeperTarget()  → goalkeeperRegion()        → movement
@@ -37,10 +35,10 @@ targets.
 **On the bisector.** He stands on the bisector of the angle his two posts make
 as seen from the ball, so the ball has as much goal to either side of him. The
 bisector meets the goal line where it divides the goal in the ratio of the
-ball's distances to the posts (the angle bisector theorem), and he stands
-`depth` meters from there toward the ball. A ball out wide pulls him toward the
-near post. Everything is vector arithmetic; no trigonometry, so the place is
-the same on every platform.
+ball's distances to the posts (angle bisector theorem); he stands `depth`
+meters from there toward the ball. A ball out wide pulls him toward the near
+post. It is all vector arithmetic, no trigonometry, so the place is the same on
+every platform.
 
 **His depth** follows the situation:
 
@@ -53,10 +51,10 @@ the same on every platform.
 
 His defensive line is the outfield block's (`defensiveLineDepth()`, the same
 line [desired regions](team-tactics.md#desired-region) scale the block into): the phase's
-`lineHeight`, shifted with the ball by its `ballShift`. So the tactic's dials
-move him: a high line takes him up with it, a deep block keeps him near his
-goal. `shotRange` is the shot decision's `maxShotDistance` (25 m): the range a
-shooter considers is the range the keeper treats as a threat.
+`lineHeight`, shifted with the ball by its `ballShift`. So a high line takes
+him up, a deep block keeps him near his goal. `shotRange` is the shot decision's
+`maxShotDistance` (25 m): the keeper treats as a threat what a shooter
+considers.
 
 He never stands beyond the ball, off the pitch, or wider than his posts by more
 than he stands off his goal line: near his line with the ball out wide he
@@ -65,12 +63,12 @@ guards the near post, not the corner flag.
 **Taking up his place.** `goalkeeperRegion()` is his desired region: the target
 as its tactical target and, as its centre, where he actually goes — the target
 off by a triangular draw along his bisector and one across it, spread by `positionErrorAlong` (1.5 m) and `positionErrorAcross`
-(0.6 m) times `1 − keeperPositioning`. A keeper of positioning 1 stands exactly
-on his target, an average one (0.5) up to 0.75 m off it, and a poor one opens
-the near corner now and then. The draws come from the `kExecution` stream, four
-every time the tactical movement system runs (`positioning.intervalTicks`),
-whatever his skill. He runs straight to that centre: none of the outfield
-costs — spacing, pressure, occupancy — apply to him.
+(0.6 m) times `1 − keeperPositioning`. Positioning 1 stands exactly on the
+target, an average keeper (0.5) up to 0.75 m off it; a poor one opens the near
+corner now and then. Four draws from the `kExecution` stream per run of the
+tactical movement system (`positioning.intervalTicks`), whatever his skill. He
+runs straight to that centre; the outfield costs (spacing, pressure, occupancy)
+do not apply.
 
 **With his side on the ball** he decides like a teammate of the carrier, every
 time an [off-ball decision](team-tactics.md#off-ball-movement) is due, but between two
@@ -109,11 +107,10 @@ ball he would take in front of his defence he chases like anyone:
    the keeper keeps his place in goal.
 
 A ball he stays home for he leaves. While he comes for one he judges it again
-at every pursuit update, with the misjudgement he drew for it and the
-threshold lowered by `sweepHysteresis` (0.1 s), so he abandons a run that has
-become hopeless without running out and back. Once a teammate is earlier to
-the ball than he is, he turns back too and leaves the ball to him. A ball his
-own side played last he comes for like any other chaser.
+at every pursuit update, with the same misjudgement and the threshold lowered
+by `sweepHysteresis` (0.1 s); so he abandons a hopeless run without dithering.
+Once a teammate is earlier to the ball, he turns back. A ball his own side
+played last he chases like anyone.
 
 Each judgement and each turn back he calls himself is reported as a
 `SweepDiagnostic` with both arrival times, the misjudgement and the threshold; the
@@ -131,11 +128,12 @@ of him and up to `handsHeight` (2.2 m), against the feet's `controlRadius` and
 `controlHeight` (1 m each) of everyone else (`ReceptionConfig`). That holds for
 passes and loose balls alike; a shot at his goal he meets with a dive instead
 ([shot stopping](#shot-stopping)). Outside his area he plays as an outfield
-player, with his feet. A ball he takes with his hands he holds: nobody
-takes him on for it in a [duel](duels.md#duels-on-the-ball), he throws or punts it, and once it has left his hands
-he may not take it in them again until another player has touched it
-([distribution](#distribution)). There is no back-pass rule and
-no six-second rule yet.
+player, with his feet. A ball he takes with his hands he holds: nobody takes
+him on for it in a [duel](duels.md#duels-on-the-ball), he throws or punts it,
+and once it has left his hands he may not take it in them again until another
+player has touched it ([distribution](#distribution)). There is no back-pass
+rule yet; holding the ball too long is the eight-second rule of
+[restarts](match-engine.md#holding-the-ball-too-long).
 
 ### Recognising him
 
@@ -185,22 +183,20 @@ threshold more than twice as often as one of 0.8, and one of 1 never does
 
 ### What this is not
 
-What he does with the ball is [distribution](#distribution). He
-does not command his area
-for crosses, organise his defence or come for high balls in the air beyond what
-his hands reach on the ground. The pursuit system's estimate asks a player to
-reach the ball's point rather than come within his reach of it, so a call that
-would flip as the ball runs past an attacker is kept by leaving a ball once.
+- He does not command his area or organise his defence. High balls in his
+  area he contests in the air ([aerial duels](duels.md#the-keepers-hands)).
+- Pursuit asks a player to reach the ball's point, not to come within reach of
+  it; a call that would flip as the ball runs past an attacker is kept by
+  leaving a ball once.
 
 ## Shot stopping
 
-A [shot](on-ball.md#shooting) on its way to goal meets the keeper. He reacts, reads
-where the ball will pass him, runs across if there is time, dives the rest of
-the way, and when the ball passes him he holds it, parries it or is beaten;
-then he is down for a moment before he can go again (GDD section 8.8). The
-model lives in `sim-match` (`shotStopping.hpp`): the shot stopping system makes
-the decision, the movement system moves him by it and the
-[ball system](ball.md#ball-movement) carries it out.
+A [shot](on-ball.md#shooting) on its way to goal meets the keeper. He reacts,
+reads where the ball will pass him, runs across if there is time and dives the
+rest. When it passes him he holds it, parries it or is beaten; then he is down
+for a moment (GDD section 8.8). The model is in `sim-match`
+(`shotStopping.hpp`): the shot stopping system decides, the movement system
+moves him, and the [ball system](ball.md#ball-movement) carries it out.
 
 ```text
 strike or deflection → reaction  → decideDive()       → run, dive    → the ball passes his plane → touchesKeeper()? → executeSave()
@@ -272,11 +268,10 @@ While he runs his hands stay ready, `readyHeight` (1.4 m) above his feet
 (`readyHands()`). Then they go in a straight line to his target at
 `diveSpeed` (6 m/s) (`handsAt()`). They reach no farther from his feet than an
 ellipse in his plane: `diveReach` (2.8 m) to either side along the ground and
-`jumpReach` (2.5 m) up (`clampToReach()`). The ellipse is what makes the top
-corner hard: with his body's reach, from where his feet are, he gets to a low
-ball 3.3 m to his side, to one just under the crossbar about 1.1 m. And the
-farther the corner, the longer his hands take to get there — which a run
-before the dive can make up for, if the shot gives him the time.
+`jumpReach` (2.5 m) up (`clampToReach()`). The ellipse makes the top corner
+hard: with his body's reach he gets to a low ball 3.3 m to his side, to one
+just under the crossbar about 1.1 m. The farther the corner, the longer his
+hands take; a run before the dive makes up for that if there is time.
 
 He **touches** the ball if its centre comes within `bodyReach` (0.5 m) of the
 line from his feet to his hands (`touchesKeeper()`): his body, his arms and his
@@ -432,24 +427,24 @@ set.
 
 ### What this is not
 
-He does not anticipate a shot before it is struck, and he runs and dives from
-a standing start across his plane only: he does not step toward the ball to
-narrow the angle once it is struck. He does not smother a ball at the
-shooter's feet, come out to block, punch a ball clear or claim a cross (#93,
-#94). The dive moves his hands and puts his body under them; how his body
-flies is not modelled beyond that.
+- He does not anticipate a shot before it is struck, and runs and dives only
+  across his plane: no step toward the ball to narrow the angle.
+- He does not smother a ball at the shooter's feet or come out to block (#93).
+  Catching and punching high balls are
+  [aerial duels](duels.md#the-keepers-hands).
+- The dive moves his hands and puts his body under them; the body's flight is
+  not modelled further.
 
 ## Distribution
 
-A goalkeeper with the ball restarts his side's play his own way: he throws it
-out of his hands, punts it, plays out with his feet or kicks it long, and he
-takes the goal kick (GDD section 8.8). He decides like every player on the
-ball ([pass decisions](on-ball.md#pass-decisions)) — the same pipeline, the same
-softmax, the same `kAi` stream — from a list of options that holds his own
-next to the ground passes everyone has. How much he plays out and how often
-he goes long is his tactic's call. The model lives in `sim-match`
-(`distribution.hpp`); the [ball system](ball.md#ball-movement) carries it out and
-the [restart system](match-engine.md#restarts) places the goal kick.
+A goalkeeper with the ball throws it, punts it, plays out with his feet or
+kicks it long, and he takes the goal kick (GDD section 8.8). He decides like
+every player on the ball ([pass decisions](on-ball.md#pass-decisions)) — same
+pipeline, same softmax, same `kAi` stream — with his own options added to the
+ground passes. His tactic decides how much he plays out and goes long. The
+model is in `sim-match` (`distribution.hpp`); the
+[ball system](ball.md#ball-movement) carries it out, and the
+[restart system](match-engine.md#restarts) places the goal kick.
 
 ```text
 ball in his hands or at his feet
@@ -468,10 +463,9 @@ a caught shot, a high ball he holds in the air) **holds** it: the ball's
 `held` is true. Holding it
 
 - he stands where he took it: his movement target is gone;
-- once he no longer runs he looks up the pitch, where his options are, not
-  at the ball in his hands -- he would otherwise keep looking wherever he
-  took it, at his own goal after a ball rolled back to him, see no one to
-  play to and keep the ball for good;
+- once he no longer runs he looks up the pitch, where his options are, not at
+  the ball in his hands; otherwise he could face his own goal after a back
+  pass, see no one and keep the ball for good;
 - nobody takes him on for it in a [duel](duels.md#duels-on-the-ball);
 - he keeps it at least `holdSeconds` (2 s) from the moment he took it, for
   his side to get into shape, against the half second (`minHoldSeconds`)
@@ -526,9 +520,8 @@ The long balls join his ground passes in one list, ordered as
 `orderPassCandidates()` orders every pass list; the choice among them is the
 carrier's softmax.
 
-Long distribution is contested because it flies: the ball system plays it on
-the [flight model](ball.md#flight), and whoever gets to it where it
-comes down wins it in the air ([aerial duels](duels.md#aerial-duels-and-headers)) or at his
+A long ball flies on the [flight model](ball.md#flight); where it comes down it
+is won in the air ([aerial duels](duels.md#aerial-duels-and-headers)) or at the
 feet ([reception](ball.md#reception-interceptions-and-loose-balls)).
 
 ### The tactic's dial
@@ -541,11 +534,10 @@ long balls alone, as a part of their own:
 loftedBias = directnessWeight · (2 · directness − 1)
 ```
 
-With the default `directnessWeight` of 0.5, a keeper of directness 0 finds
-every long ball half a point worse than its merits, one of 1 half a point
-better, and one of 0.5 weighs both on their merits: nothing is hard-coded but
-the scores. The presets: possession 0.15, reference 0.5, pressing 0.6,
-counter 0.85. A side without a tactic has no keeper and no long balls.
+With the default `directnessWeight` of 0.5, directness 0 makes every long
+ball half a point worse, 1 half a point better, and 0.5 judges it on its
+merits. The presets: possession 0.15, reference 0.5, pressing 0.6, counter
+0.85. A side without a tactic has no keeper and no long balls.
 
 `passContributions()` reports the bias as `directness` (0 for every ground
 pass), and the [decision trace](tooling.md#decision-trace) names it the reason when it
@@ -628,11 +620,12 @@ the ball, and `restartTests.cpp` where a goal kick is taken from.
 
 ### What this is not
 
-He does not drop the ball to play it with his feet, roll it with a chosen
-pace, throw it overarm through the air or drop-kick it, and a punt leaves the
-ground, not his hands. There is no back-pass rule — he takes a teammate's pass
-in his hands — no six-second rule, no rule that the taker of a goal kick may
-not play the ball twice, and the opponents need not leave the penalty area for
-a goal kick. Outfield players do not kick long; lofted passes and crosses are
-theirs to come (#94). Who he aims a long ball at is a teammate's position, not
-a space to run onto, and the flight time is the same for every distance.
+- He does not drop the ball to his feet, roll it at a chosen pace, throw it
+  overarm or drop-kick it; a punt leaves the ground, not his hands.
+- No back-pass rule (he takes a teammate's pass in his hands), no rule against
+  the goal kick taker playing the ball twice, and opponents need not leave the
+  penalty area for a goal kick.
+- Outfield players do not kick long; their lofted passes and crosses are to
+  come (#94).
+- A long ball aims at a teammate's position, not a space to run onto, and its
+  flight time is the same for every distance.
