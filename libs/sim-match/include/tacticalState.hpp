@@ -249,9 +249,28 @@ struct PlayerTacticalState {
   friend bool operator==(const PlayerTacticalState&, const PlayerTacticalState&) = default;
 };
 
+// What keeps a player from playing on: the questions every system asks of
+// his tactical state rather than of the fields behind them, so a new way to
+// be out of play has one place to go.
+
 // Whether a player who stumbled in a duel is still off his feet at the start
 // of tick now: he stands, takes no ball, chases none and starts no duel
 // (docs/duels.md#duels-on-the-ball).
 [[nodiscard]] bool isStumbling(const PlayerTacticalState& tactical, SimCore::SimTick now) noexcept;
+
+// Whether the dive keeps him busy this long after he went: in the air or
+// down. A keeper who left the ball never is.
+[[nodiscard]] bool isBusy(const KeeperDive& dive, double seconds) noexcept;
+
+// Whether a goalkeeper is busy with a dive at the start of tick now: he takes
+// no ball and chases none until he is up again
+// (docs/goalkeeper.md#shot-stopping).
+[[nodiscard]] bool isDiving(const PlayerTacticalState& tactical, SimCore::SimTick now,
+                            double secondsPerTick) noexcept;
+
+// Whether he is off his feet at the start of tick now, stumbling or diving:
+// he chases no ball and faces no shot.
+[[nodiscard]] bool isOffHisFeet(const PlayerTacticalState& tactical, SimCore::SimTick now,
+                                double secondsPerTick) noexcept;
 
 }  // namespace ElyverseFootball::SimMatch

@@ -135,17 +135,6 @@ std::optional<std::size_t> facingKeeper(const MatchState& state, const BallState
   return std::nullopt;
 }
 
-bool isBusy(const KeeperDive& dive, const double seconds) noexcept {
-  return seconds < dive.landSeconds + dive.recoverySeconds;
-}
-
-bool isDiving(const MatchState& state, const std::size_t playerIndex, const SimCore::SimTick now,
-              const double secondsPerTick) {
-  const auto& dive = state.tactical(playerIndex).dive;
-  return dive &&
-         isBusy(*dive, static_cast<double>(now.value() - dive->tick.value()) * secondsPerTick);
-}
-
 PlanePoint readyHands(const ShotStoppingConfig& config) noexcept {
   return {.across = 0.0, .up = config.readyHeight};
 }
@@ -403,8 +392,7 @@ MatchSystem makeShotStoppingSystem(const ShotStoppingConfig& config, const BallP
             // A keeper off his feet after a duel dives for nothing.
             const auto& answered = current.tactical(*keeper).dive;
             if ((answered && answers(*answered, ball)) ||
-                isDiving(current, *keeper, context.tick(), context.secondsPerTick()) ||
-                isStumbling(next.tactical(*keeper), context.tick())) {
+                isOffHisFeet(next.tactical(*keeper), context.tick(), context.secondsPerTick())) {
               return;
             }
             // A facing keeper faces a ball with a last touch.

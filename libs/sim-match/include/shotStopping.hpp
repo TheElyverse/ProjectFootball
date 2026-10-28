@@ -98,15 +98,6 @@ inline constexpr std::string_view kShotStoppingSystemName = "shot stopping";
                                                       const BallPhysics& physics,
                                                       const ShotStoppingConfig& config);
 
-// Whether the dive keeps him busy this long after he went: in the air or
-// down. A keeper who left the ball never is.
-[[nodiscard]] bool isBusy(const KeeperDive& dive, double seconds) noexcept;
-
-// Whether the player at this index is busy with a dive at the start of tick
-// `now`.
-[[nodiscard]] bool isDiving(const MatchState& state, std::size_t playerIndex, SimCore::SimTick now,
-                            double secondsPerTick);
-
 // Where his hands are as he stands set: above his feet at readyHeight.
 [[nodiscard]] PlanePoint readyHands(const ShotStoppingConfig& config) noexcept;
 
