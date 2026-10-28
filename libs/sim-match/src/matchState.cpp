@@ -205,6 +205,11 @@ void appendNonFiniteBallErrors(const BallState& ball, std::vector<MatchStateErro
     errors.push_back({.code = MatchStateErrorCode::kNonFiniteBallSpin,
                       .message = "the ball has a non-finite spin: " + formatNumber(ball.spin)});
   }
+  if (!isFinite(ball.sideSpin)) {
+    errors.push_back(
+        {.code = MatchStateErrorCode::kNonFiniteBallSpin,
+         .message = "the ball has a non-finite sidespin: " + formatNumber(ball.sideSpin)});
+  }
 }
 
 void validatePlayers(const MatchStateSpec& spec, std::vector<MatchStateError>& errors) {
@@ -282,6 +287,11 @@ void validateBall(const MatchStateSpec& spec, std::vector<MatchStateError>& erro
   if (isFinite(spec.ball.spin) && std::abs(spec.ball.spin) > kMaxBallSpin) {
     errors.push_back({.code = MatchStateErrorCode::kBallSpinningTooFast,
                       .message = "the ball spins at " + formatNumber(spec.ball.spin) +
+                                 " rad/s, faster than " + formatNumber(kMaxBallSpin) + " rad/s"});
+  }
+  if (isFinite(spec.ball.sideSpin) && std::abs(spec.ball.sideSpin) > kMaxBallSpin) {
+    errors.push_back({.code = MatchStateErrorCode::kBallSpinningTooFast,
+                      .message = "the ball spins sideways at " + formatNumber(spec.ball.sideSpin) +
                                  " rad/s, faster than " + formatNumber(kMaxBallSpin) + " rad/s"});
   }
   if (spec.ball.lastTouch && !hasPlayer(spec.players, spec.ball.lastTouch->playerId)) {

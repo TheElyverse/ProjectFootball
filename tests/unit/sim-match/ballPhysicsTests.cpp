@@ -9,13 +9,18 @@
 #include "ballPhysics.hpp"
 #include "matchState.hpp"
 #include "pitch.hpp"
+#include "stableHash.hpp"
 #include "vec2.hpp"
 
 using Catch::Matchers::WithinAbs;
 using ElyverseFootball::SimCore::Vec2;
+using ElyverseFootball::SimMatch::aimAlongArc;
+using ElyverseFootball::SimMatch::alongArc;
+using ElyverseFootball::SimMatch::ArcAim;
 using ElyverseFootball::SimMatch::BallLanding;
 using ElyverseFootball::SimMatch::BallPhysics;
 using ElyverseFootball::SimMatch::BallState;
+using ElyverseFootball::SimMatch::flightSeconds;
 using ElyverseFootball::SimMatch::isInFlight;
 using ElyverseFootball::SimMatch::Pitch;
 using ElyverseFootball::SimMatch::predictBallLanding;
@@ -381,4 +386,117 @@ TEST_CASE("The physics reject constants a ball cannot have", "[ballPhysics]") {
   rejects([](BallPhysics& physics) { physics.spinTransfer = 2.0; });
   rejects([](BallPhysics& physics) { physics.spinDecay = -0.5; });
   rejects([](BallPhysics& physics) { physics.restingVerticalSpeed = -1.0; });
+}
+
+TEST_CASE("Sidespin curves a flight along a circle", "[ballPhysics][curve]") {
+  const BallPhysics physics;
+  BallState ball = ballAt({.x = 10.0, .y = 20.0}, {.x = 20.0, .y = 0.0}, {.verticalVelocity = 4.0});
+  ball.sideSpin = 50.0;
+  const double radius = 1.0 / (physics.magnusCurvature * ball.sideSpin);
+  // Turning left of +x, the circle's centre lies at +y.
+  const Vec2 centre{.x = 10.0, .y = 20.0 + radius};
+
+  BallState moved = ball;
+  for (int tick = 0; tick < 20 && isInFlight(moved); ++tick) {
+    moved = stepFreeBall(moved, physics, pitch(), kSecondsPerTick);
+    CAPTURE(tick);
+    REQUIRE_THAT((moved.position - centre).length(), WithinAbs(radius, 1e-9));
+    // It heads along the circle: square to the radius.
+    REQUIRE_THAT(moved.velocity.dot(moved.position - centre), WithinAbs(0.0, 1e-9));
+  }
+  REQUIRE(moved.position.y > ball.position.y);
+  REQUIRE(moved.sideSpin == ball.sideSpin);
+
+  // The other way round curls the mirror image, bit for bit.
+  BallState mirrored = ball;
+  mirrored.sideSpin = -ball.sideSpin;
+  const BallState left = after(ball, 0.5, kSecondsPerTick, physics);
+  const BallState right = after(mirrored, 0.5, kSecondsPerTick, physics);
+  REQUIRE(right.position.x == left.position.x);
+  REQUIRE(right.position.y - 20.0 == -(left.position.y - 20.0));
+}
+
+TEST_CASE("A curving flight comes out the same at any tick rate", "[ballPhysics][curve]") {
+  BallState ball =
+      ballAt({.x = 8.0, .y = 20.0}, {.x = 14.0, .y = 3.0}, {.verticalVelocity = 9.0, .spin = 30.0});
+  ball.sideSpin = -40.0;
+
+  const BallState slow = after(ball, 2.0, 1.0 / 30.0);
+  for (const BallState& stepped : {after(ball, 2.0, 1.0 / 120.0), after(ball, 2.0, 1.0 / 300.0)}) {
+    REQUIRE_THAT(stepped.position.x, WithinAbs(slow.position.x, 1e-6));
+    REQUIRE_THAT(stepped.position.y, WithinAbs(slow.position.y, 1e-6));
+    REQUIRE_THAT(stepped.height, WithinAbs(slow.height, 1e-6));
+    REQUIRE_THAT(stepped.velocity.x, WithinAbs(slow.velocity.x, 1e-6));
+    REQUIRE_THAT(stepped.velocity.y, WithinAbs(slow.velocity.y, 1e-6));
+  }
+  // Without sidespin the same ball flies straight on.
+  BallState straight = ball;
+  straight.sideSpin = 0.0;
+  REQUIRE(after(straight, 1.0, kSecondsPerTick).position.y !=
+          after(ball, 1.0, kSecondsPerTick).position.y);
+}
+
+TEST_CASE("A curving flight is pinned bit for bit", "[ballPhysics][curve]") {
+  // Golden hash of a curled shot stepped through its flight and bounces: a
+  // change to the curve, or a platform that computes it differently, fails.
+  BallState ball = ballAt({.x = 40.0, .y = 12.0}, {.x = 18.0, .y = 4.0},
+                          {.verticalVelocity = 3.5, .spin = 10.0});
+  ball.sideSpin = 45.0;
+  ElyverseFootball::SimCore::StableHasher hasher;
+  for (int tick = 0; tick < 60; ++tick) {
+    ball = stepFreeBall(ball, BallPhysics{}, pitch(), kSecondsPerTick);
+    hasher.addDouble(ball.position.x);
+    hasher.addDouble(ball.position.y);
+    hasher.addDouble(ball.height);
+    hasher.addDouble(ball.velocity.x);
+    hasher.addDouble(ball.velocity.y);
+  }
+  REQUIRE(hasher.value() == 0xff7eac34535641e8ULL);
+}
+
+TEST_CASE("The landing prediction follows the curve", "[ballPhysics][curve]") {
+  const BallPhysics physics;
+  BallState ball = ballAt({.x = 12.0, .y = 18.0}, {.x = 15.0, .y = 0.0},
+                          {.height = 0.5, .verticalVelocity = 6.0});
+  ball.sideSpin = -60.0;
+  const auto landing = predictBallLanding(ball, physics);
+  REQUIRE(landing.has_value());
+  const BallLanding predicted = landing.value_or(BallLanding{});
+  const BallState arrived = after(ball, predicted.seconds, predicted.seconds / 600.0, physics);
+  REQUIRE_THAT(arrived.position.x, WithinAbs(predicted.position.x, 1e-3));
+  REQUIRE_THAT(arrived.position.y, WithinAbs(predicted.position.y, 1e-3));
+  // Curling right, it lands well below the straight line's y.
+  REQUIRE(predicted.position.y < 18.0 - 0.5);
+}
+
+TEST_CASE("A ball aimed along an arc arrives where it was aimed", "[ballPhysics][curve]") {
+  const Vec2 from{.x = 30.0, .y = 25.0};
+  const Vec2 toward{.x = 60.0, .y = 19.0};
+  for (const double curvature : {0.04, -0.03, 0.0, 0.5}) {
+    CAPTURE(curvature);
+    const ArcAim aim = aimAlongArc(from, toward, curvature);
+    const Vec2 reached = from + alongArc(aim.direction, aim.length, aim.curvature).offset;
+    REQUIRE_THAT(reached.x, WithinAbs(toward.x, 1e-9));
+    REQUIRE_THAT(reached.y, WithinAbs(toward.y, 1e-9));
+    REQUIRE_THAT(aim.direction.length(), WithinAbs(1.0, 1e-12));
+    REQUIRE(aim.length >= (toward - from).length());
+  }
+  // Too sharp to arrive within a sixth of a circle: eased to that.
+  const double distance = (toward - from).length();
+  REQUIRE_THAT(aimAlongArc(from, toward, 0.5).curvature, WithinAbs(1.0 / distance, 1e-15));
+  REQUIRE(aimAlongArc(from, toward, 0.0).direction == (toward - from) * (1.0 / distance));
+}
+
+TEST_CASE("The flight time over a distance inverts the flight's span", "[ballPhysics][curve]") {
+  const BallPhysics physics;
+  for (const double distance : {0.5, 5.0, 20.0, 30.0}) {
+    CAPTURE(distance);
+    const double seconds = flightSeconds(distance, 12.0, physics);
+    const double covered = 12.0 * (1.0 - std::exp(-physics.airDrag * seconds)) / physics.airDrag;
+    REQUIRE_THAT(covered, WithinAbs(distance, 1e-9));
+  }
+  REQUIRE(flightSeconds(0.0, 12.0, physics) == 0.0);
+  REQUIRE(flightSeconds(10.0, 12.0, BallPhysics{.airDrag = 0.0}) == 10.0 / 12.0);
+  // Drag stops a 12 m/s ball short of 12 / 0.33 m.
+  REQUIRE(std::isinf(flightSeconds(40.0, 12.0, physics)));
 }

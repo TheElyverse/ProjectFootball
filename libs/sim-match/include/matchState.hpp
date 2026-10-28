@@ -15,6 +15,7 @@
 #include "observation.hpp"
 #include "pitch.hpp"
 #include "pitchControlGrid.hpp"
+#include "shotType.hpp"
 #include "simTime.hpp"
 #include "tactic.hpp"
 #include "tacticalPhase.hpp"
@@ -195,8 +196,9 @@ struct CarryTouch {
 //
 // spin is top- or backspin in radians per second about the horizontal axis
 // across its direction of travel: positive is topspin, which drives the ball
-// on when it bounces, negative backspin, which checks it. Sidespin, and with
-// it a curving flight, is not modelled yet.
+// on when it bounces, negative backspin, which checks it. sideSpin is spin in
+// radians per second about the vertical axis: positive curls a flying ball to
+// the left of its travel, negative to the right (docs/ball.md#curve).
 //
 // held is whether the owner holds the ball in his hands: a goalkeeper who
 // took it with them (docs/goalkeeper.md#distribution). Only an owned ball can
@@ -214,6 +216,7 @@ struct BallState {
   double height = 0.0;
   double verticalVelocity = 0.0;
   double spin = 0.0;
+  double sideSpin = 0.0;
   bool held = false;
   std::optional<CarryTouch> touch = std::nullopt;
 
@@ -435,6 +438,10 @@ struct ShotIntent {
   double height = 0.0;
   // How fast the ball should leave the foot, in meters per second.
   double speed = 0.0;
+  // How he strikes it, and for a curled shot the curvature of its path in
+  // radians per meter, positive bending left (docs/on-ball.md#shot-types).
+  ShotType type = ShotType::kDriven;
+  double curvature = 0.0;
 
   friend bool operator==(const ShotIntent&, const ShotIntent&) = default;
 };
@@ -643,6 +650,7 @@ class MatchStateWriter {
     state_->ball_.verticalVelocity = verticalVelocity;
   }
   void setBallSpin(double spin) noexcept { state_->ball_.spin = spin; }
+  void setBallSideSpin(double sideSpin) noexcept { state_->ball_.sideSpin = sideSpin; }
   // Hands the ball to a player, or frees it with std::nullopt -- at his feet
   // either way, ending any touch: setBallHeld() puts it in his hands. Throws
   // std::invalid_argument for an id no player in the state has, so the ball

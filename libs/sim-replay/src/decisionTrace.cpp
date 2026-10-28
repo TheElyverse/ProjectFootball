@@ -86,11 +86,19 @@ using SimMatch::MatchEvent;
                                    const std::string& line, const std::string& context) {
   const SimMatch::ShotCandidate& shot = decision.shots.at(chosen);
   const SimMatch::ShotContributions parts = SimMatch::shotContributions(shot, decision.shotScoring);
+  // A driven shot reads "shoots at", a curled one "curls a shot at", a chip
+  // "chips at" (docs/on-ball.md#shot-types).
+  std::string_view verb = "shoots at";
+  if (shot.type == SimMatch::ShotType::kCurled) {
+    verb = "curls a shot at";
+  } else if (shot.type == SimMatch::ShotType::kChipped) {
+    verb = "chips at";
+  }
   return line + std::format(
-                    "shoots at ({:.1f}, {:.1f}) {:.2f} m high (utility {:.2f}: goal {} "
+                    "{} ({:.1f}, {:.1f}) {:.2f} m high (utility {:.2f}: goal {} "
                     "secondBall {} possession {}; goal chance {:.2f}{}, save {:.2f}{}, block "
                     "{:.2f}{}; {}) because {}",
-                    shot.target.x, shot.target.y, shot.height, shot.utility,
+                    verb, shot.target.x, shot.target.y, shot.height, shot.utility,
                     signedNumber(parts.goal), signedNumber(parts.secondBall),
                     signedNumber(parts.possession), shot.goalChance,
                     judgedNote(shot.goalChance, shot.judgedGoalChance), shot.saveRisk,

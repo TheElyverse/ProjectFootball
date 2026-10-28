@@ -20,8 +20,11 @@
 #include "passing.hpp"
 #include "scenarios.hpp"
 #include "shotCandidate.hpp"
+#include "shotType.hpp"
+#include "stableHash.hpp"
 
 using ElyverseFootball::SimCore::PlayerId;
+using ElyverseFootball::SimMatch::addEvent;
 using ElyverseFootball::SimMatch::DecisionDiagnostic;
 using ElyverseFootball::SimMatch::DecisionOutcome;
 using ElyverseFootball::SimMatch::DiagnosticsFilter;
@@ -39,6 +42,7 @@ using ElyverseFootball::SimMatch::ShotHitWoodwork;
 using ElyverseFootball::SimMatch::ShotOutcome;
 using ElyverseFootball::SimMatch::ShotRejection;
 using ElyverseFootball::SimMatch::ShotResolved;
+using ElyverseFootball::SimMatch::ShotType;
 using ElyverseFootball::SimMatch::startMatch;
 
 namespace {
@@ -139,7 +143,7 @@ TEST_CASE("Shots: decision-making shapes how surely a clear chance is taken",
   CAPTURE(best, average, worst);
   REQUIRE(best >= 98);
   REQUIRE(average >= 90);
-  REQUIRE(worst > static_cast<int>(kSeeds / 2));
+  REQUIRE(std::cmp_greater(worst, kSeeds / 2));
   // So clear a chance leaves little room: the better decider shoots at least
   // as often (the gradient on a closer choice: tests/unit/sim-match/passDecisionTests.cpp).
   REQUIRE(best >= average);
@@ -167,7 +171,7 @@ TEST_CASE("Shots: a blocked lane is mostly passed around", "[acceptance][shots]"
     REQUIRE_FALSE(decision.shots.empty());
     // The middle of the goal, low: straight past the defender.
     const auto middle = std::ranges::find_if(decision.shots, [](const ShotCandidate& shot) {
-      return shot.column == 3 && shot.row == 0;
+      return shot.column == 3 && shot.row == 0 && shot.type == ShotType::kDriven;
     });
     REQUIRE(middle != decision.shots.end());
     blocked += middle != decision.shots.end() && middle->blockRisk >= 0.5 ? 1 : 0;
@@ -250,4 +254,106 @@ TEST_CASE("Shots: a clear chance is mostly scored", "[acceptance][shots]") {
   REQUIRE(goals >= 55);
   REQUIRE(goals <= 90);
   REQUIRE(onTarget >= goals);
+}
+
+namespace {
+
+// A shot scenario played for four seconds: player 1's first decision, the
+// type of the first shot, what became of it, and the hash of every event.
+struct PlayedShot {
+  DecisionDiagnostic decision;
+  std::optional<ShotType> type;
+  std::optional<ShotOutcome> outcome;
+  std::uint64_t eventHash = 0;
+};
+
+[[nodiscard]] PlayedShot playedShot(const std::string_view scenario, const std::uint64_t seed) {
+  const auto* definition = findScenario(scenario);
+  REQUIRE(definition != nullptr);
+  auto setup = definition->make(seed);
+  REQUIRE(setup.has_value());
+  MatchSimulation simulation = startMatch(*setup);
+  simulation.setCollectDiagnostics(true);
+  simulation.setDiagnosticsFilter(
+      DiagnosticsFilter{.players = {PlayerId(1)}, .from = std::nullopt, .to = std::nullopt});
+  PlayedShot played;
+  std::optional<DecisionDiagnostic> first;
+  ElyverseFootball::SimCore::StableHasher events;
+  for (int tick = 0; tick < 120; ++tick) {
+    REQUIRE(simulation.step().has_value());
+    for (const DecisionDiagnostic& decision : simulation.diagnostics()) {
+      if (!first) {
+        first = decision;
+      }
+    }
+    for (const auto& event : simulation.events()) {
+      addEvent(events, event);
+      if (const auto* shot = std::get_if<ShotAttempted>(&event); shot != nullptr && !played.type) {
+        played.type = shot->type;
+      }
+      if (const auto* resolved = std::get_if<ShotResolved>(&event);
+          resolved != nullptr && !played.outcome) {
+        played.outcome = resolved->outcome;
+      }
+    }
+  }
+  REQUIRE(first.has_value());
+  played.decision = first.value_or(DecisionDiagnostic{});
+  played.eventHash = events.value();
+  return played;
+}
+
+}  // namespace
+
+TEST_CASE("Shots: a curled shot goes around a wall", "[acceptance][shots]") {
+  int curled = 0;
+  int blocked = 0;
+  for (std::uint64_t seed = 1; seed <= kSeeds; ++seed) {
+    const PlayedShot played = playedShot("curl-around-wall", seed);
+    const DecisionDiagnostic& decision = played.decision;
+    CAPTURE(seed);
+    // Every driven shot runs into the wall; the best shot bends around it.
+    for (const ShotCandidate& shot : decision.shots) {
+      if (shot.type == ShotType::kDriven) {
+        REQUIRE(shot.rejection == ShotRejection::kBlocked);
+      }
+    }
+    REQUIRE(decision.shots.front().type == ShotType::kCurled);
+    REQUIRE(decision.shots.front().isValid());
+    REQUIRE(decision.shots.front().blockRisk < 0.1);
+    curled += played.type == ShotType::kCurled ? 1 : 0;
+    blocked += played.outcome == ShotOutcome::kBlocked ? 1 : 0;
+  }
+  CAPTURE(curled, blocked);
+  REQUIRE(curled >= 90);
+  // It curls past the wall's reach: only a stray one comes off it.
+  REQUIRE(blocked <= 20);
+}
+
+TEST_CASE("Shots: an advanced keeper is chipped", "[acceptance][shots]") {
+  int chipped = 0;
+  int goals = 0;
+  for (std::uint64_t seed = 1; seed <= kSeeds; ++seed) {
+    const PlayedShot played = playedShot("chip-advanced-keeper", seed);
+    CAPTURE(seed);
+    // Driven past him the keeper saves it; over him it goes in.
+    REQUIRE(played.decision.shots.front().type == ShotType::kChipped);
+    const auto driven = std::ranges::find_if(played.decision.shots, [](const ShotCandidate& shot) {
+      return shot.type == ShotType::kDriven;
+    });
+    REQUIRE(driven != played.decision.shots.end());
+    REQUIRE(driven->saveRisk > played.decision.shots.front().saveRisk);
+    chipped += played.type == ShotType::kChipped ? 1 : 0;
+    goals += played.outcome == ShotOutcome::kGoal ? 1 : 0;
+  }
+  CAPTURE(chipped, goals);
+  REQUIRE(chipped >= 90);
+  REQUIRE(goals >= 30);
+}
+
+TEST_CASE("Shots: a curving flight replays alike", "[acceptance][shots]") {
+  for (const std::string_view scenario : {"curl-around-wall", "chip-advanced-keeper"}) {
+    CAPTURE(scenario);
+    REQUIRE(playedShot(scenario, 7).eventHash == playedShot(scenario, 7).eventHash);
+  }
 }

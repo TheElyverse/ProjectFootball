@@ -31,6 +31,9 @@ struct ShotConfig {
   // far from his a strike's spin may be for a player of average technique.
   double topspin = 30.0;    // rad/s
   double spinError = 15.0;  // rad/s
+  // The backspin of a clean chip by a player of perfect technique
+  // (docs/on-ball.md#shot-types).
+  double chipBackspin = 20.0;  // rad/s
   // What widens every error, each by this factor at its worst: 1 doubles it.
   // Pressure is that of the passes (passPressure()); balance how much of his
   // top speed the shooter moves at across or away from his shot; the weak
@@ -108,16 +111,20 @@ struct ShotStrike {
   SimCore::Vec2 velocity;
   double verticalVelocity = 0.0;
   double spin = 0.0;
+  double sideSpin = 0.0;
   SimCore::Vec2 target;
   double height = 0.0;
 };
 
 // The how-well half of a shot; the what is the ShotIntent. The ball leaves
 // the grass at `from` on the flight that brings it to the aimed height at
-// the aimed point -- no steeper than maxLaunchSlope, the nearest it gets
-// where that is not enough -- with the shooter's errors, always six draws
-// from random: shotAccuracy scatters the point it heads for, across and up,
-// shotTechnique its lift, its pace and its spin, and errorFactor
+// the aimed point -- along the arc of the intent's curvature for a curled
+// shot (aimAlongArc()), no steeper than maxLaunchSlope, the nearest it gets
+// where that is not enough -- with the spin its type asks for: topspin for a
+// driven shot, the sidespin of its curvature for a curled one, backspin for a
+// chip (docs/on-ball.md#shot-types). The shooter's errors are always six
+// draws from random: shotAccuracy scatters the point it heads for, across and
+// up, shotTechnique its lift, its pace and its spin, and errorFactor
 // (shotErrorFactor()) widens them all. A shot aimed at the grass or below it
 // is struck along it and rolls. A target on the ball itself is struck along
 // the shooter's facing.
