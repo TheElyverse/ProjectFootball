@@ -254,6 +254,15 @@ void addEventFields(Json& json, const SimMatch::DuelEnded& event) {
   json["position"] = vec2Json(event.position);
 }
 
+void addEventFields(Json& json, const SimMatch::TackleAttempted& event) {
+  json["type"] = "tackleAttempted";
+  json["tackler"] = event.tackler.value();
+  json["carrier"] = event.carrier.value();
+  json["block"] = event.block;
+  json["result"] = SimMatch::lungeResultName(event.result);
+  json["position"] = vec2Json(event.position);
+}
+
 void addEventFields(Json& json, const SimMatch::PressingStarted& event) {
   json["type"] = "pressingStarted";
   json["side"] = SimMatch::teamSideName(event.side);

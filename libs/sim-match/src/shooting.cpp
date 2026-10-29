@@ -36,9 +36,11 @@ void validate(const ShotConfig& config) {
       isFiniteNonNegative(config.weakFootSide) && isPositiveFinite(config.unsettledSeconds) &&
       isPositiveFinite(config.unsettledBallSpeed) && isFiniteNonNegative(config.deflectionSpeed) &&
       isPositiveFinite(config.blockRadius) && isFiniteNonNegative(config.blockReach) &&
-      isShare(config.minDeflectedSpeed) && isShare(config.maxDeflectedSpeed) &&
-      config.minDeflectedSpeed <= config.maxDeflectedSpeed && isShare(config.blockedBelow) &&
-      isFiniteNonNegative(config.deflectionSpread) && isFiniteNonNegative(config.deflectionLift);
+      isFiniteNonNegative(config.lungeRadius) && isFiniteNonNegative(config.lungeHeight) &&
+      isFiniteNonNegative(config.chipBackspin) && isShare(config.minDeflectedSpeed) &&
+      isShare(config.maxDeflectedSpeed) && config.minDeflectedSpeed <= config.maxDeflectedSpeed &&
+      isShare(config.blockedBelow) && isFiniteNonNegative(config.deflectionSpread) &&
+      isFiniteNonNegative(config.deflectionLift);
   if (!valid) {
     throw std::invalid_argument("shooting: invalid configuration");
   }

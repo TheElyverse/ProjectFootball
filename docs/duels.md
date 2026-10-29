@@ -188,9 +188,9 @@ beaten defender stands while the carrier accelerates away.
 | Outcome | When                                                       | Events                                                       |
 |---------|------------------------------------------------------------|--------------------------------------------------------------|
 | `kept`  | the carrier played the ball on, got more than `breakRadius` away, or the defender stopped pressing | `DuelEnded`                       |
-| `won`   | a lunge met the ball better than the carrier's hold, or the defender pushed him off his feet | `DuelEnded`, `BallWon` (cause `duel`), `PossessionChanged` |
-| `loose` | a lunge met it, but not that well, or the carrier turned himself off his feet | `DuelEnded`, `PossessionChanged` to nobody |
-| `foul`  | a lunge went through the man                                 | `DuelEnded`                                                  |
+| `won`   | a lunge met the ball better than the carrier's hold, or the defender pushed him off his feet | `TackleAttempted` for a lunge, `DuelEnded`, `BallWon` (cause `duel`), `PossessionChanged` |
+| `loose` | a lunge met it, but not that well, or the carrier turned himself off his feet | `TackleAttempted` for a lunge, `DuelEnded`, `PossessionChanged` to nobody |
+| `foul`  | a lunge went through the man                                 | `TackleAttempted`, `DuelEnded`                               |
 
 A foul is only recorded for now: play goes on, the carrier on the ball, the
 defender off his feet. Whistle, free kick and cards come with the P3 rules
@@ -199,6 +199,57 @@ which the ball system would discard anyway
 ([ball movement](ball.md#ball-movement)). `DuelStarted` and `DuelEnded`
 name the carrier and the defender and where the ball was -- for a carrier who
 turned himself off his feet, where he rolled it ([match events](match-engine.md#match-events-and-decision-diagnostics)).
+
+### Tackles and blocks
+
+A **tackle** is the defender's lunge in a duel: an action with a commitment
+(GDD §8.6). It wins the ball, knocks it loose, misses and leaves him off his
+feet, or goes through the man -- all from where his foot lands against the ball
+and the carrier's body ([the lunge](#the-lunge)), never from a roll of its own.
+Its timing is the duel's: he lunges at the ball where the carrier's last move
+left it, so a carrier who rolled it behind him is out of reach, and one whose
+way to the ball passes through the carrier is not lunged at at all. That is
+**shielding**: the carrier keeps his body between ball and defender
+([the carrier's moves](#the-carriers-moves)), the way to the ball has no
+clearance, and a clean tackle is impossible -- only a foul or jockeying is left.
+
+A **block** is the same lunge at a shot. A shot fast enough to come off a body
+([shooting](on-ball.md#on-the-way)) meets an outfield player whose body is in
+its way -- within the shooting's `blockRadius` (0.5 m), no higher than
+`blockReach` (1.8 m) -- as before. An opponent of the shooter on his feet
+lunges at it, first come first served along its way, when
+
+- it comes at him: he stands ahead of the ball along its travel,
+- it would not hit his body anyway: its line passes him farther than
+  `blockRadius`,
+- it passes him within `lungeRadius` (1 m), no higher than `lungeHeight`
+  (0.9 m),
+- and before it gets to the keeper facing it.
+
+His foot lands as a duel's lunge does at full balance (`landLunge()`): off the
+ball by a triangular draw in each direction of half-width `footError` (0.3 m),
+two draws from `kExecution`. Within `footRadius` (0.3 m) of the ball it
+**blocks** the shot: it comes off him like off a body. Missing, he is off his
+feet for `stumbleSeconds` (0.5 s), and the shot flies on to whoever is next in
+its way. A block is a reflex, not a choice: in the time a shot takes nobody
+weighs jockeying against it, so every opponent the shot comes at in reach
+lunges.
+
+The ball's height decides which of the two he can do: a low shot he can block
+from a meter away, a shot at chest height only with his body, one over his head
+not at all. The keeper does neither; he [meets](goalkeeper.md#shot-stopping) a
+shot his own way.
+
+Every lunge records **`TackleAttempted`**: the tackler, the carrier -- the
+shooter for a block --, whether it was a `block`, what it did (`won`, `loose`,
+`missed`, `foul` or `blocked`) and where the ball was. A tackle's comes before
+the `DuelEnded` it ends the duel with, a block's before its `ShotDeflected`.
+The [match events](match-engine.md#match-events-and-decision-diagnostics) carry a
+foul to the rules: the lunge that went through the man is where the foul
+system will give a free kick. The tackle tests are in `duelTests.cpp` -- where
+the foot lands decides a clean tackle, one through the player and a miss, and
+nobody commits to a shielded ball -- and every lunge of the duel scenarios is
+checked in `duelScenarioTests.cpp`, fouls included.
 
 ### Configuration
 
@@ -228,7 +279,9 @@ turned himself off his feet, where he rolled it ([match events](match-engine.md#
 | `decisionTemperature` | 0.2    | the temperature they are chosen at                           |
 
 With them, the players' `strength` and `ballControl` in `PlayerAttributes`, and
-the ball physics' `carryDistance`.
+the ball physics' `carryDistance`. A block's reach is the shooting's
+`lungeRadius` and `lungeHeight` ([tackles and blocks](#tackles-and-blocks)); its
+foot and stumble are the duel's.
 
 ### Scenarios
 
@@ -240,8 +293,9 @@ for others to chase.
 
 ### What this is not
 
-- No tackle but the lunge: no slide, no block of a shot or cross, no
-  shoulder-to-shoulder duel on the run.
+- No tackle but the lunge: no slide, no shoulder-to-shoulder duel on the run.
+  A block is the same lunge at a shot ([tackles and blocks](#tackles-and-blocks));
+  crosses do not exist yet to be blocked.
 - No feint, and no dribble inside a duel: a carrier who touches the ball on
   leaves the duel and [dribbles](on-ball.md#dribble).
 - A foul has no consequence but the defender's stumble: no free kick, card or

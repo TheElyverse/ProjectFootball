@@ -149,18 +149,16 @@ Vec2 moveTarget(const DuelMove move, const DuelGeometry& geometry,
   return geometry.carrier;
 }
 
-std::string_view lungeResultName(const LungeResult result) noexcept {
-  switch (result) {
-    case LungeResult::kMissed:
-      return "missed";
-    case LungeResult::kWon:
-      return "won";
-    case LungeResult::kLoose:
-      return "loose";
-    case LungeResult::kFoul:
-      return "foul";
-  }
-  return "unknown";
+// NOLINTNEXTLINE(bugprone-easily-swappable-parameters) -- from whom, at what, as documented.
+Vec2 landLunge(const Vec2 lunger, const Vec2 ball, const double balance, const DuelConfig& config,
+               SimCore::RandomNumberGenerator& random) noexcept {
+  const double spread = config.footError * (2.0 - balance);
+  const Vec2 aimed = ball + Vec2{.x = symmetricTriangular(random) * spread,
+                                 .y = symmetricTriangular(random) * spread};
+  // A lunge reaches no farther than tackleReach.
+  const Vec2 reach = aimed - lunger;
+  const double length = reach.length();
+  return length > config.tackleReach ? lunger + (reach * (config.tackleReach / length)) : aimed;
 }
 
 LungeResult resolveLunge(const DuelGeometry& geometry, const Vec2 foot, const double carrierBalance,
@@ -278,6 +276,12 @@ class DuelStep {
         stepped.defenderMove = DuelMove::kCommit;
         const Lunge landed = lunge(geometry, stepped, carrier.attributes.ballControl, config);
         stepped.defenderBalance = std::max(0.0, stepped.defenderBalance - config.commitCost);
+        context().record(TackleAttempted{.tick = context().tick(),
+                                         .tackler = current().players()[defenderIndex].playerId,
+                                         .carrier = duel.carrier,
+                                         .block = false,
+                                         .result = landed.result,
+                                         .position = current().ball().position});
         switch (landed.result) {
           case LungeResult::kWon:
             endDuel(defenderIndex, duel, DuelOutcome::kWon);
@@ -292,6 +296,7 @@ class DuelStep {
             stumble(defenderIndex, config);
             return;
           case LungeResult::kMissed:
+          case LungeResult::kBlocked:
             stumble(defenderIndex, config);
             break;
         }
@@ -331,9 +336,7 @@ class DuelStep {
 
  private:
   void stumble(const std::size_t index, const DuelConfig& config) const {
-    const auto ticks = static_cast<SimCore::SimTick::ValueType>(
-        std::ceil(config.stumbleSeconds / context().secondsPerTick()));
-    next().tactical(index).stumbledUntil = SimCore::SimTick(context().tick().value() + ticks);
+    next().tactical(index).stumbledUntil = stumbleEnd(context().time(), config.stumbleSeconds);
   }
   // Ends the defender's duel where the ball lies now: where the carrier rolled
   // it, if he turned himself off his feet this step.
@@ -427,16 +430,8 @@ class DuelStep {
   // The defender's lunge, decided and landed in this step.
   [[nodiscard]] Lunge lunge(const DuelGeometry& geometry, const Duel& duel,
                             const double ballControl, const DuelConfig& config) const {
-    auto& random = context().random(SimCore::RandomNumberGeneratorDomain::kExecution);
-    const double spread = config.footError * (2.0 - duel.defenderBalance);
-    const Vec2 aimed = geometry.ball + Vec2{.x = symmetricTriangular(random) * spread,
-                                            .y = symmetricTriangular(random) * spread};
-    // A lunge reaches no farther than tackleReach.
-    const Vec2 reach = aimed - geometry.defender;
-    const double length = reach.length();
-    const Vec2 foot = length > config.tackleReach
-                          ? geometry.defender + (reach * (config.tackleReach / length))
-                          : aimed;
+    const Vec2 foot = landLunge(geometry.defender, geometry.ball, duel.defenderBalance, config,
+                                context().random(SimCore::RandomNumberGeneratorDomain::kExecution));
     return {.foot = foot,
             .result = resolveLunge(geometry, foot, duel.carrierBalance, ballControl, config)};
   }

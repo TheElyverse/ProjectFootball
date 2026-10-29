@@ -258,6 +258,10 @@ struct PlayerTacticalState {
 // (docs/duels.md#duels-on-the-ball).
 [[nodiscard]] bool isStumbling(const PlayerTacticalState& tactical, SimCore::SimTick now) noexcept;
 
+// The tick until which a player who stumbles at `time` is off his feet, for
+// this many seconds: whole ticks, rounded up.
+[[nodiscard]] SimCore::SimTick stumbleEnd(SimCore::StepTime time, double seconds) noexcept;
+
 // Whether the dive keeps him busy this long after he went: in the air or
 // down. A keeper who left the ball never is.
 [[nodiscard]] bool isBusy(const KeeperDive& dive, double seconds) noexcept;
