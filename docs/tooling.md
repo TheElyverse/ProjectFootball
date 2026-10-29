@@ -896,14 +896,15 @@ Two guardrails also apply:
   7.0 -- 0.7 at worst over seeds 1 to 5 -- on the full pitch, possession against
   counter's deep block the fewest
   ([shot decisions](on-ball.md#shot-decisions)).
-- **Ownership.** No player owns the ball longer than 15 s at a time
+- **Ownership.** No player owns the ball longer than 20 s at a time
   (`longestOwnershipSeconds`, [match analytics](#match-analytics)). A carrier
   without an option once kept it for 318 s; now he
   [looks round](on-ball.md#without-a-valid-option), a carrier standing on the
   ball [is gone at](team-tactics.md#a-carrier-who-stands-on-the-ball), and a
   carrier who carries it about
-  [gets stuck](on-ball.md#holding-on-and-getting-stuck); the longest is
-  10.4 s.
+  [gets stuck](on-ball.md#holding-on-and-getting-stuck); the longest was
+  10.4 s seven a side. Eleven a side, on the longer pitch, it is 13.2 s with
+  seed 1 and 17.4 s at worst over seeds 1 to 5, so the bound rose from 15 s.
 
 The test is registered for Release builds only; in Debug it would take minutes.
 

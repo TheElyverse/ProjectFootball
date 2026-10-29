@@ -87,10 +87,11 @@ endforeach()
 # Nobody stands on the ball or carries it about for good
 # (docs/on-ball.md#pass-decisions, docs/team-tactics.md#pressing,
 # docs/on-ball.md#ball-carrying): in every match no player of either side owns
-# it longer than 15 s at a time. A carrier without an option once kept it for up
+# it longer than 20 s at a time. A carrier without an option once kept it for up
 # to 318 s against counter's deep block; since players carry the ball, touch
-# after touch, the longest is 12.7 s.
-set(maxOwnershipSeconds 15)
+# after touch, the longest was 12.7 s seven a side, and is 13.2 s eleven a
+# side with seed 1 -- 17.4 s at worst over seeds 1 to 5, on the longer pitch.
+set(maxOwnershipSeconds 20)
 foreach(index RANGE ${lastPairing})
     string(JSON matches LENGTH "${json}" pairings ${index} results)
     math(EXPR lastMatch "${matches} - 1")
