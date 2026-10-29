@@ -60,7 +60,9 @@ jobs:
         run: ctest --preset ci --label-regex acceptance --output-on-failure
 
     # P2 acceptance, reduced: the three tactical identities in a round robin,
-  # in a Release build within its time budget (docs/tooling.md#sim-benchmark).
+  # in a Release build within its time budget (docs/tooling.md#sim-benchmark),
+  # and the budget of a 90-minute eleven-a-side match
+  # (docs/match-engine.md#performance).
   style-benchmark:
     runs-on: ubuntu-latest
     env:
@@ -76,7 +78,7 @@ jobs:
         run: cmake --preset ci-release
 
       - name: Build
-        run: cmake --build --preset ci-release --target sim-benchmark
+        run: cmake --build --preset ci-release --target sim-benchmark sim-cli
 
       - name: Style benchmark
         run: ctest --preset ci-release --label-regex benchmark --output-on-failure

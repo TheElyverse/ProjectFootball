@@ -11,4 +11,8 @@ namespace ElyverseFootball::SimTactics {
 // tactical identities are data files (docs/tactics.md#tactic-model), not code.
 [[nodiscard]] TacticSpec referenceTacticSpec();
 
+// The reference tactic for eleven-a-side: the 4-4-2 formation preset with the
+// reference's principles and phases (docs/tactics.md#files).
+[[nodiscard]] TacticSpec referenceElevenASideTacticSpec();
+
 }  // namespace ElyverseFootball::SimTactics

@@ -1,5 +1,6 @@
 #include "referenceTactic.hpp"
 
+#include "formation.hpp"
 #include "rolePreset.hpp"
 
 namespace ElyverseFootball::SimTactics {
@@ -45,6 +46,16 @@ TacticSpec referenceTacticSpec() {
   for (const TacticalPhase phase : kAllPhases) {
     spec.phases.at(phaseIndex(phase)) = isInPossession(phase) ? attacking : defending;
   }
+  return spec;
+}
+
+TacticSpec referenceElevenASideTacticSpec() {
+  TacticSpec spec = referenceTacticSpec();
+  spec.name = "reference-eleven";
+  spec.description =
+      "The reference tactic for eleven-a-side: a neutral 4-4-2, middling heights, no pressing "
+      "triggers.";
+  spec.slots = formationSlots(Formation::k442);
   return spec;
 }
 

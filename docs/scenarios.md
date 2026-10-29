@@ -41,6 +41,7 @@ one.
 | `keeper-long-kick` | home's keeper on the ball under a high press goes long |
 | `goal-kick` | home plays the ball over away's goal line, away's keeper takes the goal kick |
 | `tactic-match` | the reference tactic against itself, lined up for home's kickoff   |
+| `tactic-match-eleven` | the eleven-a-side reference tactic against itself on the standard pitch, lined up for home's kickoff |
 | `transition-3v2` | home wins the ball in midfield, three attackers against two defenders ([golden](#golden-scenarios)) |
 | `isolated-winger` | home plays out to an isolated winger, away presses on the trigger |
 | `touchline-trap` | away's receiver faces his own goal at the touchline, home presses four players |
@@ -372,8 +373,13 @@ seven-a-side kickoff fixture with a tactic on each side, lined up for a
 shape in its own half, the ball on the centre spot — with the standard
 configuration and a `GiveBallCommand` at tick 0 to home's taker, the striker
 (player 7) of every preset. `makeTacticMatch()` builds it for any two tactics
-that fit seven a side; the catalog entry uses the reference tactic on both
-sides. The CLI swaps in tactic files:
+of the same size: seven-a-side ones on the sandbox, eleven-a-side ones on the
+standard pitch from the [eleven-a-side kickoff fixture](match-engine.md#the-eleven-a-side-kickoff-fixture).
+`tactic-match` uses the reference tactic on both sides, `tactic-match-eleven`
+the eleven-a-side one; `tests/acceptance/elevenASideTests.cpp` plays two
+minutes of it, valid and moving, replays it through the file format with
+identical tick and event hashes, and pins its final hashes. The CLI swaps in
+tactic files:
 
 ```sh
 ./build/debug/apps/sim-cli/sim-cli --home-tactic data/tactics/pressing.json \
@@ -381,7 +387,7 @@ sides. The CLI swaps in tactic files:
 ```
 
 `--home-tactic` and `--away-tactic` imply `--scenario tactic-match`; a side
-without one plays the reference tactic. The replay records the tactics, so it
+without one plays the reference tactic of the other's size. The replay records the tactics, so it
 plays back without the files. See
 [tactical identities](tactics.md#tactical-identities) for the presets.
 

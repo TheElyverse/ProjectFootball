@@ -412,9 +412,9 @@ not also break the squad-size rule when assigning it a side could satisfy it.
 
 Squad size is checked per side rather than as a total, because the total
 follows from the two side counts. `playersPerSide` defaults to
-`kDefaultPlayersPerSide` (7), the M0 iteration stage; 11 players a side is a
-valid spec today, so growing past seven-a-side is a different argument, not a
-different type.
+`kDefaultPlayersPerSide` (7), the sandbox of short scenarios; eleven a side is
+the same type with a different argument
+([the eleven-a-side kickoff fixture](#the-eleven-a-side-kickoff-fixture)).
 
 ### The seven-a-side kickoff fixture
 
@@ -454,6 +454,28 @@ other starting state.
 The unit tests pin the resulting coordinates. Changing a fraction changes the
 fixture, and a changed fixture invalidates every replay recorded against it —
 treat the table above as a contract, not a default.
+
+### The eleven-a-side kickoff fixture
+
+`makeElevenASideKickoff(pitch, ballVelocity = {}, tactics = {})` is the same
+fixture for eleven a side, made for the standard 105 × 68 m pitch but fitting
+any: a 4-4-2 in each half, ids 1 to 11 for home and 12 to 22 for away, away the
+mirror image of home, everyone at rest facing the goal he attacks, the ball on
+the centre spot.
+
+| Id    | Role                | x             | y            |
+|-------|---------------------|---------------|--------------|
+| 1     | goalkeeper          | 0.04 · length | 0.50 · width |
+| 2–5   | the back four       | 0.18, 0.16, 0.16, 0.18 · length | 0.12, 0.38, 0.62, 0.88 · width |
+| 6–9   | the midfield four   | 0.32, 0.30, 0.30, 0.32 · length | 0.12, 0.38, 0.62, 0.88 · width |
+| 10    | forward             | 0.44 · length | 0.40 · width |
+| 11    | forward             | 0.47 · length | 0.55 · width |
+| 12–22 | mirror of 1–11      | length − x    | unchanged    |
+
+Like the seven-a-side fixture it goes through `MatchState::create()` and
+`checkStartingPositions()`, and its coordinates are a contract. Nothing else in
+the simulation assumes a squad size: every system takes the count from the
+state (`playersPerSide()`).
 
 ### What this is not
 
@@ -651,6 +673,14 @@ swapped, and the finiteness check allocates only to report an error. Steps
 without a command skip the commanded copy; scheduling a command may allocate,
 applying it does not. A 90-minute match at 30 Hz is 162,000 steps, and the world
 simulation will run many matches headless.
+
+**The budget (implementation plan §17.1).** A headless 90-minute
+eleven-a-side match on the standard pitch must take no more than 45 s of wall
+time in a Release build on one core: at least 120 times faster than real time.
+At the time of writing `tactic-match-eleven` takes 10 to 14 s on the
+development machine, 400 to 500 times real time. The Release-only
+`eleven-a-side-budget` test plays one with seed 1 and fails above the budget;
+CI's `style-benchmark` job runs it.
 
 ### What this is not
 

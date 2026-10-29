@@ -3,6 +3,7 @@
 #include <array>
 #include <cstdint>
 #include <optional>
+#include <span>
 #include <utility>
 #include <vector>
 
@@ -34,6 +35,25 @@ constexpr std::array<FormationSlot, kDefaultPlayersPerSide> kHomeFormation{
     },
 };
 
+// Eleven-a-side, the same way: goalkeeper, the back four from the touchline at
+// y = 0, four midfielders the same way, and the two forwards, the one who
+// takes the kickoff last.
+constexpr std::array<FormationSlot, 11> kHomeElevenFormation{
+    {
+        {.lengthFraction = 0.04, .widthFraction = 0.50},
+        {.lengthFraction = 0.18, .widthFraction = 0.12},
+        {.lengthFraction = 0.16, .widthFraction = 0.38},
+        {.lengthFraction = 0.16, .widthFraction = 0.62},
+        {.lengthFraction = 0.18, .widthFraction = 0.88},
+        {.lengthFraction = 0.32, .widthFraction = 0.12},
+        {.lengthFraction = 0.30, .widthFraction = 0.38},
+        {.lengthFraction = 0.30, .widthFraction = 0.62},
+        {.lengthFraction = 0.32, .widthFraction = 0.88},
+        {.lengthFraction = 0.44, .widthFraction = 0.40},
+        {.lengthFraction = 0.47, .widthFraction = 0.55},
+    },
+};
+
 constexpr double kCenterFraction = 0.5;
 
 // Each side faces the goal it attacks: home attacks +x, away -x.
@@ -56,15 +76,14 @@ constexpr SimCore::Vec2 kTowardHomeGoal{.x = -1.0, .y = 0.0};
   };
 }
 
-}  // namespace
-
-std::expected<MatchState, std::vector<MatchStateError>> makeSevenASideKickoff(
-    const Pitch& pitch, const SimCore::Vec2 ballVelocity, TeamTactics tactics) {
+[[nodiscard]] std::expected<MatchState, std::vector<MatchStateError>> kickoffOf(
+    const std::span<const FormationSlot> formation, const Pitch& pitch,
+    const SimCore::Vec2 ballVelocity, TeamTactics tactics) {
   std::vector<PlayerMatchState> players;
-  players.reserve(2U * kHomeFormation.size());
+  players.reserve(2U * formation.size());
 
   SimCore::PlayerId::ValueType nextId = 1;
-  for (const FormationSlot slot : kHomeFormation) {
+  for (const FormationSlot slot : formation) {
     players.push_back({
         .playerId = SimCore::PlayerId(nextId++),
         .side = TeamSide::kHome,
@@ -75,7 +94,7 @@ std::expected<MatchState, std::vector<MatchStateError>> makeSevenASideKickoff(
         .facing = kTowardAwayGoal,
     });
   }
-  for (const FormationSlot slot : kHomeFormation) {
+  for (const FormationSlot slot : formation) {
     players.push_back({
         .playerId = SimCore::PlayerId(nextId++),
         .side = TeamSide::kAway,
@@ -103,7 +122,7 @@ std::expected<MatchState, std::vector<MatchStateError>> makeSevenASideKickoff(
           .pitch = pitch,
           .players = std::move(players),
           .ball = ball,
-          .playersPerSide = kDefaultPlayersPerSide,
+          .playersPerSide = static_cast<int>(formation.size()),
       },
       std::move(tactics));
   if (!state) {
@@ -113,6 +132,18 @@ std::expected<MatchState, std::vector<MatchStateError>> makeSevenASideKickoff(
     return std::unexpected(std::move(errors));
   }
   return state;
+}
+
+}  // namespace
+
+std::expected<MatchState, std::vector<MatchStateError>> makeSevenASideKickoff(
+    const Pitch& pitch, const SimCore::Vec2 ballVelocity, TeamTactics tactics) {
+  return kickoffOf(kHomeFormation, pitch, ballVelocity, std::move(tactics));
+}
+
+std::expected<MatchState, std::vector<MatchStateError>> makeElevenASideKickoff(
+    const Pitch& pitch, const SimCore::Vec2 ballVelocity, TeamTactics tactics) {
+  return kickoffOf(kHomeElevenFormation, pitch, ballVelocity, std::move(tactics));
 }
 
 }  // namespace ElyverseFootball::SimMatch

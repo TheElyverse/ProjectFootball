@@ -120,12 +120,15 @@ void listScenarios() {
   }
 }
 
-// The tactic file at path, or the reference tactic for an empty path.
+// The tactic file at path, or for an empty path the reference tactic for this
+// many slots: seven, or eleven.
 std::expected<ElyverseFootball::SimTactics::Tactic, std::string> tacticOrReference(
-    const std::string& path) {
+    const std::string& path, const std::size_t slots) {
   if (path.empty()) {
     auto reference = ElyverseFootball::SimTactics::Tactic::create(
-        ElyverseFootball::SimTactics::referenceTacticSpec());
+        slots == ElyverseFootball::SimTactics::kElevenASideSlots
+            ? ElyverseFootball::SimTactics::referenceElevenASideTacticSpec()
+            : ElyverseFootball::SimTactics::referenceTacticSpec());
     if (!reference) {
       return std::unexpected("invalid reference tactic: " + reference.error().front().message);
     }
@@ -149,13 +152,18 @@ std::expected<MatchSetup, std::string> makeSetup(
   if (options.homeTactic.empty() && options.awayTactic.empty()) {
     return scenario.make(seed);
   }
-  auto home = tacticOrReference(options.homeTactic);
+  // A side without a tactic file plays the reference tactic for the other's
+  // squad size.
+  auto home = tacticOrReference(options.homeTactic, ElyverseFootball::SimTactics::kSevenASideSlots);
   if (!home) {
     return std::unexpected(home.error());
   }
-  auto away = tacticOrReference(options.awayTactic);
+  auto away = tacticOrReference(options.awayTactic, home->slots().size());
   if (!away) {
     return std::unexpected(away.error());
+  }
+  if (options.homeTactic.empty() && away->slots().size() != home->slots().size()) {
+    home = tacticOrReference({}, away->slots().size());
   }
   return ElyverseFootball::SimMatch::makeTacticMatch(
       {.home = *std::move(home), .away = *std::move(away)}, seed);

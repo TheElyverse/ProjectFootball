@@ -1,6 +1,6 @@
 {
   "format": "elyverse-tactic",
-  "version": 3,
+  "version": 4,
   "name": "pressing",
   "description": "Hunts the ball high: a high line and short block that presses on every trigger with several players and attacks quickly after a regain.",
   "slots": [

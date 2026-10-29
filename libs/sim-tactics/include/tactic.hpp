@@ -14,9 +14,16 @@
 
 namespace ElyverseFootball::SimTactics {
 
-// A tactic is written for seven-a-side, the P2 sandbox format. Eleven-a-side
-// arrives with the P3 baseline.
-inline constexpr std::size_t kSlotsPerTactic = 7;
+// A tactic is written for seven-a-side, the sandbox format of short
+// scenarios, or for eleven-a-side on a full-size pitch
+// (docs/tactics.md#tactic-model): one slot per player of the side.
+inline constexpr std::size_t kSevenASideSlots = 7;
+inline constexpr std::size_t kElevenASideSlots = 11;
+
+// Whether a tactic of this many slots exists: seven or eleven.
+[[nodiscard]] constexpr bool isSupportedSlotCount(const std::size_t slots) noexcept {
+  return slots == kSevenASideSlots || slots == kElevenASideSlots;
+}
 
 // Where a slot stands in the base shape, as fractions of the pitch so one
 // shape fits any pitch size. depth runs from the team's own goal line (0) to
@@ -161,7 +168,7 @@ struct TacticError {
   friend bool operator==(const TacticError&, const TacticError&) = default;
 };
 
-// A validated tactic: a base shape of kSlotsPerTactic slots, team principles,
+// A validated tactic: a base shape of seven or eleven slots, team principles,
 // an instruction for every phase and atomic responsibilities per slot
 // (implementation plan section 7.1, docs/tactics.md#tactic-model). Immutable; a
 // team changes tactics by getting a different one.

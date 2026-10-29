@@ -50,4 +50,10 @@ if(CMAKE_BUILD_TYPE STREQUAL "Release")
             -P ${CMAKE_CURRENT_SOURCE_DIR}/benchmark/p2StyleBenchmark.cmake
     )
     set_tests_properties(p2-style-benchmark PROPERTIES LABELS benchmark)
+    add_test(NAME eleven-a-side-budget
+            COMMAND ${CMAKE_COMMAND}
+            -DSIM_CLI=$<TARGET_FILE:sim-cli>
+            -P ${CMAKE_CURRENT_SOURCE_DIR}/benchmark/elevenASideBudget.cmake
+    )
+    set_tests_properties(eleven-a-side-budget PROPERTIES LABELS benchmark)
 endif()

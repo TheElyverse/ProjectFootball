@@ -155,7 +155,7 @@ in its `style-benchmark` job:
 cmake --preset release && cmake --build --preset release --target sim-benchmark
 ./build/release/apps/sim-benchmark/sim-benchmark --style data/tactics/possession.json \
   --style data/tactics/counter.json --style data/tactics/pressing.json --matches 20 --minutes 90 --jobs 2
-cmake --preset ci-release && cmake --build --preset ci-release --target sim-benchmark
+cmake --preset ci-release && cmake --build --preset ci-release --target sim-benchmark sim-cli
 ctest --preset ci-release --label-regex benchmark
 ```
 

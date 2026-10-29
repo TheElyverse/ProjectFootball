@@ -18,6 +18,7 @@
 
 using ElyverseFootball::SimTactics::contentHash;
 using ElyverseFootball::SimTactics::loadTactic;
+using ElyverseFootball::SimTactics::referenceElevenASideTacticSpec;
 using ElyverseFootball::SimTactics::referenceTacticSpec;
 using ElyverseFootball::SimTactics::Tactic;
 using ElyverseFootball::SimTactics::TacticalPhase;
@@ -66,6 +67,13 @@ TEST_CASE("The reference tactic file equals the reference tactic in code", "[tac
   REQUIRE(built.has_value());
   REQUIRE(*loaded == *built);
   REQUIRE(contentHash(*loaded) == contentHash(*built));
+
+  const auto eleven = loadTactic(tacticsDirectory() / "reference-eleven.json");
+  REQUIRE(eleven.has_value());
+  const auto builtEleven = Tactic::create(referenceElevenASideTacticSpec());
+  REQUIRE(builtEleven.has_value());
+  REQUIRE(*eleven == *builtEleven);
+  REQUIRE(eleven->slots().size() == 11);
 }
 
 TEST_CASE("The three tactical identities differ where their intent says", "[tacticFiles]") {
