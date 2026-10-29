@@ -7,6 +7,7 @@
 
 #include "ballPhysics.hpp"
 #include "matchSimulation.hpp"
+#include "random.hpp"
 #include "vec2.hpp"
 
 namespace ElyverseFootball::SimMatch {
@@ -124,16 +125,13 @@ struct DuelGeometry {
 [[nodiscard]] SimCore::Vec2 moveTarget(DuelMove move, const DuelGeometry& geometry,
                                        const DuelConfig& config) noexcept;
 
-// What a lunge did once it landed.
-enum class LungeResult : std::uint8_t {
-  kMissed,
-  kWon,
-  kLoose,
-  kFoul,
-};
-
-// "missed", "won", "loose", "foul"; "unknown" outside the enumerators.
-[[nodiscard]] std::string_view lungeResultName(LungeResult result) noexcept;
+// Where the foot of a lunge from `lunger` at the ball lands
+// (docs/duels.md#the-lunge): off it by a triangular draw in each direction
+// of half-width footError · (2 - balance), no farther than tackleReach from
+// him. Always two draws from random. A tackle and a block land the same way.
+[[nodiscard]] SimCore::Vec2 landLunge(SimCore::Vec2 lunger, SimCore::Vec2 ball, double balance,
+                                      const DuelConfig& config,
+                                      SimCore::RandomNumberGenerator& random) noexcept;
 
 // The execution half of a lunge, from the geometry alone: the defender's foot
 // goes straight from him to `foot`. Passing through the carrier's body before

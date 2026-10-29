@@ -28,6 +28,7 @@
 #include "shotStopping.hpp"
 #include "simTime.hpp"
 #include "tactic.hpp"
+#include "tacticalState.hpp"
 #include "vec2.hpp"
 
 using ElyverseFootball::SimCore::PlayerId;
@@ -40,8 +41,10 @@ using ElyverseFootball::SimMatch::Goal;
 using ElyverseFootball::SimMatch::GoalEnd;
 using ElyverseFootball::SimMatch::GoalScored;
 using ElyverseFootball::SimMatch::isOutOfPlay;
+using ElyverseFootball::SimMatch::isStumbling;
 using ElyverseFootball::SimMatch::kBallRadius;
 using ElyverseFootball::SimMatch::LooseBallRecovered;
+using ElyverseFootball::SimMatch::LungeResult;
 using ElyverseFootball::SimMatch::makeBallMovementSystem;
 using ElyverseFootball::SimMatch::makePlayerMovementSystem;
 using ElyverseFootball::SimMatch::makeRestartSystem;
@@ -71,6 +74,7 @@ using ElyverseFootball::SimMatch::ShotOutcome;
 using ElyverseFootball::SimMatch::ShotRecord;
 using ElyverseFootball::SimMatch::ShotResolved;
 using ElyverseFootball::SimMatch::ShotStoppingConfig;
+using ElyverseFootball::SimMatch::TackleAttempted;
 using ElyverseFootball::SimMatch::TeamSide;
 using ElyverseFootball::SimMatch::TeamTactics;
 using ElyverseFootball::SimMatch::WoodworkConfig;
@@ -440,6 +444,94 @@ TEST_CASE("A shot over a defender's head is not blocked", "[shotOutcome]") {
   MatchSimulation simulation = shotMatch(chance, shotAt(goal().center, 1.2));
   const auto events = play(simulation, 30);
 
+  REQUIRE(eventsOf<ShotDeflected>(events).empty());
+  REQUIRE(outcomeOf(events) == ShotOutcome::kGoal);
+}
+
+TEST_CASE("A defender within lunging reach blocks a low shot or misses and stumbles",
+          "[shotOutcome][block]") {
+  int blocked = 0;
+  int missed = 0;
+  for (std::uint64_t seed = 1; seed <= 40; ++seed) {
+    Chance chance;
+    // Beside the shot's way, too far for his body, near enough to lunge.
+    chance.defender = {.x = 54.0, .y = 20.8};
+    chance.seed = seed;
+    MatchSimulation simulation = shotMatch(chance, shotAt(goal().center, 0.3));
+    const auto events = play(simulation, 8);
+
+    const auto lunges = eventsOf<TackleAttempted>(events);
+    REQUIRE(lunges.size() == 1);
+    const TackleAttempted& lunge = lunges.front();
+    REQUIRE(lunge.block);
+    REQUIRE(lunge.tackler == PlayerId(9));
+    REQUIRE(lunge.carrier == PlayerId(1));
+    const auto deflections = eventsOf<ShotDeflected>(events);
+    if (lunge.result == LungeResult::kBlocked) {
+      ++blocked;
+      REQUIRE(deflections.size() == 1);
+      REQUIRE(deflections.front().player == PlayerId(9));
+    } else {
+      ++missed;
+      REQUIRE(lunge.result == LungeResult::kMissed);
+      REQUIRE(deflections.empty());
+      // Committed and beaten: he is off his feet.
+      REQUIRE(isStumbling(simulation.state().tactical(8), simulation.tick()));
+    }
+  }
+  CAPTURE(blocked, missed);
+  REQUIRE(blocked > missed);
+  REQUIRE(missed > 0);
+}
+
+TEST_CASE("Nobody lunges at a shot struck away from him or into his body", "[shotOutcome][block]") {
+  for (std::uint64_t seed = 1; seed <= 20; ++seed) {
+    CAPTURE(seed);
+    // Just behind the shooter: the shot leaves him.
+    Chance behind;
+    behind.defender = {.x = 49.7, .y = 20.0};
+    behind.seed = seed;
+    MatchSimulation away = shotMatch(behind, shotAt(goal().center, 0.3));
+    const auto awayEvents = play(away, 30);
+    REQUIRE(eventsOf<TackleAttempted>(awayEvents).empty());
+    REQUIRE(eventsOf<ShotDeflected>(awayEvents).empty());
+    // Square in its way, wherever the ticks cut its flight: his body stops it.
+    for (const double x : {53.0, 53.4, 53.8, 54.2, 54.6, 55.0, 55.4, 55.8, 56.2, 56.6, 57.0}) {
+      CAPTURE(x);
+      Chance square;
+      square.defender = {.x = x, .y = 20.0};
+      square.seed = seed;
+      MatchSimulation inTheWay = shotMatch(square, shotAt(goal().center, 0.3));
+      const auto events = play(inTheWay, 30);
+      REQUIRE(eventsOf<TackleAttempted>(events).empty());
+      REQUIRE(eventsOf<ShotDeflected>(events).size() == 1);
+    }
+  }
+}
+
+TEST_CASE("Nobody lunges at a shot the keeper gets to first", "[shotOutcome][block]") {
+  for (std::uint64_t seed = 1; seed <= 20; ++seed) {
+    CAPTURE(seed);
+    Chance chance;
+    chance.keeper = {.x = 57.0, .y = 20.0};
+    chance.defender = {.x = 57.9, .y = 20.8};
+    chance.saves = safeHands();
+    chance.seed = seed;
+    MatchSimulation simulation = shotMatch(chance, shotAt(goal().center, 0.3));
+    const auto events = play(simulation, 30);
+    REQUIRE(eventsOf<TackleAttempted>(events).empty());
+    REQUIRE(outcomeOf(events) == ShotOutcome::kSaved);
+  }
+}
+
+TEST_CASE("A shot above a lunge's height passes a defender beside it", "[shotOutcome][block]") {
+  Chance chance;
+  chance.defender = {.x = 54.0, .y = 20.8};
+  chance.shooting.lungeHeight = 0.2;
+  MatchSimulation simulation = shotMatch(chance, shotAt(goal().center, 1.0));
+  const auto events = play(simulation, 30);
+
+  REQUIRE(eventsOf<TackleAttempted>(events).empty());
   REQUIRE(eventsOf<ShotDeflected>(events).empty());
   REQUIRE(outcomeOf(events) == ShotOutcome::kGoal);
 }

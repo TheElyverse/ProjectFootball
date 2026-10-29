@@ -30,8 +30,8 @@ file.
 
 ```json
 {
-  "schemaVersion": 15,
-  "coreVersion": "0.31.0",
+  "schemaVersion": 16,
+  "coreVersion": "0.32.0",
   "createdAt": "2026-09-24T10:00:00Z",
   "seed": "18446744073709551615",
   "gameTime": 300,
@@ -137,7 +137,7 @@ complete file.
 
 | Field           | JSON type | Meaning                                                       |
 |-----------------|-----------|---------------------------------------------------------------|
-| `schemaVersion` | number    | Version of this format. Currently `15`.                       |
+| `schemaVersion` | number    | Version of this format. Currently `16`.                       |
 | `coreVersion`   | string    | The `sim-core` version that recorded the match.               |
 | `createdAt`     | string    | Creation time in UTC, `%Y-%m-%dT%H:%M:%SZ`. Metadata only.    |
 | `seed`          | string    | Unsigned 64-bit master seed, in decimal.                      |
@@ -235,7 +235,7 @@ path, for example `initialState.players[3].position.x: expected a number`.
 |-----------------------------|------------------------------------------------------------------------|
 | `kIoError`                  | the file cannot be read or written                                     |
 | `kMalformed`                | not JSON, a missing or mistyped field, commands out of order           |
-| `kUnsupportedSchemaVersion` | a `schemaVersion` other than 15                                        |
+| `kUnsupportedSchemaVersion` | a `schemaVersion` other than 16                                        |
 | `kIncompatibleCoreVersion`  | recorded with another `coreVersion`                                    |
 | `kInvalidSetup`             | an invalid initial state, command or checkpoint list                   |
 | `kSimulationFailed`         | a step of the playback failed                                          |
@@ -306,6 +306,7 @@ record the scenario again with the same seed.
 | 13      | The configuration's `challenge` block becomes its `duels` block ([duels](duels.md#duels-on-the-ball)). |
 | 14      | Players gain `decisionMaking`, and the decisions `skillTemperatureSpread` and `maxMisjudgement` ([decision-making](on-ball.md#decision-making)). |
 | 15      | The ball gains `sideSpin`, the ball physics `magnusCurvature`, the shot scoring `curledSpeed`, `chippedSpeed`, `curlSpin`, `spinError`, `speedError` and `maxLaunchSlope`, and the shooting `chipBackspin` ([shot types](on-ball.md#shot-types)). |
+| 16      | The shooting gains `lungeRadius` and `lungeHeight` ([tackles and blocks](duels.md#tackles-and-blocks)). |
 
 ## Decision trace
 
@@ -525,7 +526,7 @@ values:
 {
   "format": "elyverse-debug-frames",
   "version": 4,
-  "coreVersion": "0.31.0",
+  "coreVersion": "0.32.0",
   "scenario": "m0-acceptance",
   "seed": "42",
   "ticksPerSecond": 30,
@@ -643,7 +644,8 @@ decision's `reason` and `target`, and an action's `idlePress`
 ([pass decisions](on-ball.md#without-a-valid-option)); a pass candidate's
 `judgedInterceptionRisk` ([decision-making](on-ball.md#decision-making)); the
 ball's `sideSpin` and the `shotType` of `shotAttempted`
-([shot types](on-ball.md#shot-types)). Without a `look` the
+([shot types](on-ball.md#shot-types)); the event `tackleAttempted`
+([tackles and blocks](duels.md#tackles-and-blocks)). Without a `look` the
 viewer draws the vision cone along the facing.
 
 ### Development
@@ -852,10 +854,10 @@ of both sides with their intervals, and the mean and slowest match time.
 
 **In CI**, the `style-benchmark` job builds the `ci-release` preset and runs
 `ctest -L benchmark`: `tests/benchmark/p2StyleBenchmark.cmake` plays the round
-robin of the three [tactical identities](tactics.md#tactical-identities), twenty
+robin of the three [tactical identities](tactics.md#tactical-identities), thirty
 six-minute matches per pairing with seed 1 and one sampled replay per pairing.
-It must finish without an invalid value within 5 s per match and 300 s for
-all 180 (about 40 s locally at the time of writing), every sampled replay must
+It must finish without an invalid value within 5 s per match and 450 s for
+all 270 (about 55 s locally at the time of writing), every sampled replay must
 reproduce, and the styles must separate where their identities promise:
 
 | Metric                  | Separation                              |
@@ -864,11 +866,13 @@ reproduce, and the styles must separate where their identities promise:
 | `regainsAttackingThird` | pressing above counter                  |
 | `ppda`                  | counter above pressing — pressing allows fewer passes per defensive action |
 
-These hold for base seeds 1 to 5. Twenty matches per pairing are needed:
-pressing's attacking-third regains stay clearly above counter's -- forty
-matches separate them for every seed tried -- but since players
-[curl and chip](on-ball.md#shot-types) their shots, eight or twelve matches no
-longer separate them for seeds 1 and 4. Earlier, six were too few once
+These hold for base seeds 1 to 5. Thirty matches per pairing are needed:
+pressing's attacking-third regains stay clearly above counter's, about two a
+match -- forty matches separate them for every seed tried -- but a separation
+needs the two 95 % intervals apart, and since players
+[curl and chip](on-ball.md#shot-types) their shots and
+[block](duels.md#tackles-and-blocks) them, eight, twelve or twenty matches no
+longer do it for seed 1. Earlier, six were too few once
 carriers [looked](players.md#perception) for the goal. Two separations are
 not asked for because the reduced run does not show them for every seed:
 possession's PPDA about a tenth above pressing's (thirty matches separate
@@ -879,8 +883,8 @@ Two guardrails also apply:
 
 - **Shots.** Every side of every pairing shoots between 0.5 and 40 times per
   six-minute match on average, so a change cannot stop the shooting or turn the
-  sandbox into a shooting gallery. At the time of writing the range is 3.3 to
-  12.1, possession against counter's deep block the fewest
+  sandbox into a shooting gallery. At the time of writing the range is 3.7 to
+  14.1, possession against counter's deep block the fewest
   ([shot decisions](on-ball.md#shot-decisions)).
 - **Ownership.** No player owns the ball longer than 15 s at a time
   (`longestOwnershipSeconds`, [match analytics](#match-analytics)). A carrier

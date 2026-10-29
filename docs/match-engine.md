@@ -701,6 +701,7 @@ Every event carries the `tick` of its step and the players involved:
 | `DribbleEnded`       | `carrier`, `opponent`, `outcome`, `position`                 | the dribble is over: `beaten`, he has the ball back farther up the pitch than the opponent, `kept`, he has it back short of him, or `lost`, to an opponent or out of play |
 | `DuelStarted`        | `carrier`, `defender`, `position`                            | a presser takes on the carrier for the ball at his feet ([duels](duels.md#duels-on-the-ball)) |
 | `DuelEnded`          | `carrier`, `defender`, `outcome`, `position`                 | the duel is over: `kept` by the carrier, `won` by the defender -- `BallWon` and `PossessionChanged` follow --, the ball knocked `loose` -- `PossessionChanged` to nobody follows --, or a `foul` |
+| `TackleAttempted`    | `tackler`, `carrier`, `block`, `result`, `position`          | a defender lunges at the ball: a tackle in a duel, or a `block` of a shot -- `carrier` is then the shooter --, which `won`, knocked `loose`, `missed`, went through the man (`foul`) or `blocked` it ([tackles and blocks](duels.md#tackles-and-blocks)); a tackle's comes before its `DuelEnded`, a block's before its `ShotDeflected` |
 
 The shot events name their shot by its `shooter` and `shotTick`, the tick of its
 `ShotAttempted`; see [shooting](on-ball.md#shooting) and [shot stopping](goalkeeper.md#shot-stopping)

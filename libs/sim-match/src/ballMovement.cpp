@@ -16,11 +16,13 @@
 #include "passCandidates.hpp"
 #include "passing.hpp"
 #include "playerMovement.hpp"
+#include "randomDraws.hpp"
 #include "reception.hpp"
 #include "restart.hpp"
 #include "shooting.hpp"
 #include "shotCandidates.hpp"
 #include "shotStopping.hpp"
+#include "stableMath.hpp"
 #include "teamFrame.hpp"
 #include "zones.hpp"
 
@@ -854,6 +856,86 @@ class BallTick {
     return true;
   }
 
+  // The first player a fast shot meets on its way this tick: a body in its
+  // way -- the keeper takes it his own way --, or an opponent of the shooter
+  // who lunges at it (docs/duels.md#tackles-and-blocks): it comes at him --
+  // he is ahead of the ball along its travel --, it would not hit his body
+  // anyway, and it passes within lungeRadius, no higher than lungeHeight,
+  // before `keeperFraction` of the tick, where it gets to the keeper facing it.
+  // His foot lands as a duel's lunge does at full balance (landLunge(), two
+  // draws from kExecution) and blocks the shot within footRadius of the ball.
+  // Missing, he is off his feet for stumbleSeconds, out of this search, and
+  // the shot flies on to whoever is next. Each lunge records TackleAttempted,
+  // the shooter as its carrier.
+  [[nodiscard]] std::optional<BallClaim> shotContact(const BallState& ball, const FreeBall& free,
+                                                     std::vector<std::size_t>& excluded,
+                                                     const double keeperFraction) const {
+    const ShotConfig& shooting = rules().shooting;
+    const ShotRecord shot = free.shot.value_or(ShotRecord{});
+    const auto shooter = findPlayerIndex(current(), shot.shooter);
+    const double speed = ball.velocity.length();
+    const Vec2 travel = speed > 0.0 ? ball.velocity * (1.0 / speed) : Vec2{};
+    // Whether the player at this index may lunge at the shot.
+    const auto lunges = [&](const std::size_t index) {
+      if (!shooter || isGoalkeeper(current(), index) ||
+          current().players()[index].side == current().players()[*shooter].side) {
+        return false;
+      }
+      const Vec2 offset = current().players()[index].position - ball.position;
+      const double ahead = offset.dot(travel);
+      return ahead > 0.0 && (offset - (travel * ahead)).length() > shooting.blockRadius;
+    };
+    for (;;) {
+      const auto body = findBallContact(
+          current(), ball, free.step, rules().physics, context().time(), rules().reception,
+          {.radius = shooting.blockRadius, .height = shooting.blockReach}, excluded);
+      const auto lunger = findFirstReach(
+          current(), ball, free.step, rules().physics, context().time(), rules().reception,
+          excluded, [&](const std::size_t index) -> std::optional<BallReach> {
+            if (!lunges(index)) {
+              return std::nullopt;
+            }
+            return BallReach{.radius = shooting.lungeRadius, .height = shooting.lungeHeight};
+          });
+      if (!lunger || lunger->contact.contactFraction >= keeperFraction ||
+          (body && body->contact.contactFraction <= lunger->contact.contactFraction)) {
+        return body;
+      }
+      const Vec2 ballPoint =
+          ballAfter(ball, rules().physics, lunger->contact.contactFraction * free.step.seconds)
+              .position;
+      const DuelConfig& duels = rules().duels;
+      const Vec2 foot =
+          landLunge(current().players()[lunger->playerIndex].position, ballPoint, 1.0, duels,
+                    context().random(SimCore::RandomNumberGeneratorDomain::kExecution));
+      const bool meets = SimCore::distance(foot, ballPoint) <= duels.footRadius;
+      context().record(
+          TackleAttempted{.tick = context().tick(),
+                          .tackler = lunger->playerId,
+                          .carrier = shot.shooter,
+                          .block = true,
+                          .result = meets ? LungeResult::kBlocked : LungeResult::kMissed,
+                          .position = ballPoint});
+      if (meets) {
+        return lunger;
+      }
+      next().tactical(lunger->playerIndex).stumbledUntil =
+          stumbleEnd(context().time(), duels.stumbleSeconds);
+      excluded.push_back(lunger->playerIndex);
+    }
+  }
+
+  // The share of the tick after which the ball gets to the keeper facing it,
+  // 1 if it does not: nobody lunges at a shot beyond it.
+  [[nodiscard]] double keeperFractionOf(const std::optional<FacingKeeper>& keeper,
+                                        const BallState& ball, const FreeBall& free) const {
+    if (!keeper || !(free.step.seconds > 0.0)) {
+      return 1.0;
+    }
+    const auto reached = findPlanePassage(ball, keeper->dive, rules().physics, free.step.seconds);
+    return reached ? reached->seconds / free.step.seconds : 1.0;
+  }
+
   // Adds everyone off his feet after a duel to those who take no ball -- one
   // who stumbled earlier this same step too (docs/duels.md#duels-on-the-ball).
   void excludeStumbling(std::vector<std::size_t>& excluded) const {
@@ -886,11 +968,7 @@ class BallTick {
     excludeStumbling(excluded);
     const bool deflects = free.shot && ball.velocity.length() >= rules().shooting.deflectionSpeed;
     const auto contactOf = [&] {
-      return deflects ? findBallContact(current(), ball, free.step, rules().physics,
-                                        context().time(), rules().reception,
-                                        {.radius = rules().shooting.blockRadius,
-                                         .height = rules().shooting.blockReach},
-                                        excluded)
+      return deflects ? shotContact(ball, free, excluded, keeperFractionOf(keeper, ball, free))
                       : findBallClaim(current(), ball, free.step, rules().physics, context().time(),
                                       rules().reception, excluded);
     };
