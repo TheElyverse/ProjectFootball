@@ -12,6 +12,7 @@
 
 #include "ballPhysics.hpp"
 #include "matchState.hpp"
+#include "offside.hpp"
 #include "perception.hpp"
 #include "simTime.hpp"
 #include "spatialQueries.hpp"
@@ -58,6 +59,24 @@ struct RememberedPlayers {
   std::vector<Remembered> teammates;
   std::vector<Remembered> opponents;
 };
+
+// The offside line as the player on the ball believes it from the opponents he
+// remembers, with offside on; empty with it off (docs/match-engine.md#offside).
+[[nodiscard]] inline std::optional<double> believedLine(const std::vector<Remembered>& opponents,
+                                                        const TeamSide side,
+                                                        const SimCore::Vec2 ball,
+                                                        const Pitch& pitch,
+                                                        const OffsideConfig& offside) {
+  if (!offside.enabled) {
+    return std::nullopt;
+  }
+  std::vector<SimCore::Vec2> positions;
+  positions.reserve(opponents.size());
+  for (const Remembered& opponent : opponents) {
+    positions.push_back(opponent.player.position);
+  }
+  return believedOffsideLine(side, positions, ball, pitch);
+}
 
 [[nodiscard]] inline RememberedPlayers rememberedPlayers(const MatchState& state,
                                                          const std::size_t carrierIndex,

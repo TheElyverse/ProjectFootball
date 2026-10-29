@@ -23,10 +23,11 @@ struct MatchClockConfig {
   double durationMinutes = 90.0;  // min
   // Real seconds of play each restart costs: the half's lost time, which the
   // referee adds at its end. A kickoff after a goal counts the celebration.
-  double throwInLostSeconds = 4.0;   // s
-  double goalKickLostSeconds = 6.0;  // s
-  double cornerLostSeconds = 6.0;    // s
-  double kickoffLostSeconds = 30.0;  // s
+  double throwInLostSeconds = 4.0;    // s
+  double goalKickLostSeconds = 6.0;   // s
+  double cornerLostSeconds = 6.0;     // s
+  double kickoffLostSeconds = 30.0;   // s
+  double freeKickLostSeconds = 10.0;  // s
 
   friend bool operator==(const MatchClockConfig&, const MatchClockConfig&) = default;
 };

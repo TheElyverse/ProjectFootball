@@ -7,6 +7,7 @@
 #include "goalkeeper.hpp"
 #include "matchSimulation.hpp"
 #include "offBallActions.hpp"
+#include "offside.hpp"
 #include "perception.hpp"
 
 namespace ElyverseFootball::SimMatch {
@@ -21,6 +22,7 @@ struct TacticalMovementRules {
   // How far from the goal a shot is still considered: the shot decision's
   // maxShotDistance, which the goalkeeper judges a threat by.
   double shotRange = 0.0;  // m
+  OffsideConfig offside = {};
 };
 
 inline constexpr std::string_view kTacticalMovementSystemName = "tactical movement";

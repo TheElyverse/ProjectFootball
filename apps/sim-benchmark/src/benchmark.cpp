@@ -152,6 +152,7 @@ SimMatch::MatchConfig benchmarkConfig() {
   SimMatch::MatchConfig config;
   config.restarts.enabled = true;
   config.clock.durationMinutes = 10.0;
+  config.offside.enabled = true;
   return config;
 }
 
@@ -264,6 +265,7 @@ std::string toBenchmarkJson(const BenchmarkSpec& spec, const std::span<const Mat
   json["baseSeed"] = std::to_string(spec.baseSeed);
   json["minutes"] = spec.config.clock.durationMinutes;
   json["restarts"] = spec.config.restarts.enabled;
+  json["offside"] = spec.config.offside.enabled;
   json["outcomes"] = outcomesJson(results);
   json["summary"] = {{"home", sideSummaryJson(results, true)},
                      {"away", sideSummaryJson(results, false)}};
@@ -336,6 +338,7 @@ std::string toRoundRobinJson(const RoundRobinSpec& spec,
   json["baseSeed"] = std::to_string(spec.baseSeed);
   json["minutes"] = spec.config.clock.durationMinutes;
   json["restarts"] = spec.config.restarts.enabled;
+  json["offside"] = spec.config.offside.enabled;
   json["styleSummary"] = Json::object();
   for (std::size_t style = 0; style < spec.styles.size(); ++style) {
     json["styleSummary"][spec.styles.at(style).name()] = summariesJson(styleSides(style, pairings));

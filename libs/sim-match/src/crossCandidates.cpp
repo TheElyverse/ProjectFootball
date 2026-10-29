@@ -95,6 +95,8 @@ struct CrossContext {
   const std::vector<Remembered>* teammates = nullptr;
   const std::vector<Remembered>* opponents = nullptr;
   const CrossCandidateRules* rules = nullptr;
+  // The offside line he believes, with offside on.
+  std::optional<double> offsideLine = std::nullopt;
 };
 
 // The cross's flight: its curvature toward the goal -- to the side of its
@@ -132,6 +134,12 @@ struct CrossContext {
   cross.runnerSeconds = kNever;
   for (const Remembered& teammate : (*crossing.teammates)) {
     if (run && teammate.player.playerId != *run) {
+      continue;
+    }
+    // Nobody he believes offside goes for it.
+    if (crossing.offsideLine &&
+        isOffsidePosition(teammate.player.side, teammate.player.position, *crossing.offsideLine,
+                          (*crossing.state).pitch(), (*crossing.rules).offside)) {
       continue;
     }
     const double reach =
@@ -328,14 +336,16 @@ std::vector<CrossCandidate> generateCrossCandidates(const MatchState& state,
                       carrier.attributes.shotTechnique * scoring.curlShare;
   const double spotOpening = goalOpening(pitch.penaltySpot(box.end), goal);
 
-  const CrossContext crossing{.state = &state,
-                              .from = from,
-                              .box = box,
-                              .curl = curl,
-                              .spotOpening = spotOpening,
-                              .teammates = &teammates,
-                              .opponents = &opponents,
-                              .rules = &rules};
+  const CrossContext crossing{
+      .state = &state,
+      .from = from,
+      .box = box,
+      .curl = curl,
+      .spotOpening = spotOpening,
+      .teammates = &teammates,
+      .opponents = &opponents,
+      .rules = &rules,
+      .offsideLine = LaneReach::believedLine(opponents, carrier.side, from, pitch, rules.offside)};
   std::vector<CrossCandidate> candidates;
   for (const Area& area : areasOf(state, box, teammates)) {
     if (area.area == CrossArea::kCutBack) {

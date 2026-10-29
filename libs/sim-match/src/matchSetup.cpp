@@ -18,7 +18,8 @@ std::vector<MatchSystem> makeMatchSystems(const MatchConfig& config) {
                                   .defensive = config.defensive,
                                   .perception = config.perception,
                                   .goalkeeper = config.goalkeeper,
-                                  .shotRange = config.decisions.shooting.maxShotDistance}));
+                                  .shotRange = config.decisions.shooting.maxShotDistance,
+                                  .offside = config.offside}));
   systems.push_back(makePursuitSystem({.physics = config.ball,
                                        .pursuit = config.pursuit,
                                        .reception = config.reception,
@@ -27,7 +28,8 @@ std::vector<MatchSystem> makeMatchSystems(const MatchConfig& config) {
                                                               .ball = config.ball,
                                                               .passing = config.passing,
                                                               .perception = config.perception,
-                                                              .reception = config.reception}));
+                                                              .reception = config.reception,
+                                                              .offside = config.offside}));
   systems.push_back(makeDuelSystem({.duels = config.duels, .physics = config.ball}));
   systems.push_back(makeShotStoppingSystem({.saves = config.shotStopping, .physics = config.ball}));
   systems.push_back(
@@ -41,7 +43,11 @@ std::vector<MatchSystem> makeMatchSystems(const MatchConfig& config) {
                                             .saves = config.shotStopping,
                                             .aerial = config.aerial,
                                             .duels = config.duels}));
-  // Only when enabled, so matches without restarts keep their system list.
+  // Only when enabled, so matches without them keep their system list.
+  if (config.offside.enabled) {
+    systems.push_back(makeOffsideSystem(
+        {.offside = config.offside, .physics = config.ball, .clock = config.clock}));
+  }
   if (config.restarts.enabled) {
     systems.push_back(makeRestartSystem(
         {.restarts = config.restarts, .physics = config.ball, .clock = config.clock}));

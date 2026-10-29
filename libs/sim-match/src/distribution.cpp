@@ -64,6 +64,8 @@ std::vector<PassCandidate> generateLongBallCandidates(const MatchState& state,
   const auto [teammates, opponents] = LaneReach::rememberedPlayers(
       state, carrierIndex, time, rules.perception, rules.scoring.minConfidence);
 
+  const auto offsideLine =
+      LaneReach::believedLine(opponents, carrier.side, from, pitch, rules.offside);
   std::vector<PassCandidate> candidates;
   candidates.reserve(teammates.size());
   for (const Remembered& receiver : teammates) {
@@ -96,6 +98,10 @@ std::vector<PassCandidate> generateLongBallCandidates(const MatchState& state,
     scorePassCandidate(candidate, from, carrier.side, arrives, nearestOpponent, pitch,
                        rules.scoring);
     candidate.rejection = rejectionOf(candidate, rules, config);
+    if (offsideLine &&
+        isOffsidePosition(carrier.side, candidate.target, *offsideLine, pitch, rules.offside)) {
+      candidate.rejection = PassRejection::kOffside;
+    }
     candidates.push_back(candidate);
   }
 

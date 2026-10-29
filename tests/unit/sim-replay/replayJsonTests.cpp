@@ -66,20 +66,20 @@ TEST_CASE("Documents that are not JSON objects are rejected", "[replayJson]") {
 }
 
 TEST_CASE("Other schema versions are rejected with the version found", "[replayJson]") {
-  requireRejected(validJsonWith("\"schemaVersion\": 19", "\"schemaVersion\": 1"),
+  requireRejected(validJsonWith("\"schemaVersion\": 20", "\"schemaVersion\": 1"),
                   ReplayErrorCode::kUnsupportedSchemaVersion,
                   "schema version 1 holds replay metadata only");
   // Older playable versions name the way to a current file.
   for (const char* version : {"2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14",
-                              "15", "16", "17", "18"}) {
+                              "15", "16", "17", "18", "19"}) {
     requireRejected(
-        validJsonWith("\"schemaVersion\": 19", std::string("\"schemaVersion\": ") + version),
+        validJsonWith("\"schemaVersion\": 20", std::string("\"schemaVersion\": ") + version),
         ReplayErrorCode::kUnsupportedSchemaVersion,
         std::string("schema version ") + version +
-            " is no longer supported, expected 19; record the scenario again");
+            " is no longer supported, expected 20; record the scenario again");
   }
-  requireRejected(validJsonWith("\"schemaVersion\": 19", "\"schemaVersion\": 20"),
-                  ReplayErrorCode::kUnsupportedSchemaVersion, "unsupported schema version 20");
+  requireRejected(validJsonWith("\"schemaVersion\": 20", "\"schemaVersion\": 21"),
+                  ReplayErrorCode::kUnsupportedSchemaVersion, "unsupported schema version 21");
 }
 
 TEST_CASE("A replay from another core version is rejected", "[replayJson]") {
@@ -316,6 +316,15 @@ TEST_CASE("The clock and fitness are read from the initial state and the config"
   REQUIRE(sprint->setup.config.fitness.sprintSeconds == 20.0);
   requireRejected(validJsonWith("\"recoverySeconds\"", "\"recoverySecond\""), kMalformed,
                   "config.fitness.recoverySeconds: missing");
+
+  const auto offside =
+      parseReplayJson(validJsonWith("\"levelMeters\": 0.1", "\"levelMeters\": 0.2"));
+  REQUIRE(offside.has_value());
+  REQUIRE(offside->setup.config.offside.levelMeters == 0.2);
+  const auto freeKicks = parseReplayJson(
+      validJsonWith("\"freeKickLostSeconds\": 10.0", "\"freeKickLostSeconds\": 12.0"));
+  REQUIRE(freeKicks.has_value());
+  REQUIRE(freeKicks->setup.config.clock.freeKickLostSeconds == 12.0);
 }
 
 TEST_CASE("How players decide is read from the initial state and the config", "[replayJson]") {

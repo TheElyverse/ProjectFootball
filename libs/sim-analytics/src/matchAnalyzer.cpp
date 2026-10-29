@@ -92,6 +92,8 @@ void MatchAnalyzer::observeStep(const std::span<const SimMatch::MatchEvent> even
       }
     } else if (const auto* goal = std::get_if<SimMatch::GoalScored>(&event)) {
       ++tally(goal->side).goals;
+    } else if (const auto* offside = std::get_if<SimMatch::OffsideCalled>(&event)) {
+      ++tally(offside->side).offsides;
     } else if (const auto* ended = std::get_if<SimMatch::PeriodEnded>(&event)) {
       finished_ = finished_ || ended->period == SimMatch::MatchPeriod::kSecondHalf;
     } else if (const auto* intercepted = std::get_if<SimMatch::PassIntercepted>(&event)) {
@@ -190,6 +192,7 @@ TeamStats MatchAnalyzer::statsOf(const TeamSide side, const std::int64_t possess
       .completedProgressivePasses = counts.completedProgressivePasses,
       .shots = counts.shots,
       .goals = counts.goals,
+      .offsides = counts.offsides,
       .points = finished_ ? std::optional(pointsOf(counts.goals, opponent.goals)) : std::nullopt,
       .turnovers = counts.turnovers,
       .regains = counts.regains,

@@ -70,7 +70,7 @@ TEST_CASE("Equal states hash equally", "[matchStateHash]") {
 TEST_CASE("The kickoff hash is pinned", "[matchStateHash]") {
   // Changes when the fixture, a state field or the hash encoding changes;
   // each of those invalidates recorded replays, so update it deliberately.
-  REQUIRE(hashOf(kickoffSpec()) == 0xee99e8d862ba53feULL);
+  REQUIRE(hashOf(kickoffSpec()) == 0x02d0e7758142a42eULL);
 }
 
 // Guards against a field that is added to the state but forgotten here.
@@ -360,6 +360,23 @@ TEST_CASE("Pending actions, the last shot and a keeper's dive are part of the ha
        hashAfter([](MatchStateWriter& next) { next.setClock({.lostSeconds = 4.0}); })},
       {"clock added minutes",
        hashAfter([](MatchStateWriter& next) { next.setClock({.addedMinutes = 0}); })},
+      {"offside watch", hashAfter([&](MatchStateWriter& next) {
+         next.setOffside(ElyverseFootball::SimMatch::OffsideWatch{.side = TeamSide::kHome,
+                                                                  .passer = idOf(1),
+                                                                  .tick = SimTick(0),
+                                                                  .line = 30.0,
+                                                                  .offsidePlayers = 4});
+       })},
+      {"offside watch players", hashAfter([&](MatchStateWriter& next) {
+         next.setOffside(ElyverseFootball::SimMatch::OffsideWatch{.side = TeamSide::kHome,
+                                                                  .passer = idOf(1),
+                                                                  .tick = SimTick(0),
+                                                                  .line = 30.0,
+                                                                  .offsidePlayers = 8});
+       })},
+      {"offside exemption", hashAfter([&](MatchStateWriter& next) {
+         next.setOffsideExemption(BallTouch{.playerId = idOf(1), .tick = SimTick(0)});
+       })},
   };
   for (std::size_t first = 0; first < hashes.size(); ++first) {
     for (std::size_t second = 0; second < first; ++second) {

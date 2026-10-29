@@ -57,8 +57,8 @@ system and every hand-placed scenario a second set of directions.
 ## Added time
 
 Stoppages cost real seconds of play, which the referee adds at the end of each
-half. Every restart the [restart system](match-engine.md#restarts) takes adds its
-lost seconds to the half's lost time:
+half. Every restart the [restart system](match-engine.md#restarts) takes, and
+every free kick, adds its lost seconds to the half's lost time:
 
 | Restart                     | Lost, real seconds |
 |-----------------------------|--------------------|
@@ -66,6 +66,7 @@ lost seconds to the half's lost time:
 | goal kick                   | 6                  |
 | corner, also for a goalkeeper holding the ball too long | 6 |
 | kickoff after a goal, the celebration included | 30 |
+| free kick after an [offside](match-engine.md#offside) | 10 |
 
 Once the half's regulation time is up, the added time is announced
 (`addedMinutes()`): its lost seconds as the clock shows them — times 90 over the
