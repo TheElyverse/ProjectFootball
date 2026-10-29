@@ -12,28 +12,12 @@ namespace ElyverseFootball::SimMatch {
 namespace {
 
 // The second half's kickoff: both sides lined up, the ball at the taker's
-// feet. Nothing without a taker.
+// feet, a set piece when the match takes restarts. Nothing without a taker.
 void kickOffSecondHalf(const MatchStepContext& context, const MatchState& current,
-                       MatchStateWriter& next, const TeamSide kicking, const BallPhysics& physics) {
-  const auto lineUp = lineUpForKickoff(current, kicking, physics);
-  if (!lineUp) {
-    return;
+                       MatchStateWriter& next, const MatchClockRules& rules) {
+  if (const auto lineUp = lineUpForKickoff(current, TeamSide::kAway, rules.physics)) {
+    kickOff(context, current, next, *lineUp, rules.setPieces);
   }
-  const SimCore::PlayerId taker = current.players()[lineUp->takerIndex].playerId;
-  if (next.ball().owner != taker) {
-    context.record(PossessionChanged{
-        .tick = context.tick(), .previousOwner = next.ball().owner, .newOwner = taker});
-  }
-  next.setBallOwner(taker);
-  next.setBallHeld(false);
-  next.setBallTouch(std::nullopt);
-  next.setBallLastTouch(BallTouch{.playerId = taker, .tick = context.tick()});
-  next.setBallVelocity({});
-  next.setBallHeight(0.0);
-  next.setBallVerticalVelocity(0.0);
-  next.setBallSpin(0.0);
-  next.setBallSideSpin(0.0);
-  takeKickoffLineUp(current, *lineUp, next);
 }
 
 }  // namespace
@@ -88,7 +72,7 @@ MatchSystem makeMatchClockSystem(const MatchClockRules& rules) {
                                          .periodStart = context.tick(),
                                          .lostSeconds = 0.0,
                                          .addedMinutes = std::nullopt});
-                kickOffSecondHalf(context, current, next, TeamSide::kAway, rules.physics);
+                kickOffSecondHalf(context, current, next, rules);
               },
           .intervalTicks = 1,
           .phaseTicks = 0};

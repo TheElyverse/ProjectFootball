@@ -213,7 +213,7 @@ TEST_CASE("A goal kick is taken from the front of the goal area", "[restart]") {
   REQUIRE(goalKickSpot(pitch, {.x = 60.0, .y = 21.0}) == Vec2{.x = awayArea.min.x, .y = 21.0});
 }
 
-TEST_CASE("The restart system gives the ball to the taker once it is out", "[restart]") {
+TEST_CASE("The restart system awards a set piece once the ball is out", "[restart]") {
   const auto run = [](const bool enabled) {
     MatchConfig config;
     config.restarts.enabled = enabled;
@@ -231,15 +231,24 @@ TEST_CASE("The restart system gives the ball to the taker once it is out", "[res
                                                                  .speed = 20.0,
                                                                  .receiver = std::nullopt}}}});
     std::vector<RestartTaken> restarts;
-    for (int step = 0; step < 90; ++step) {
+    int taken = 0;
+    for (int step = 0; step < 240; ++step) {
       REQUIRE(simulation.step().has_value());
       for (const MatchEvent& event : simulation.events()) {
         if (const auto* restart = std::get_if<RestartTaken>(&event)) {
           restarts.push_back(*restart);
-          REQUIRE(simulation.state().ball().owner == restart->player);
+          // The ball lies dead until the taker plays it.
+          REQUIRE_FALSE(simulation.state().ball().owner.has_value());
+          REQUIRE(simulation.state().setPiece().has_value());
+          REQUIRE(simulation.state().setPiece()->taker == restart->player);
+        }
+        if (const auto* setPiece = std::get_if<ElyverseFootball::SimMatch::SetPieceTaken>(&event)) {
+          REQUIRE(setPiece->taker == restarts.back().player);
+          ++taken;
         }
       }
     }
+    REQUIRE(taken == static_cast<int>(restarts.size()));
     return restarts;
   };
   const auto restarts = run(true);
@@ -286,8 +295,11 @@ TEST_CASE("A player on an out-of-play ball does not receive it before the restar
     REQUIRE_FALSE(std::holds_alternative<LooseBallRecovered>(event));
   }
   REQUIRE(restarts == 1);
-  REQUIRE(possessionChanges == 1);
-  REQUIRE(simulation.state().ball().owner == PlayerId(3));
+  REQUIRE(possessionChanges == 0);
+  // A throw-in for away, the ball dead on the line until 3 throws it.
+  REQUIRE_FALSE(simulation.state().ball().owner.has_value());
+  REQUIRE(simulation.state().setPiece().has_value());
+  REQUIRE(simulation.state().setPiece()->taker == PlayerId(3));
 }
 
 TEST_CASE("A restart gets a taker who stumbled in a duel up again", "[restart]") {
@@ -308,7 +320,8 @@ TEST_CASE("A restart gets a taker who stumbled in a duel up again", "[restart]")
        .systems = {down, makeRestartSystem({.restarts = RestartConfig{.enabled = true}})},
        .commands = {}});
   REQUIRE(simulation.step().has_value());
-  REQUIRE(simulation.state().ball().owner == PlayerId(3));
+  REQUIRE(simulation.state().setPiece().has_value());
+  REQUIRE(simulation.state().setPiece()->taker == PlayerId(3));
   REQUIRE_FALSE(simulation.state().tactical(2).stumbledUntil.has_value());
 }
 

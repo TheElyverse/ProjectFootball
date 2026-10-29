@@ -96,6 +96,8 @@ void MatchAnalyzer::observeStep(const std::span<const SimMatch::MatchEvent> even
       ++tally(offside->side).offsides;
     } else if (const auto* foul = std::get_if<SimMatch::FoulCalled>(&event)) {
       onFoul(*foul);
+    } else if (const auto* setPiece = std::get_if<SimMatch::SetPieceTaken>(&event)) {
+      onSetPiece(*setPiece);
     } else if (const auto* ended = std::get_if<SimMatch::PeriodEnded>(&event)) {
       finished_ = finished_ || ended->period == SimMatch::MatchPeriod::kSecondHalf;
     } else if (const auto* intercepted = std::get_if<SimMatch::PassIntercepted>(&event)) {
@@ -198,6 +200,9 @@ TeamStats MatchAnalyzer::statsOf(const TeamSide side, const std::int64_t possess
       .fouls = counts.fouls,
       .yellowCards = counts.yellowCards,
       .redCards = counts.redCards,
+      .corners = counts.corners,
+      .throwIns = counts.throwIns,
+      .goalKicks = counts.goalKicks,
       .points = finished_ ? std::optional(pointsOf(counts.goals, opponent.goals)) : std::nullopt,
       .turnovers = counts.turnovers,
       .regains = counts.regains,
@@ -208,6 +213,14 @@ TeamStats MatchAnalyzer::statsOf(const TeamSide side, const std::int64_t possess
       .pitchControlShare = ratio(counts.pitchControlSum, samples_),
       .attackingThirdShare = ratio(counts.attackingThirdSamples, samples_),
   };
+}
+
+void MatchAnalyzer::onSetPiece(const SimMatch::SetPieceTaken& setPiece) {
+  using SimTactics::SetPieceKind;
+  SideTally& counts = tally(setPiece.side);
+  counts.corners += setPiece.kind == SetPieceKind::kCorner ? 1 : 0;
+  counts.throwIns += setPiece.kind == SetPieceKind::kThrowIn ? 1 : 0;
+  counts.goalKicks += setPiece.kind == SetPieceKind::kGoalKick ? 1 : 0;
 }
 
 void MatchAnalyzer::onFoul(const SimMatch::FoulCalled& foul) {

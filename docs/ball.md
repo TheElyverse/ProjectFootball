@@ -184,10 +184,10 @@ decide what happens to a ball that leaves the pitch.
 
 A ball that crosses a touchline or goal line stops on the line at the crossing
 point, on the ground, at rest, without spin — in the air as on the grass. The
-ball is out of play and waits there. This stands in until a rules system decides
-on throw-ins, goal kicks and corners; the opt-in
-[restart](match-engine.md#restarts) system gives such a ball to the side due to
-restart. A ball that crosses a goal line between the posts and under the
+ball is out of play and waits there for the
+[restart](match-engine.md#restarts) system, which awards the throw-in, goal kick
+or corner as a [set piece](set-pieces.md); a scenario without restarts leaves
+it there. A ball that crosses a goal line between the posts and under the
 crossbar is a goal; on the way, posts and crossbar can turn it away
 ([shooting](on-ball.md#shooting)). A ball rolling along or resting on a line is
 on the pitch (`Pitch::contains()` includes the edges) and keeps rolling.

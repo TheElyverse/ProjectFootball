@@ -486,6 +486,10 @@ MatchSystem makeDuelSystem(const DuelRules& rules) {
           .update =
               [rules](const MatchStepContext& context, const MatchState& current,
                       MatchStateWriter& next) {
+                // Nobody wins a dead ball (docs/set-pieces.md).
+                if (next.setPiece()) {
+                  return;
+                }
                 const DuelStep step(rules, context, current, next);
                 for (std::size_t index = 0; index < current.players().size(); ++index) {
                   if (const auto& duel = current.tactical(index).duel) {

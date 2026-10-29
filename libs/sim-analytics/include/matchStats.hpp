@@ -46,6 +46,10 @@ struct TeamStats {
   int fouls = 0;
   int yellowCards = 0;
   int redCards = 0;
+  // Set pieces the side took (docs/set-pieces.md).
+  int corners = 0;
+  int throwIns = 0;
+  int goalKicks = 0;
   // 3 for a win, 1 for a draw, 0 for a defeat; empty for a match that did not
   // reach full time.
   std::optional<int> points;

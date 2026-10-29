@@ -631,16 +631,17 @@ them in their fixed order. Each system's factory takes its configuration, or a
 | 3     | pitch control   | 3 Hz       | the pitch-control grid         |
 | 4     | team pressing   | 5 Hz       | presses of sides with a tactic |
 | 5     | tactical movement | 5 Hz     | movement targets, desired regions and actions -- off-ball and defensive -- of players of sides with a tactic, the goalkeepers' places ([goalkeeper](goalkeeper.md#positioning-and-sweeping)) |
-| 6     | ball pursuit    | 10 Hz      | movement targets of the chasers, the chasers, the goalkeepers' judgements of a ball they could come for |
-| 7     | pass decision   | 5 Hz       | the carrier's pending pass or shot ([shot decisions](on-ball.md#shot-decisions)) |
-| 8     | duel            | 10 Hz      | the duel on the ball, in the defender's tactical state, and who is off his feet; the carrier's and the defender's movement targets, the ball's position as the carrier rolls it round him, its owner, velocity and last touch once it is won or loose; clears the loser's pending pass or shot ([duels](duels.md#duels-on-the-ball)) |
-| 9     | shot stopping   | every tick | the dive of the keeper facing a shot, once he has reacted, in his tactical state ([shot stopping](goalkeeper.md#shot-stopping)) |
-| 10    | player movement | every tick | player positions, velocities, facings -- toward the ball as the systems before it left it --; a keeper busy with a dive where it takes him, a player off his feet nowhere |
-| 11    | ball movement   | every tick | ball position, velocity, owner, last touch, last pass and shot, the score and the last goal, a keeper's dive once the ball passed him; plays the owner's pending pass or shot and clears every other ([shooting](on-ball.md#shooting)) |
-| 12    | offside         | every tick | the play the rule watches, and after an offence the free kick: ball, taker and pending actions; only with `offside.enabled` ([offside](#offside)) |
-| 13    | fouls           | every tick | after a duel's foul: the card, a sending-off, and unless advantage the free kick or penalty; only with `fouls.enabled` ([fouls](fouls.md)) |
-| 14    | restart         | every tick | ball owner, position, velocity and last touch after the ball went out or into a goal or a goalkeeper held it too long, and for a kickoff both sides' line-up; the clock's lost time; the offside exemption; only with `restarts.enabled` ([restarts](#restarts)) |
-| 15    | match clock     | every tick | every player's fitness ([fitness](players.md#fitness)); the clock, its added time, and at half time both sides' line-up and the ball for the second half's kickoff ([match clock](match-clock.md)) |
+| 6     | set pieces      | every tick | while a set piece is set up: every movement target it sets; once all are in place, the taker on the ball with his pass pending; only with `restarts.enabled` ([set pieces](set-pieces.md)) |
+| 7     | ball pursuit    | 10 Hz      | movement targets of the chasers, the chasers, the goalkeepers' judgements of a ball they could come for |
+| 8     | pass decision   | 5 Hz       | the carrier's pending pass or shot ([shot decisions](on-ball.md#shot-decisions)) |
+| 9     | duel            | 10 Hz      | the duel on the ball, in the defender's tactical state, and who is off his feet; the carrier's and the defender's movement targets, the ball's position as the carrier rolls it round him, its owner, velocity and last touch once it is won or loose; clears the loser's pending pass or shot ([duels](duels.md#duels-on-the-ball)) |
+| 10    | shot stopping   | every tick | the dive of the keeper facing a shot, once he has reacted, in his tactical state ([shot stopping](goalkeeper.md#shot-stopping)) |
+| 11    | player movement | every tick | player positions, velocities, facings -- toward the ball as the systems before it left it --; a keeper busy with a dive where it takes him, a player off his feet nowhere |
+| 12    | ball movement   | every tick | ball position, velocity, owner, last touch, last pass and shot, the score and the last goal, a keeper's dive once the ball passed him; plays the owner's pending pass or shot and clears every other ([shooting](on-ball.md#shooting)) |
+| 13    | offside         | every tick | the play the rule watches, and after an offence the free kick: ball, taker and pending actions; only with `offside.enabled` ([offside](#offside)) |
+| 14    | fouls           | every tick | after a duel's foul: the card, a sending-off, and unless advantage the free kick or penalty; only with `fouls.enabled` ([fouls](fouls.md)) |
+| 15    | restart         | every tick | the `SetPiece` it awards after the ball went out or into a goal or a goalkeeper held it too long: the ball dead at its spot, every pending action and chaser cleared, and for a kickoff both sides' line-up; the clock's lost time; the offside exemption; only with `restarts.enabled` ([restarts](#restarts)) |
+| 16    | match clock     | every tick | every player's fitness ([fitness](players.md#fitness)); the clock, its added time, and at half time both sides' line-up and the ball for the second half's kickoff ([match clock](match-clock.md)) |
 
 `MatchSetup` is everything such a match starts from: initial state, config, seed
 and commands. `startMatch(setup)` builds the simulation. A replay records a
@@ -827,24 +828,27 @@ events, and whoever needs a log keeps one. Match statistics are
 A ball that leaves the pitch stops on the line where it crossed
 ([ball movement](ball.md#ball-movement)), also one that went into a goal
 ([shooting](on-ball.md#shooting)). Without restarts, players chase it there and
-play on from the line — fine for short scenarios, but over a whole match it
-blurs every statistic: a side wins back a ball it kicked out itself. The restart
-system settles who plays on, simply and deterministically. It is **opt-in**
-(`MatchConfig::restarts`, `enabled = false` by default), so matches recorded
-without it keep their hashes; the [benchmark](tooling.md#sim-benchmark) turns it
-on.
+play on from the line — over a whole match that would blur every statistic:
+a side wins back a ball it kicked out itself. The restart system decides who
+plays on, and every match has it: `MatchConfig::restarts` is on by default.
+A scenario may turn it off to keep the ball on the line where it goes out; that
+simplification is for scenarios only, the [pressing](team-tactics.md#coordination-pays)
+acceptance test for instance. A throw-in, a corner and a goal kick are
+[set pieces](set-pieces.md): the players take up their places before the taker
+plays the ball as his side's plan says.
 
 ### When
 
 The ball is **out of play** (`isOutOfPlay()`) when it is free and at rest on
 the ground on a touchline or goal line, where a ball that left the pitch stops.
 At rest means in every direction: a ball in the air over the line, even at the
-top of its flight, is in play. The restart system runs every tick, last in the
-[standard order](#match-loop), and restarts in the step after the ball stopped.
+top of its flight, is in play. The restart system runs every tick, last before the
+clock in the [standard order](#match-loop), and restarts in the step after the
+ball stopped.
 
 With restarts enabled, [ball movement](ball.md#ball-movement) leaves a ball out
 of play alone; otherwise a player near the line would receive or intercept it,
-with events, just before the restart hands it to the taker.
+with events, just before the restart awards the set piece.
 
 ### Who
 
@@ -852,14 +856,15 @@ with events, just before the restart hands it to the taker.
 
 | Ball on         | Last touch by                | Restart     | Ball to                                   |
 |-----------------|------------------------------|-------------|-------------------------------------------|
-| the goal line it went in over | anyone         | `kickoff`   | the conceding side's player nearest the centre spot in its [line-up](#the-kickoff) |
+| the goal line it went in over | anyone         | `kickoff`   | the conceding side's kickoff taker in its [line-up](#the-kickoff) |
 | a touchline     | one side                     | `throwIn`   | the other side's player nearest the ball  |
 | a touchline     | nobody                       | `throwIn`   | the nearest player of the side whose half it is |
 | a goal line     | the side defending that line | `corner`    | the attacking side's player nearest the ball |
 | a goal line     | the attackers, or nobody     | `goalKick`  | the defending side's goalkeeper, or its nearest player without one |
 
 Home defends the goal line at `x = 0`, away the one at `x = length`. Ties in
-distance go to the lower player index. A ball went in if nobody has touched it
+distance go to the lower player index. A [set piece plan](set-pieces.md#plans)
+naming a taker overrides the column's choice. A ball went in if nobody has touched it
 since the state's last goal (`MatchState::lastGoal()`).
 
 ### Holding the ball too long
@@ -868,26 +873,33 @@ A goalkeeper may hold the ball in his hands for eight seconds (Law 12). One
 who holds it longer than `maxHoldSeconds` (8 s) since he took it (his last
 touch) concedes a **corner** at the corner of his goal line nearer the ball —
 unless the ball system is just playing the pass or shot he chose in time. The
-other side's player nearest that corner (ties to the lower index) takes it,
-standing on the corner flag at rest, facing the centre, the ball at his feet.
-The system records `RestartTaken` (`corner`, the taker, the corner) and
-`PossessionChanged` from keeper to taker. The keeper avoids it with his
+other side's player nearest that corner (ties to the lower index) takes it, or
+the one its corner plan names, as a [set piece](set-pieces.md). The system
+records `RestartTaken` (`corner`, the taker, the corner) and
+`PossessionChanged` from the keeper to nobody: the ball lies dead in the corner. The keeper avoids it with his
 [clearance](goalkeeper.md#the-ball-in-his-hands) two seconds earlier. There is
 no visible count.
 
 ### What happens
 
-The taker gets the ball at his feet, at rest, with the last touch his; one
-who stumbled in a [duel](duels.md#off-his-feet) is up again. For a
-throw-in and a corner he is not moved. A goal kick is taken from the goal
-area: the ball lies on `goalKickSpot()`, the front edge of the goal area level
-with where it went out but no wider than the goal area, and the taker stands
-`carryDistance` behind it, at rest and facing up the pitch
-([goalkeeper distribution](goalkeeper.md#the-goal-kick)). For a
-kickoff both sides [line up](#the-kickoff) first. The system records `RestartTaken` (kind, taker, where the ball left
-the pitch — the centre spot for a kickoff) and `PossessionChanged`, so [analytics](tooling.md#match-analytics) sees the
-change of possession. From the next step on, play continues as after any other
-change of possession: the taker decides, his team shapes up around him.
+A throw-in, a corner or a goal kick is **awarded** (`awardSetPiece()`): the
+ball lies dead at its spot — where it went out over the touchline, in the
+corner of the goal line, or on `goalKickSpot()`, the front edge of the goal
+area level with where it went out but no wider than the goal area
+([goalkeeper distribution](goalkeeper.md#the-goal-kick)) —, nobody owns it,
+every pending action is cleared, and the state holds the `SetPiece`. The taker
+is the one planRestart() names unless his side's plan names another; one who
+stumbled in a [duel](duels.md#off-his-feet) is up again. The system records
+`RestartTaken` (kind, taker, spot) and, if somebody owned the ball,
+`PossessionChanged` to nobody; nobody chases the ball any more. The
+[set piece system](set-pieces.md) takes it from there. For a kickoff both sides
+[line up](#the-kickoff) at once and the taker has the ball at his feet
+(`kickOff()`); the kickoff is a set piece too, taken in the next step as its
+plan says, as is the second half's ([match clock](match-clock.md#halves)). A
+kickoff ends a set piece still being set up. While a set piece is set up, no
+restart, pass decision, duel, ball movement or pursuit touches the ball, and
+the set piece's side is the side on the ball for the
+[match phases](team-tactics.md#match-phases).
 
 ### The kickoff
 
@@ -904,7 +916,8 @@ kicking, ball)` says where everybody stands:
 - **The opponents outside the centre circle.** An opponent of the side kicking
   off who would stand inside it steps straight back, toward his own goal line,
   onto the circle.
-- **The ball on the centre spot, the taker behind it.** The taker is the player
+- **The ball on the centre spot, the taker behind it.** The taker is the one
+  the side's kickoff plan names, if he is on the pitch, otherwise the player
   of the side kicking off who is nearest to the centre spot in that formation —
   the striker of every preset — with ties going to the lower player index. He
   stands `carryDistance` behind the spot, in his own half, so the ball at his
@@ -927,19 +940,14 @@ not; only the restart after a goal needs them. Its opening kickoff is a
 
 ### What this is not
 
-- No throw-in technique and no set pieces: the ball is handed to the right
-  side.
-- At a throw-in, goal kick or corner, only the goal kick's taker and a
-  held-ball corner's taker are placed; everyone else stays where the play left
-  him, opponents in the penalty area at a goal kick included.
-- The kickoff need not go to a teammate or forward: the taker decides like any
-  carrier, and opponents may enter the circle at once.
+- No throw-in technique: a throw-in is a pass ([set pieces](set-pieces.md#what-this-is-not)).
+- Opponents may enter the centre circle as soon as the kickoff is taken.
 
 ## Offside
 
 The offside rule (Law 11) is in `sim-match` (`offside.hpp`): a system that
 watches every play, and the line that carriers and runners keep to. It is
-opt-in like [restarts](#restarts): `OffsideConfig::enabled` is false by default,
+opt-in: `OffsideConfig::enabled` is false by default,
 so matches without it play as before; the
 [benchmark](tooling.md#sim-benchmark) turns it on. `OffsideConfig` is part of
 `MatchConfig` and of every replay.
@@ -1003,8 +1011,8 @@ pushes the attack back, and a run timed from onside beats it.
 This holds for every pass he plays — short, lofted, a keeper's long ball, a
 cross to a runner, and the pass a stuck carrier is forced into.
 `tests/acceptance/offsideTests.cpp` plays ten three-minute eleven-a-side
-matches: without the rule 26 passes go to a teammate in an offside position,
-with it none. Offsides still happen where a carrier's memory is wrong or a
+matches: without the rule 18 passes go to a teammate in an offside position,
+with it 1, called. Offsides still happen where a carrier's memory is wrong or a
 watched player gets to a rebound or a loose ball: about 1.5 to 8 a side over
 90 minutes in the style benchmark, pressing the most. `tests/unit/sim-match/offsideTests.cpp` covers a
 clear offside, a level attacker, a run from an onside position, the exceptions

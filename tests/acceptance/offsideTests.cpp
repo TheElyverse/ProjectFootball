@@ -98,9 +98,10 @@ TEST_CASE("Offside: carriers and runners keep to the line the defenders hold",
   CAPTURE(without.passesToOffside, without.offsides, with.passesToOffside, with.offsides);
   REQUIRE(without.offsides == 0);
   // Without the rule a fair number of passes would be offside; with it, the
-  // calls are a few. At the time of writing 26 passes to an offside position
-  // without it, none with it.
-  REQUIRE(without.passesToOffside >= 20);
+  // calls are a few. At the time of writing 18 passes to an offside position
+  // without it, 1 with it, called -- 26 and none before restarts were set
+  // pieces.
+  REQUIRE(without.passesToOffside >= 15);
   REQUIRE(with.offsides * 3 < without.passesToOffside);
   REQUIRE(with.passesToOffside * 3 < without.passesToOffside);
 }

@@ -155,8 +155,13 @@ MatchSystem makeOffsideSystem(const OffsideRules& rules) {
                 }
                 if (const auto played = playedNow(next, context.tick())) {
                   const auto passer = findPlayerIndex(current, *played);
-                  const bool exempt = current.ball().lastTouch &&
-                                      current.ball().lastTouch == current.offsideExemption();
+                  // The first play from a throw-in, a goal kick or a corner: the
+                  // restart's touch, or the set piece's in this very step.
+                  const bool exempt =
+                      (current.ball().lastTouch &&
+                       current.ball().lastTouch == current.offsideExemption()) ||
+                      next.offsideExemption() ==
+                          std::optional(BallTouch{.playerId = *played, .tick = context.tick()});
                   next.setOffside(passer && !exempt
                                       ? watchOf(current, *passer, context.tick(), rules.offside)
                                       : std::nullopt);

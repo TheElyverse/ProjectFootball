@@ -81,9 +81,9 @@ struct BallMovementRules {
 // and last touch, the last pass, shot and reception, the score and the last
 // goal, a goalkeeper's dive in his tactical state and the position and
 // velocity of one who holds the ball from a dive, every player's last jump,
-// and clears the pending actions.
-// Throws std::invalid_argument for an invalid
-// configuration.
+// and clears the pending actions. A dead ball -- a set piece being set up
+// (docs/set-pieces.md) -- it leaves alone. Throws std::invalid_argument for an
+// invalid configuration.
 //
 // Pair it with makePlayerMovementSystem(), both every tick, as
 // makeMatchSystems() does: a controlled ball follows the carrier's move as the

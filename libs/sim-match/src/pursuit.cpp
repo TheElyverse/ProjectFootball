@@ -297,6 +297,10 @@ MatchSystem makePursuitSystem(const PursuitRules& rules) {
       .update =
           [physics, config, goalkeeper, reception](
               const MatchStepContext& context, const MatchState& current, MatchStateWriter& next) {
+            // Nobody chases a dead ball (docs/set-pieces.md).
+            if (next.setPiece()) {
+              return;
+            }
             if (leavesBall(current, TeamSide::kHome) && leavesBall(current, TeamSide::kAway)) {
               for (const TeamSide side : {TeamSide::kHome, TeamSide::kAway}) {
                 handOver(current, next, side, std::nullopt);

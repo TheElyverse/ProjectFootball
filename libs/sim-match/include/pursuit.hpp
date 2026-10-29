@@ -102,7 +102,8 @@ struct PursuitRules {
 // target cleared and stops, rather than running on to where the ball was
 // going to be; the tactical systems give a player of a side with a tactic his
 // next target. Runs every config.intervalTicks ticks and writes movement
-// targets, chasers and the goalkeepers' judgements only. The ball is read
+// targets, chasers and the goalkeepers' judgements only, and nothing while a
+// set piece is set up: nobody chases a dead ball. The ball is read
 // directly, not through perception. Throws std::invalid_argument for an
 // interval below one tick, a sample or horizon that is not positive and
 // finite, a horizon of more than kMaxPursuitSamples samples, or an invalid

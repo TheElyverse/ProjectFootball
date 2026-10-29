@@ -40,6 +40,8 @@ one.
 | `keeper-turned` | home's keeper holds the ball facing his own goal, turns and plays out |
 | `keeper-long-kick` | home's keeper on the ball under a high press goes long |
 | `goal-kick` | home plays the ball over away's goal line, away's keeper takes the goal kick |
+| `corner` | eleven a side, away played the ball over its goal line: home's corner from its plan ([set pieces](#the-set-piece-scenarios)) |
+| `throw-in` | eleven a side, away played the ball over the touchline: home's throw-in from its plan |
 | `tactic-match` | the reference tactic against itself, lined up for home's kickoff   |
 | `tactic-match-eleven` | the eleven-a-side reference tactic against itself on the standard pitch, lined up for home's kickoff |
 | `transition-3v2` | home wins the ball in midfield, three attackers against two defenders ([golden](#golden-scenarios)) |
@@ -364,6 +366,15 @@ of the `duel-ball-kept` runs (15), and three times as often as in
 `duel-ball-won`. In `duel-loose-ball` at least 8 duels (12) end with the ball
 loose, and a third player gets to it first after at least 2 of them (5). All
 three run alike every time.
+
+### The set-piece scenarios
+
+`corner` and `throw-in` start from the eleven-a-side reference's kickoff
+line-up with the ball at rest on away's goal line by the corner flag, or on the
+touchline at 65 % of the length, last touched by away's last outfield player:
+home's set piece, set up and taken from its plan. Together with `goal-kick`
+they are the [set-piece scenarios](set-pieces.md#scenarios),
+`tests/acceptance/setPieceScenarioTests.cpp`.
 
 ### The tactic match
 

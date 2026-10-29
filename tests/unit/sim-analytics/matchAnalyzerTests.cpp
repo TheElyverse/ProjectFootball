@@ -397,3 +397,30 @@ TEST_CASE("MatchAnalyzer rejects an unusable context or configuration", "[analyt
   REQUIRE_THROWS_AS(MatchAnalyzer(context(), {.progressiveMeters = 10.0, .ppdaZone = 0.0}),
                     std::invalid_argument);
 }
+
+TEST_CASE("Corners, throw-ins and goal kicks count for the side taking them", "[analytics]") {
+  using ElyverseFootball::SimMatch::SetPieceTaken;
+  using ElyverseFootball::SimTactics::SetPieceDelivery;
+  using ElyverseFootball::SimTactics::SetPieceKind;
+  const auto taken = [](const std::int64_t tick, const SetPieceKind kind,
+                        const TeamSide side) -> MatchEvent {
+    return SetPieceTaken{.tick = SimTick(tick),
+                         .kind = kind,
+                         .side = side,
+                         .taker = PlayerId(side == TeamSide::kHome ? 1 : 3),
+                         .delivery = SetPieceDelivery::kShort,
+                         .target = {.x = 30.0, .y = 20.0},
+                         .receiver = std::nullopt};
+  };
+  const MatchStats stats = analyze({{taken(1, SetPieceKind::kCorner, TeamSide::kHome)},
+                                    {taken(2, SetPieceKind::kCorner, TeamSide::kHome)},
+                                    {taken(3, SetPieceKind::kThrowIn, TeamSide::kAway)},
+                                    {taken(4, SetPieceKind::kGoalKick, TeamSide::kAway)},
+                                    {taken(5, SetPieceKind::kKickoff, TeamSide::kHome)}});
+  REQUIRE(stats.home.corners == 2);
+  REQUIRE(stats.home.throwIns == 0);
+  REQUIRE(stats.home.goalKicks == 0);
+  REQUIRE(stats.away.corners == 0);
+  REQUIRE(stats.away.throwIns == 1);
+  REQUIRE(stats.away.goalKicks == 1);
+}

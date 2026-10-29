@@ -40,9 +40,11 @@ second. A toss that lets away open would choose both kickoffs together. The
 half-time break takes no simulated time: the second half starts in the tick the
 first ends, with both sides lined up for [the kickoff](match-engine.md#the-kickoff)
 and started as at the beginning of a match, the ball at rest at the taker's feet
-on the centre spot. Their fitness carries over. A restart the
-[restart system](match-engine.md#restarts) took in that tick is overwritten by
-the kickoff; its `RestartTaken` stays in the events.
+on the centre spot; when the match takes restarts it is a
+[set piece](set-pieces.md), taken as away's kickoff plan says. Their fitness
+carries over. A restart the [restart system](match-engine.md#restarts) took in
+that tick, or a set piece still being set up, is overwritten by the kickoff;
+its `RestartTaken` stays in the events.
 
 **The teams change ends.** The engine's coordinates belong to the teams, not
 to the ground: home attacks the goal at `x = length` in both halves

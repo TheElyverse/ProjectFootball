@@ -4,7 +4,7 @@ A foul is a [tackle](duels.md#tackles-and-blocks) that went through the man; the
 foul rules turn it into a decision: a free kick where it happened or a penalty
 inside the area, advantage when the fouled side keeps the ball up the pitch, and
 the card the tackle earned. They are in `sim-match` (`fouls.hpp`), opt-in like
-[restarts](match-engine.md#restarts) and [offside](match-engine.md#offside):
+[offside](match-engine.md#offside):
 `FoulConfig::enabled` is false by default, so a foul without them only puts the
 tackler off his feet, as before; the [benchmark](tooling.md#sim-benchmark)
 turns them on. `FoulConfig` is part of `MatchConfig` and of every replay.

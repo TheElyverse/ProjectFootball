@@ -678,6 +678,10 @@ MatchSystem makePassDecisionSystem(const DecisionConfig& config, const PassCandi
       .update =
           [onBall](const MatchStepContext& context, const MatchState& current,
                    MatchStateWriter& next) {
+            // A set piece's taker plays its delivery (docs/set-pieces.md).
+            if (current.setPiece() || next.setPiece()) {
+              return;
+            }
             const BallState& ball = current.ball();
             const auto carrier = ball.owner ? findPlayerIndex(current, *ball.owner) : std::nullopt;
             if (!carrier) {

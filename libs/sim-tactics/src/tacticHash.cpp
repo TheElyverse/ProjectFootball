@@ -61,6 +61,18 @@ void addTactic(StableHasher& hasher, const Tactic& tactic) noexcept {
   for (const PhaseInstruction& instruction : tactic.spec().phases) {
     addInstruction(hasher, instruction);
   }
+  for (const SetPieceKind kind : kAllSetPieceKinds) {
+    const SetPiecePlan& plan = tactic.setPieces().of(kind);
+    hasher.addBool(plan.taker.has_value());
+    hasher.addU64(plan.taker.value_or(0));
+    hasher.addByte(static_cast<std::uint8_t>(plan.delivery));
+    for (const auto* list : {&plan.runners, &plan.markers}) {
+      hasher.addU64(list->size());
+      for (const std::size_t slot : *list) {
+        hasher.addU64(slot);
+      }
+    }
+  }
 }
 
 std::uint64_t contentHash(const Tactic& tactic) noexcept {
