@@ -1496,7 +1496,8 @@ covering defender and takes it past him on one side.
 
 ### What this is not
 
-- Fatigue does not affect the touch: there is no energy model.
+- Fatigue does not affect the touch: [fitness](players.md#fitness) slows the
+  run only.
 - No feint: an opponent wins a touched ball only by reaching it first, a ball at
   the feet in a [duel](duels.md#duels-on-the-ball).
 - A carry does not aim to open a passing lane, and nobody carries the ball for

@@ -915,7 +915,6 @@ void fieldsOf(Visitor& visit, SimMatch::AerialConfig& aerial) {
 template <typename Visitor>
 void fieldsOf(Visitor& visit, SimMatch::MatchClockConfig& clock) {
   visit.number("durationMinutes", clock.durationMinutes);
-  visit.side("openingKickoff", clock.openingKickoff);
   visit.number("throwInLostSeconds", clock.throwInLostSeconds);
   visit.number("goalKickLostSeconds", clock.goalKickLostSeconds);
   visit.number("cornerLostSeconds", clock.cornerLostSeconds);
@@ -968,10 +967,6 @@ class ConfigWriter {
     json_[std::string(key)] = value;
   }
 
-  void side(const std::string_view key, const TeamSide value) {
-    json_[std::string(key)] = SimMatch::teamSideName(value);
-  }
-
   template <typename Config>
   void object(const std::string_view key, Config& config) {
     ConfigWriter nested;
@@ -1001,10 +996,6 @@ class ConfigReader {
   void integer(const std::string_view key, int& value, const std::int64_t min,
                const std::int64_t max) const {
     value = static_cast<int>(field_.member(key).integerIn(min, max));
-  }
-
-  void side(const std::string_view key, TeamSide& value) const {
-    value = readSide(field_.member(key));
   }
 
   template <typename Config>

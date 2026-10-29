@@ -34,13 +34,15 @@ Worked examples at 30 ticks per second:
 
 ## Halves
 
-The side `openingKickoff` names, home by default, kicks off the first half —
-the [tactic match](scenarios.md#the-tactic-match) gives home's taker the ball at
-tick 0 — and the other side kicks off the second. The half-time break takes no
-simulated time: the second half starts in the tick the first ends, with both
-sides lined up for [the kickoff](match-engine.md#the-kickoff) and started as at
-the beginning of a match, the ball at rest at the taker's feet on the centre
-spot. Their fitness carries over.
+Home kicks off the first half — every fixture gives home's taker the ball at
+tick 0, as the [tactic match](scenarios.md#the-tactic-match) does — and away the
+second. A toss that lets away open would choose both kickoffs together. The
+half-time break takes no simulated time: the second half starts in the tick the
+first ends, with both sides lined up for [the kickoff](match-engine.md#the-kickoff)
+and started as at the beginning of a match, the ball at rest at the taker's feet
+on the centre spot. Their fitness carries over. A restart the
+[restart system](match-engine.md#restarts) took in that tick is overwritten by
+the kickoff; its `RestartTaken` stays in the events.
 
 **The teams change ends.** The engine's coordinates belong to the teams, not
 to the ground: home attacks the goal at `x = length` in both halves
@@ -88,7 +90,9 @@ Matches without `restarts.enabled` take no restarts and add no time.
 
 The second half ends like the first; then the clock stands at full time, at
 `90:00` and the added minutes. `MatchSimulation` runs no system after that:
-steps advance the tick only, and the state stays as it was at the whistle.
+steps advance the tick, and the state stays as it was at the whistle unless a
+scheduled command changes it — commands still apply, nothing plays on from
+them.
 
 ## Fatigue over the match
 

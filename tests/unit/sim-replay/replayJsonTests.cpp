@@ -291,6 +291,33 @@ TEST_CASE("How players carry the ball is read from the initial state and the con
                   "config.ball.minCarrySpeedFactor: missing");
 }
 
+TEST_CASE("The clock and fitness are read from the initial state and the config", "[replayJson]") {
+  const auto tired =
+      parseReplayJson(validJsonWith("\"sprintReserve\": 1.0", "\"sprintReserve\": 0.25"));
+  REQUIRE(tired.has_value());
+  REQUIRE(tired->setup.initialState.players()[0].fitness.sprintReserve == 0.25);
+  const auto played = parseReplayJson(validJsonWith("\"playedTicks\": 0", "\"playedTicks\": 900"));
+  REQUIRE(played.has_value());
+  REQUIRE(played->setup.initialState.players()[0].fitness.playedTicks == 900);
+  requireRejected(validJsonWith("\"topSpeedShare\": 1.0", "\"topSpeedShare\": 1.5"),
+                  ReplayErrorCode::kInvalidSetup, "top speed share");
+
+  const auto shorter =
+      parseReplayJson(validJsonWith("\"durationMinutes\": 90.0", "\"durationMinutes\": 10.0"));
+  REQUIRE(shorter.has_value());
+  REQUIRE(shorter->setup.config.clock.durationMinutes == 10.0);
+  const auto lost =
+      parseReplayJson(validJsonWith("\"cornerLostSeconds\": 6.0", "\"cornerLostSeconds\": 9.0"));
+  REQUIRE(lost.has_value());
+  REQUIRE(lost->setup.config.clock.cornerLostSeconds == 9.0);
+  const auto sprint =
+      parseReplayJson(validJsonWith("\"sprintSeconds\": 15.0", "\"sprintSeconds\": 20.0"));
+  REQUIRE(sprint.has_value());
+  REQUIRE(sprint->setup.config.fitness.sprintSeconds == 20.0);
+  requireRejected(validJsonWith("\"recoverySeconds\"", "\"recoverySecond\""), kMalformed,
+                  "config.fitness.recoverySeconds: missing");
+}
+
 TEST_CASE("How players decide is read from the initial state and the config", "[replayJson]") {
   const auto poor =
       parseReplayJson(validJsonWith("\"decisionMaking\": 0.5", "\"decisionMaking\": 0.2"));

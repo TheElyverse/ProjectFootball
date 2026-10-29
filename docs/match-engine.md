@@ -72,8 +72,10 @@ ball radius or football rules.
 - The x axis follows the pitch length; goal lines are at `x = 0` and `x = length`.
 - The y axis follows the pitch width; touchlines are at `y = 0` and `y = width`.
 - The center is `(length / 2, width / 2)`.
-- Coordinates stay fixed when teams change ends. Team attacking direction is a
-  separate concern. Renderers map these coordinates to their own screen axes.
+- Coordinates belong to the teams: home defends `x = 0` in both halves, and
+  when the teams change ends only a view turns the pitch round
+  ([halves](match-clock.md#halves)). Renderers map these coordinates to their
+  own screen axes.
 
 `Pitch(60.0, 40.0)` creates a 60 by 40 meter rectangle (example dimensions,
 not a mandated 7v7 size). Both dimensions must be positive and finite, or it
@@ -137,8 +139,9 @@ Markings are geometry, not rules: no line is a boundary by itself. Goals are
 ### Goals, areas, spots and arcs
 
 Both goals are named by the goal line they stand on, `GoalEnd::kMinX` for
-`x = 0` and `GoalEnd::kMaxX` for `x = length`. Pitch coordinates stay fixed when
-teams change ends, so an end says nothing about which side defends it.
+`x = 0` and `GoalEnd::kMaxX` for `x = length`. Home defends `kMinX` and away
+`kMaxX` in both halves ([halves](match-clock.md#halves)); `ownGoalEnd()` says
+which, rather than an end itself.
 
 - `goalLineX(end)` is 0 or the length; `center()` is the middle of the pitch.
 - `goal(end)` is the frame: the middle between the posts on the goal line, the width
@@ -688,10 +691,8 @@ job runs it.
 
 ### What this is not
 
-- No match length, halves, stoppage time or end of match; a rules and
-  match-clock system will add them.
 - Simulation time is never scaled: a shorter match ends earlier, it does not
-  run faster.
+  run faster ([match clock](match-clock.md)).
 
 ## Match events and decision diagnostics
 

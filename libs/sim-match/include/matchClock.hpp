@@ -9,15 +9,13 @@
 
 namespace ElyverseFootball::SimMatch {
 
-// The match clock (docs/match-clock.md): how long a match lasts, who kicks off,
-// and the real seconds of play each stoppage costs. Part of MatchConfig and of
+// The match clock (docs/match-clock.md): how long a match lasts and the real
+// seconds of play each stoppage costs. Part of MatchConfig and of
 // every replay.
 struct MatchClockConfig {
   // The real minutes of play both halves last together, without added time.
   // The clock shows them as ninety; the football itself does not change.
   double durationMinutes = 90.0;  // min
-  // The side that kicks off the first half; the other kicks off the second.
-  TeamSide openingKickoff = TeamSide::kHome;
   // Real seconds of play each restart costs: the half's lost time, which the
   // referee adds at its end. A kickoff after a goal counts the celebration.
   double throwInLostSeconds = 4.0;   // s
@@ -29,9 +27,8 @@ struct MatchClockConfig {
 };
 
 // Throws std::invalid_argument for a duration that is not positive and
-// finite, or so short that a half lasts no tick at ticksPerSecond, for an
-// opening side that is neither home nor away, or for a lost time that is
-// negative or not finite.
+// finite, or so short that a half lasts no tick at ticksPerSecond, or for a
+// lost time that is negative or not finite.
 void validate(const MatchClockConfig& config, int ticksPerSecond);
 
 // The ticks of one half's regulation time: half the duration, to the nearest

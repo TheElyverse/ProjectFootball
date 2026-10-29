@@ -85,14 +85,12 @@ function drawPitchControl(
       // The last column and row may reach past the pitch: clip to it.
       const x = column * grid.cellSize;
       const y = row * grid.cellSize;
-      const [left, top] = viewport.toCanvas([x, y]);
-      context.fillStyle = controlColor(control);
-      context.fillRect(
-        left,
-        top,
-        viewport.pixels(Math.min(grid.cellSize, length - x)),
-        viewport.pixels(Math.min(grid.cellSize, width - y)),
+      const cell = viewport.rectToCanvas(
+        [x, y],
+        [Math.min(x + grid.cellSize, length), Math.min(y + grid.cellSize, width)],
       );
+      context.fillStyle = controlColor(control);
+      context.fillRect(cell.left, cell.top, cell.width, cell.height);
     }
   }
 }
@@ -227,9 +225,12 @@ function drawPhases(
     if (team.phase === null) {
       continue;
     }
+    // Above the top touchline, at the end the side defends on the canvas.
     const home = team.side === "home";
-    const [x, y] = viewport.toCanvas([home ? 0 : recording.pitch.length, 0]);
-    context.textAlign = home ? "left" : "right";
+    const { length, width } = recording.pitch;
+    const [x] = viewport.toCanvas([home ? 0 : length, 0]);
+    const y = viewport.rectToCanvas([0, 0], [length, width]).top;
+    context.textAlign = x < context.canvas.width / 2 ? "left" : "right";
     context.fillStyle = teamColor(team.side, 1);
     context.fillText(`${team.tactic ?? "scripted"}: ${team.phase}`, x, y - 4);
   }

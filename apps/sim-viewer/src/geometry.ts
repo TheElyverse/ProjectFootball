@@ -1,5 +1,12 @@
 import type { PlayerFrame, Vec2 } from "./frames.js";
 
+export interface CanvasRect {
+  readonly left: number;
+  readonly top: number;
+  readonly width: number;
+  readonly height: number;
+}
+
 // Maps pitch meters to canvas pixels: the whole pitch plus a margin, as large
 // as the canvas allows, centered. Canvas y grows downward like pitch y, so
 // y = 0 is the top touchline -- unless mirrored, as once the teams have
@@ -39,6 +46,19 @@ export class Viewport {
       (point[0] - this.offsetX) / this.scale,
       (point[1] - this.offsetY) / this.scale,
     ]);
+  }
+
+  // The canvas rectangle of a pitch rectangle from min to max, whichever
+  // corners the view puts top left.
+  rectToCanvas(min: Vec2, max: Vec2): CanvasRect {
+    const [x1, y1] = this.toCanvas(min);
+    const [x2, y2] = this.toCanvas(max);
+    return {
+      left: Math.min(x1, x2),
+      top: Math.min(y1, y2),
+      width: Math.abs(x2 - x1),
+      height: Math.abs(y2 - y1),
+    };
   }
 
   // Half a turn round the centre spot when mirrored; its own inverse.

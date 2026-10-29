@@ -7,7 +7,6 @@
 
 #include "matchEvents.hpp"
 #include "restart.hpp"
-#include "teamFrame.hpp"
 
 namespace ElyverseFootball::SimMatch {
 namespace {
@@ -82,8 +81,7 @@ MatchSystem makeMatchClockSystem(const MatchClockRules& rules) {
                                          .periodStart = context.tick(),
                                          .lostSeconds = 0.0,
                                          .addedMinutes = std::nullopt});
-                kickOffSecondHalf(context, current, next, opponentOf(rules.clock.openingKickoff),
-                                  rules.physics);
+                kickOffSecondHalf(context, current, next, TeamSide::kAway, rules.physics);
               },
           .intervalTicks = 1,
           .phaseTicks = 0};

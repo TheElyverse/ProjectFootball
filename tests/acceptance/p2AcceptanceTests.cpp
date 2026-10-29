@@ -91,8 +91,9 @@ struct PressTally {
 TEST_CASE("P2: coordinated pressing wins the ball more often than a lone presser",
           "[acceptance][p2]") {
   // A hundred minutes of play each (docs/team-tactics.md#coordination-pays): at
-  // the time of writing 0.38 against 0.32. A lone presser leaves the carrier's lanes
-  // open; a coordinated press closes the nearest ones and covers behind.
+  // the time of writing 0.38 against 0.32, about three standard errors apart;
+  // the bar of three points leaves a cushion of about 1.7 of them. A lone presser leaves the
+  // carrier's lanes open; a coordinated press closes the nearest ones and covers behind.
   const PressTally lone = homePresses(0.25);
   const PressTally coordinated = homePresses(1.0);
   CAPTURE(lone.presses, lone.regained, coordinated.presses, coordinated.regained);

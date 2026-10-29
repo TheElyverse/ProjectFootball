@@ -116,7 +116,8 @@ Players tire in two ways (game design document §8.10), both in
   `playedTicks` over the ticks of both halves. After the whole duration he has
   lost `fullMatchSpeedLoss` (6 %) of his top speed, linearly on the way, so a
   ten-minute match tires as a ninety-minute one: nine minutes of ten cost what
-  81 of 90 do, 5.4 %. Added time tires no further.
+  81 of 90 do, 5.4 %. It stops growing once he has played as many ticks as
+  both halves last; the first half's added time counts toward them.
 - **In a sprint**, in real seconds. Running faster than `sprintSpeedShare`
   (85 %) of his `maxSpeed` drains his `sprintReserve` from 1 to 0 in
   `sprintSeconds` (15 s); running slower fills it again in `recoverySeconds`

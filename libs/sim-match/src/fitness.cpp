@@ -31,7 +31,8 @@ PlayerFitness stepFitness(const PlayerMatchState& player, const FitnessTime& tim
       std::clamp(fitness.sprintReserve + (sprinting ? -time.secondsPerTick / config.sprintSeconds
                                                     : time.secondsPerTick / config.recoverySeconds),
                  0.0, 1.0);
-  // Added time tires no further: the share stops at the whole match.
+  // The share stops at the ticks of both halves, which the first half's added
+  // time counts toward.
   const double played = std::min(
       1.0, static_cast<double>(next.playedTicks) / static_cast<double>(2 * time.halfTicks));
   next.topSpeedShare = 1.0 - (config.fullMatchSpeedLoss * played);

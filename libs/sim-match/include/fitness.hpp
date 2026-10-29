@@ -38,7 +38,7 @@ struct FitnessTime {
 // drained by the tick's seconds over sprintSeconds while he ran faster than
 // sprintSpeedShare of his maxSpeed, refilled by them over recoverySeconds
 // otherwise; and the top speed share the two leave him -- 1 less
-// fullMatchSpeedLoss times the share of the match he has played, and no more
+// fullMatchSpeedLoss times the share of the match he has played, at most 1, and no more
 // than sprintSpeedShare while his reserve is empty.
 [[nodiscard]] PlayerFitness stepFitness(const PlayerMatchState& player, const FitnessTime& time,
                                         const FitnessConfig& config) noexcept;

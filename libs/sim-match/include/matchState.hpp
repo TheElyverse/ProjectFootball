@@ -26,11 +26,10 @@
 
 namespace ElyverseFootball::SimMatch {
 
-// Which squad a player belongs to. The pitch coordinate system is fixed (see
-// docs/match-engine.md#match-geometry), so this is not itself an attacking
-// direction. The sandbox has no halves yet: home defends x = 0 in every match,
-// and systems that need the direction ask attackingDirection() (teamFrame.hpp),
-// the one place to change once rules let teams switch ends.
+// Which squad a player belongs to; not itself an attacking direction. Home
+// defends x = 0 in both halves -- when the teams change ends only a view
+// turns the pitch round (docs/match-clock.md#halves) -- and systems that need
+// the direction ask attackingDirection() (teamFrame.hpp).
 enum class TeamSide : std::uint8_t {
   kHome,
   kAway,
@@ -280,7 +279,7 @@ enum class MatchPeriod : std::uint8_t {
 // half's.
 struct MatchClock {
   MatchPeriod period = MatchPeriod::kFirstHalf;
-  SimCore::SimTick periodStart;
+  SimCore::SimTick periodStart = SimCore::SimTick(0);
   double lostSeconds = 0.0;
   std::optional<int> addedMinutes = std::nullopt;
 

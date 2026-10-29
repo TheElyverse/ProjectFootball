@@ -63,7 +63,7 @@ file.
     "goalkeeper": { "...": "..." },
     "shotStopping": { "...": "..." },
     "aerial": { "...": "..." },
-    "clock": { "durationMinutes": 90.0, "openingKickoff": "home", "...": "..." },
+    "clock": { "durationMinutes": 90.0, "throwInLostSeconds": 4.0, "...": "..." },
     "fitness": { "sprintSpeedShare": 0.85, "...": "..." }
   },
   "initialState": {
@@ -800,7 +800,7 @@ fares against another. It is also the simulation's performance check.
 | `--home`, `--away`            |         | the two tactic files, required                       |
 | `--matches`                   | 10      | how many matches                                     |
 | `--seed`                      | 1       | the base seed of the series                          |
-| `--minutes`                   | 10      | match length in simulated minutes                    |
+| `--minutes`                   | 10      | minutes of play per match, as ticks; the [match clock](match-clock.md) lasts its default 90 minutes, so a run of 90 stops before full time |
 | `--jobs`                      | 1       | matches played at once                               |
 | `--out`                       |         | where to write the results file                      |
 | `--no-restarts`               |         | leave the ball on the line when it goes out          |

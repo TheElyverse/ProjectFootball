@@ -36,14 +36,12 @@ std::string_view matchPeriodName(const MatchPeriod period) noexcept {
 }
 
 void validate(const MatchClockConfig& config, const int ticksPerSecond) {
-  const bool valid =
-      isWithin(config.durationMinutes, 0.0, kMaxDurationMinutes) && ticksPerSecond > 0 &&
-      halfTicks(config, ticksPerSecond) >= 1 &&
-      (config.openingKickoff == TeamSide::kHome || config.openingKickoff == TeamSide::kAway) &&
-      isFiniteNonNegative(config.throwInLostSeconds) &&
-      isFiniteNonNegative(config.goalKickLostSeconds) &&
-      isFiniteNonNegative(config.cornerLostSeconds) &&
-      isFiniteNonNegative(config.kickoffLostSeconds);
+  const bool valid = isWithin(config.durationMinutes, 0.0, kMaxDurationMinutes) &&
+                     ticksPerSecond > 0 && halfTicks(config, ticksPerSecond) >= 1 &&
+                     isFiniteNonNegative(config.throwInLostSeconds) &&
+                     isFiniteNonNegative(config.goalKickLostSeconds) &&
+                     isFiniteNonNegative(config.cornerLostSeconds) &&
+                     isFiniteNonNegative(config.kickoffLostSeconds);
   if (!valid) {
     throw std::invalid_argument("match clock: invalid configuration");
   }
