@@ -53,7 +53,10 @@ TEST_CASE("Statistics are written in a fixed order with nulls for empty values",
   const auto json = nlohmann::ordered_json::parse(text);
 
   REQUIRE(json["format"] == "elyverse-match-stats");
-  REQUIRE(json["version"] == 1);
+  REQUIRE(json["version"] == 2);
+  REQUIRE(json["finished"] == false);
+  REQUIRE(json["score"]["home"] == 0);
+  REQUIRE(json["home"]["points"].is_null());
   REQUIRE(json["ticks"] == 300);
   REQUIRE(json["home"]["passes"] == 4);
   REQUIRE(json["home"]["passCompletion"] == 0.75);
@@ -64,8 +67,8 @@ TEST_CASE("Statistics are written in a fixed order with nulls for empty values",
   for (const auto& [key, value] : json.items()) {
     keys.push_back(key);
   }
-  REQUIRE(keys ==
-          std::vector<std::string>{"format", "version", "ticks", "seconds", "home", "away"});
+  REQUIRE(keys == std::vector<std::string>{"format", "version", "ticks", "seconds", "finished",
+                                           "score", "home", "away"});
   REQUIRE(text.back() == '\n');
 }
 

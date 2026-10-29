@@ -176,6 +176,28 @@ if(NOT firstStats STREQUAL secondStats)
 endif()
 expect_failure("same file" --ticks 1 --replay-out "${replay}" --stats-out "${replay}")
 
+# A whole match: with --duration and without --ticks the run lasts to full
+# time, and reports the clock, the score and the result (docs/match-clock.md).
+run_cli(--scenario tactic-match --seed 5 --duration 1 --replay-out "${replay}" --stats-out "${stats}")
+if(NOT result STREQUAL "0" OR NOT output MATCHES "clock: +90:00 \\(fullTime\\)\n"
+        OR NOT output MATCHES "score: +[0-9]+:[0-9]+\n"
+        OR NOT output MATCHES "result: +(home wins|away wins|draw)\n")
+    message(FATAL_ERROR "Whole match failed: ${result}: ${output}${error}")
+endif()
+file(READ "${stats}" wholeStats)
+string(JSON finished GET "${wholeStats}" finished)
+if(NOT finished)
+    message(FATAL_ERROR "The whole match did not finish: ${wholeStats}")
+endif()
+run_cli(--scenario tactic-match --seed 5 --duration 1 --ticks 30 --replay-out "${replay}")
+if(NOT result STREQUAL "0" OR NOT output MATCHES "clock: +01:30 \\(firstHalf\\)\n"
+        OR NOT output MATCHES "result: +not finished\n")
+    message(FATAL_ERROR "A run before full time failed: ${result}: ${output}${error}")
+endif()
+expect_failure("invalid --duration value '0'" --duration 0)
+expect_failure("invalid --duration value 'nan'" --duration nan)
+expect_failure("give --ticks with --duration" --duration 10 --frames-out "${TEST_OUTPUT_DIR}/f.json")
+
 # The decision trace of a playback: the P1 interception, blamed on the
 # decision, and the playback still verifies.
 set(trace "${TEST_OUTPUT_DIR}/trace.txt")

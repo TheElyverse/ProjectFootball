@@ -16,8 +16,6 @@ using ConfigChecks::isWithin;
 // The clock's seconds in a half, and in a minute.
 inline constexpr std::int64_t kHalfSeconds = std::int64_t{45} * 60;
 inline constexpr std::int64_t kMinuteSeconds = 60;
-// A day: longer than any match, and short enough that its ticks fit easily.
-inline constexpr double kMaxDurationMinutes = 24.0 * 60.0;
 // More added minutes than any half needs; keeps them inside an int.
 inline constexpr double kMaxAddedMinutes = 999.0;
 
@@ -103,6 +101,18 @@ std::string formatClock(const ClockReading& reading) {
     return std::format("{}+{}", reading.seconds / kMinuteSeconds, clock(reading.addedSeconds));
   }
   return clock(reading.seconds);
+}
+
+std::optional<MatchResult> matchResult(const MatchState& state) noexcept {
+  if (state.clock().period != MatchPeriod::kFullTime) {
+    return std::nullopt;
+  }
+  const Score& score = state.score();
+  std::optional<TeamSide> winner;
+  if (score.home != score.away) {
+    winner = score.home > score.away ? TeamSide::kHome : TeamSide::kAway;
+  }
+  return MatchResult{.score = score, .winner = winner};
 }
 
 bool endsChanged(const MatchPeriod period) noexcept {

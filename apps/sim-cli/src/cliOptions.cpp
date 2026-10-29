@@ -2,12 +2,16 @@
 
 #include <algorithm>
 #include <charconv>
+#include <cmath>
 #include <cstddef>
+#include <format>
 #include <stdexcept>
 #include <string>
 #include <system_error>
 #include <utility>
 #include <vector>
+
+#include "matchClock.hpp"
 
 namespace ElyverseFootball::Cli {
 namespace {
@@ -116,6 +120,7 @@ std::expected<CliOptions, std::string> parseCliOptions(const std::span<char* con
   bool play = false;
   bool newRunOption = false;
   bool scenarioGiven = false;
+  bool ticksGiven = false;
   bool traceOption = false;
   ArgumentReader reader(args);
   while (!reader.done()) {
@@ -146,7 +151,7 @@ std::expected<CliOptions, std::string> parseCliOptions(const std::span<char* con
         return std::unexpected(parsed.error());
       }
       traceOption = true;
-    } else if (arg == "--scenario" || arg == "--seed" || arg == "--ticks" ||
+    } else if (arg == "--scenario" || arg == "--seed" || arg == "--ticks" || arg == "--duration" ||
                arg == "--replay-out" || arg == "--frames-out" || arg == "--stats-out" ||
                arg == "--checkpoint-interval" || arg == "--home-tactic" || arg == "--away-tactic") {
       const auto value = reader.value(arg);
@@ -174,6 +179,15 @@ std::expected<CliOptions, std::string> parseCliOptions(const std::span<char* con
                                  "', expected a positive number of ticks");
         }
         options.checkpointInterval = *interval;
+      } else if (arg == "--duration") {
+        const auto minutes = parseInteger<double>(arg, *value);
+        constexpr double kMaxMinutes = ElyverseFootball::SimMatch::kMaxDurationMinutes;
+        if (!minutes || std::isnan(*minutes) || *minutes <= 0.0 || *minutes > kMaxMinutes) {
+          return std::unexpected("invalid --duration value '" + std::string(*value) +
+                                 "', expected more than 0 and at most " +
+                                 std::format("{}", kMaxMinutes) + " minutes");
+        }
+        options.durationMinutes = *minutes;
       } else if (arg == "--seed") {
         const auto seed = parseInteger<std::uint64_t>(arg, *value);
         if (!seed) {
@@ -187,6 +201,7 @@ std::expected<CliOptions, std::string> parseCliOptions(const std::span<char* con
                                  "', expected 0 to " + std::to_string(kMaxTicks));
         }
         options.ticks = *ticks;
+        ticksGiven = true;
       }
     } else {
       return std::unexpected("unknown argument '" + std::string(arg) + "'");
@@ -212,12 +227,12 @@ std::expected<CliOptions, std::string> parseCliOptions(const std::span<char* con
   if (play && newRunOption) {
     return std::unexpected(
         "--play takes everything from the replay file and cannot be combined with --scenario, "
-        "--seed, --ticks, --replay-out, --frames-out, --stats-out or a tactic");
+        "--seed, --ticks, --duration, --replay-out, --frames-out, --stats-out or a tactic");
   }
   if (listScenarios && newRunOption) {
     return std::unexpected(
         "--list-scenarios runs nothing and cannot be combined with --scenario, --seed, --ticks, "
-        "--replay-out, --frames-out, --stats-out or a tactic");
+        "--duration, --replay-out, --frames-out, --stats-out or a tactic");
   }
   if (!options.homeTactic.empty() || !options.awayTactic.empty()) {
     if (scenarioGiven && options.scenario != kTacticMatchScenario &&
@@ -230,6 +245,13 @@ std::expected<CliOptions, std::string> parseCliOptions(const std::span<char* con
     if (!scenarioGiven) {
       options.scenario = kTacticMatchScenario;
     }
+  }
+  if (options.durationMinutes && !ticksGiven) {
+    if (!options.framesOut.empty()) {
+      return std::unexpected("--frames-out records at most " + std::to_string(kMaxFrameTicks) +
+                             " ticks, a whole match more: give --ticks with --duration");
+    }
+    options.ticks = kMaxTicks;
   }
   if (!options.framesOut.empty() && options.ticks > kMaxFrameTicks) {
     return std::unexpected("--frames-out records at most " + std::to_string(kMaxFrameTicks) +

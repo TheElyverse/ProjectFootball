@@ -89,7 +89,9 @@ Matches without `restarts.enabled` take no restarts and add no time.
 ## Full time
 
 The second half ends like the first; then the clock stands at full time, at
-`90:00` and the added minutes. `MatchSimulation` runs no system after that:
+`90:00` and the added minutes, and `matchResult(state)` gives the result the
+application layer reads: the final score and the winner, none for a draw; it is
+empty before. `MatchSimulation` runs no system after that:
 steps advance the tick, and the state stays as it was at the whistle unless a
 scheduled command changes it — commands still apply, nothing plays on from
 them.
@@ -116,5 +118,19 @@ part of the initial snapshot.
 
 No extra time or penalty shoot-out, no recovery at half time, and the referee
 waits for nothing but a shot on its way. Only restarts cost time so far: fouls,
-injuries and substitutions will add theirs. The CLI and the benchmark still play
-the number of ticks they are given; past full time those ticks change nothing.
+injuries and substitutions will add theirs.
+
+## From the command line
+
+`sim-cli --duration <minutes>` sets the duration of any scenario; without
+`--ticks` the run then lasts to full time. Every run stops at full time, and the
+summary shows the `clock`, the `score` and the `result` — `home wins`,
+`away wins`, `draw` or `not finished`:
+
+```sh
+./build/debug/apps/sim-cli/sim-cli --scenario tactic-match-eleven --seed 3 --duration 10 \
+  --replay-out replay.json --stats-out stats.json
+```
+
+The [benchmark](tooling.md#sim-benchmark) plays its `--minutes` as the duration,
+every match to full time, and sums up the results.

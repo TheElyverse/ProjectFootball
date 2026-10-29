@@ -1,6 +1,6 @@
 # P2 acceptance, reduced for CI (docs/tooling.md#sim-benchmark): the three
 # tactical identities, eleven a side, in a round robin of every pairing,
-# twenty six-minute matches each. The run must finish within its time budget
+# twenty six-minute matches each, played to full time. The run must finish within its time budget
 # without an invalid value, a sampled match of every pairing must replay identically, and the
 # styles must separate where their identities promise. Invoked by CTest with
 # SIM_BENCHMARK, DATA_DIR and TEST_OUTPUT_DIR set; registered for Release builds
@@ -66,9 +66,10 @@ endforeach()
 # since players carry the ball (docs/on-ball.md#ball-carrying), 3.3 to 12.1
 # over twenty matches since they curl and chip (docs/on-ball.md#shot-types),
 # 3.7 to 14.1 over thirty since they block shots (docs/duels.md#tackles-and-blocks),
-# 3.3 to 13.7 since they cross (docs/on-ball.md#crossing), and 1.3 to 7.0 --
-# 0.7 at worst over seeds 1 to 5 -- since the identities play eleven a side on
-# the standard pitch -- with room above; it guards against a change that stops
+# 3.3 to 13.7 since they cross (docs/on-ball.md#crossing), 1.3 to 7.0 -- 0.7
+# at worst over seeds 1 to 5 -- since the identities play eleven a side on
+# the standard pitch, and 2.3 to 9.4 -- 2.15 to 9.65 over seeds 1 to 5 --
+# since matches run to full time with their added time -- with room above; it guards against a change that stops
 # the shooting or makes a shooting gallery of the pitch, not against balancing.
 set(minShots 0.25)
 set(maxShots 40)

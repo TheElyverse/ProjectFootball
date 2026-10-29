@@ -13,9 +13,11 @@ add_executable(sim-acceptance-tests
         crossScenarioTests.cpp
         elevenASideTests.cpp
         matchClockTests.cpp
+        matchResultTests.cpp
 )
 target_link_libraries(sim-acceptance-tests PRIVATE
         ElyverseFootball::sim-replay
+        ElyverseFootball::sim-analytics
         Catch2::Catch2WithMain
         pf_test_support
         pf_compiler_warnings

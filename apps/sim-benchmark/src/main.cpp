@@ -187,7 +187,10 @@ std::string failureText(const ElyverseFootball::Benchmark::BenchmarkFailure& fai
 template <typename Spec>
 void applyOptions(const Options& options, Spec& spec) {
   spec.baseSeed = options.seed;
-  spec.ticks = static_cast<std::int64_t>(options.minutes) * 60 * spec.config.ticksPerSecond;
+  // A match of that duration, played to full time: twice its regulation
+  // ticks leave room for any added time.
+  spec.config.clock.durationMinutes = options.minutes;
+  spec.ticks = std::int64_t{2} * options.minutes * 60 * spec.config.ticksPerSecond;
   spec.config.restarts.enabled = options.restarts;
   spec.jobs = options.jobs;
 }

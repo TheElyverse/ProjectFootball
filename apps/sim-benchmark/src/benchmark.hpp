@@ -25,7 +25,7 @@ struct BenchmarkSpec {
   SimTactics::Tactic away;
   int matches = 10;
   std::uint64_t baseSeed = 1;
-  // Ticks per match.
+  // The most ticks a match runs; it ends at full time if that comes first.
   std::int64_t ticks = 18'000;
   SimMatch::MatchConfig config = benchmarkConfig();
   // Matches run at once; the results do not depend on it.

@@ -114,6 +114,11 @@ Run a scenario headlessly and play its replay back (see `docs/tooling.md#replay-
 ./build/debug/apps/sim-cli/sim-cli --play /tmp/replay.json
 ```
 
+Play a whole ten-minute match to full time and see its score and result (see `docs/match-clock.md`):
+```
+./build/debug/apps/sim-cli/sim-cli --scenario tactic-match-eleven --seed 3 --duration 10 --replay-out /tmp/replay.json
+```
+
 Record debug frames and watch them in the web viewer (Node.js 22+, see `docs/tooling.md#debug-viewer`):
 ```
 ./build/debug/apps/sim-cli/sim-cli --scenario m0-acceptance --seed 42 --frames-out frames.json

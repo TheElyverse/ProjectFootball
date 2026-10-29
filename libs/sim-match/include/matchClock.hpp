@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstdint>
+#include <optional>
 #include <string>
 
 #include "matchState.hpp"
@@ -8,6 +9,10 @@
 #include "simTime.hpp"
 
 namespace ElyverseFootball::SimMatch {
+
+// The longest duration a match may have: a day, longer than any match, and
+// short enough that its ticks fit easily.
+inline constexpr double kMaxDurationMinutes = 24.0 * 60.0;  // min
 
 // The match clock (docs/match-clock.md): how long a match lasts and the real
 // seconds of play each stoppage costs. Part of MatchConfig and of
@@ -26,9 +31,9 @@ struct MatchClockConfig {
   friend bool operator==(const MatchClockConfig&, const MatchClockConfig&) = default;
 };
 
-// Throws std::invalid_argument for a duration that is not positive and
-// finite, or so short that a half lasts no tick at ticksPerSecond, or for a
-// lost time that is negative or not finite.
+// Throws std::invalid_argument for a duration that is not positive or longer
+// than kMaxDurationMinutes, or so short that a half lasts no tick at
+// ticksPerSecond, or for a lost time that is negative or not finite.
 void validate(const MatchClockConfig& config, int ticksPerSecond);
 
 // The ticks of one half's regulation time: half the duration, to the nearest
@@ -65,6 +70,18 @@ struct ClockReading {
 
 // "mm:ss", with the added time as "45+mm:ss" or "90+mm:ss".
 [[nodiscard]] std::string formatClock(const ClockReading& reading);
+
+// The result of a finished match (docs/match-clock.md#full-time): the final
+// score and the side that won it, none for a draw.
+struct MatchResult {
+  Score score;
+  std::optional<TeamSide> winner;
+
+  friend bool operator==(const MatchResult&, const MatchResult&) = default;
+};
+
+// The result once the clock stands at full time, empty before.
+[[nodiscard]] std::optional<MatchResult> matchResult(const MatchState& state) noexcept;
 
 // Whether the teams have changed ends: in the second half and at full time.
 // The engine keeps every side's attacking direction (attackingDirection());

@@ -182,6 +182,45 @@ TEST_CASE("Shots count per side and are no passes", "[analytics]") {
   REQUIRE(stats.home.passes == 0);
 }
 
+TEST_CASE("Goals make the score, and full time the points", "[analytics]") {
+  using ElyverseFootball::SimMatch::GoalScored;
+  using ElyverseFootball::SimMatch::MatchPeriod;
+  using ElyverseFootball::SimMatch::PeriodEnded;
+  const auto goal = [](const std::int64_t tick, const TeamSide side) -> MatchEvent {
+    return GoalScored{.tick = SimTick(tick),
+                      .side = side,
+                      .scorer = std::nullopt,
+                      .assist = std::nullopt,
+                      .ownGoal = false,
+                      .score = {}};
+  };
+  const auto ended = [](const std::int64_t tick, const MatchPeriod period) -> MatchEvent {
+    return PeriodEnded{.tick = SimTick(tick), .period = period, .addedMinutes = 1};
+  };
+  const std::vector<std::vector<MatchEvent>> halfTime{{goal(3, TeamSide::kAway)},
+                                                      {ended(40, MatchPeriod::kFirstHalf)},
+                                                      {goal(60, TeamSide::kHome)}};
+  const MatchStats open = analyze(halfTime);
+  REQUIRE(open.home.goals == 1);
+  REQUIRE(open.away.goals == 1);
+  REQUIRE_FALSE(open.finished);
+  REQUIRE_FALSE(open.home.points.has_value());
+
+  std::vector<std::vector<MatchEvent>> won = halfTime;
+  won.push_back({goal(70, TeamSide::kHome)});
+  won.push_back({ended(90, MatchPeriod::kSecondHalf)});
+  const MatchStats final = analyze(won);
+  REQUIRE(final.finished);
+  REQUIRE(final.home.goals == 2);
+  REQUIRE(final.home.points == 3);
+  REQUIRE(final.away.points == 0);
+
+  std::vector<std::vector<MatchEvent>> drawn = halfTime;
+  drawn.push_back({ended(90, MatchPeriod::kSecondHalf)});
+  REQUIRE(analyze(drawn).home.points == 1);
+  REQUIRE(analyze(drawn).away.points == 1);
+}
+
 TEST_CASE("A pass just short of the progressive distance is not progressive", "[analytics]") {
   MatchAnalyzer analyzer(context(), AnalyticsConfig{.progressiveMeters = 12.0, .ppdaZone = 0.6});
   analyzer.observeStep(std::vector{pass(1, 1, {.x = 10.0, .y = 10.0}, {.x = 21.9, .y = 10.0})});

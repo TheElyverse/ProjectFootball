@@ -116,6 +116,27 @@ using Json = nlohmann::ordered_json;
   return json;
 }
 
+// How the series' matches ended: home wins, draws, away wins, and matches
+// that did not reach full time.
+[[nodiscard]] Json outcomesJson(const std::span<const MatchResult> results) {
+  int homeWins = 0;
+  int draws = 0;
+  int awayWins = 0;
+  int unfinished = 0;
+  for (const MatchResult& result : results) {
+    const SimAnalytics::MatchStats& stats = result.stats;
+    if (!stats.finished) {
+      ++unfinished;
+    } else if (stats.home.goals == stats.away.goals) {
+      ++draws;
+    } else {
+      ++(stats.home.goals > stats.away.goals ? homeWins : awayWins);
+    }
+  }
+  return {
+      {"homeWins", homeWins}, {"draws", draws}, {"awayWins", awayWins}, {"unfinished", unfinished}};
+}
+
 [[nodiscard]] BenchmarkSpec pairingSpec(const RoundRobinSpec& spec, const PairingResult& pairing) {
   BenchmarkSpec series{.home = spec.styles.at(pairing.home), .away = spec.styles.at(pairing.away)};
   series.matches = spec.matchesPerPairing;
@@ -176,7 +197,8 @@ std::expected<MatchResult, BenchmarkFailure> runMatch(const BenchmarkSpec& spec,
   SimMatch::MatchSimulation simulation = SimMatch::startMatch(*setup);
   SimAnalytics::MatchAnalyzer analyzer(
       SimAnalytics::contextOf(setup->initialState, setup->config.ticksPerSecond));
-  while (simulation.tick() < SimCore::SimTick(spec.ticks)) {
+  while (simulation.tick() < SimCore::SimTick(spec.ticks) &&
+         !SimMatch::matchResult(simulation.state())) {
     if (const auto stepped = simulation.step(); !stepped) {
       std::string message = std::format("system '{}' failed", stepped.error().systemName);
       for (const SimMatch::MatchStateError& error : stepped.error().errors) {
@@ -240,8 +262,10 @@ std::string toBenchmarkJson(const BenchmarkSpec& spec, const std::span<const Mat
   // A string, like a replay's seed: JavaScript numbers cannot hold every
   // 64-bit value.
   json["baseSeed"] = std::to_string(spec.baseSeed);
+  json["minutes"] = spec.config.clock.durationMinutes;
   json["ticks"] = spec.ticks;
   json["restarts"] = spec.config.restarts.enabled;
+  json["outcomes"] = outcomesJson(results);
   json["summary"] = {{"home", sideSummaryJson(results, true)},
                      {"away", sideSummaryJson(results, false)}};
   json["results"] = resultsJson(results);
@@ -311,6 +335,7 @@ std::string toRoundRobinJson(const RoundRobinSpec& spec,
   }
   json["matchesPerPairing"] = spec.matchesPerPairing;
   json["baseSeed"] = std::to_string(spec.baseSeed);
+  json["minutes"] = spec.config.clock.durationMinutes;
   json["ticks"] = spec.ticks;
   json["restarts"] = spec.config.restarts.enabled;
   json["styleSummary"] = Json::object();
@@ -328,6 +353,7 @@ std::string toRoundRobinJson(const RoundRobinSpec& spec,
     json["pairings"].push_back({{"home", spec.styles.at(pairing.home).name()},
                                 {"away", spec.styles.at(pairing.away).name()},
                                 {"baseSeed", std::to_string(pairing.baseSeed)},
+                                {"outcomes", outcomesJson(pairing.results)},
                                 {"summary",
                                  {{"home", sideSummaryJson(pairing.results, true)},
                                   {"away", sideSummaryJson(pairing.results, false)}}},
