@@ -54,6 +54,19 @@ inline constexpr double kInfield = 10.0;   // m
   return depthOf(player.side, player.position, state.pitch()) / state.pitch().lengthMeters();
 }
 
+// Where his slot stands on the pitch, or he stands for a side without a
+// tactic: what choosing by nearness to the ball reads, so the choice holds
+// while the players move.
+[[nodiscard]] Vec2 slotSpot(const MatchState& state, const std::size_t index) {
+  const PlayerMatchState& player = state.players()[index];
+  if (const auto& tactic = state.tactics().of(player.side)) {
+    const SimTactics::ShapePosition& shape = tactic->slots()[slotIndex(state, index)].position;
+    return {.x = xAtDepth(player.side, shape.depth * state.pitch().lengthMeters(), state.pitch()),
+            .y = shape.width * state.pitch().widthMeters()};
+  }
+  return player.position;
+}
+
 // The side's outfield players on the pitch but the taker.
 [[nodiscard]] std::vector<std::size_t> outfield(const MatchState& state, const TeamSide side,
                                                 const std::optional<std::size_t> taker) {
@@ -67,8 +80,8 @@ inline constexpr double kInfield = 10.0;   // m
   return players;
 }
 
-// The players a plan names in these slots, on the pitch and not the taker, or
-// `count` of `pool` in the order `before` sorts them.
+// The players a plan names in these slots, on the pitch and not the taker, or,
+// without any such, `count` of `pool` in the order `before` sorts them.
 // NOLINTBEGIN(bugprone-easily-swappable-parameters) -- planned slots, then the pool to choose from.
 template <typename Before>
 [[nodiscard]] std::vector<std::size_t> chosen(const MatchState& state, const TeamSide side,
@@ -82,7 +95,7 @@ template <typename Before>
       players.push_back(*index);
     }
   }
-  if (!slots.empty()) {
+  if (!players.empty()) {
     return players;
   }
   std::ranges::stable_sort(pool, before);
@@ -202,8 +215,8 @@ struct Runners {
       const Vec2 spot = setPiece.spot;
       auto players = chosen(state, setPiece.side, plan.runners, pool, config.shortOptions, taker,
                             [&state, spot](const std::size_t left, const std::size_t right) {
-                              return SimCore::distance(state.players()[left].position, spot) <
-                                     SimCore::distance(state.players()[right].position, spot);
+                              return SimCore::distance(slotSpot(state, left), spot) <
+                                     SimCore::distance(slotSpot(state, right), spot);
                             });
       const auto places = shortTargets(state, setPiece);
       players.resize(std::min(players.size(), places.size()));
@@ -267,17 +280,21 @@ void cornerZones(const MatchState& state, const SetPiece& setPiece,
   }
 }
 
-// The Laws keep the defending side a centre circle's radius from the ball.
-void keepAway(const MatchState& state, const SetPiece& setPiece,
+// The Laws keep the other side from the ball: throwInDistance at a throw-in, a
+// centre circle's radius at a corner. Whoever would stand nearer -- at his
+// place, or where he is without one -- goes out to that distance.
+void keepAway(const MatchState& state, const SetPiece& setPiece, const SetPieceConfig& config,
               std::vector<std::optional<Vec2>>& targets) {
   const TeamSide side = opponentOf(setPiece.side);
   const Pitch& pitch = state.pitch();
   const Vec2 spot = setPiece.spot;
-  const double away = pitch.markings().centerCircleRadiusMeters;
+  const double away = setPiece.kind == SetPieceKind::kThrowIn
+                          ? config.throwInDistance
+                          : pitch.markings().centerCircleRadiusMeters;
   for (std::size_t index = 0; index < state.players().size(); ++index) {
-    const Vec2 target = targets[index].value_or(spot + Vec2{.x = away, .y = 0.0});
-    if (state.players()[index].side == side && targets[index] &&
-        SimCore::distance(target, spot) < away) {
+    const PlayerMatchState& player = state.players()[index];
+    const Vec2 target = targets[index].value_or(player.position);
+    if (player.side == side && isOnPitch(player) && SimCore::distance(target, spot) < away) {
       targets[index] =
           pitch.clamp(spot + (SimCore::unitOr(target - spot, pitch.center() - spot) * away));
     }
@@ -300,8 +317,8 @@ void defend(const MatchState& state, const SetPiece& setPiece, const SetPieceCon
   const SetPiecePlan& plan = plansOf(state, side).of(setPiece.kind);
   const auto pool = outfield(state, side, std::nullopt);
   const Vec2 spot = setPiece.spot;
-  // At a corner the deepest slots mark, so the choice holds while they move; at
-  // a throw-in those nearest the ball.
+  // At a corner the deepest slots mark, at a throw-in those whose slots stand
+  // nearest the ball: the choice holds while they move.
   const bool corner = setPiece.kind == SetPieceKind::kCorner;
   const auto markers =
       chosen(state, side, plan.markers, pool, static_cast<int>(runners.players.size()),
@@ -309,8 +326,8 @@ void defend(const MatchState& state, const SetPiece& setPiece, const SetPieceCon
                if (corner) {
                  return slotDepth(state, left) < slotDepth(state, right);
                }
-               return SimCore::distance(state.players()[left].position, spot) <
-                      SimCore::distance(state.players()[right].position, spot);
+               return SimCore::distance(slotSpot(state, left), spot) <
+                      SimCore::distance(slotSpot(state, right), spot);
              });
   for (std::size_t mark = 0; mark < markers.size() && mark < runners.players.size(); ++mark) {
     targets[markers[mark]] = goalSide(state, side, runners.places[mark], config.markDistance);
@@ -318,7 +335,7 @@ void defend(const MatchState& state, const SetPiece& setPiece, const SetPieceCon
   if (corner) {
     cornerZones(state, setPiece, pool, markers, targets);
   }
-  keepAway(state, setPiece, targets);
+  keepAway(state, setPiece, config, targets);
 }
 
 // A pass of the delivery's kind to `target`.
@@ -349,7 +366,7 @@ void validate(const SetPieceConfig& config) {
       isPositiveFinite(config.readyRadius) && isPositiveFinite(config.placeRadius) &&
       isFiniteNonNegative(config.waitSeconds) && isPositiveFinite(config.flightSeconds) &&
       isFiniteNonNegative(config.markDistance) && config.cornerRunners >= 0 &&
-      config.shortOptions >= 0;
+      config.shortOptions >= 0 && isFiniteNonNegative(config.throwInDistance);
   if (!valid) {
     throw std::invalid_argument("set pieces: invalid configuration");
   }

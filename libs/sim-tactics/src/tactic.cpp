@@ -162,8 +162,8 @@ bool TacticSlot::guardsGoal() const noexcept {
 
 namespace {
 
-// Slots a plan names must exist, each at most once in a list, and the
-// delivery must fit the kind.
+// Slots a plan names must exist, each at most once in a list, a kickoff names
+// no runners or markers, and the delivery must fit the kind.
 void validateSetPieces(const SetPiecePlans& plans, const std::size_t slots, ErrorList& errors) {
   for (const SetPieceKind kind : kAllSetPieceKinds) {
     const SetPiecePlan& plan = plans.of(kind);
@@ -171,6 +171,10 @@ void validateSetPieces(const SetPiecePlans& plans, const std::size_t slots, Erro
     if (plan.taker && *plan.taker >= slots) {
       errors.add(TacticErrorCode::kInvalidSetPiece, field + ".taker",
                  std::format("slot {} does not exist, the tactic has {}", *plan.taker, slots));
+    }
+    if (kind == SetPieceKind::kKickoff && (!plan.runners.empty() || !plan.markers.empty())) {
+      errors.add(TacticErrorCode::kInvalidSetPiece, field,
+                 "a kickoff is taken from the line-up: it has no runners or markers");
     }
     if (!deliveryFits(kind, plan.delivery)) {
       errors.add(TacticErrorCode::kInvalidSetPiece, field + ".delivery",

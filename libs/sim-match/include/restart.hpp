@@ -64,8 +64,10 @@ struct KickoffLineUp {
 // his own half: his slot of the tactic's base shape at half its depth, or for a
 // scripted side, which has no formation, where he is, moved straight back to
 // the halfway line if he is beyond it. An opponent inside the centre circle
-// steps straight back onto it. The taker is the kicking side's player nearest
-// to the centre spot in that formation, ties to the lower player index; he
+// steps straight back onto it. The taker is the one the side's kickoff plan
+// names if he is on the pitch (plannedTaker()), otherwise the kicking side's
+// player nearest to the centre spot in that formation, ties to the lower
+// player index; he
 // stands carryDistance behind the spot, so the ball at his feet lies on it, or
 // on his goal line if the pitch is shorter than that.
 [[nodiscard]] std::optional<KickoffLineUp> lineUpForKickoff(const MatchState& state,
@@ -87,7 +89,8 @@ struct SetPieceAward {
 // Stops play for a set piece (docs/set-pieces.md): records RestartTaken with
 // the taker its plan names -- plannedTaker(), the fallback otherwise --, and
 // PossessionChanged if the ball was someone's; the ball lies dead at the spot,
-// every pending action is cleared, the offside watch and exemption end, its
+// every pending action and both chasers are cleared, the offside watch and
+// exemption end, its
 // lostSeconds() go to the clock, and the state holds the SetPiece for the set
 // piece system.
 void awardSetPiece(const MatchStepContext& context, const MatchState& current,
@@ -113,11 +116,18 @@ bool awardFreeKick(const MatchStepContext& context, const MatchState& current,
                    MatchStateWriter& next, const FreeKick& kick, const BallPhysics& physics,
                    const MatchClockConfig& clock);
 
+// Kicks off from this line-up: the ball at rest at the taker's feet, his last
+// touch, PossessionChanged if he did not have it, takeKickoffLineUp(), and with
+// asSetPiece a kickoff SetPiece for his side the set piece system takes
+// (docs/set-pieces.md).
+void kickOff(const MatchStepContext& context, const MatchState& current, MatchStateWriter& next,
+             const KickoffLineUp& lineUp, bool asSetPiece);
+
 // Puts both sides into the line-up, at rest and facing the goal they attack,
 // the ball on the centre spot, and starts them as at the beginning of a match:
 // without movement targets, pending actions, memories, tactical states,
-// presses, chasers, pitch control or a play the offside rule watches. Who owns
-// the ball is the caller's.
+// presses, chasers, pitch control, a play the offside rule watches or a set
+// piece being set up. Who owns the ball is the caller's.
 void takeKickoffLineUp(const MatchState& current, const KickoffLineUp& lineUp,
                        MatchStateWriter& next);
 
@@ -131,24 +141,19 @@ struct RestartRules {
   MatchClockConfig clock{};
 };
 
-// Every tick while enabled: if a goalkeeper has held the ball in his hands
-// longer than maxHoldSeconds since he took it -- his last touch -- and has no
-// pending pass or shot that lets go of it in this step, the other side gets a
-// corner at the corner of his goal line nearer the ball. Its
-// player nearest that corner, ties to the lower index, stands on it at rest,
-// facing the centre of the pitch, the ball at his feet. Otherwise, if the
-// ball is out of play, gives it to the
-// player planRestart() names, at his feet, and records RestartTaken -- at the
-// centre spot for a kickoff, otherwise where the ball left the pitch -- and
-// PossessionChanged. Either restart adds its lostSeconds() to the clock's lost
-// time, ends the play the offside rule watched, and frees the taker's next play
-// of offside unless it is a kickoff. For a throw-in and a corner nobody is moved: the restart
-// only settles who plays on. For a goal kick the taker stands behind the
-// ball on goalKickSpot(), at rest and facing the goal he attacks, the ball at
-// his feet. For a kickoff both sides are
-// placed by takeKickoffLineUp(). Disabled, it does nothing. Throws
-// std::invalid_argument for a negative or non-finite maxHoldSeconds.
-// The ball physics place the ball at the taker's feet.
+// Every tick while enabled (docs/match-engine.md#restarts), unless a set piece
+// is being set up: if a goalkeeper has held the ball in his hands longer than
+// maxHoldSeconds since he took it -- his last touch -- and has no pending pass
+// or shot that lets go of it in this step, awardSetPiece() gives the other side
+// a corner at the corner of his goal line nearer the ball, its player nearest
+// that corner, ties to the lower index, the fallback taker. Otherwise, if the
+// ball is out of play, awardSetPiece() of the throw-in, corner or goal kick
+// planRestart() names, its player the fallback taker, the ball where it left
+// the pitch or on goalKickSpot(); for a kickoff RestartTaken at the centre
+// spot, its lostSeconds() and kickOff() as a set piece from
+// lineUpForKickoff(). Disabled, it does nothing. Throws std::invalid_argument
+// for a negative or non-finite maxHoldSeconds. The ball physics place the
+// kickoff's taker.
 [[nodiscard]] MatchSystem makeRestartSystem(const RestartRules& rules = {});
 
 }  // namespace ElyverseFootball::SimMatch

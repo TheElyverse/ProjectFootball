@@ -640,7 +640,7 @@ them in their fixed order. Each system's factory takes its configuration, or a
 | 12    | ball movement   | every tick | ball position, velocity, owner, last touch, last pass and shot, the score and the last goal, a keeper's dive once the ball passed him; plays the owner's pending pass or shot and clears every other ([shooting](on-ball.md#shooting)) |
 | 13    | offside         | every tick | the play the rule watches, and after an offence the free kick: ball, taker and pending actions; only with `offside.enabled` ([offside](#offside)) |
 | 14    | fouls           | every tick | after a duel's foul: the card, a sending-off, and unless advantage the free kick or penalty; only with `fouls.enabled` ([fouls](fouls.md)) |
-| 15    | restart         | every tick | ball owner, position, velocity and last touch after the ball went out or into a goal or a goalkeeper held it too long, and for a kickoff both sides' line-up; the clock's lost time; the offside exemption; only with `restarts.enabled` ([restarts](#restarts)) |
+| 15    | restart         | every tick | the `SetPiece` it awards after the ball went out or into a goal or a goalkeeper held it too long: the ball dead at its spot, every pending action and chaser cleared, and for a kickoff both sides' line-up; the clock's lost time; the offside exemption; only with `restarts.enabled` ([restarts](#restarts)) |
 | 16    | match clock     | every tick | every player's fitness ([fitness](players.md#fitness)); the clock, its added time, and at half time both sides' line-up and the ball for the second half's kickoff ([match clock](match-clock.md)) |
 
 `MatchSetup` is everything such a match starts from: initial state, config, seed
@@ -842,12 +842,13 @@ plays the ball as his side's plan says.
 The ball is **out of play** (`isOutOfPlay()`) when it is free and at rest on
 the ground on a touchline or goal line, where a ball that left the pitch stops.
 At rest means in every direction: a ball in the air over the line, even at the
-top of its flight, is in play. The restart system runs every tick, last in the
-[standard order](#match-loop), and restarts in the step after the ball stopped.
+top of its flight, is in play. The restart system runs every tick, last before the
+clock in the [standard order](#match-loop), and restarts in the step after the
+ball stopped.
 
 With restarts enabled, [ball movement](ball.md#ball-movement) leaves a ball out
 of play alone; otherwise a player near the line would receive or intercept it,
-with events, just before the restart hands it to the taker.
+with events, just before the restart awards the set piece.
 
 ### Who
 
@@ -855,14 +856,15 @@ with events, just before the restart hands it to the taker.
 
 | Ball on         | Last touch by                | Restart     | Ball to                                   |
 |-----------------|------------------------------|-------------|-------------------------------------------|
-| the goal line it went in over | anyone         | `kickoff`   | the conceding side's player nearest the centre spot in its [line-up](#the-kickoff) |
+| the goal line it went in over | anyone         | `kickoff`   | the conceding side's kickoff taker in its [line-up](#the-kickoff) |
 | a touchline     | one side                     | `throwIn`   | the other side's player nearest the ball  |
 | a touchline     | nobody                       | `throwIn`   | the nearest player of the side whose half it is |
 | a goal line     | the side defending that line | `corner`    | the attacking side's player nearest the ball |
 | a goal line     | the attackers, or nobody     | `goalKick`  | the defending side's goalkeeper, or its nearest player without one |
 
 Home defends the goal line at `x = 0`, away the one at `x = length`. Ties in
-distance go to the lower player index. A ball went in if nobody has touched it
+distance go to the lower player index. A [set piece plan](set-pieces.md#plans)
+naming a taker overrides the column's choice. A ball went in if nobody has touched it
 since the state's last goal (`MatchState::lastGoal()`).
 
 ### Holding the ball too long
@@ -889,11 +891,15 @@ every pending action is cleared, and the state holds the `SetPiece`. The taker
 is the one planRestart() names unless his side's plan names another; one who
 stumbled in a [duel](duels.md#off-his-feet) is up again. The system records
 `RestartTaken` (kind, taker, spot) and, if somebody owned the ball,
-`PossessionChanged` to nobody. The [set piece system](set-pieces.md) takes it
-from there. For a kickoff both sides [line up](#the-kickoff) at once and the
-taker has the ball at his feet; the kickoff is a set piece too, taken in the
-next step as its plan says. While a set piece is set up, no restart, ball
-movement or pursuit touches the ball.
+`PossessionChanged` to nobody; nobody chases the ball any more. The
+[set piece system](set-pieces.md) takes it from there. For a kickoff both sides
+[line up](#the-kickoff) at once and the taker has the ball at his feet
+(`kickOff()`); the kickoff is a set piece too, taken in the next step as its
+plan says, as is the second half's ([match clock](match-clock.md#halves)). A
+kickoff ends a set piece still being set up. While a set piece is set up, no
+restart, pass decision, duel, ball movement or pursuit touches the ball, and
+the set piece's side is the side on the ball for the
+[match phases](team-tactics.md#match-phases).
 
 ### The kickoff
 
@@ -910,7 +916,8 @@ kicking, ball)` says where everybody stands:
 - **The opponents outside the centre circle.** An opponent of the side kicking
   off who would stand inside it steps straight back, toward his own goal line,
   onto the circle.
-- **The ball on the centre spot, the taker behind it.** The taker is the player
+- **The ball on the centre spot, the taker behind it.** The taker is the one
+  the side's kickoff plan names, if he is on the pitch, otherwise the player
   of the side kicking off who is nearest to the centre spot in that formation —
   the striker of every preset — with ties going to the lower player index. He
   stands `carryDistance` behind the spot, in his own half, so the ball at his
@@ -933,13 +940,8 @@ not; only the restart after a goal needs them. Its opening kickoff is a
 
 ### What this is not
 
-- No throw-in technique and no set pieces: the ball is handed to the right
-  side.
-- At a throw-in, goal kick or corner, only the goal kick's taker and a
-  held-ball corner's taker are placed; everyone else stays where the play left
-  him, opponents in the penalty area at a goal kick included.
-- The kickoff need not go to a teammate or forward: the taker decides like any
-  carrier, and opponents may enter the circle at once.
+- No throw-in technique: a throw-in is a pass ([set pieces](set-pieces.md#what-this-is-not)).
+- Opponents may enter the centre circle as soon as the kickoff is taken.
 
 ## Offside
 

@@ -332,6 +332,18 @@ TEST_CASE("The clock and fitness are read from the initial state and the config"
       validJsonWith("\"freeKickLostSeconds\": 10.0", "\"freeKickLostSeconds\": 12.0"));
   REQUIRE(freeKicks.has_value());
   REQUIRE(freeKicks->setup.config.clock.freeKickLostSeconds == 12.0);
+  const auto placed =
+      parseReplayJson(validJsonWith("\"placeRadius\": 2.0", "\"placeRadius\": 3.0"));
+  REQUIRE(placed.has_value());
+  REQUIRE(placed->setup.config.setPieces.placeRadius == 3.0);
+  const auto waited =
+      parseReplayJson(validJsonWith("\"waitSeconds\": 10.0", "\"waitSeconds\": 12.0"));
+  REQUIRE(waited.has_value());
+  REQUIRE(waited->setup.config.setPieces.waitSeconds == 12.0);
+  const auto thrown =
+      parseReplayJson(validJsonWith("\"throwInDistance\": 2.0", "\"throwInDistance\": 3.0"));
+  REQUIRE(thrown.has_value());
+  REQUIRE(thrown->setup.config.setPieces.throwInDistance == 3.0);
 }
 
 TEST_CASE("How players decide is read from the initial state and the config", "[replayJson]") {

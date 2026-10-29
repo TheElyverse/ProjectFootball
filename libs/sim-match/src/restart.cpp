@@ -269,9 +269,12 @@ void awardSetPiece(const MatchStepContext& context, const MatchState& current,
   next.addLostSeconds(lostSeconds(award.kind, clock));
   next.setOffside(std::nullopt);
   next.setOffsideExemption(std::nullopt);
-  // Play has stopped: nobody plays on what he meant to.
+  // Play has stopped: nobody plays on what he meant to, nor chases the ball.
   for (std::size_t index = 0; index < current.players().size(); ++index) {
     next.setPendingAction(index, std::nullopt);
+  }
+  for (const TeamSide side : {TeamSide::kHome, TeamSide::kAway}) {
+    next.setChaser(side, std::nullopt);
   }
   next.setBallPosition(award.spot);
   next.setBallVelocity({});
@@ -338,6 +341,32 @@ bool awardFreeKick(const MatchStepContext& context, const MatchState& current,
   return true;
 }
 
+void kickOff(const MatchStepContext& context, const MatchState& current, MatchStateWriter& next,
+             const KickoffLineUp& lineUp, const bool asSetPiece) {
+  const PlayerMatchState& taker = current.players()[lineUp.takerIndex];
+  if (next.ball().owner != taker.playerId) {
+    context.record(PossessionChanged{
+        .tick = context.tick(), .previousOwner = next.ball().owner, .newOwner = taker.playerId});
+  }
+  next.setBallOwner(taker.playerId);
+  next.setBallHeld(false);
+  next.setBallTouch(std::nullopt);
+  next.setBallLastTouch(BallTouch{.playerId = taker.playerId, .tick = context.tick()});
+  next.setBallVelocity({});
+  next.setBallHeight(0.0);
+  next.setBallVerticalVelocity(0.0);
+  next.setBallSpin(0.0);
+  next.setBallSideSpin(0.0);
+  takeKickoffLineUp(current, lineUp, next);
+  if (asSetPiece) {
+    next.setSetPiece(SetPiece{.kind = SimTactics::SetPieceKind::kKickoff,
+                              .side = taker.side,
+                              .taker = taker.playerId,
+                              .spot = current.pitch().center(),
+                              .awarded = context.tick()});
+  }
+}
+
 void takeKickoffLineUp(const MatchState& current, const KickoffLineUp& lineUp,
                        MatchStateWriter& next) {
   next.setBallPosition(current.pitch().center());
@@ -355,6 +384,8 @@ void takeKickoffLineUp(const MatchState& current, const KickoffLineUp& lineUp,
   next.setPitchControl(std::nullopt);
   next.setOffside(std::nullopt);
   next.setOffsideExemption(std::nullopt);
+  // A set piece still being set up ends with the kickoff.
+  next.setSetPiece(std::nullopt);
   for (const TeamSide side : {TeamSide::kHome, TeamSide::kAway}) {
     next.setPress(side, std::nullopt);
     next.setChaser(side, std::nullopt);
@@ -418,24 +449,12 @@ MatchSystem makeRestartSystem(const RestartRules& rules) {
             if (!lineUp) {
               return;
             }
-            const PlayerMatchState& kicker = current.players()[lineUp->takerIndex];
             context.record(RestartTaken{.tick = context.tick(),
                                         .kind = RestartKind::kKickoff,
-                                        .player = kicker.playerId,
+                                        .player = current.players()[lineUp->takerIndex].playerId,
                                         .position = pitch.center()});
             next.addLostSeconds(lostSeconds(RestartKind::kKickoff, clock));
-            context.record(PossessionChanged{.tick = context.tick(),
-                                             .previousOwner = std::nullopt,
-                                             .newOwner = kicker.playerId});
-            next.setBallOwner(kicker.playerId);
-            next.setBallLastTouch(BallTouch{.playerId = kicker.playerId, .tick = context.tick()});
-            next.setBallVelocity({});
-            takeKickoffLineUp(current, *lineUp, next);
-            next.setSetPiece(SetPiece{.kind = SimTactics::SetPieceKind::kKickoff,
-                                      .side = kicker.side,
-                                      .taker = kicker.playerId,
-                                      .spot = pitch.center(),
-                                      .awarded = context.tick()});
+            kickOff(context, current, next, *lineUp, true);
           },
       .intervalTicks = 1,
       .phaseTicks = 0};

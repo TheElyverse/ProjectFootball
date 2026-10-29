@@ -251,10 +251,6 @@ void addSetPiece(StableHasher& hasher, const std::optional<SetPiece>& setPiece) 
   }
 }
 
-}  // namespace
-
-namespace {
-
 // The play the offside rule watches and the touch free of it.
 void addOffside(StableHasher& hasher, const MatchState& state) noexcept {
   const auto& offside = state.offside();

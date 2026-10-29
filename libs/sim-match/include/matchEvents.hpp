@@ -146,7 +146,7 @@ struct PitchControlSampled {
 };
 
 // Play restarted after the ball went out (docs/match-engine.md#restarts): how,
-// who got the ball, and where it had left the pitch.
+// who takes it, and where the ball stands.
 struct RestartTaken {
   SimCore::SimTick tick;
   RestartKind kind = RestartKind::kThrowIn;

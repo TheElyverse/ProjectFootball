@@ -179,9 +179,10 @@ opponent's goal line.
 | `kUnknownPressingTrigger`        | a value outside the declared triggers                  |
 | `kDuplicatePressingTrigger`      | a trigger listed twice                                 |
 | `kContradictoryParameters`       | values fine alone that together describe no block      |
+| `kInvalidSetPiece`               | a [set piece plan](set-pieces.md#plans) names a slot that does not exist or twice in a list, gives a kickoff runners or markers, or a delivery its kind cannot have |
 
 Errors come in a fixed order: name, slots by index, principles, phases in the
-order of the table above.
+order of the table above, then the set piece plans by kind.
 
 ### Formation presets
 

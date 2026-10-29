@@ -20,11 +20,14 @@ up and takes it. Free kicks and penalties are [their own](fouls.md).
 | `runners`  | the slots that go forward to receive it when the side takes it — into the box at a corner, short at a throw-in or a goal kick —, in order |
 | `markers`  | the slots that mark the opponent's runners man for man when the opponent takes it, in order |
 
-Empty lists leave the choice to the match (below). The defaults are a short
-kickoff, throw-in and goal kick and a corner to the far post. Tactic files
-hold them in an optional `setPieces` block (tactic format version 5); a file
-without one plays the defaults. `Tactic::create()` rejects a slot that does not
-exist, one named twice in a list, and a delivery the kind cannot have.
+Empty lists leave the choice to the match (below), as does a list whose
+players are all sent off or the taker. The defaults are a short kickoff,
+throw-in and goal kick and a corner to the far post. Tactic files hold them in
+an optional `setPieces` block, which needs no new format version
+([versioning](tactics.md#versioning)); a file without one plays the defaults.
+`Tactic::create()` rejects a slot that does not exist, one named twice in a
+list, runners or markers for a kickoff, which lines up instead, and a delivery
+the kind cannot have.
 
 ## Positions
 
@@ -36,12 +39,18 @@ ball.
 | Kind | The side taking it | The other side |
 |------|--------------------|----------------|
 | corner | its runners — by default the four outfield players whose slots stand highest — to the delivery's place first, then the near post, the far post, the penalty spot, the goal area's front and the edge of the area, each 2 m out from the goal line where it is at a post; for a `short` corner the first runner to a short option eight metres along the goal line | its markers — by default its outfield players whose slots stand deepest, as many as there are runners — a metre goal side of the places the runners take; the next two in zones at the near post and the goal area's front; the keeper on his line |
-| throw-in | its runners — by default the two outfield players nearest the ball — eight metres up the line and ten metres infield | its markers — by default those nearest the ball — goal side of those places |
+| throw-in | its runners — by default the two outfield players whose slots stand nearest the ball — eight metres up the line and ten metres infield | its markers — by default those whose slots stand nearest the ball — goal side of those places |
 | goal kick | its runners — by default the two outfield players whose slots stand deepest — to the front of the penalty area, at its sides | everyone in the penalty area out of it |
 | kickoff | the [line-up](match-engine.md#the-kickoff) | the line-up |
 
-At a corner and a throw-in the other side keeps a centre circle's radius from
-the ball.
+The other side keeps its distance from the ball: `throwInDistance` (2 m) at a
+throw-in (Law 15), a centre circle's radius at a corner (Law 17). Whoever would
+stand nearer, at his place or where he is without one, goes out to it. Choosing
+by slots rather than by where the players stand keeps the choice while they
+move.
+
+While a set piece is set up its side is the side on the ball: both teams play
+the [match phase](team-tactics.md#match-phases) that follows from it.
 
 ## The delivery
 
@@ -69,13 +78,15 @@ The [statistics](tooling.md#match-analytics) count each side's corners,
 throw-ins and goal kicks.
 
 `SetPieceConfig` holds every number above and is part of `MatchConfig` and of
-every replay.
+every replay. `tests/unit/sim-match/setPiecesTests.cpp` checks the distances,
+the planned taker and deliveries, the side on the ball, and that a kickoff ends
+a set piece being set up.
 
 ## Scenarios
 
 `corner` and `throw-in` play the eleven-a-side reference against itself from
 the kickoff line-up, the ball at rest on away's goal line by the corner flag or
-on the touchline at two thirds of the length, last touched by away;
+on the touchline at 65 % of the length, last touched by away;
 `goal-kick` is the sandbox's ([scenario catalogue](scenarios.md#scenario-catalogue)).
 `tests/acceptance/setPieceScenarioTests.cpp` checks over three seeds that the
 ball stays dead until the taker plays it, after the setup time; at the corner
@@ -88,11 +99,15 @@ goal kick that nobody of home is left in the area when it is taken.
 ## What this is not
 
 - The taker plays the plan, not a decision: the delivery does not weigh its
-  options, and a marked runner gets the ball all the same.
+  options, and a marked runner gets the ball all the same. A goal kick follows
+  the plan, not the keeper's [directness](goalkeeper.md#distribution).
+- Every lofted delivery takes `flightSeconds`, whatever its length, up to the
+  fastest lofted pass: a long goal kick or throw-in may fall short.
 - Nobody blocks or holds at a corner, the keeper does not come for it before
   it is played, and a throw-in is a pass along the ground or through the air,
   not a throw.
 - The opening kickoff of a fixture is a `GiveBallCommand`: its taker decides
-  like any carrier.
+  like any carrier. The second half's kickoff is a set piece when the match
+  takes restarts.
 - At about one throw-in and less than one corner a side per six-minute match,
   the benchmark's matches leave the pitch less than real ones.

@@ -37,6 +37,9 @@ struct SetPieceConfig {
   // and how many come short at a throw-in or a goal kick.
   int cornerRunners = 4;
   int shortOptions = 2;
+  // How far the other side keeps from the ball at a throw-in (Law 15); at a
+  // corner a centre circle's radius (Law 17).
+  double throwInDistance = 2.0;  // m
 
   friend bool operator==(const SetPieceConfig&, const SetPieceConfig&) = default;
 };

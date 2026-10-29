@@ -153,12 +153,12 @@ enum class TacticErrorCode : std::uint8_t {
   kUnknownResponsibility,
   kDuplicateResponsibility,
   kInvalidResponsibilityWeight,
-  kInvalidSetPiece,
   kContradictoryResponsibilities,
   kTooManyGoalkeepers,
   kUnknownPressingTrigger,
   kDuplicatePressingTrigger,
   kContradictoryParameters,
+  kInvalidSetPiece,
 };
 
 // field names the offending value by its path, as a tactic file spells it --

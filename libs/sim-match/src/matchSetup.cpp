@@ -64,7 +64,8 @@ std::vector<MatchSystem> makeMatchSystems(const MatchConfig& config) {
   systems.push_back(makeMatchClockSystem({.clock = config.clock,
                                           .fitness = config.fitness,
                                           .physics = config.ball,
-                                          .ticksPerSecond = config.ticksPerSecond}));
+                                          .ticksPerSecond = config.ticksPerSecond,
+                                          .setPieces = config.restarts.enabled}));
   return systems;
 }
 

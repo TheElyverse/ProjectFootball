@@ -18,6 +18,9 @@ struct MatchClockRules {
   FitnessConfig fitness{};
   BallPhysics physics{};
   int ticksPerSecond = kDefaultTicksPerSecond;
+  // Whether the second half's kickoff is a set piece: when the match takes
+  // restarts, and so runs the set piece system.
+  bool setPieces = false;
 };
 
 // Every tick (docs/match-clock.md): first every player's fitness one tick on

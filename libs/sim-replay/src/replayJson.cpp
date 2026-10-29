@@ -940,6 +940,9 @@ void fieldsOf(Visitor& visit, SimMatch::SetPieceConfig& setPieces) {
   visit.number("cornerSeconds", setPieces.cornerSeconds);
   visit.number("goalKickSeconds", setPieces.goalKickSeconds);
   visit.number("kickoffSeconds", setPieces.kickoffSeconds);
+  visit.number("placeRadius", setPieces.placeRadius);
+  visit.number("waitSeconds", setPieces.waitSeconds);
+  visit.number("throwInDistance", setPieces.throwInDistance);
   visit.number("readyRadius", setPieces.readyRadius);
   visit.number("flightSeconds", setPieces.flightSeconds);
   visit.number("markDistance", setPieces.markDistance);

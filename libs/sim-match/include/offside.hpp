@@ -14,8 +14,8 @@
 
 namespace ElyverseFootball::SimMatch {
 
-// The offside rule (docs/match-engine.md#offside). Opt-in, like restarts:
-// matches without it keep playing as before. Part of MatchConfig and of every
+// The offside rule (docs/match-engine.md#offside). Opt-in: matches without it
+// keep playing as before. Part of MatchConfig and of every
 // replay.
 struct OffsideConfig {
   bool enabled = false;
