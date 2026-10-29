@@ -197,9 +197,15 @@ TEST_CASE("Goals make the score, and full time the points", "[analytics]") {
   const auto ended = [](const std::int64_t tick, const MatchPeriod period) -> MatchEvent {
     return PeriodEnded{.tick = SimTick(tick), .period = period, .addedMinutes = 1};
   };
-  const std::vector<std::vector<MatchEvent>> halfTime{{goal(3, TeamSide::kAway)},
-                                                      {ended(40, MatchPeriod::kFirstHalf)},
-                                                      {goal(60, TeamSide::kHome)}};
+  // Home's second is an own goal by away's player 3: home's all the same.
+  const MatchEvent ownGoal = GoalScored{.tick = SimTick(60),
+                                        .side = TeamSide::kHome,
+                                        .scorer = PlayerId(3),
+                                        .assist = std::nullopt,
+                                        .ownGoal = true,
+                                        .score = {}};
+  const std::vector<std::vector<MatchEvent>> halfTime{
+      {goal(3, TeamSide::kAway)}, {ended(40, MatchPeriod::kFirstHalf)}, {ownGoal}};
   const MatchStats open = analyze(halfTime);
   REQUIRE(open.home.goals == 1);
   REQUIRE(open.away.goals == 1);

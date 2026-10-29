@@ -116,32 +116,26 @@ using Json = nlohmann::ordered_json;
   return json;
 }
 
-// How the series' matches ended: home wins, draws, away wins, and matches
-// that did not reach full time.
+// How the series' matches ended: home wins, draws and away wins.
 [[nodiscard]] Json outcomesJson(const std::span<const MatchResult> results) {
   int homeWins = 0;
   int draws = 0;
   int awayWins = 0;
-  int unfinished = 0;
   for (const MatchResult& result : results) {
     const SimAnalytics::MatchStats& stats = result.stats;
-    if (!stats.finished) {
-      ++unfinished;
-    } else if (stats.home.goals == stats.away.goals) {
+    if (stats.home.goals == stats.away.goals) {
       ++draws;
     } else {
       ++(stats.home.goals > stats.away.goals ? homeWins : awayWins);
     }
   }
-  return {
-      {"homeWins", homeWins}, {"draws", draws}, {"awayWins", awayWins}, {"unfinished", unfinished}};
+  return {{"homeWins", homeWins}, {"draws", draws}, {"awayWins", awayWins}};
 }
 
 [[nodiscard]] BenchmarkSpec pairingSpec(const RoundRobinSpec& spec, const PairingResult& pairing) {
   BenchmarkSpec series{.home = spec.styles.at(pairing.home), .away = spec.styles.at(pairing.away)};
   series.matches = spec.matchesPerPairing;
   series.baseSeed = pairing.baseSeed;
-  series.ticks = spec.ticks;
   series.config = spec.config;
   series.jobs = spec.jobs;
   return series;
@@ -157,6 +151,7 @@ using Json = nlohmann::ordered_json;
 SimMatch::MatchConfig benchmarkConfig() {
   SimMatch::MatchConfig config;
   config.restarts.enabled = true;
+  config.clock.durationMinutes = 10.0;
   return config;
 }
 
@@ -197,8 +192,12 @@ std::expected<MatchResult, BenchmarkFailure> runMatch(const BenchmarkSpec& spec,
   SimMatch::MatchSimulation simulation = SimMatch::startMatch(*setup);
   SimAnalytics::MatchAnalyzer analyzer(
       SimAnalytics::contextOf(setup->initialState, setup->config.ticksPerSecond));
-  while (simulation.tick() < SimCore::SimTick(spec.ticks) &&
-         !SimMatch::matchResult(simulation.state())) {
+  const SimCore::SimTick most(
+      SimMatch::maxMatchTicks(setup->config.clock, setup->config.ticksPerSecond));
+  while (!SimMatch::matchResult(simulation.state())) {
+    if (simulation.tick() >= most) {
+      return fail(simulation.tick().value(), "the match did not reach full time");
+    }
     if (const auto stepped = simulation.step(); !stepped) {
       std::string message = std::format("system '{}' failed", stepped.error().systemName);
       for (const SimMatch::MatchStateError& error : stepped.error().errors) {
@@ -221,9 +220,10 @@ std::expected<MatchResult, BenchmarkFailure> runMatch(const BenchmarkSpec& spec,
 }
 
 std::expected<std::vector<MatchResult>, BenchmarkFailure> runBenchmark(const BenchmarkSpec& spec) {
-  if (spec.matches < 1 || spec.jobs < 1 || spec.ticks < 1) {
-    throw std::invalid_argument("runBenchmark: needs at least one match, job and tick");
+  if (spec.matches < 1 || spec.jobs < 1) {
+    throw std::invalid_argument("runBenchmark: needs at least one match and job");
   }
+  SimMatch::validate(spec.config.clock, spec.config.ticksPerSecond);
   std::vector<std::optional<std::expected<MatchResult, BenchmarkFailure>>> outcomes(
       static_cast<std::size_t>(spec.matches));
   std::atomic<int> next{0};
@@ -254,7 +254,7 @@ std::expected<std::vector<MatchResult>, BenchmarkFailure> runBenchmark(const Ben
 std::string toBenchmarkJson(const BenchmarkSpec& spec, const std::span<const MatchResult> results) {
   Json json;
   json["format"] = "elyverse-benchmark";
-  json["version"] = 1;
+  json["version"] = 2;
   json["coreVersion"] = std::string(SimCore::coreVersion());
   json["home"] = tacticJson(spec.home);
   json["away"] = tacticJson(spec.away);
@@ -263,7 +263,6 @@ std::string toBenchmarkJson(const BenchmarkSpec& spec, const std::span<const Mat
   // 64-bit value.
   json["baseSeed"] = std::to_string(spec.baseSeed);
   json["minutes"] = spec.config.clock.durationMinutes;
-  json["ticks"] = spec.ticks;
   json["restarts"] = spec.config.restarts.enabled;
   json["outcomes"] = outcomesJson(results);
   json["summary"] = {{"home", sideSummaryJson(results, true)},
@@ -327,7 +326,7 @@ std::string toRoundRobinJson(const RoundRobinSpec& spec,
                              const std::span<const PairingResult> pairings) {
   Json json;
   json["format"] = "elyverse-style-benchmark";
-  json["version"] = 1;
+  json["version"] = 2;
   json["coreVersion"] = std::string(SimCore::coreVersion());
   json["styles"] = Json::array();
   for (const SimTactics::Tactic& style : spec.styles) {
@@ -336,7 +335,6 @@ std::string toRoundRobinJson(const RoundRobinSpec& spec,
   json["matchesPerPairing"] = spec.matchesPerPairing;
   json["baseSeed"] = std::to_string(spec.baseSeed);
   json["minutes"] = spec.config.clock.durationMinutes;
-  json["ticks"] = spec.ticks;
   json["restarts"] = spec.config.restarts.enabled;
   json["styleSummary"] = Json::object();
   for (std::size_t style = 0; style < spec.styles.size(); ++style) {
@@ -370,9 +368,10 @@ std::expected<void, BenchmarkFailure> verifyReplay(const BenchmarkSpec& spec, co
         BenchmarkFailure{.index = index, .seed = seed, .tick = 0, .message = setup.error()});
   }
   setup->config = spec.config;
-  const auto replay =
-      SimReplay::recordMatch(*setup, SimCore::SimTick(spec.ticks),
-                             SimReplay::kDefaultCheckpointIntervalTicks, "benchmark");
+  const auto replay = SimReplay::recordMatch(
+      *setup,
+      SimCore::SimTick(SimMatch::maxMatchTicks(setup->config.clock, setup->config.ticksPerSecond)),
+      SimReplay::kDefaultCheckpointIntervalTicks, "benchmark");
   if (!replay) {
     return std::unexpected(BenchmarkFailure{
         .index = index,

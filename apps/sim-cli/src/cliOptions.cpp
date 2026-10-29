@@ -27,10 +27,10 @@ namespace {
   return args[index];  // NOLINT(cppcoreguidelines-pro-bounds-avoid-unchecked-container-access)
 }
 
-template <typename Integer>
-[[nodiscard]] std::expected<Integer, std::string> parseInteger(const std::string_view option,
-                                                               const std::string_view token) {
-  Integer value{};
+template <typename Number>
+[[nodiscard]] std::expected<Number, std::string> parseNumber(const std::string_view option,
+                                                             const std::string_view token) {
+  Number value{};
   // NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic) -- std::from_chars only takes a
   // raw [begin, end) pointer range, there is no std::string_view overload.
   const auto [ptr, ec] = std::from_chars(token.data(), token.data() + token.size(), value);
@@ -71,7 +71,7 @@ class ArgumentReader {
   while (start <= token.size()) {
     const std::size_t comma = std::min(token.find(',', start), token.size());
     const auto player =
-        parseInteger<std::uint32_t>("--trace-players", token.substr(start, comma - start));
+        parseNumber<std::uint32_t>("--trace-players", token.substr(start, comma - start));
     if (!player || *player == 0) {
       return std::unexpected("invalid --trace-players value '" + std::string(token) +
                              "', expected player ids like 4,7");
@@ -98,7 +98,7 @@ class ArgumentReader {
     options.tracePlayers = *std::move(players);
     return {};
   }
-  const auto tick = parseInteger<std::int64_t>(option, value);
+  const auto tick = parseNumber<std::int64_t>(option, value);
   if (!tick || *tick < 0 || *tick > kMaxTicks) {
     return std::unexpected("invalid " + std::string(option) + " value '" + std::string(value) +
                            "', expected 0 to " + std::to_string(kMaxTicks));
@@ -173,14 +173,14 @@ std::expected<CliOptions, std::string> parseCliOptions(const std::span<char* con
       } else if (arg == "--stats-out") {
         options.statsOut = *value;
       } else if (arg == "--checkpoint-interval") {
-        const auto interval = parseInteger<int>(arg, *value);
+        const auto interval = parseNumber<int>(arg, *value);
         if (!interval || *interval < 1) {
           return std::unexpected("invalid --checkpoint-interval value '" + std::string(*value) +
                                  "', expected a positive number of ticks");
         }
         options.checkpointInterval = *interval;
       } else if (arg == "--duration") {
-        const auto minutes = parseInteger<double>(arg, *value);
+        const auto minutes = parseNumber<double>(arg, *value);
         constexpr double kMaxMinutes = ElyverseFootball::SimMatch::kMaxDurationMinutes;
         if (!minutes || std::isnan(*minutes) || *minutes <= 0.0 || *minutes > kMaxMinutes) {
           return std::unexpected("invalid --duration value '" + std::string(*value) +
@@ -189,13 +189,13 @@ std::expected<CliOptions, std::string> parseCliOptions(const std::span<char* con
         }
         options.durationMinutes = *minutes;
       } else if (arg == "--seed") {
-        const auto seed = parseInteger<std::uint64_t>(arg, *value);
+        const auto seed = parseNumber<std::uint64_t>(arg, *value);
         if (!seed) {
           return std::unexpected(seed.error());
         }
         options.seed = *seed;
       } else {
-        const auto ticks = parseInteger<std::int64_t>(arg, *value);
+        const auto ticks = parseNumber<std::int64_t>(arg, *value);
         if (!ticks || *ticks < 0 || *ticks > kMaxTicks) {
           return std::unexpected("invalid --ticks value '" + std::string(*value) +
                                  "', expected 0 to " + std::to_string(kMaxTicks));

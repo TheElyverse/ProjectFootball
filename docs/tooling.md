@@ -785,8 +785,8 @@ order, so the same events always give the same bytes, on every platform.
 
 ### What this is not
 
-No shot outcomes, expected goals or player ratings yet: shots and goals are
-counted, but not what became of the other shots. Pressures are team presses, not every individual pressing action.
+No shot outcomes, expected goals or player ratings yet: goals are counted, but
+no other shot outcomes. Pressures are team presses, not every individual pressing action.
 
 ## sim-benchmark
 
@@ -805,7 +805,7 @@ fares against another. It is also the simulation's performance check.
 | `--home`, `--away`            |         | the two tactic files, required                       |
 | `--matches`                   | 10      | how many matches                                     |
 | `--seed`                      | 1       | the base seed of the series                          |
-| `--minutes`                   | 10      | the match duration in real minutes ([match clock](match-clock.md)); every match is played to full time, at most twice the duration |
+| `--minutes`                   | 10      | the match duration in real minutes ([match clock](match-clock.md)), at most 1440; every match is played to full time |
 | `--jobs`                      | 1       | matches played at once                               |
 | `--out`                       |         | where to write the results file                      |
 | `--no-restarts`               |         | leave the ball on the line when it goes out          |
@@ -826,7 +826,9 @@ play unrelated matches.
   --matches 20 --minutes 90 --seed 1 --jobs 2 --verify-replays 1 --out styles.json
 ```
 
-The results file, format `elyverse-style-benchmark`, version 1, holds the
+The results file, format `elyverse-style-benchmark`, version 2 — version 1 had a
+fixed number of `ticks` per match instead of `minutes`, and no `outcomes` —
+holds the
 styles, each style's `styleSummary` over all its matches — home and away —
 the `separations`, and every pairing's summaries and matches. A **separation**
 is a metric on which one style's 95 % interval lies wholly above another's: a
@@ -845,21 +847,24 @@ every statistic). Match `i` plays with seed `matchSeed(base, i)`, SplitMix64 of
 the base seed advanced by `i + 1` steps: neighbouring matches get unrelated
 seeds, and a seed depends only on base seed and index, not on how many matches
 run or in which order. `sim-cli --home-tactic ... --away-tactic ... --seed <its
-seed>` replays a match's tactics and seed, but `sim-cli` has no restart option
+seed> --duration <minutes>` replays a match's tactics, seed and duration, but
+`sim-cli` has no restart option
 (`RestartConfig::enabled == false`), so it diverges once the ball goes out of
 play.
 
 Statistics come from [match analytics](#match-analytics) over each match's
 events. A match fails the whole run — naming its index, seed and tick — if a
-step fails or produces a non-finite value, or a statistic is not a finite
-number.
+step fails or produces a non-finite value, a statistic is not a finite number,
+or it has not reached full time by `maxMatchTicks()`, four times both halves
+with the most added time: a bound no match that plays on gets near.
 
 ### Results
 
-The results file is JSON, format `elyverse-benchmark`, version 1: the core
-version, both tactics by name and content hash, the series (`matches`,
-`baseSeed`, `minutes`, `ticks` — the most a match may run —, `restarts`), the
-`outcomes` — `homeWins`, `draws`, `awayWins` and `unfinished` matches —, a
+The results file is JSON, format `elyverse-benchmark`, version 2 — version 1
+had `ticks` instead of `minutes`, no `outcomes`, and stats of version 1 —: the
+core version, both tactics by name and content hash, the series (`matches`,
+`baseSeed`, `minutes`, `restarts`), the `outcomes` — `homeWins`, `draws` and
+`awayWins` —, a
 `summary` per side and metric, `goals` and `points` among them, and `results`,
 every match's index, seed and statistics with its score. A round robin adds the
 `outcomes` to every pairing, and each style's `points` per match to its
@@ -886,7 +891,7 @@ eleven a side on the standard pitch, twenty six-minute matches per pairing —
 played to full time, so with half time and added time — with seed 1 and one
 sampled replay per pairing. It must finish without an invalid
 value within 5 s per match and 450 s for all 180 together — the sum of their
-times, not the elapsed time (a sum of about 120 s locally at the time of
+times, not the elapsed time (a sum of about 175 s locally at the time of
 writing), every sampled replay must reproduce, and the
 styles must separate where their identities promise:
 
@@ -911,8 +916,8 @@ Two guardrails also apply:
   six-minute match on average, so a change cannot stop the shooting or turn the
   pitch into a shooting gallery. At the time of writing the range is 2.3 to
   9.4 -- 2.15 to 9.65 over seeds 1 to 5 -- on the full pitch, since matches
-  run to full time with their added time; possession against counter's deep
-  block the fewest
+  run to full time with their added time; counter at home against pressing the
+  fewest
   ([shot decisions](on-ball.md#shot-decisions)).
 - **Ownership.** No player owns the ball longer than 20 s at a time
   (`longestOwnershipSeconds`, [match analytics](#match-analytics)). A carrier
@@ -921,7 +926,7 @@ Two guardrails also apply:
   ball [is gone at](team-tactics.md#a-carrier-who-stands-on-the-ball), and a
   carrier who carries it about
   [gets stuck](on-ball.md#holding-on-and-getting-stuck); the longest was
-  10.4 s seven a side. Eleven a side, on the longer pitch, it is 13.2 s with
+  10.4 s seven a side. Eleven a side, on the longer pitch, it is 14.3 s with
   seed 1 and 17.4 s at worst over seeds 1 to 5, so the bound rose from 15 s.
 
 The test is registered for Release builds only; in Debug it would take minutes.

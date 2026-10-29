@@ -203,6 +203,22 @@ std::optional<std::string> outputClash(const CliOptions& options) {
   return std::nullopt;
 }
 
+// Sets the duration --duration asks for, if it does; fails for one too short
+// for a half of a tick.
+std::expected<void, std::string> applyDuration(const CliOptions& options, MatchSetup& setup) {
+  if (!options.durationMinutes) {
+    return {};
+  }
+  setup.config.clock.durationMinutes = *options.durationMinutes;
+  try {
+    ElyverseFootball::SimMatch::validate(setup.config.clock, setup.config.ticksPerSecond);
+  } catch (const std::invalid_argument&) {
+    return std::unexpected(
+        std::format("--duration {} is too short for a half of one tick", *options.durationMinutes));
+  }
+  return {};
+}
+
 // The match clock at the run's last tick, as the clock shows it.
 std::string clockText(const ElyverseFootball::SimMatch::MatchSimulation& simulation,
                       const ElyverseFootball::SimMatch::MatchConfig& config) {
@@ -246,8 +262,8 @@ int runScenario(const CliOptions& options) {
   if (!setup) {
     return fail(setup.error());
   }
-  if (options.durationMinutes) {
-    setup->config.clock.durationMinutes = *options.durationMinutes;
+  if (const auto timed = applyDuration(options, *setup); !timed) {
+    return fail(timed.error());
   }
 
   // One run feeds both recorders. Collecting diagnostics draws no random
@@ -366,10 +382,18 @@ int playReplayFile(const CliOptions& options) {
   if (!options.tracePath.empty()) {
     tracer.emplace(replay->setup.config);
     observer.diagnostics = traceFilter(options);
-    observer.afterStep = [&tracer](const ElyverseFootball::SimMatch::MatchSimulation& simulation) {
-      tracer->recordStep(simulation);
-    };
   }
+  // The clock, score and result after the last step, as a run reports them.
+  std::vector<SummaryLine> match;
+  observer.afterStep = [&tracer, &match,
+                        &replay](const ElyverseFootball::SimMatch::MatchSimulation& simulation) {
+    if (tracer) {
+      tracer->recordStep(simulation);
+    }
+    match = {{"clock", clockText(simulation, replay->setup.config)},
+             {"score", scoreText(simulation.state().score())},
+             {"result", resultText(simulation.state())}};
+  };
   const auto playback = ElyverseFootball::SimReplay::playReplay(*replay, observer);
   if (!playback) {
     return fail(options.playPath + ": " + playback.error().message);
@@ -381,14 +405,15 @@ int playReplayFile(const CliOptions& options) {
       return fail(written.error());
     }
   }
-  std::vector<SummaryLine> lines{
-      {"replay", options.playPath},
-      {"seed", std::to_string(replay->setup.seed)},
-      {"ticks", std::to_string(playback->finalTick.value())},
-      {"time", std::format("{} s", playback->elapsedSeconds)},
-      {"state hash", hashText(playback->finalStateHash)},
-      {"event hash", hashText(playback->finalEventHash)},
-      {"checkpoints", std::format("{} verified", playback->checkpointsVerified)}};
+  std::vector<SummaryLine> lines{{"replay", options.playPath},
+                                 {"seed", std::to_string(replay->setup.seed)},
+                                 {"ticks", std::to_string(playback->finalTick.value())},
+                                 {"time", std::format("{} s", playback->elapsedSeconds)}};
+  lines.insert(lines.end(), match.begin(), match.end());
+  lines.insert(lines.end(),
+               {{"state hash", hashText(playback->finalStateHash)},
+                {"event hash", hashText(playback->finalEventHash)},
+                {"checkpoints", std::format("{} verified", playback->checkpointsVerified)}});
   if (tracer) {
     lines.emplace_back(
         "trace", std::format("{} ({} decisions)", options.tracePath, tracer->entries().size()));

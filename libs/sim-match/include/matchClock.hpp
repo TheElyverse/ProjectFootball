@@ -51,6 +51,15 @@ void validate(const MatchClockConfig& config, int ticksPerSecond);
 [[nodiscard]] std::int64_t addedTicks(int minutes, const MatchClockConfig& config,
                                       int ticksPerSecond) noexcept;
 
+// The most added minutes a half can get: more than any half needs.
+inline constexpr int kMaxAddedMinutes = 999;
+
+// The most ticks a match can last: both halves with the most added time, and
+// as long again for the shots the last whistle waits for. A bound to stop a
+// run at, never reached by a match that plays on.
+[[nodiscard]] std::int64_t maxMatchTicks(const MatchClockConfig& config,
+                                         int ticksPerSecond) noexcept;
+
 // What the clock shows at a tick, in whole seconds of the ninety-minute
 // equivalent: the regulation time of the match so far -- up to 45:00 in the
 // first half, from 45:00 to 90:00 in the second -- and the added time played on

@@ -72,6 +72,21 @@ TEST_CASE("Statistics are written in a fixed order with nulls for empty values",
   REQUIRE(text.back() == '\n');
 }
 
+TEST_CASE("A finished match writes its score and points", "[statsJson]") {
+  MatchStats stats;
+  stats.finished = true;
+  stats.home.goals = 2;
+  stats.home.points = 3;
+  stats.away.goals = 1;
+  stats.away.points = 0;
+  const auto json = nlohmann::ordered_json::parse(toStatsJson(stats));
+  REQUIRE(json["finished"] == true);
+  REQUIRE(json["score"]["home"] == 2);
+  REQUIRE(json["score"]["away"] == 1);
+  REQUIRE(json["home"]["points"] == 3);
+  REQUIRE(json["away"]["points"] == 0);
+}
+
 TEST_CASE("The same match gives byte-identical statistics", "[statsJson]") {
   const MatchStats first = referenceMatch(4);
   const MatchStats second = referenceMatch(4);

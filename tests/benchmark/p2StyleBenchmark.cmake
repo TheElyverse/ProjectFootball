@@ -90,7 +90,7 @@ endforeach()
 # docs/on-ball.md#ball-carrying): in every match no player of either side owns
 # it longer than 20 s at a time. A carrier without an option once kept it for up
 # to 318 s against counter's deep block; since players carry the ball, touch
-# after touch, the longest was 12.7 s seven a side, and is 13.2 s eleven a
+# after touch, the longest was 12.7 s seven a side, and is 14.3 s eleven a
 # side with seed 1 -- 17.4 s at worst over seeds 1 to 5, on the longer pitch.
 set(maxOwnershipSeconds 20)
 foreach(index RANGE ${lastPairing})

@@ -196,6 +196,15 @@ if(NOT result STREQUAL "0" OR NOT output MATCHES "clock: +01:30 \\(firstHalf\\)\
 endif()
 expect_failure("invalid --duration value '0'" --duration 0)
 expect_failure("invalid --duration value 'nan'" --duration nan)
+expect_failure("invalid --duration value '1441'" --duration 1441)
+expect_failure("too short for a half" --duration 0.0001 --replay-out "${replay}")
+expect_failure("cannot be combined" --play "${replay}" --duration 1)
+# A replay played back reports its clock, score and result too.
+run_cli(--scenario tactic-match --seed 5 --duration 1 --replay-out "${replay}")
+run_cli(--play "${replay}")
+if(NOT result STREQUAL "0" OR NOT output MATCHES "result: +(home wins|away wins|draw)\n")
+    message(FATAL_ERROR "Playback of a whole match failed: ${result}: ${output}${error}")
+endif()
 expect_failure("give --ticks with --duration" --duration 10 --frames-out "${TEST_OUTPUT_DIR}/f.json")
 
 # The decision trace of a playback: the P1 interception, blamed on the

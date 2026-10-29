@@ -132,5 +132,16 @@ summary shows the `clock`, the `score` and the `result` — `home wins`,
   --replay-out replay.json --stats-out stats.json
 ```
 
-The [benchmark](tooling.md#sim-benchmark) plays its `--minutes` as the duration,
+`--play` reports them for the replay's last tick. The
+[benchmark](tooling.md#sim-benchmark) plays its `--minutes` as the duration,
 every match to full time, and sums up the results.
+
+## Tests
+
+`tests/unit/sim-match/matchClockTests.cpp` pins the clock's arithmetic, the
+ten-minute and ninety-minute equivalence, the added-time rule, fitness and the
+result. `tests/acceptance/matchClockTests.cpp` plays whole ten-minute matches
+through both halves, their added time and full time and replays one;
+`tests/acceptance/matchResultTests.cpp` plays whole eleven-a-side matches and
+checks that the result, the goals, the statistics and every kickoff after a
+goal agree.

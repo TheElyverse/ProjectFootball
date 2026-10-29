@@ -28,9 +28,12 @@ using ElyverseFootball::SimMatch::findPlayerIndex;
 using ElyverseFootball::SimMatch::GoalScored;
 using ElyverseFootball::SimMatch::makeTacticMatch;
 using ElyverseFootball::SimMatch::MatchEvent;
+using ElyverseFootball::SimMatch::MatchResult;
 using ElyverseFootball::SimMatch::matchResult;
 using ElyverseFootball::SimMatch::MatchSimulation;
+using ElyverseFootball::SimMatch::MatchState;
 using ElyverseFootball::SimMatch::opponentOf;
+using ElyverseFootball::SimMatch::PeriodEnded;
 using ElyverseFootball::SimMatch::RestartKind;
 using ElyverseFootball::SimMatch::RestartTaken;
 using ElyverseFootball::SimMatch::Score;
@@ -38,6 +41,31 @@ using ElyverseFootball::SimMatch::startMatch;
 using ElyverseFootball::SimMatch::TeamSide;
 using ElyverseFootball::SimTactics::referenceElevenASideTacticSpec;
 using ElyverseFootball::SimTactics::Tactic;
+
+namespace {
+
+// Counts a goal into `counted`, and checks that the side that conceded it
+// kicks off next unless half time comes first (docs/match-clock.md#halves).
+void followGoals(const MatchEvent& event, const MatchState& state, Score& counted,
+                 std::optional<TeamSide>& kickoffDue) {
+  if (const auto* goal = std::get_if<GoalScored>(&event)) {
+    (goal->side == TeamSide::kHome ? counted.home : counted.away) += 1;
+    REQUIRE(goal->score == counted);
+    REQUIRE_FALSE(kickoffDue.has_value());
+    kickoffDue = opponentOf(goal->side);
+  } else if (std::holds_alternative<PeriodEnded>(event)) {
+    kickoffDue.reset();
+  } else if (const auto* restart = std::get_if<RestartTaken>(&event);
+             restart != nullptr && kickoffDue) {
+    REQUIRE(restart->kind == RestartKind::kKickoff);
+    const auto taker = findPlayerIndex(state, restart->player);
+    REQUIRE(taker.has_value());
+    REQUIRE(state.players()[taker.value_or(0)].side == kickoffDue);
+    kickoffDue.reset();
+  }
+}
+
+}  // namespace
 
 TEST_CASE("Match result: a whole match ends with a final score", "[acceptance][result]") {
   const auto reference = Tactic::create(referenceElevenASideTacticSpec());
@@ -58,32 +86,15 @@ TEST_CASE("Match result: a whole match ends with a final score", "[acceptance][r
       REQUIRE(simulation.step().has_value());
       analyzer.observeStep(simulation.events());
       for (const MatchEvent& event : simulation.events()) {
-        if (const auto* goal = std::get_if<GoalScored>(&event)) {
-          (goal->side == TeamSide::kHome ? counted.home : counted.away) += 1;
-          REQUIRE(goal->score == counted);
-          REQUIRE_FALSE(kickoffDue.has_value());
-          kickoffDue = opponentOf(goal->side);
-        } else if (const auto* restart = std::get_if<RestartTaken>(&event)) {
-          if (kickoffDue) {
-            // The conceding side kicks off next, whatever else happens first.
-            REQUIRE(restart->kind == RestartKind::kKickoff);
-            const auto taker = findPlayerIndex(simulation.state(), restart->player);
-            REQUIRE(taker.has_value());
-            REQUIRE(simulation.state().players()[taker.value_or(0)].side == kickoffDue);
-            kickoffDue.reset();
-          }
-        }
+        followGoals(event, simulation.state(), counted, kickoffDue);
       }
     }
-    const auto result = matchResult(simulation.state());
-    REQUIRE(result.has_value());
-    REQUIRE(result->score == counted);
-    REQUIRE(result->score == simulation.state().score());
-    if (counted.home == counted.away) {
-      REQUIRE_FALSE(result->winner.has_value());
-    } else {
-      REQUIRE(result->winner == (counted.home > counted.away ? TeamSide::kHome : TeamSide::kAway));
+    std::optional<TeamSide> winner;
+    if (counted.home != counted.away) {
+      winner = counted.home > counted.away ? TeamSide::kHome : TeamSide::kAway;
     }
+    REQUIRE(matchResult(simulation.state()) == MatchResult{.score = counted, .winner = winner});
+    REQUIRE(simulation.state().score() == counted);
     const MatchStats stats = analyzer.finish(simulation.tick());
     REQUIRE(stats.finished);
     REQUIRE(stats.home.goals == counted.home);
