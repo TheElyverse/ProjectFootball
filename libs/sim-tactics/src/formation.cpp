@@ -50,8 +50,8 @@ std::vector<TacticSlot> formationSlots(const Formation formation) {
       slots.push_back(slot(0.62, 0.60, RolePreset::kStriker));
       return slots;
     case Formation::k433:
-      slots.push_back(slot(0.32, 0.50, RolePreset::kHoldingMidfielder));
       slots.push_back(slot(0.42, 0.32, RolePreset::kCentralMidfielder));
+      slots.push_back(slot(0.32, 0.50, RolePreset::kHoldingMidfielder));
       slots.push_back(slot(0.42, 0.68, RolePreset::kCentralMidfielder));
       slots.push_back(slot(0.60, 0.12, RolePreset::kWinger));
       slots.push_back(slot(0.66, 0.50, RolePreset::kStriker));

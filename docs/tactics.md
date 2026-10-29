@@ -59,7 +59,7 @@ Everything is a fraction of the pitch, so one tactic fits any pitch size.
   length, **widths** fractions of its width.
 - **Dials** (intensity, risk, frequency, shift) are dimensionless, in `[0, 1]`.
 
-A tactic has seven slots, for seven-a-side on the sandbox -- short scenarios --,
+A tactic has seven slots, for seven-a-side on the sandbox — short scenarios —
 or eleven, for eleven-a-side on a full-size pitch (`isSupportedSlotCount()`).
 The player in slot `i` is the `i`-th player of his side in the match state
 (his place in the line-up), and a tactic plays only for a side of its size.
@@ -188,7 +188,7 @@ order of the table above.
 `formationSlots(formation)` (`formation.hpp`) fills the eleven slots of a
 familiar formation, as editing help like the role presets: each slot a
 position in the base shape and a role preset's responsibilities, in line-up
-order -- the goalkeeper, the back four from the touchline at `y = 0` to the
+order — the goalkeeper, the back four from the touchline at `y = 0` to the
 other, then midfield and attack the same way. Nothing in the match knows which
 formation a tactic came from; it plays the atomic responsibilities.
 
@@ -357,7 +357,7 @@ pass gains for its ground and the less its interception risk counts.
 
 ### Playing them against each other
 
-Any two tactics that fit seven a side meet in the tactic match
+Any two tactics of the same size, seven or eleven, meet in the tactic match
 ([scenarios](scenarios.md#scenario-catalogue)):
 
 ```sh

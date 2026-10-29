@@ -38,7 +38,7 @@ constexpr std::array<FormationSlot, kDefaultPlayersPerSide> kHomeFormation{
 // Eleven-a-side, the same way: goalkeeper, the back four from the touchline at
 // y = 0, four midfielders the same way, and the two forwards, the one who
 // takes the kickoff last.
-constexpr std::array<FormationSlot, 11> kHomeElevenFormation{
+constexpr std::array<FormationSlot, SimTactics::kElevenASideSlots> kHomeElevenFormation{
     {
         {.lengthFraction = 0.04, .widthFraction = 0.50},
         {.lengthFraction = 0.18, .widthFraction = 0.12},

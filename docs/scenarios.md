@@ -372,7 +372,8 @@ seven-a-side kickoff fixture with a tactic on each side, lined up for a
 [kickoff](match-engine.md#the-kickoff) by home — each side in its tactic's base
 shape in its own half, the ball on the centre spot — with the standard
 configuration and a `GiveBallCommand` at tick 0 to home's taker, the striker
-(player 7) of every preset. `makeTacticMatch()` builds it for any two tactics
+nearest the centre spot -- player 7 of every seven-a-side preset, player 10 of
+the eleven-a-side reference. `makeTacticMatch()` builds it for any two tactics
 of the same size: seven-a-side ones on the sandbox, eleven-a-side ones on the
 standard pitch from the [eleven-a-side kickoff fixture](match-engine.md#the-eleven-a-side-kickoff-fixture).
 `tactic-match` uses the reference tactic on both sides, `tactic-match-eleven`
@@ -386,8 +387,9 @@ tactic files:
   --away-tactic data/tactics/counter.json --seed 3 --ticks 1800 --frames-out frames.json
 ```
 
-`--home-tactic` and `--away-tactic` imply `--scenario tactic-match`; a side
-without one plays the reference tactic of the other's size. The replay records the tactics, so it
+`--home-tactic` and `--away-tactic` imply `--scenario tactic-match`, and go with
+`tactic-match-eleven` too; a side without one plays the reference tactic of the
+other's size. The replay records the tactics, so it
 plays back without the files. See
 [tactical identities](tactics.md#tactical-identities) for the presets.
 

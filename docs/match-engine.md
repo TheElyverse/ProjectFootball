@@ -678,9 +678,10 @@ simulation will run many matches headless.
 eleven-a-side match on the standard pitch must take no more than 45 s of wall
 time in a Release build on one core: at least 120 times faster than real time.
 At the time of writing `tactic-match-eleven` takes 10 to 14 s on the
-development machine, 400 to 500 times real time. The Release-only
-`eleven-a-side-budget` test plays one with seed 1 and fails above the budget;
-CI's `style-benchmark` job runs it.
+development machine, 390 to 540 times real time. The Release-only
+`eleven-a-side-budget` test plays one with seed 1, fails above the budget and
+plays its replay back with every checkpoint verified; CI's `style-benchmark`
+job runs it.
 
 ### What this is not
 

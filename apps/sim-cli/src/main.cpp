@@ -153,17 +153,20 @@ std::expected<MatchSetup, std::string> makeSetup(
     return scenario.make(seed);
   }
   // A side without a tactic file plays the reference tactic for the other's
-  // squad size.
-  auto home = tacticOrReference(options.homeTactic, ElyverseFootball::SimTactics::kSevenASideSlots);
+  // squad size: the given file decides it, home's first, seven without one.
+  const std::string& given = options.homeTactic.empty() ? options.awayTactic : options.homeTactic;
+  const auto first = tacticOrReference(given, ElyverseFootball::SimTactics::kSevenASideSlots);
+  if (!first) {
+    return std::unexpected(first.error());
+  }
+  const std::size_t slots = first->slots().size();
+  auto home = tacticOrReference(options.homeTactic, slots);
   if (!home) {
     return std::unexpected(home.error());
   }
-  auto away = tacticOrReference(options.awayTactic, home->slots().size());
+  auto away = tacticOrReference(options.awayTactic, slots);
   if (!away) {
     return std::unexpected(away.error());
-  }
-  if (options.homeTactic.empty() && away->slots().size() != home->slots().size()) {
-    home = tacticOrReference({}, away->slots().size());
   }
   return ElyverseFootball::SimMatch::makeTacticMatch(
       {.home = *std::move(home), .away = *std::move(away)}, seed);

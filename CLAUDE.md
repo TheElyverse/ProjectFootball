@@ -5,7 +5,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Project status
 
 This repository is in **early bootstrap stage**. The P0 foundation (`libs/sim-core`, `apps/sim-cli`), the
-tactic model (`libs/sim-tactics`), a seven-a-side match simulation with its P1/P2 acceptance scenarios
+tactic model (`libs/sim-tactics`), a match simulation of seven or eleven a side with its acceptance scenarios
 (`libs/sim-match`), replays, analytics, the benchmark, the debug viewer and the UI spike exist; almost
 everything else in the design/implementation docs below is still unbuilt. `docs/README.md` indexes the topic
 docs that describe what exists, one per area (match engine, players, ball, on the ball, goalkeeper, duels,
@@ -49,7 +49,7 @@ libs/
   sim-core       IDs, time, RNG, events, base types (depends on: STL only)      [exists]
   sim-player     Capabilities, match/world player state, development           [planned]
   sim-tactics    Principles, phases, responsibilities, spatial targets         [exists: tactic model]
-  sim-match      Pitch, ball, perception, decisions, actions, rules            [exists: 7v7 match, see docs/README.md]
+  sim-match      Pitch, ball, perception, decisions, actions, rules            [exists: 7v7 and 11v11 match, see docs/README.md]
                  headers in layers model → mechanics → loop → behaviour → setup,
                  checked by tests/architecture (docs/match-engine.md#header-layers)
   sim-world      Calendar, clubs, competitions, economy, careers               [planned]
@@ -67,7 +67,7 @@ apps/
   sim-replay, world-editor                                                     [planned]
 data/            schemas, tactics, competitions, fixtures (JSON/YAML, schema-validated) [exists: tactics]
 tests/unit/      Catch2 tests, mirrors libs/ by subdirectory                   [exists: sim-core, sim-tactics, sim-match, sim-replay, sim-analytics, sim-benchmark]
-tests/acceptance/ whole-match scenarios: stability, determinism, pinned hashes [exists: M0, P1, P2, shots, goalkeeper, distribution, carrying, duels]
+tests/acceptance/ whole-match scenarios: stability, determinism, pinned hashes [exists: M0, P1, P2, shots, goalkeeper, distribution, carrying, duels, crosses, eleven-a-side]
 tests/benchmark/ sim-benchmark smoke test and the Release-only P2 style benchmark [exists]
 ```
 

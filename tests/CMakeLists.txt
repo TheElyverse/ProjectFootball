@@ -53,6 +53,7 @@ if(CMAKE_BUILD_TYPE STREQUAL "Release")
     add_test(NAME eleven-a-side-budget
             COMMAND ${CMAKE_COMMAND}
             -DSIM_CLI=$<TARGET_FILE:sim-cli>
+            -DTEST_OUTPUT_DIR=${CMAKE_CURRENT_BINARY_DIR}/eleven-a-side-budget
             -P ${CMAKE_CURRENT_SOURCE_DIR}/benchmark/elevenASideBudget.cmake
     )
     set_tests_properties(eleven-a-side-budget PROPERTIES LABELS benchmark)

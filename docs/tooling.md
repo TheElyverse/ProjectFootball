@@ -778,8 +778,8 @@ counted, but not what became of them. Pressures are team presses, not every indi
 
 ## sim-benchmark
 
-`apps/sim-benchmark` plays a series of seven-a-side matches between two tactic
-files and writes their statistics, with confidence intervals: how each style
+`apps/sim-benchmark` plays a series of matches between two tactic files of the
+same size -- seven-a-side on the sandbox, eleven-a-side on the standard pitch -- and writes their statistics, with confidence intervals: how each style
 fares against another. It is also the simulation's performance check.
 
 ```sh
