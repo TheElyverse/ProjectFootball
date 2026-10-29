@@ -154,12 +154,14 @@ struct Distribution {
   }
 };
 
-// A contest nobody won leaves the ball flying.
+// A contest nobody won leaves the ball flying; a ball that goes out is
+// settled by the restart.
 [[nodiscard]] bool settles(const MatchEvent& event) {
   if (const auto* contest = std::get_if<AerialContest>(&event)) {
     return contest->winner.has_value();
   }
   return std::holds_alternative<PassReceived>(event) ||
+         std::holds_alternative<RestartTaken>(event) ||
          std::holds_alternative<PassIntercepted>(event) ||
          std::holds_alternative<LooseBallRecovered>(event);
 }
@@ -247,7 +249,8 @@ TEST_CASE("Distribution: under a high press the keeper goes long", "[acceptance]
     REQUIRE(run.pass.has_value());
     const auto receiver = run.pass.value_or(PassAttempted{}).intendedReceiver;
     REQUIRE((receiver == PlayerId(5) || receiver == PlayerId(6) || receiver == PlayerId(7)));
-    // Through the air, and somebody gets to it where it comes down.
+    // Through the air, and somebody gets to it where it comes down -- or it
+    // goes out.
     REQUIRE(run.peak > 5.0);
     REQUIRE(run.settled.has_value());
   }
@@ -264,18 +267,19 @@ TEST_CASE("Distribution: the keeper takes a goal kick from his goal area",
     REQUIRE(goalKick.kind == RestartKind::kGoalKick);
     REQUIRE(goalKick.player == kAwayKeeper);
 
-    // The ball lies on the front edge of his goal area, at his feet.
+    // The ball lies dead on the front edge of his goal area until he plays it
+    // (docs/set-pieces.md).
     const auto& state = simulation.state();
-    const Vec2 spot = goalKickSpot(state.pitch(), goalKick.position);
+    const Vec2 spot = goalKick.position;
     REQUIRE(state.pitch().goalArea(GoalEnd::kMaxX).contains(spot));
     REQUIRE(state.ball().position == spot);
-    REQUIRE(state.ball().owner == kAwayKeeper);
-    REQUIRE_FALSE(state.ball().held);
-    REQUIRE(state.players()[kAwayKeeperIndex].position.x > spot.x);
+    REQUIRE_FALSE(state.ball().owner.has_value());
+    REQUIRE(state.setPiece().has_value());
+    REQUIRE(state.setPiece().value_or(ElyverseFootball::SimMatch::SetPiece{}).taker == kAwayKeeper);
 
-    // And he plays it from there.
+    // And he plays it from there, once the goal kick's six seconds are up.
     const Distribution run = distribute(simulation, kAwayKeeper, kAwayKeeperIndex,
-                                        SimTick(simulation.tick().value() + 150));
+                                        SimTick(simulation.tick().value() + 300));
     REQUIRE(run.pass.has_value());
     REQUIRE(ElyverseFootball::SimCore::distance(run.pass.value_or(PassAttempted{}).from, spot) <
             0.5);
@@ -311,13 +315,18 @@ TEST_CASE("Distribution: a keeper holding the ball longer than eight seconds con
     REQUIRE(corner.tick == SimTick(241));
     // At the corner of his goal line nearer the ball, by away.
     REQUIRE(corner.position == Vec2{.x = 0.0, .y = 40.0});
+    // The ball lies dead in the corner, out of the keeper's hands, until away's
+    // taker plays it (docs/set-pieces.md).
     const auto& state = simulation.state();
-    REQUIRE(state.ball().owner == corner.player);
+    REQUIRE_FALSE(state.ball().owner.has_value());
     REQUIRE_FALSE(state.ball().held);
+    REQUIRE(state.ball().position == corner.position);
+    REQUIRE(state.setPiece().has_value());
+    REQUIRE(state.setPiece().value_or(ElyverseFootball::SimMatch::SetPiece{}).taker ==
+            corner.player);
     const auto taker = ElyverseFootball::SimMatch::findPlayerIndex(state, corner.player);
     REQUIRE(taker.has_value());
     REQUIRE(state.players()[taker.value_or(0)].side == ElyverseFootball::SimMatch::TeamSide::kAway);
-    REQUIRE(state.players()[taker.value_or(0)].position == corner.position);
   }
 }
 

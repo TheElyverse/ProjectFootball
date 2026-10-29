@@ -21,6 +21,7 @@ using ElyverseFootball::SimCore::PlayerId;
 using ElyverseFootball::SimCore::SimTick;
 using ElyverseFootball::SimMatch::GiveBallCommand;
 using ElyverseFootball::SimMatch::makeSevenASideKickoff;
+using ElyverseFootball::SimMatch::MatchConfig;
 using ElyverseFootball::SimMatch::MatchEvent;
 using ElyverseFootball::SimMatch::MatchSetup;
 using ElyverseFootball::SimMatch::MatchSimulation;
@@ -67,9 +68,14 @@ struct PressTally {
   for (std::uint64_t seed = 1; seed <= seeds; ++seed) {
     auto state = makeSevenASideKickoff(Pitch(60.0, 40.0), {}, {.home = *home, .away = *away});
     REQUIRE(state.has_value());
+    // The ball stays on the line where it goes out (docs/set-pieces.md): a
+    // press is measured until it wins the ball or loses its man, not cut short
+    // by a throw-in.
+    MatchConfig config;
+    config.restarts.enabled = false;
     MatchSimulation simulation = startMatch(MatchSetup{
         .initialState = *std::move(state),
-        .config = {},
+        .config = config,
         .seed = seed,
         .commands = {{.tick = SimTick(0), .command = GiveBallCommand{.playerId = PlayerId(14)}}}});
     while (simulation.tick() < SimTick(1800)) {

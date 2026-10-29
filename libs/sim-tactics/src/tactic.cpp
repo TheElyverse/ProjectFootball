@@ -160,6 +160,40 @@ bool TacticSlot::guardsGoal() const noexcept {
   });
 }
 
+namespace {
+
+// Slots a plan names must exist, each at most once in a list, and the
+// delivery must fit the kind.
+void validateSetPieces(const SetPiecePlans& plans, const std::size_t slots, ErrorList& errors) {
+  for (const SetPieceKind kind : kAllSetPieceKinds) {
+    const SetPiecePlan& plan = plans.of(kind);
+    const std::string field = std::format("setPieces.{}", setPieceKindName(kind));
+    if (plan.taker && *plan.taker >= slots) {
+      errors.add(TacticErrorCode::kInvalidSetPiece, field + ".taker",
+                 std::format("slot {} does not exist, the tactic has {}", *plan.taker, slots));
+    }
+    if (!deliveryFits(kind, plan.delivery)) {
+      errors.add(TacticErrorCode::kInvalidSetPiece, field + ".delivery",
+                 std::format("a {} cannot aim at {}", setPieceKindName(kind),
+                             setPieceDeliveryName(plan.delivery)));
+    }
+    for (const auto& [name, list] :
+         {std::pair{"runners", &plan.runners}, std::pair{"markers", &plan.markers}}) {
+      std::vector<bool> seen(slots, false);
+      for (const std::size_t slot : *list) {
+        if (slot >= slots || seen[slot]) {
+          errors.add(TacticErrorCode::kInvalidSetPiece, field + "." + name,
+                     std::format("slot {} does not exist or is named twice", slot));
+          break;
+        }
+        seen[slot] = true;
+      }
+    }
+  }
+}
+
+}  // namespace
+
 std::expected<Tactic, std::vector<TacticError>> Tactic::create(TacticSpec spec) {
   ErrorList errors;
   if (spec.name.empty()) {
@@ -170,6 +204,7 @@ std::expected<Tactic, std::vector<TacticError>> Tactic::create(TacticSpec spec) 
   for (const TacticalPhase phase : kAllPhases) {
     validatePhase(phase, spec.phases.at(phaseIndex(phase)), errors);
   }
+  validateSetPieces(spec.setPieces, spec.slots.size(), errors);
   if (!errors.empty()) {
     return std::unexpected(std::move(errors).take());
   }

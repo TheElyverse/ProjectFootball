@@ -23,12 +23,13 @@ enum class RestartKind : std::uint8_t {
 // "directFreeKick", "penalty"; "unknown" outside the enumerators.
 [[nodiscard]] std::string_view restartKindName(RestartKind kind) noexcept;
 
-// Simplified restarts (docs/match-engine.md#restarts): opt-in, so matches
-// without them keep the ball stopping on the line as before. Part of
+// Restarts (docs/match-engine.md#restarts, docs/set-pieces.md): on in every
+// match. A scenario may turn them off to keep the ball on the line where it
+// goes out -- the sandbox's simplification, for scenarios only. Part of
 // MatchConfig and of every replay. Declared here, next to the kinds, so ball
 // movement can also take it without depending on the restart system.
 struct RestartConfig {
-  bool enabled = false;
+  bool enabled = true;
   // A goalkeeper who holds the ball in his hands longer than this concedes
   // a corner (Law 12).
   double maxHoldSeconds = 8.0;  // s

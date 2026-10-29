@@ -1,0 +1,101 @@
+#pragma once
+
+#include <cstddef>
+#include <optional>
+#include <string_view>
+#include <vector>
+
+#include "ballPhysics.hpp"
+#include "matchSimulation.hpp"
+#include "matchState.hpp"
+#include "passing.hpp"
+#include "setPiecePlan.hpp"
+#include "vec2.hpp"
+
+namespace ElyverseFootball::SimMatch {
+
+// How set pieces are set up and taken (docs/set-pieces.md). Part of
+// MatchConfig and of every replay.
+struct SetPieceConfig {
+  // Real seconds the players have to take up their positions before the taker
+  // may play the ball, by kind.
+  double throwInSeconds = 3.0;   // s
+  double cornerSeconds = 8.0;    // s
+  double goalKickSeconds = 6.0;  // s
+  double kickoffSeconds = 0.0;   // s
+  // How near his place behind the ball the taker must stand to play it, and
+  // how near their places everyone else with one, unless they still are not
+  // there after the setup time and waitSeconds more.
+  double readyRadius = 0.75;  // m
+  double placeRadius = 2.0;   // m
+  double waitSeconds = 10.0;  // s
+  // How long a lofted delivery is in the air.
+  double flightSeconds = 1.6;  // s
+  // How far goal side of his man a marker stands.
+  double markDistance = 1.0;  // m
+  // Without a plan naming them: how many players go into the box at a corner,
+  // and how many come short at a throw-in or a goal kick.
+  int cornerRunners = 4;
+  int shortOptions = 2;
+
+  friend bool operator==(const SetPieceConfig&, const SetPieceConfig&) = default;
+};
+
+// Throws std::invalid_argument for negative or non-finite seconds or
+// distances, a readyRadius or flightSeconds that is not positive, or a
+// negative number of players.
+void validate(const SetPieceConfig& config);
+
+// The real seconds the players have before a set piece of this kind.
+[[nodiscard]] double setupSeconds(SimTactics::SetPieceKind kind,
+                                  const SetPieceConfig& config) noexcept;
+
+// The plans of a side: its tactic's, the default plans for a side without one.
+[[nodiscard]] const SimTactics::SetPiecePlans& plansOf(const MatchState& state, TeamSide side);
+
+// The player who takes a set piece of this kind for `side`: the one his plan
+// names, if he is on the pitch, otherwise `fallback`.
+[[nodiscard]] std::size_t plannedTaker(const MatchState& state, TeamSide side,
+                                       SimTactics::SetPieceKind kind, std::size_t fallback);
+
+// Where the taker stands to play the ball: behind it, facing where it goes.
+[[nodiscard]] SimCore::Vec2 takerSpot(const MatchState& state, const SetPiece& setPiece,
+                                      const BallPhysics& physics);
+
+// Where every player goes while the set piece is set up
+// (docs/set-pieces.md#positions), parallel to MatchState::players(): empty for
+// a player the set piece leaves to the tactical systems.
+[[nodiscard]] std::vector<std::optional<SimCore::Vec2>> setPieceTargets(
+    const MatchState& state, const SetPiece& setPiece, const SetPieceConfig& config,
+    const BallPhysics& physics);
+
+// The pass the plan asks for (docs/set-pieces.md#the-delivery): at a corner
+// lofted to the runner of the planned area or short to the short option, at a
+// throw-in, goal kick or kickoff short to a near teammate or long and lofted
+// to the side's most advanced player. Empty if the side has nobody to play to.
+[[nodiscard]] std::optional<PassIntent> plannedDelivery(const MatchState& state,
+                                                        const SetPiece& setPiece,
+                                                        const SetPieceConfig& config,
+                                                        const BallPhysics& physics,
+                                                        const PassConfig& passing);
+
+inline constexpr std::string_view kSetPieceSystemName = "set pieces";
+
+struct SetPieceRules {
+  SetPieceConfig setPieces{};
+  BallPhysics physics{};
+  PassConfig passing{};
+};
+
+// Every tick while a set piece is set up (docs/set-pieces.md): every player
+// with a place in it gets setPieceTargets() as his movement target, over the
+// tactical movement's. Once setupSeconds() have passed, the taker stands
+// within readyRadius of takerSpot() and every other player with a place within
+// placeRadius of it -- or waitSeconds more have passed --, the taker plays
+// plannedDelivery(): the
+// ball is his, at his feet, with the pass pending, the set piece is over, and
+// SetPieceTaken and PossessionChanged are recorded; but for a kickoff, his touch
+// is free of offside. Throws std::invalid_argument for an invalid configuration.
+[[nodiscard]] MatchSystem makeSetPieceSystem(const SetPieceRules& rules = {});
+
+}  // namespace ElyverseFootball::SimMatch

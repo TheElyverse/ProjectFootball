@@ -12,6 +12,7 @@
 #include "matchState.hpp"
 #include "pitch.hpp"
 #include "restartKind.hpp"
+#include "setPieces.hpp"
 #include "vec2.hpp"
 
 namespace ElyverseFootball::SimMatch {
@@ -73,6 +74,25 @@ struct KickoffLineUp {
 
 // The unit vector a side faces at a kickoff: toward the goal it attacks.
 [[nodiscard]] SimCore::Vec2 kickoffFacing(TeamSide side) noexcept;
+
+// A throw-in, corner or goal kick to set up: its kind, the side it is for, the
+// taker planRestart() named, and where the ball stands.
+struct SetPieceAward {
+  RestartKind kind = RestartKind::kThrowIn;
+  TeamSide side = TeamSide::kHome;
+  std::size_t fallback = 0;
+  SimCore::Vec2 spot;
+};
+
+// Stops play for a set piece (docs/set-pieces.md): records RestartTaken with
+// the taker its plan names -- plannedTaker(), the fallback otherwise --, and
+// PossessionChanged if the ball was someone's; the ball lies dead at the spot,
+// every pending action is cleared, the offside watch and exemption end, its
+// lostSeconds() go to the clock, and the state holds the SetPiece for the set
+// piece system.
+void awardSetPiece(const MatchStepContext& context, const MatchState& current,
+                   MatchStateWriter& next, const SetPieceAward& award,
+                   const MatchClockConfig& clock);
 
 // A free kick or a penalty: its kind, the side it is for and where the ball
 // stands.

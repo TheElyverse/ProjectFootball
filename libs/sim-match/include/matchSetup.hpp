@@ -25,6 +25,7 @@
 #include "pursuit.hpp"
 #include "reception.hpp"
 #include "restart.hpp"
+#include "setPieces.hpp"
 #include "shooting.hpp"
 #include "shotStopping.hpp"
 #include "tacticalMovement.hpp"
@@ -61,6 +62,7 @@ struct MatchConfig {
   FitnessConfig fitness;
   OffsideConfig offside;
   FoulConfig fouls;
+  SetPieceConfig setPieces;
 
   friend bool operator==(const MatchConfig&, const MatchConfig&) = default;
 };
@@ -86,16 +88,17 @@ struct MatchSetup {
 //   3. pitch control    every pitchControl.intervalTicks ticks
 //   4. team pressing    every pressing.intervalTicks ticks
 //   5. tactical movement every positioning.intervalTicks ticks
-//   6. ball pursuit     every pursuit.intervalTicks ticks
-//   7. pass decision    every decisions.intervalTicks ticks
-//   8. duel             every duels.intervalTicks ticks
-//   9. shot stopping    every tick
-//  10. player movement  every tick
-//  11. ball movement    every tick
-//  12. offside          every tick, if offside.enabled
-//  13. fouls            every tick, if fouls.enabled
-//  14. restart          every tick, if restarts.enabled
-//  15. match clock      every tick
+//   6. set pieces       every tick, if restarts.enabled
+//   7. ball pursuit     every pursuit.intervalTicks ticks
+//   8. pass decision    every decisions.intervalTicks ticks
+//   9. duel             every duels.intervalTicks ticks
+//  10. shot stopping    every tick
+//  11. player movement  every tick
+//  12. ball movement    every tick
+//  13. offside          every tick, if offside.enabled
+//  14. fouls            every tick, if fouls.enabled
+//  15. restart          every tick, if restarts.enabled
+//  16. match clock      every tick
 //
 // Tactical movement runs before pursuit, so in a step where both write the
 // same player's target -- a new chaser -- pursuit's wins.

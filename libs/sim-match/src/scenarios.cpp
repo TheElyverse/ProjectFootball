@@ -59,6 +59,42 @@ constexpr double kPitchWidth = kSandboxWidthMeters;
   return makeTacticMatch({.home = *reference, .away = *reference}, seed);
 }
 
+// The set-piece scenarios (docs/scenarios.md#the-set-piece-scenarios): the
+// eleven-a-side reference against itself, everyone in the kickoff line-up, the
+// ball at rest on a line where away played it out -- a set piece for home.
+[[nodiscard]] std::expected<MatchSetup, std::string> outByAway(const std::uint64_t seed,
+                                                               const SimCore::Vec2 out) {
+  auto setup = tacticMatchEleven(seed);
+  if (!setup) {
+    return setup;
+  }
+  const MatchState& lineUp = setup->initialState;
+  std::vector<PlayerMatchState> players(lineUp.players().begin(), lineUp.players().end());
+  BallState ball;
+  ball.position = out;
+  // Away's last outfield player played it out.
+  ball.lastTouch = BallTouch{.playerId = players.back().playerId, .tick = SimCore::SimTick(0)};
+  auto state = MatchState::create({.pitch = lineUp.pitch(),
+                                   .players = std::move(players),
+                                   .ball = ball,
+                                   .playersPerSide = lineUp.playersPerSide()},
+                                  lineUp.tactics());
+  if (!state) {
+    return std::unexpected("invalid set-piece scenario: " + state.error().front().message);
+  }
+  setup->initialState = *std::move(state);
+  setup->commands.clear();
+  return setup;
+}
+
+[[nodiscard]] std::expected<MatchSetup, std::string> corner(const std::uint64_t seed) {
+  return outByAway(seed, {.x = kStandardLengthMeters, .y = 0.0});
+}
+
+[[nodiscard]] std::expected<MatchSetup, std::string> throwIn(const std::uint64_t seed) {
+  return outByAway(seed, {.x = 0.65 * kStandardLengthMeters, .y = 0.0});
+}
+
 [[nodiscard]] std::expected<MatchSetup, std::string> touchlineTrap(const std::uint64_t seed) {
   return makePressingTrap(seed, TrapSpot::kTouchline, 1.0);
 }
@@ -967,6 +1003,14 @@ constexpr std::array kScenarios{
                        .description = "home plays the ball over away's goal line, away's keeper "
                                       "takes the goal kick",
                        .make = &goalKick},
+    ScenarioDefinition{.name = "corner",
+                       .description = "eleven a side, away played the ball over its goal line: "
+                                      "home's corner from its plan",
+                       .make = &corner},
+    ScenarioDefinition{.name = "throw-in",
+                       .description = "eleven a side, away played the ball over the touchline: "
+                                      "home's throw-in from its plan",
+                       .make = &throwIn},
     ScenarioDefinition{.name = "tactic-match",
                        .description = "reference tactic against reference tactic, home kicks off",
                        .make = &tacticMatch},

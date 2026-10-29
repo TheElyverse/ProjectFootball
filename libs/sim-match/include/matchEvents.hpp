@@ -348,6 +348,21 @@ struct FoulCalled {
   friend bool operator==(const FoulCalled&, const FoulCalled&) = default;
 };
 
+// A set piece was taken (docs/set-pieces.md): its kind, the side and taker,
+// the delivery its plan asked for, where the pass goes and whom it is meant
+// for. RestartTaken recorded when it was awarded.
+struct SetPieceTaken {
+  SimCore::SimTick tick;
+  SimTactics::SetPieceKind kind = SimTactics::SetPieceKind::kThrowIn;
+  TeamSide side = TeamSide::kHome;
+  SimCore::PlayerId taker;
+  SimTactics::SetPieceDelivery delivery = SimTactics::SetPieceDelivery::kShort;
+  SimCore::Vec2 target;
+  std::optional<SimCore::PlayerId> receiver = std::nullopt;
+
+  friend bool operator==(const SetPieceTaken&, const SetPieceTaken&) = default;
+};
+
 // The referee ended a half (docs/match-clock.md): the period that ended, and
 // the added time he had announced for it.
 struct PeriodEnded {
@@ -550,7 +565,7 @@ using MatchEvent =
                  TacticChanged, PitchControlSampled, RestartTaken, ShotAttempted, ShotDeflected,
                  ShotHitWoodwork, ShotResolved, GoalScored, SaveAttempted, AerialContest,
                  DribbleAttempted, DribbleEnded, DuelStarted, DuelEnded, TackleAttempted,
-                 CrossAttempted, PeriodEnded, OffsideCalled, FoulCalled>;
+                 CrossAttempted, PeriodEnded, OffsideCalled, FoulCalled, SetPieceTaken>;
 
 // "pass attempted", "pass received", ... for logs and diagnostics.
 [[nodiscard]] std::string_view eventName(const MatchEvent& event);
