@@ -1,6 +1,6 @@
 # P2 acceptance, reduced for CI (docs/tooling.md#sim-benchmark): the three
-# tactical identities in a round robin of every pairing, thirty six-minute
-# matches each. The run must finish within its time budget without an invalid
+# tactical identities, eleven a side, in a round robin of every pairing,
+# twenty six-minute matches each. The run must finish within its time budget without an invalid
 # value, a sampled match of every pairing must replay identically, and the
 # styles must separate where their identities promise. Invoked by CTest with
 # SIM_BENCHMARK, DATA_DIR and TEST_OUTPUT_DIR set; registered for Release builds
@@ -15,8 +15,8 @@ execute_process(
         --style "${DATA_DIR}/tactics/possession.json"
         --style "${DATA_DIR}/tactics/counter.json"
         --style "${DATA_DIR}/tactics/pressing.json"
-        --matches 30 --minutes 6 --seed 1 --jobs 2 --verify-replays 1
-        --max-seconds-per-match 5 --max-seconds-total 450
+        --matches 20 --minutes 6 --seed 1 --jobs 2 --verify-replays 1
+        --max-seconds-per-match 5 --max-seconds-total 300
         --out "${results}"
         RESULT_VARIABLE result OUTPUT_VARIABLE output ERROR_VARIABLE error
         TIMEOUT 600
@@ -44,7 +44,7 @@ endif()
 set(expected
         "regains:pressing:possession" "regains:pressing:counter"
         "regainsAttackingThird:pressing:counter"
-        "ppda:counter:pressing")
+        "ppda:counter:pressing" "ppda:counter:possession")
 string(JSON count LENGTH "${json}" separations)
 set(found "")
 if(count GREATER 0)
@@ -71,9 +71,10 @@ endforeach()
 # since players carry the ball (docs/on-ball.md#ball-carrying), 3.3 to 12.1
 # over twenty matches since they curl and chip (docs/on-ball.md#shot-types),
 # 3.7 to 14.1 over thirty since they block shots (docs/duels.md#tackles-and-blocks),
-# 3.3 to 13.7 since they cross (docs/on-ball.md#crossing) -- with room
-# above; it guards against a change that stops the shooting or makes a shooting
-# gallery of the sandbox, not against balancing.
+# 3.3 to 13.7 since they cross (docs/on-ball.md#crossing), and 1.3 to 7.0 --
+# 0.7 at worst over seeds 1 to 5 -- since the identities play eleven a side on
+# the standard pitch -- with room above; it guards against a change that stops
+# the shooting or makes a shooting gallery of the pitch, not against balancing.
 set(minShots 0.5)
 set(maxShots 40)
 math(EXPR lastPairing "${pairings} - 1")

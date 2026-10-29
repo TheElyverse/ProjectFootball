@@ -5,6 +5,7 @@
 
 #include <algorithm>
 #include <catch2/catch_test_macros.hpp>
+#include <cstddef>
 #include <filesystem>
 #include <string>
 #include <utility>
@@ -77,42 +78,52 @@ TEST_CASE("The reference tactic file equals the reference tactic in code", "[tac
 }
 
 TEST_CASE("The three tactical identities differ where their intent says", "[tacticFiles]") {
-  const Tactic possession = preset("possession");
-  const Tactic counter = preset("counter");
-  const Tactic pressing = preset("pressing");
-  REQUIRE(contentHash(possession) != contentHash(counter));
-  REQUIRE(contentHash(counter) != contentHash(pressing));
-  REQUIRE(contentHash(pressing) != contentHash(possession));
+  // Eleven a side, and the seven-a-side presets the short scenarios use.
+  for (const auto& [suffix, slots] : {std::pair{std::string(), std::size_t{11}},
+                                      std::pair{std::string("-seven"), std::size_t{7}}}) {
+    CAPTURE(suffix);
+    const Tactic possession = preset("possession" + suffix);
+    const Tactic counter = preset("counter" + suffix);
+    const Tactic pressing = preset("pressing" + suffix);
+    REQUIRE(possession.slots().size() == slots);
+    REQUIRE(counter.slots().size() == slots);
+    REQUIRE(pressing.slots().size() == slots);
+    REQUIRE(contentHash(possession) != contentHash(counter));
+    REQUIRE(contentHash(counter) != contentHash(pressing));
+    REQUIRE(contentHash(pressing) != contentHash(possession));
 
-  // Pressing presses earliest, hardest and on every trigger.
-  REQUIRE(pressing.principles().pressingLine < possession.principles().pressingLine);
-  REQUIRE(possession.principles().pressingLine < counter.principles().pressingLine);
-  REQUIRE(pressing.principles().pressingTriggers.size() == 5);
-  REQUIRE(counter.principles().pressingTriggers.empty());
-  REQUIRE(pressing.instruction(TacticalPhase::kPressing).pressingIntensity >
-          possession.instruction(TacticalPhase::kPressing).pressingIntensity);
-  // Behind a high line the keeper sweeps; behind a deep block he stays home.
-  REQUIRE(pressing.principles().goalkeeper.sweeping > possession.principles().goalkeeper.sweeping);
-  REQUIRE(possession.principles().goalkeeper.sweeping > counter.principles().goalkeeper.sweeping);
-  // Possession's keeper plays out; counter's goes long, straight to the
-  // front.
-  REQUIRE(counter.principles().goalkeeper.directness > pressing.principles().goalkeeper.directness);
-  REQUIRE(pressing.principles().goalkeeper.directness >
-          possession.principles().goalkeeper.directness);
+    // Pressing presses earliest, hardest and on every trigger.
+    REQUIRE(pressing.principles().pressingLine < possession.principles().pressingLine);
+    REQUIRE(possession.principles().pressingLine < counter.principles().pressingLine);
+    REQUIRE(pressing.principles().pressingTriggers.size() == 5);
+    REQUIRE(counter.principles().pressingTriggers.empty());
+    REQUIRE(pressing.instruction(TacticalPhase::kPressing).pressingIntensity >
+            possession.instruction(TacticalPhase::kPressing).pressingIntensity);
+    // Behind a high line the keeper sweeps; behind a deep block he stays home.
+    REQUIRE(pressing.principles().goalkeeper.sweeping >
+            possession.principles().goalkeeper.sweeping);
+    REQUIRE(possession.principles().goalkeeper.sweeping > counter.principles().goalkeeper.sweeping);
+    // Possession's keeper plays out; counter's goes long, straight to the
+    // front.
+    REQUIRE(counter.principles().goalkeeper.directness >
+            pressing.principles().goalkeeper.directness);
+    REQUIRE(pressing.principles().goalkeeper.directness >
+            possession.principles().goalkeeper.directness);
 
-  // Counter defends deepest and goes vertical after a regain.
-  REQUIRE(counter.instruction(TacticalPhase::kDefensiveBlock).lineHeight <
-          possession.instruction(TacticalPhase::kDefensiveBlock).lineHeight);
-  REQUIRE(counter.instruction(TacticalPhase::kAttackingTransition).passingRisk >
-          pressing.instruction(TacticalPhase::kAttackingTransition).passingRisk);
-  REQUIRE(counter.instruction(TacticalPhase::kAttackingTransition).runFrequency >
-          possession.instruction(TacticalPhase::kAttackingTransition).runFrequency);
+    // Counter defends deepest and goes vertical after a regain.
+    REQUIRE(counter.instruction(TacticalPhase::kDefensiveBlock).lineHeight <
+            possession.instruction(TacticalPhase::kDefensiveBlock).lineHeight);
+    REQUIRE(counter.instruction(TacticalPhase::kAttackingTransition).passingRisk >
+            pressing.instruction(TacticalPhase::kAttackingTransition).passingRisk);
+    REQUIRE(counter.instruction(TacticalPhase::kAttackingTransition).runFrequency >
+            possession.instruction(TacticalPhase::kAttackingTransition).runFrequency);
 
-  // Possession circulates safely and counterpresses right after a loss.
-  REQUIRE(possession.instruction(TacticalPhase::kBuildUp).passingRisk <
-          counter.instruction(TacticalPhase::kBuildUp).passingRisk);
-  REQUIRE(possession.instruction(TacticalPhase::kBuildUp).blockWidth >
-          counter.instruction(TacticalPhase::kBuildUp).blockWidth);
-  REQUIRE(possession.instruction(TacticalPhase::kDefensiveTransition).pressingIntensity >
-          possession.instruction(TacticalPhase::kDefensiveBlock).pressingIntensity);
+    // Possession circulates safely and counterpresses right after a loss.
+    REQUIRE(possession.instruction(TacticalPhase::kBuildUp).passingRisk <
+            counter.instruction(TacticalPhase::kBuildUp).passingRisk);
+    REQUIRE(possession.instruction(TacticalPhase::kBuildUp).blockWidth >
+            counter.instruction(TacticalPhase::kBuildUp).blockWidth);
+    REQUIRE(possession.instruction(TacticalPhase::kDefensiveTransition).pressingIntensity >
+            possession.instruction(TacticalPhase::kDefensiveBlock).pressingIntensity);
+  }
 }
