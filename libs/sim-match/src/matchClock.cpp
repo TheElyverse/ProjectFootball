@@ -32,13 +32,14 @@ std::string_view matchPeriodName(const MatchPeriod period) noexcept {
 }
 
 void validate(const MatchClockConfig& config, const int ticksPerSecond) {
-  const bool valid = isWithin(config.durationMinutes, 0.0, kMaxDurationMinutes) &&
-                     ticksPerSecond > 0 && halfTicks(config, ticksPerSecond) >= 1 &&
-                     isFiniteNonNegative(config.throwInLostSeconds) &&
-                     isFiniteNonNegative(config.goalKickLostSeconds) &&
-                     isFiniteNonNegative(config.cornerLostSeconds) &&
-                     isFiniteNonNegative(config.kickoffLostSeconds) &&
-                     isFiniteNonNegative(config.freeKickLostSeconds);
+  const bool valid =
+      isWithin(config.durationMinutes, 0.0, kMaxDurationMinutes) && ticksPerSecond > 0 &&
+      halfTicks(config, ticksPerSecond) >= 1 && isFiniteNonNegative(config.throwInLostSeconds) &&
+      isFiniteNonNegative(config.goalKickLostSeconds) &&
+      isFiniteNonNegative(config.cornerLostSeconds) &&
+      isFiniteNonNegative(config.kickoffLostSeconds) &&
+      isFiniteNonNegative(config.freeKickLostSeconds) &&
+      isFiniteNonNegative(config.penaltyLostSeconds) && isFiniteNonNegative(config.cardLostSeconds);
   if (!valid) {
     throw std::invalid_argument("match clock: invalid configuration");
   }
@@ -58,8 +59,11 @@ double lostSeconds(const RestartKind kind, const MatchClockConfig& config) noexc
       return config.cornerLostSeconds;
     case RestartKind::kKickoff:
       return config.kickoffLostSeconds;
-    case RestartKind::kFreeKick:
+    case RestartKind::kIndirectFreeKick:
+    case RestartKind::kDirectFreeKick:
       return config.freeKickLostSeconds;
+    case RestartKind::kPenalty:
+      return config.penaltyLostSeconds;
   }
   return 0.0;
 }

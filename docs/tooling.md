@@ -26,12 +26,12 @@ directory); `--play` plays one back. The file is written before the terminal
 interface opens, so a run rejected by argument or terminal validation leaves no
 file.
 
-### Schema version 20
+### Schema version 21
 
 ```json
 {
-  "schemaVersion": 20,
-  "coreVersion": "0.36.0",
+  "schemaVersion": 21,
+  "coreVersion": "0.37.0",
   "createdAt": "2026-09-24T10:00:00Z",
   "seed": "18446744073709551615",
   "gameTime": 300,
@@ -65,7 +65,8 @@ file.
     "aerial": { "...": "..." },
     "clock": { "durationMinutes": 90.0, "throwInLostSeconds": 4.0, "...": "..." },
     "fitness": { "sprintSpeedShare": 0.85, "...": "..." },
-    "offside": { "enabled": false, "levelMeters": 0.1 }
+    "offside": { "enabled": false, "levelMeters": 0.1 },
+    "fouls": { "enabled": false, "fromBehindDot": -0.5, "...": "..." }
   },
   "initialState": {
     "pitch": { "length": 60.0, "width": 40.0 },
@@ -95,7 +96,9 @@ file.
         },
         "target": null,
         "facing": { "x": 1.0, "y": 0.0 },
-        "fitness": { "sprintReserve": 1.0, "playedTicks": 0, "topSpeedShare": 1.0 }
+        "fitness": { "sprintReserve": 1.0, "playedTicks": 0, "topSpeedShare": 1.0 },
+        "yellowCards": 0,
+        "sentOff": false
       }
     ],
     "ball": {
@@ -315,6 +318,7 @@ record the scenario again with the same seed.
 | 18      | Tactics are files of tactic format version 4, which may hold eleven slots ([tactics](tactics.md#tactic-file-format)). |
 | 19      | Players gain `fitness` (`sprintReserve`, `playedTicks`, `topSpeedShare`), and the configuration its `clock` and `fitness` blocks ([match clock](match-clock.md), [fitness](players.md#fitness)). |
 | 20      | The configuration gains its `offside` block and the clock its `freeKickLostSeconds` ([offside](match-engine.md#offside)). |
+| 21      | Players gain `yellowCards` and `sentOff`, the configuration its `fouls` block and the clock `penaltyLostSeconds` and `cardLostSeconds` ([fouls](fouls.md)). |
 
 ## Decision trace
 
@@ -665,7 +669,7 @@ ball's `sideSpin` and the `shotType` of `shotAttempted`
 ([crossing](on-ball.md#crossing)); every frame's `clock` (as `formatClock()`
 shows it), `period` and `endsChanged`, and the event `periodEnded`
 ([match clock](match-clock.md)); the event `offsideCalled`
-([offside](match-engine.md#offside)). From the second half on the viewer turns the
+([offside](match-engine.md#offside)); the event `foulCalled` ([fouls](fouls.md)). From the second half on the viewer turns the
 pitch round the centre spot, as the teams have changed ends. Without a `look` the
 viewer draws the vision cone along the facing.
 
@@ -740,6 +744,7 @@ frame: from its own goal line toward the one it attacks.
 | `shots` | `ShotAttempted` | shots taken ([shot decisions](on-ball.md#shot-decisions)); what became of them is in the [shooting](on-ball.md#shooting) events, which the statistics do not read yet |
 | `goals` | `GoalScored` | goals scored, own goals of the opponent included: the side's score |
 | `offsides` | `OffsideCalled` | offsides the side's players were caught in ([offside](match-engine.md#offside)) |
+| `fouls`, `yellowCards`, `redCards` | `FoulCalled` | fouls the side's players committed and the cards they were shown, a second yellow counted as red ([fouls](fouls.md)) |
 | `points` | `GoalScored`, `PeriodEnded` | 3 for a win, 1 for a draw, 0 for a defeat once the second half has ended ([full time](match-clock.md#full-time)); empty before |
 | `turnovers`, `regains` | `PossessionChanged` | the ball's owner changes from one side to the other; the first owner of the match is neither |
 | `regainsByThird` | `PassIntercepted`, `BallWon`, `LooseBallRecovered` | regains by the third of their position; a regain without such an event in its step, a command giving the ball away for instance, is counted in `regains` only |
@@ -847,7 +852,7 @@ determinism check.
 Every match is the [tactic match](scenarios.md#the-tactic-match): the kickoff
 fixture with the two tactics, the standard systems,
 [restarts](match-engine.md#restarts) (a ball waiting on the line would blur
-every statistic) and [offside](match-engine.md#offside) on. Match `i` plays with seed `matchSeed(base, i)`, SplitMix64 of
+every statistic), [offside](match-engine.md#offside) and [fouls](fouls.md) on. Match `i` plays with seed `matchSeed(base, i)`, SplitMix64 of
 the base seed advanced by `i + 1` steps: neighbouring matches get unrelated
 seeds, and a seed depends only on base seed and index, not on how many matches
 run or in which order. `sim-cli --home-tactic ... --away-tactic ... --seed <its

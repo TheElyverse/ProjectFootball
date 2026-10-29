@@ -201,7 +201,7 @@ std::optional<SpottedTrigger> spotTrigger(const MatchState& state, const TeamSid
     for (std::size_t index = 0; index < state.players().size(); ++index) {
       const PlayerMatchState& defender = state.players()[index];
       const bool looking =
-          defender.side == pressingSide && !isGoalkeeper(state, index) &&
+          defender.side == pressingSide && isOnPitch(defender) && !isGoalkeeper(state, index) &&
           distanceBetween(defender.position, state.ball().position) <= config.triggerRadius;
       if (!looking) {
         continue;
@@ -234,7 +234,7 @@ std::vector<PressAssignment> assignPressRoles(const MatchState& state, const Tea
   std::vector<std::size_t> options;
   for (std::size_t index = 0; index < state.players().size(); ++index) {
     const PlayerMatchState& player = state.players()[index];
-    if (player.side == pressingSide) {
+    if (player.side == pressingSide && isOnPitch(player)) {
       if (!isGoalkeeper(state, index)) {
         free.push_back(index);
       }

@@ -294,6 +294,11 @@ class DuelStep {
           case LungeResult::kFoul:
             endDuel(defenderIndex, duel, DuelOutcome::kFoul);
             stumble(defenderIndex, config);
+            // For the foul rules to judge (docs/fouls.md).
+            next().setLastFoul(FoulRecord{.offender = current().players()[defenderIndex].playerId,
+                                          .victim = duel.carrier,
+                                          .tick = context().tick(),
+                                          .position = current().ball().position});
             return;
           case LungeResult::kMissed:
           case LungeResult::kBlocked:

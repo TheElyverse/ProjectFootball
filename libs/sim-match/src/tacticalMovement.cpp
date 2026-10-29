@@ -290,7 +290,7 @@ MatchSystem makeTacticalMovementSystem(const TacticalMovementRules& rules) {
                   const auto& phase = current.phase(player.side);
                   const bool onTheBall = current.ball().owner == player.playerId;
                   const bool chasing = current.chaser(player.side) == player.playerId;
-                  if (!phase || onTheBall || chasing) {
+                  if (!phase || onTheBall || chasing || !isOnPitch(player)) {
                     continue;
                   }
                   const DesiredRegion region =

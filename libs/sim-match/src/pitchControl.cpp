@@ -67,6 +67,9 @@ PitchControlGrid computePitchControl(const MatchState& state, const PitchControl
       const SimCore::Vec2 point = pitch.clamp(center);
       const std::size_t index = (column * rows) + row;
       for (const PlayerMatchState& player : state.players()) {
+        if (!isOnPitch(player)) {
+          continue;
+        }
         // point is on the pitch, so an arrival time exists.
         const double seconds = estimateArrivalSeconds(player, point, pitch).value_or(0.0);
         double& earliest = player.side == TeamSide::kHome ? home.at(index) : away.at(index);

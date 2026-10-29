@@ -66,7 +66,9 @@ every free kick, adds its lost seconds to the half's lost time:
 | goal kick                   | 6                  |
 | corner, also for a goalkeeper holding the ball too long | 6 |
 | kickoff after a goal, the celebration included | 30 |
-| free kick after an [offside](match-engine.md#offside) | 10 |
+| free kick after an [offside](match-engine.md#offside) or a [foul](fouls.md) | 10 |
+| penalty                     | 45                 |
+| each card shown             | 15                 |
 
 Once the half's regulation time is up, the added time is announced
 (`addedMinutes()`): its lost seconds as the clock shows them — times 90 over the
@@ -118,8 +120,8 @@ part of the initial snapshot.
 ## What this is not
 
 No extra time or penalty shoot-out, no recovery at half time, and the referee
-waits for nothing but a shot on its way. Only restarts cost time so far: fouls,
-injuries and substitutions will add theirs.
+waits for nothing but a shot on its way. Only restarts, free kicks and cards cost time
+so far: injuries and substitutions will add theirs.
 
 ## From the command line
 

@@ -48,6 +48,10 @@ std::vector<MatchSystem> makeMatchSystems(const MatchConfig& config) {
     systems.push_back(makeOffsideSystem(
         {.offside = config.offside, .physics = config.ball, .clock = config.clock}));
   }
+  if (config.fouls.enabled) {
+    systems.push_back(
+        makeFoulSystem({.fouls = config.fouls, .physics = config.ball, .clock = config.clock}));
+  }
   if (config.restarts.enabled) {
     systems.push_back(makeRestartSystem(
         {.restarts = config.restarts, .physics = config.ball, .clock = config.clock}));

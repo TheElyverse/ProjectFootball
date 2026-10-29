@@ -23,6 +23,7 @@ add_executable(sim-match-tests
         sim-match/matchSimulationTests.cpp
         sim-match/matchClockTests.cpp
         sim-match/offsideTests.cpp
+        sim-match/foulsTests.cpp
         sim-match/matchCommandTests.cpp
         sim-match/restartTests.cpp
         sim-match/playerMovementTests.cpp

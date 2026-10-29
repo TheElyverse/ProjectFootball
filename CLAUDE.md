@@ -8,7 +8,7 @@ This repository is in **early bootstrap stage**. The P0 foundation (`libs/sim-co
 tactic model (`libs/sim-tactics`), a match simulation of seven or eleven a side with its acceptance scenarios
 (`libs/sim-match`), replays, analytics, the benchmark, the debug viewer and the UI spike exist; almost
 everything else in the design/implementation docs below is still unbuilt. `docs/README.md` indexes the topic
-docs that describe what exists, one per area (match engine, match clock, players, ball, on the ball, goalkeeper, duels,
+docs that describe what exists, one per area (match engine, match clock, fouls, players, ball, on the ball, goalkeeper, duels,
 team tactics, tactics, scenarios, tooling, apps). Document a new system as a chapter of the topic doc it
 belongs to, and link to chapters by anchor (`docs/goalkeeper.md#shot-stopping`).
 When implementing a new system, check whether it belongs in an existing module (see layout below) before

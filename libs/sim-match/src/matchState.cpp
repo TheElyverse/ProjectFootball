@@ -144,6 +144,19 @@ void appendFitnessErrors(const std::size_t index, const PlayerMatchState& player
   }
 }
 
+void appendCardErrors(const std::size_t index, const PlayerMatchState& player,
+                      std::vector<MatchStateError>& errors) {
+  // Two yellows send a player off, so an active one has at most one.
+  if (player.yellowCards < 0 || player.yellowCards > 2 ||
+      (player.yellowCards == 2 && !player.sentOff)) {
+    errors.push_back({.code = MatchStateErrorCode::kInvalidCards,
+                      .message = describePlayer(index, player) + " has " +
+                                 std::to_string(player.yellowCards) + " yellow cards" +
+                                 (player.sentOff ? " and is sent off" : " and is on the pitch") +
+                                 ", expected 0 or 1 on the pitch, at most 2 sent off"});
+  }
+}
+
 void appendAttributeErrors(const std::size_t index, const PlayerMatchState& player,
                            std::vector<MatchStateError>& errors) {
   const PlayerAttributes& attributes = player.attributes;
@@ -267,6 +280,7 @@ void validatePlayers(const MatchStateSpec& spec, std::vector<MatchStateError>& e
     appendNonFinitePlayerErrors(index, player, errors);
     appendFacingErrors(index, player, errors);
     appendFitnessErrors(index, player, errors);
+    appendCardErrors(index, player, errors);
     ++index;
   }
 }
@@ -454,6 +468,33 @@ void MatchStateWriter::setPlayerVelocity(const std::size_t playerIndex,
 
 void MatchStateWriter::setPlayerFacing(const std::size_t playerIndex, const SimCore::Vec2 facing) {
   state_->players_.at(playerIndex).facing = facing;
+}
+
+void MatchStateWriter::addYellowCard(const std::size_t playerIndex) {
+  ++state_->players_.at(playerIndex).yellowCards;
+}
+
+void MatchStateWriter::sendOff(const std::size_t playerIndex, const SimCore::Vec2 position) {
+  PlayerMatchState& player = state_->players_.at(playerIndex);
+  // He leaves the ball where it is.
+  if (state_->ball_.owner == player.playerId) {
+    state_->ball_.owner.reset();
+    state_->ball_.held = false;
+    state_->ball_.touch.reset();
+  }
+  player.sentOff = true;
+  player.position = position;
+  player.velocity = {};
+  player.target.reset();
+  state_->pendingActions_.at(playerIndex).reset();
+  state_->perceptions_.at(playerIndex) = {};
+  state_->tactical_.at(playerIndex) = {};
+  const ObservedEntity entity = ObservedEntity::player(player.playerId);
+  for (PlayerPerception& perception : state_->perceptions_) {
+    std::erase_if(perception.observations, [entity](const Observation& observation) {
+      return observation.entity == entity;
+    });
+  }
 }
 
 void MatchStateWriter::setPlayerFitness(const std::size_t playerIndex,
@@ -687,7 +728,8 @@ std::vector<MatchStateError> checkStartingPositions(const MatchState& state) {
   const Pitch& pitch = state.pitch();
 
   for (std::size_t index = 0; const PlayerMatchState& player : state.players()) {
-    if (!pitch.contains(player.position)) {
+    // A player sent off stands off the pitch.
+    if (isOnPitch(player) && !pitch.contains(player.position)) {
       errors.push_back({.code = MatchStateErrorCode::kPlayerOutsidePitch,
                         .message = describePlayer(index, player) + " is outside the " +
                                    describePitch(pitch) + " at " +

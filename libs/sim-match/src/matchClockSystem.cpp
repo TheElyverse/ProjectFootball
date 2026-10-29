@@ -48,6 +48,11 @@ MatchSystem makeMatchClockSystem(const MatchClockRules& rules) {
               [rules, half](const MatchStepContext& context, const MatchState& current,
                             MatchStateWriter& next) {
                 for (std::size_t index = 0; const PlayerMatchState& player : current.players()) {
+                  // Off the pitch nobody tires.
+                  if (!isOnPitch(player)) {
+                    ++index;
+                    continue;
+                  }
                   next.setPlayerFitness(
                       index,
                       stepFitness(player,
