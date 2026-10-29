@@ -95,8 +95,8 @@ double shotErrorFactor(const ShotConditions& conditions, const PlayerAttributes&
 
 ShotStrike executeShot(const ShotIntent& intent, const Vec2 from, const PlayerMatchState& shooter,
                        const double errorFactor, const ShotConfig& config,
-                       const BallPhysics& physics,
-                       SimCore::RandomNumberGenerator& random) noexcept {
+                       const BallPhysics& physics, SimCore::RandomNumberGenerator& random,
+                       const Vec2 strayAxis) noexcept {
   const double accuracy = skillErrorFactor(shooter.attributes.shotAccuracy);
   const double technique = skillErrorFactor(shooter.attributes.shotTechnique);
   const double spread =
@@ -112,8 +112,8 @@ ShotStrike executeShot(const ShotIntent& intent, const Vec2 from, const PlayerMa
   const double spinOff = symmetricUniform(random) * config.spinError * technique * errorFactor;
 
   ShotStrike strike;
-  // The aim is a point on the goal line, so it strays along that line.
-  strike.target = {.x = intent.target.x, .y = intent.target.y + across};
+  // A shot's aim is a point on the goal line, so it strays along that line.
+  strike.target = intent.target + (strayAxis * across);
   strike.height = std::max(0.0, intent.height + upward);
   // Only a flight curves: a curl struck along the grass rolls straight at its
   // target.

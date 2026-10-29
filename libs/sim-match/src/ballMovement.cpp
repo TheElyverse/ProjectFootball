@@ -223,9 +223,13 @@ class BallTick {
     const auto passer = findPlayerIndex(state, intent.passer).value_or(0);
     const PassConfig kick = intent.lofted ? loftedPassConfig(passing) : passing;
     ball.position = carriedBallPosition(state.players()[passer], physics, state.pitch());
-    ball.velocity = executePass(intent, ball, state.players()[passer], kick,
-                                context().random(SimCore::RandomNumberGeneratorDomain::kExecution),
-                                passPressure(state, passer, kick));
+    const bool struckLikeAShot = intent.cross && intent.height > 0.0;
+    if (!struckLikeAShot) {
+      ball.velocity =
+          executePass(intent, ball, state.players()[passer], kick,
+                      context().random(SimCore::RandomNumberGeneratorDomain::kExecution),
+                      passPressure(state, passer, kick));
+    }
     ball.owner = std::nullopt;
     ball.held = false;
     ball.lastTouch = BallTouch{.playerId = intent.passer, .tick = context().tick()};
@@ -233,7 +237,37 @@ class BallTick {
     ball.verticalVelocity = intent.lofted ? loftedRise(intent, ball, physics) : 0.0;
     ball.spin = 0.0;
     ball.sideSpin = 0.0;
+    if (struckLikeAShot) {
+      crossed(state, passer, intent, ball);
+    }
     return ball;
+  }
+
+  // A cross in the air leaves the foot like a shot (docs/on-ball.md#crossing):
+  // executeShot()'s flight to its height at its target, along the arc of its
+  // curvature, with the crosser's errors and conditions, its aim straying
+  // across its way -- the six draws a shot makes, instead of the pass's.
+  void crossed(const MatchState& state, const std::size_t passer, const PassIntent& intent,
+               BallState& ball) const {
+    const ShotIntent strike{.shooter = intent.passer,
+                            .target = intent.target,
+                            .height = intent.height,
+                            .speed = intent.speed,
+                            .type = intent.curvature != 0.0 ? ShotType::kCurled : ShotType::kDriven,
+                            .curvature = intent.curvature};
+    const ShotConditions conditions = shotConditions(
+        state, passer, ball.position, strike, context().time(), rules().shooting, rules().passing);
+    const PlayerMatchState& crosser = state.players()[passer];
+    const SimCore::Vec2 way = SimCore::unitOr(intent.target - ball.position, crosser.facing);
+    const ShotStrike struck = executeShot(
+        strike, ball.position, crosser,
+        shotErrorFactor(conditions, crosser.attributes, rules().shooting), rules().shooting,
+        rules().physics, context().random(SimCore::RandomNumberGeneratorDomain::kExecution),
+        {.x = -way.y, .y = way.x});
+    ball.velocity = struck.velocity;
+    ball.verticalVelocity = struck.verticalVelocity;
+    ball.spin = struck.spin;
+    ball.sideSpin = struck.sideSpin;
   }
 
   // The ball as a shot leaves it: free, off the grass at the shooter's feet, on
@@ -450,6 +484,16 @@ class BallTick {
                                      .from = ball.position,
                                      .target = intent->target,
                                      .speed = ball.velocity.length()});
+      if (intent->cross) {
+        context().record(CrossAttempted{.tick = context().tick(),
+                                        .crosser = intent->passer,
+                                        .area = *intent->cross,
+                                        .from = ball.position,
+                                        .target = intent->target,
+                                        .height = intent->height,
+                                        .runner = intent->receiver,
+                                        .speed = ball.velocity.length()});
+      }
       context().record(PossessionChanged{
           .tick = context().tick(), .previousOwner = intent->passer, .newOwner = std::nullopt});
     }

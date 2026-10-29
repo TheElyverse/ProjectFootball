@@ -11,6 +11,7 @@
 #include <variant>
 #include <vector>
 
+#include "crossArea.hpp"
 #include "ids.hpp"
 #include "observation.hpp"
 #include "pitch.hpp"
@@ -423,6 +424,13 @@ struct PassIntent {
   // the ground, and the flight brings it down on the target
   // (docs/goalkeeper.md#distribution). A ground pass otherwise.
   bool lofted = false;
+  // For a cross, the area of the box it is aimed at (docs/on-ball.md#crossing):
+  // in the air it is struck like a shot, arriving at `height` along the arc
+  // of `curvature` (radians per meter, positive bending left); a cut-back is
+  // a ground pass.
+  std::optional<CrossArea> cross = std::nullopt;
+  double height = 0.0;
+  double curvature = 0.0;
 
   friend bool operator==(const PassIntent&, const PassIntent&) = default;
 };

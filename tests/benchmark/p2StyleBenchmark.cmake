@@ -70,7 +70,8 @@ endforeach()
 # picks up slow balls (possession against counter's deep block), 1.62 to 11.88
 # since players carry the ball (docs/on-ball.md#ball-carrying), 3.3 to 12.1
 # over twenty matches since they curl and chip (docs/on-ball.md#shot-types),
-# 3.7 to 14.1 over thirty since they block shots (docs/duels.md#tackles-and-blocks) -- with room
+# 3.7 to 14.1 over thirty since they block shots (docs/duels.md#tackles-and-blocks),
+# 3.3 to 13.7 since they cross (docs/on-ball.md#crossing) -- with room
 # above; it guards against a change that stops the shooting or makes a shooting
 # gallery of the sandbox, not against balancing.
 set(minShots 0.5)

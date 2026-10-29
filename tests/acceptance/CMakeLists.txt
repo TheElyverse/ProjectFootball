@@ -10,6 +10,7 @@ add_executable(sim-acceptance-tests
         stuckCarrierScenarioTests.cpp
         carryScenarioTests.cpp
         duelScenarioTests.cpp
+        crossScenarioTests.cpp
 )
 target_link_libraries(sim-acceptance-tests PRIVATE
         ElyverseFootball::sim-replay

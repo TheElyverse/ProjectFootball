@@ -108,7 +108,9 @@ using TruePositions = std::map<SimCore::PlayerId, SimCore::Vec2>;
 // minConfidence) or believed him more than perceptionErrorMeters from his
 // true position, judgement if the pass's estimated interception risk was at
 // least riskyDecision but the risk as he judged it below, decision if the
-// judged risk was at least riskyDecision, execution otherwise.
+// judged risk was at least riskyDecision, execution otherwise. For a cross,
+// decision if the chance it reached his side first was at most
+// 1 - riskyDecision.
 [[nodiscard]] PassOutcome attributeInterception(const SimMatch::PassIntercepted& event,
                                                 const SimMatch::DecisionDiagnostic& decision,
                                                 const TruePositions& truePositions,
@@ -130,7 +132,7 @@ class DecisionTracer {
   [[nodiscard]] std::span<const TraceEntry> entries() const noexcept { return entries_; }
 
  private:
-  void resolve(const SimMatch::MatchEvent& event);
+  void resolve(const SimMatch::MatchEvent& event, const SimMatch::MatchState& state);
 
   SimMatch::MatchConfig matchConfig_;
   TraceConfig config_;

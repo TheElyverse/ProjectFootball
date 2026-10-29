@@ -460,6 +460,94 @@ constexpr PlayerAttributes kCurler{.shotTechnique = 1.0};
 }
 
 // ---------------------------------------------------------------------------
+// Cross scenarios (docs/on-ball.md#crossing): home player 1 wide in away's
+// final third, away keeping goal with the reference tactic; home's runners
+// are sent into the box by commands at the kick-off of the scenario.
+
+// The setup with player 1 deciding early (decidingEarly()) and these home
+// players sent to these points of the box from the first step.
+[[nodiscard]] std::expected<MatchSetup, std::string> withRuns(
+    std::expected<MatchSetup, std::string> setup,
+    const std::vector<std::pair<SimCore::PlayerId, SimCore::Vec2>>& runs) {
+  setup = decidingEarly(std::move(setup));
+  if (setup) {
+    for (const auto& [player, target] : runs) {
+      setup->commands.push_back(
+          {.tick = SimCore::SimTick(0),
+           .command = MovePlayerCommand{.playerId = player, .target = target}});
+    }
+  }
+  return setup;
+}
+
+// Player 1 wide on the right, sixteen meters from away's goal line; striker
+// 2 runs from the edge of the box to the penalty spot, a centre back level
+// with him on the far side (docs/scenarios.md#the-cross-scenarios).
+[[nodiscard]] std::expected<MatchSetup, std::string> earlyCross(const std::uint64_t seed) {
+  constexpr Side kHome{{{.x = 44.0, .y = 4.0, .facingX = 1.0},
+                        {.x = 49.0, .y = 21.0, .facingX = 1.0},
+                        kHomeBehind[1],
+                        kHomeBehind[2],
+                        kHomeBehind[3],
+                        kHomeBehind[4],
+                        kHomeBehind[5]}};
+  constexpr Side kAway{{{.x = 59.5, .y = 20.0, .facingX = -1.0},
+                        {.x = 47.0, .y = 26.0, .facingX = -1.0},
+                        {.x = 42.0, .y = 6.0, .facingX = -1.0},
+                        {.x = 30.0, .y = 14.0, .facingX = -1.0},
+                        {.x = 25.0, .y = 26.0, .facingX = -1.0},
+                        {.x = 20.0, .y = 20.0, .facingX = -1.0},
+                        {.x = 35.0, .y = 32.0, .facingX = -1.0}}};
+  return withRuns(againstKeeper(seed, kHome, kAway),
+                  {{SimCore::PlayerId(2), {.x = 54.5, .y = 19.0}}});
+}
+
+// Player 1 wide on the right close to away's goal line; teammate 2 waits at
+// the edge of the area behind the defence, which stands on its six-yard line.
+[[nodiscard]] std::expected<MatchSetup, std::string> cutBack(const std::uint64_t seed) {
+  constexpr Side kHome{{{.x = 57.0, .y = 6.5, .facingX = 0.0, .facingY = 1.0},
+                        {.x = 53.0, .y = 15.0, .facingX = 1.0},
+                        kHomeBehind[1],
+                        kHomeBehind[2],
+                        kHomeBehind[3],
+                        kHomeBehind[4],
+                        kHomeBehind[5]}};
+  constexpr Side kAway{{{.x = 59.5, .y = 19.0, .facingX = -1.0},
+                        {.x = 57.0, .y = 17.0, .facingX = -1.0},
+                        {.x = 57.0, .y = 22.0, .facingX = -1.0},
+                        {.x = 30.0, .y = 14.0, .facingX = -1.0},
+                        {.x = 25.0, .y = 26.0, .facingX = -1.0},
+                        {.x = 20.0, .y = 20.0, .facingX = -1.0},
+                        {.x = 35.0, .y = 32.0, .facingX = -1.0}}};
+  return withRuns(againstKeeper(seed, kHome, kAway), {});
+}
+
+// The early cross against a keeper quicker off his line than the crosser
+// imagines anyone -- he knows nobody's attributes -- who claims it more
+// often than not (docs/scenarios.md#the-cross-scenarios).
+constexpr PlayerAttributes kAgileKeeper{
+    .maxSpeed = 9.0, .acceleration = 8.0, .keeperHandling = 1.0};
+
+[[nodiscard]] std::expected<MatchSetup, std::string> crossKeeperClaims(const std::uint64_t seed) {
+  constexpr Side kHome{{{.x = 44.0, .y = 4.0, .facingX = 1.0},
+                        {.x = 49.0, .y = 21.0, .facingX = 1.0},
+                        kHomeBehind[1],
+                        kHomeBehind[2],
+                        kHomeBehind[3],
+                        kHomeBehind[4],
+                        kHomeBehind[5]}};
+  constexpr Side kAway{{{.x = 59.5, .y = 20.0, .facingX = -1.0, .attributes = kAgileKeeper},
+                        {.x = 47.0, .y = 26.0, .facingX = -1.0},
+                        {.x = 42.0, .y = 6.0, .facingX = -1.0},
+                        {.x = 30.0, .y = 14.0, .facingX = -1.0},
+                        {.x = 25.0, .y = 26.0, .facingX = -1.0},
+                        {.x = 20.0, .y = 20.0, .facingX = -1.0},
+                        {.x = 35.0, .y = 32.0, .facingX = -1.0}}};
+  return withRuns(againstKeeper(seed, kHome, kAway),
+                  {{SimCore::PlayerId(2), {.x = 54.5, .y = 19.0}}});
+}
+
+// ---------------------------------------------------------------------------
 // Goalkeeper scenarios (docs/goalkeeper.md#positioning-and-sweeping): away
 // keeps goal with the reference tactic, its keeper player 8 a perfect judge of
 // a ball played in behind, so whether he comes is the model's call and not a
@@ -823,6 +911,18 @@ constexpr std::array kScenarios{
                        .description = "home player 1 twelve meters out, a defender in the way, a "
                                       "teammate free",
                        .make = &blockedLane},
+    ScenarioDefinition{.name = "early-cross",
+                       .description = "home player 1 wide in the final third crosses for a "
+                                      "striker running into the box",
+                       .make = &earlyCross},
+    ScenarioDefinition{.name = "cut-back",
+                       .description = "home player 1 wide near the goal line cuts the ball back "
+                                      "to a teammate at the edge of the area",
+                       .make = &cutBack},
+    ScenarioDefinition{.name = "cross-keeper-claims",
+                       .description = "home player 1 crosses against a keeper quicker than he "
+                                      "imagines, who claims it",
+                       .make = &crossKeeperClaims},
     ScenarioDefinition{.name = "curl-around-wall",
                        .description = "home player 1 sixteen meters out, a wall of three in front "
                                       "of him, curls the ball around it",

@@ -7,6 +7,7 @@
 #include <vector>
 
 #include "carrying.hpp"
+#include "crossCandidates.hpp"
 #include "distribution.hpp"
 #include "matchSimulation.hpp"
 #include "passCandidates.hpp"
@@ -47,12 +48,15 @@ struct DecisionConfig {
   // How he weighs holding, turning, carrying and dribbling
   // (docs/on-ball.md#ball-carrying).
   CarryScoringConfig carrying;
+  // How a wide player weighs his crosses (docs/on-ball.md#crossing).
+  CrossScoringConfig crossing;
 
   friend bool operator==(const DecisionConfig&, const DecisionConfig&) = default;
 };
 
-// What the player on the ball chose: to pass, to shoot, to hold, turn, carry
-// or dribble -- kPassed, kShot, kHeld, kTurned, kCarried or kDribbled -- and
+// What the player on the ball chose: to pass, to shoot, to hold, turn, carry,
+// dribble or cross -- kPassed, kShot, kHeld, kTurned, kCarried, kDribbled or
+// kCrossed -- and
 // which, by its index in the list it comes from.
 struct OnBallChoice {
   DecisionOutcome outcome = DecisionOutcome::kPassed;
@@ -81,6 +85,16 @@ struct OnBallChoice {
 [[nodiscard]] std::optional<OnBallChoice> chooseOnBall(std::span<const PassCandidate> passes,
                                                        std::span<const ShotCandidate> shots,
                                                        std::span<const CarryCandidate> carries,
+                                                       double temperature,
+                                                       SimCore::RandomNumberGenerator& random);
+
+// chooseOnBall() with his crosses competing too: the first of a list ordered
+// like generateCrossCandidates()'s, if it is valid (docs/on-ball.md#crossing).
+// kCrossed indexes it.
+[[nodiscard]] std::optional<OnBallChoice> chooseOnBall(std::span<const PassCandidate> passes,
+                                                       std::span<const ShotCandidate> shots,
+                                                       std::span<const CarryCandidate> carries,
+                                                       std::span<const CrossCandidate> crosses,
                                                        double temperature,
                                                        SimCore::RandomNumberGenerator& random);
 

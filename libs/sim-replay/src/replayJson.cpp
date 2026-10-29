@@ -594,6 +594,24 @@ void fieldsOf(Visitor& visit, SimMatch::CarryPhaseFactors& factors) {
 }
 
 template <typename Visitor>
+void fieldsOf(Visitor& visit, SimMatch::CrossScoringConfig& crossing) {
+  visit.boolean("enabled", crossing.enabled);
+  visit.number("minConfidence", crossing.minConfidence);
+  visit.number("maxDepthShare", crossing.maxDepthShare);
+  visit.number("crossSpeed", crossing.crossSpeed);
+  visit.number("headerHeight", crossing.headerHeight);
+  visit.number("drivenSpeed", crossing.drivenSpeed);
+  visit.number("drivenHeight", crossing.drivenHeight);
+  visit.number("cutBackSpeed", crossing.cutBackSpeed);
+  visit.number("curlShare", crossing.curlShare);
+  visit.number("contestMarginSeconds", crossing.contestMarginSeconds);
+  visit.number("minWinChance", crossing.minWinChance);
+  visit.number("winWeight", crossing.winWeight);
+  visit.number("threatWeight", crossing.threatWeight);
+  visit.number("lossWeight", crossing.lossWeight);
+}
+
+template <typename Visitor>
 void fieldsOf(Visitor& visit, SimMatch::CarryScoringConfig& carrying) {
   visit.boolean("enabled", carrying.enabled);
   visit.number("minConfidence", carrying.minConfidence);
@@ -653,6 +671,7 @@ void fieldsOf(Visitor& visit, SimMatch::DecisionConfig& decisions) {
   visit.number("clearTouchlineMargin", decisions.clearTouchlineMargin);
   visit.number("clearGoalLineMargin", decisions.clearGoalLineMargin);
   visit.object("carrying", decisions.carrying);
+  visit.object("crossing", decisions.crossing);
 }
 
 template <typename Visitor>

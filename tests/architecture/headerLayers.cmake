@@ -10,7 +10,8 @@ set(layers model mechanics loop behaviour setup)
 set(model
         actionCandidate carryCandidate choicePolicy matchCommand matchEvents matchState
         matchStateHash observation passCandidate pitch pitchControlGrid pressingActions
-        restartKind shotCandidate shotType tacticalState teamPress)
+        crossArea crossCandidate restartKind shotCandidate shotType tacticalState
+        teamPress)
 # Pure functions of physics, geometry and execution, and the queries every
 # decision asks.
 set(mechanics
@@ -21,7 +22,8 @@ set(loop matchSimulation)
 # The decisions and the systems that run them.
 set(behaviour
         ballMovement carrying defensiveActions desiredRegion distribution duel offBallActions
-        passCandidates passDecision perception pitchControl playerMovement pursuit restart
+        crossCandidates passCandidates passDecision perception pitchControl playerMovement
+        pursuit restart
         shotCandidates shotStopping tacticalMovement tacticalPhases teamPressing)
 # Configuration and fixtures that put whole matches together.
 set(setup goldenScenarios kickoffScenario matchSetup scenarios)

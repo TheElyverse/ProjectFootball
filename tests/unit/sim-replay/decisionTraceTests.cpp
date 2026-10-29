@@ -445,3 +445,43 @@ TEST_CASE("The tracer keeps to the filtered players and ticks", "[decisionTrace]
   REQUIRE(text.starts_with("t="));
   REQUIRE(text.contains(" #4 "));
 }
+
+TEST_CASE("A cross is traced with its area, its runner and its reason", "[decisionTrace]") {
+  ElyverseFootball::SimMatch::CrossCandidate cross;
+  cross.area = ElyverseFootball::SimMatch::CrossArea::kFarPost;
+  cross.target = {.x = 56.9, .y = 22.2};
+  cross.height = 1.6;
+  cross.runner = PlayerId(9);
+  cross.winChance = 0.5;
+  cross.keeperClaim = 0.3;
+  cross.threat = 1.0;
+  DecisionDiagnostic decision{.tick = SimTick(12),
+                              .player = PlayerId(6),
+                              .observations = {},
+                              .candidates = {},
+                              .shots = {},
+                              .outcome = DecisionOutcome::kCrossed,
+                              .chosen = 0,
+                              .scoring = {},
+                              .shotScoring = {},
+                              .carries = {},
+                              .carryScoring = {}};
+  decision.crosses = {cross};
+  const std::string text =
+      formatTrace(std::vector<TraceEntry>{PassDecisionTrace{.decision = decision, .outcome = {}}});
+  CAPTURE(text);
+  REQUIRE(text.starts_with("t=12 #6 crosses to the farPost (56.9, 22.2) 1.60 m high for #9"));
+  REQUIRE(text.contains("win chance 0.50, keeper 0.30"));
+  REQUIRE(text.contains("because win -> pending"));
+}
+
+TEST_CASE("The tracer follows a cross to whoever wins it in the air", "[decisionTrace]") {
+  const auto passes = passesOf(traceOf(
+      "early-cross", {.players = {PlayerId(1)}, .from = std::nullopt, .to = std::nullopt}, 90));
+  REQUIRE_FALSE(passes.empty());
+  const PassDecisionTrace& first = passes.front();
+  REQUIRE(first.decision.outcome == DecisionOutcome::kCrossed);
+  // Seed 7: the keeper claims it in the air -- an interception by #8.
+  REQUIRE(first.outcome.result == PassResult::kIntercepted);
+  REQUIRE(first.outcome.by == PlayerId(8));
+}

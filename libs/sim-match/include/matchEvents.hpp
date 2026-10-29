@@ -10,6 +10,7 @@
 
 #include "actionCandidate.hpp"
 #include "carryCandidate.hpp"
+#include "crossCandidate.hpp"
 #include "ids.hpp"
 #include "matchState.hpp"
 #include "observation.hpp"
@@ -463,13 +464,30 @@ struct TackleAttempted {
   friend bool operator==(const TackleAttempted&, const TackleAttempted&) = default;
 };
 
+// A cross left the crosser's foot (docs/on-ball.md#crossing): the area it is
+// aimed at, where it should arrive and how high, the teammate it is meant
+// for, and the speed it left with. PassAttempted comes first, as for any pass.
+struct CrossAttempted {
+  SimCore::SimTick tick;
+  SimCore::PlayerId crosser;
+  CrossArea area = CrossArea::kPenaltySpot;
+  SimCore::Vec2 from;
+  SimCore::Vec2 target;
+  double height = 0.0;
+  std::optional<SimCore::PlayerId> runner;
+  double speed = 0.0;
+
+  friend bool operator==(const CrossAttempted&, const CrossAttempted&) = default;
+};
+
 // New alternatives go last: an event's index is part of its hash.
 using MatchEvent =
     std::variant<PassAttempted, PassReceived, PassIntercepted, LooseBallRecovered,
                  PossessionChanged, PhaseChanged, BallWon, PressingStarted, PressingEnded,
                  TacticChanged, PitchControlSampled, RestartTaken, ShotAttempted, ShotDeflected,
                  ShotHitWoodwork, ShotResolved, GoalScored, SaveAttempted, AerialContest,
-                 DribbleAttempted, DribbleEnded, DuelStarted, DuelEnded, TackleAttempted>;
+                 DribbleAttempted, DribbleEnded, DuelStarted, DuelEnded, TackleAttempted,
+                 CrossAttempted>;
 
 // "pass attempted", "pass received", ... for logs and diagnostics.
 [[nodiscard]] std::string_view eventName(const MatchEvent& event);
@@ -490,10 +508,11 @@ enum class DecisionOutcome : std::uint8_t {
   kTurned,
   kCarried,
   kDribbled,
+  kCrossed,
 };
 
 // "passed", "noValidOption", "shot", "held", "turned", "carried",
-// "dribbled"; "unknown" outside the enumerators.
+// "dribbled", "crossed"; "unknown" outside the enumerators.
 [[nodiscard]] std::string_view decisionOutcomeName(DecisionOutcome outcome) noexcept;
 
 // Whether the outcome plays the ball on with a touch
@@ -550,6 +569,12 @@ struct DecisionDiagnostic {
   // he scans, the point he clears the ball to; empty otherwise.
   OnBallReason reason = OnBallReason::kChoice;
   std::optional<SimCore::Vec2> target = std::nullopt;
+  // His crosses (docs/on-ball.md#crossing), the best first -- only that one
+  // competed --, and the weights they were scored with; chosen indexes them
+  // for a cross.
+  // NOLINTNEXTLINE(readability-redundant-member-init) -- designated initializers leave it out.
+  std::vector<CrossCandidate> crosses = {};
+  CrossScoringConfig crossScoring = {};
 
   friend bool operator==(const DecisionDiagnostic&, const DecisionDiagnostic&) = default;
 };

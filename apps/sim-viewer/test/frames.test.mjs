@@ -61,6 +61,7 @@ test("describeOutcome names every decision outcome", () => {
   assert.equal(describeOutcome("turned"), "turned");
   assert.equal(describeOutcome("carried"), "carried the ball");
   assert.equal(describeOutcome("dribbled"), "dribbled");
+  assert.equal(describeOutcome("crossed"), "crossed");
 });
 
 test("latestActionDecision finds a decision without the ball", () => {
