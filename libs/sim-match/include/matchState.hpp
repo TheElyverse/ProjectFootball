@@ -44,9 +44,9 @@ enum class TeamSide : std::uint8_t {
 // True only for the declared enumerators kHome and kAway.
 [[nodiscard]] bool isValidTeamSide(TeamSide side) noexcept;
 
-// Squad size per side used when a caller does not state one. Seven-a-side is
-// the M0 iteration stage (docs/implementation-plan.md section 6.1); the value
-// is a default, not a rule built into the types.
+// Squad size per side used when a caller does not state one: seven-a-side,
+// the sandbox of short scenarios. Eleven-a-side is the same type with another
+// value (docs/match-engine.md#the-eleven-a-side-kickoff-fixture).
 inline constexpr int kDefaultPlayersPerSide = 7;
 
 // How far a facing vector's squared length may be from 1 and still count as a

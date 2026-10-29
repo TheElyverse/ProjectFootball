@@ -25,12 +25,13 @@ inline constexpr std::int64_t kDefaultTicks = 300;
 // Also the longest replay --play runs.
 inline constexpr std::int64_t kMaxTicks = 10'000'000;
 // The longest run --frames-out records: two minutes at 30 Hz. Every tick
-// adds a full frame -- around 16 KB of JSON, and more while the recording is
-// held in memory -- so a whole match would not fit, and the viewer is for
-// looking at situations, not matches.
+// adds a full frame -- around 25 KB of JSON seven a side, 50 KB eleven a
+// side, and more while the recording is held in memory -- so a whole match
+// would not fit, and the viewer is for looking at situations, not matches.
 inline constexpr std::int64_t kMaxFrameTicks = 3'600;
 // The scenario --home-tactic and --away-tactic play.
 inline constexpr std::string_view kTacticMatchScenario = "tactic-match";
+inline constexpr std::string_view kElevenASideTacticMatchScenario = "tactic-match-eleven";
 
 struct CliOptions {
   CliMode mode = CliMode::kRun;

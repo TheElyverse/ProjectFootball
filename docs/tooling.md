@@ -30,8 +30,8 @@ file.
 
 ```json
 {
-  "schemaVersion": 17,
-  "coreVersion": "0.33.0",
+  "schemaVersion": 18,
+  "coreVersion": "0.34.0",
   "createdAt": "2026-09-24T10:00:00Z",
   "seed": "18446744073709551615",
   "gameTime": 300,
@@ -110,7 +110,7 @@ file.
     "tactics": {
       "home": {
         "contentHash": "4741c1e75f6412df",
-        "tactic": { "format": "elyverse-tactic", "version": 3, "name": "reference" }
+        "tactic": { "format": "elyverse-tactic", "version": 4, "name": "reference" }
       },
       "away": null
     }
@@ -137,7 +137,7 @@ complete file.
 
 | Field           | JSON type | Meaning                                                       |
 |-----------------|-----------|---------------------------------------------------------------|
-| `schemaVersion` | number    | Version of this format. Currently `17`.                       |
+| `schemaVersion` | number    | Version of this format. Currently `18`.                       |
 | `coreVersion`   | string    | The `sim-core` version that recorded the match.               |
 | `createdAt`     | string    | Creation time in UTC, `%Y-%m-%dT%H:%M:%SZ`. Metadata only.    |
 | `seed`          | string    | Unsigned 64-bit master seed, in decimal.                      |
@@ -235,7 +235,7 @@ path, for example `initialState.players[3].position.x: expected a number`.
 |-----------------------------|------------------------------------------------------------------------|
 | `kIoError`                  | the file cannot be read or written                                     |
 | `kMalformed`                | not JSON, a missing or mistyped field, commands out of order           |
-| `kUnsupportedSchemaVersion` | a `schemaVersion` other than 17                                        |
+| `kUnsupportedSchemaVersion` | a `schemaVersion` other than 18                                        |
 | `kIncompatibleCoreVersion`  | recorded with another `coreVersion`                                    |
 | `kInvalidSetup`             | an invalid initial state, command or checkpoint list                   |
 | `kSimulationFailed`         | a step of the playback failed                                          |
@@ -308,6 +308,7 @@ record the scenario again with the same seed.
 | 15      | The ball gains `sideSpin`, the ball physics `magnusCurvature`, the shot scoring `curledSpeed`, `chippedSpeed`, `curlSpin`, `spinError`, `speedError` and `maxLaunchSlope`, and the shooting `chipBackspin` ([shot types](on-ball.md#shot-types)). |
 | 16      | The shooting gains `lungeRadius` and `lungeHeight` ([tackles and blocks](duels.md#tackles-and-blocks)). |
 | 17      | The decisions gain their `crossing` block ([crossing](on-ball.md#crossing)). |
+| 18      | Tactics are files of tactic format version 4, which may hold eleven slots ([tactics](tactics.md#tactic-file-format)). |
 
 ## Decision trace
 
@@ -533,7 +534,7 @@ values:
 {
   "format": "elyverse-debug-frames",
   "version": 4,
-  "coreVersion": "0.33.0",
+  "coreVersion": "0.34.0",
   "scenario": "m0-acceptance",
   "seed": "42",
   "ticksPerSecond": 30,
@@ -777,8 +778,8 @@ counted, but not what became of them. Pressures are team presses, not every indi
 
 ## sim-benchmark
 
-`apps/sim-benchmark` plays a series of seven-a-side matches between two tactic
-files and writes their statistics, with confidence intervals: how each style
+`apps/sim-benchmark` plays a series of matches between two tactic files of the
+same size -- seven-a-side on the sandbox, eleven-a-side on the standard pitch -- and writes their statistics, with confidence intervals: how each style
 fares against another. It is also the simulation's performance check.
 
 ```sh

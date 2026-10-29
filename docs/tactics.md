@@ -20,7 +20,7 @@ model. It depends only on `sim-core`; `sim-match` reads tactics, and
 ```text
 Tactic
 ├─ name, description
-├─ slots[7]                      base shape + responsibilities
+├─ slots[7 or 11]                base shape + responsibilities
 │   ├─ position { depth, width }
 │   └─ responsibilities[] { responsibility, weight }
 ├─ principles                    what holds in every phase
@@ -59,9 +59,10 @@ Everything is a fraction of the pitch, so one tactic fits any pitch size.
   length, **widths** fractions of its width.
 - **Dials** (intensity, risk, frequency, shift) are dimensionless, in `[0, 1]`.
 
-A tactic has exactly seven slots: P2 is seven-a-side; eleven-a-side comes with
-the P3 baseline. The player in slot `i` is the `i`-th player of his side in the
-match state (his place in the line-up).
+A tactic has seven slots, for seven-a-side on the sandbox — short scenarios —
+or eleven, for eleven-a-side on a full-size pitch (`isSupportedSlotCount()`).
+The player in slot `i` is the `i`-th player of his side in the match state
+(his place in the line-up), and a tactic plays only for a side of its size.
 
 ### Base shape
 
@@ -167,7 +168,7 @@ opponent's goal line.
 | Code                             | Cause                                                  |
 |----------------------------------|--------------------------------------------------------|
 | `kEmptyName`                     | the tactic has no name                                 |
-| `kWrongSlotCount`                | not exactly seven slots                                |
+| `kWrongSlotCount`                | neither seven nor eleven slots                          |
 | `kSlotOutsidePitch`              | a shape position outside `[0, 1]`, or NaN              |
 | `kValueOutOfRange`               | a principle or instruction outside its range, or NaN   |
 | `kUnknownResponsibility`         | a value outside the declared responsibilities          |
@@ -182,18 +183,32 @@ opponent's goal line.
 Errors come in a fixed order: name, slots by index, principles, phases in the
 order of the table above.
 
+### Formation presets
+
+`formationSlots(formation)` (`formation.hpp`) fills the eleven slots of a
+familiar formation, as editing help like the role presets: each slot a
+position in the base shape and a role preset's responsibilities, in line-up
+order — the goalkeeper, the back four from the touchline at `y = 0` to the
+other, then midfield and attack the same way. Nothing in the match knows which
+formation a tactic came from; it plays the atomic responsibilities.
+
+| Formation | Midfield and attack                                                   |
+|-----------|-----------------------------------------------------------------------|
+| `4-4-2`   | two wingers, a holding and a central midfielder, two strikers          |
+| `4-3-3`   | a holding and two central midfielders, two wingers and a striker       |
+
 ## Tactic file format
 
 Tactic files under `data/tactics/` describe tactics, so a tactical identity can
 be tuned without recompiling. `sim-tactics` reads and writes them
 (`tacticJson.hpp`); the [tactic model](#tactic-model) defines what they hold.
 
-### Version 3
+### Version 4
 
 ```json
 {
   "format": "elyverse-tactic",
-  "version": 3,
+  "version": 4,
   "name": "reference",
   "description": "A neutral 1-2-1-3 for tests and hand-built fixtures.",
   "slots": [
@@ -232,16 +247,16 @@ be tuned without recompiling. `sim-tactics` reads and writes them
 }
 ```
 
-The example is shortened: a file has seven slots and an entry for each of the
-seven phases.
+The example is shortened: a file has seven or eleven slots and an entry for
+each of the seven phases.
 
 | Field              | Type   | Meaning                                                     |
 |--------------------|--------|-------------------------------------------------------------|
 | `format`           | string | always `"elyverse-tactic"`                                   |
-| `version`          | integer| the format version, 3                                        |
+| `version`          | integer| the format version, 4                                        |
 | `name`             | string | the tactic's name; a file is named after it (`<name>.json`)  |
 | `description`      | string | optional; what the tactic is for and which parameters express it |
-| `slots`            | array  | seven slots, in line-up order                                |
+| `slots`            | array  | seven or eleven slots, in line-up order                      |
 | `slots[].position` | object | `depth` and `width`, fractions of the pitch                  |
 | `slots[].role`     | string | a role preset, expanded into its responsibilities on load    |
 | `slots[].responsibilities` | array | `{ "responsibility", "weight" }` entries          |
@@ -263,7 +278,7 @@ validated `Tactic` as `Tactic::create()` and apply all its rules. They reject:
 |-----------------------|----------------------------------------------------------------|
 | `kIoError`            | the file cannot be read                                        |
 | `kMalformed`          | not JSON, another `format`, a missing, mistyped or unknown field, an unknown name |
-| `kUnsupportedVersion` | a `version` other than 3                                        |
+| `kUnsupportedVersion` | a `version` other than 4                                        |
 | `kInvalidTactic`      | the tactic breaks a rule of the model; every broken rule is listed |
 
 Every message names the file and the field:
@@ -294,12 +309,14 @@ required one does.
 | 1       | Initial format. |
 | 2       | Adds the required `principles.goalkeeper.sweeping` ([goalkeeper](goalkeeper.md#positioning-and-sweeping)). |
 | 3       | Adds the required `principles.goalkeeper.directness` ([goalkeeper distribution](goalkeeper.md#distribution)). |
+| 4       | `slots` holds seven or eleven slots: eleven-a-side. A reader of version 3 would reject eleven. |
 
 ### Files
 
 | File                          | Tactic                                               |
 |-------------------------------|------------------------------------------------------|
 | `data/tactics/reference.json` | the neutral reference tactic of `referenceTacticSpec()` |
+| `data/tactics/reference-eleven.json` | the eleven-a-side reference of `referenceElevenASideTacticSpec()`: the 4-4-2 preset with the reference's principles and phases |
 | `data/tactics/possession.json` | keeps the ball, counterpresses ([tactical identities](#tactical-identities)) |
 | `data/tactics/counter.json`   | deep block, vertical after a regain                  |
 | `data/tactics/pressing.json`  | high line, presses on every trigger                  |
@@ -340,7 +357,7 @@ pass gains for its ground and the less its interception risk counts.
 
 ### Playing them against each other
 
-Any two tactics that fit seven a side meet in the tactic match
+Any two tactics of the same size, seven or eleven, meet in the tactic match
 ([scenarios](scenarios.md#scenario-catalogue)):
 
 ```sh

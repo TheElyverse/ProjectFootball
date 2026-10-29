@@ -1,6 +1,6 @@
 {
   "format": "elyverse-tactic",
-  "version": 3,
+  "version": 4,
   "name": "reference",
   "description": "A neutral 1-2-1-3 for tests and hand-built fixtures: middling heights, no pressing triggers.",
   "slots": [

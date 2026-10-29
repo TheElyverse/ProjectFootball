@@ -2,6 +2,7 @@ add_library(sim-tactics STATIC
         src/tacticalPhase.cpp
         src/responsibility.cpp
         src/rolePreset.cpp
+        src/formation.cpp
         src/tactic.cpp
         src/referenceTactic.cpp
         src/tacticHash.cpp

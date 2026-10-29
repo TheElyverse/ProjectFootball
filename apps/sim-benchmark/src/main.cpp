@@ -303,6 +303,11 @@ int runStyles(const Options& options) {
         return fail("--style '" + path + "' has the same name '" + style->name() +
                     "' as an earlier style");
       }
+      // Seven-a-side and eleven-a-side tactics cannot meet.
+      if (earlier.slots().size() != style->slots().size()) {
+        return fail("--style '" + path + "' has " + std::to_string(style->slots().size()) +
+                    " slots, earlier styles " + std::to_string(earlier.slots().size()));
+      }
     }
     spec.styles.push_back(*std::move(style));
   }

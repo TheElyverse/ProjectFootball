@@ -1,6 +1,6 @@
 {
   "format": "elyverse-tactic",
-  "version": 3,
+  "version": 4,
   "name": "possession",
   "description": "Keeps the ball: a wide, patient 1-2-1-3 that circulates with safe passes, holds a compact rest defence and counterpresses hard on a sloppy loss (a poor touch or a back pass).",
   "slots": [

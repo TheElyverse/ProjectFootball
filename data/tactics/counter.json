@@ -1,6 +1,6 @@
 {
   "format": "elyverse-tactic",
-  "version": 3,
+  "version": 4,
   "name": "counter",
   "description": "Defends deep and strikes fast: a low, narrow block that rarely presses and, once it wins the ball, plays vertical passes and runs in behind.",
   "slots": [

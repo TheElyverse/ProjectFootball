@@ -88,15 +88,17 @@ TEST_CASE("Files that are not tactic files are rejected", "[tacticJson]") {
   }
   SECTION("unsupported version") {
     Json document = referenceDocument();
-    document["version"] = 4;
+    document["version"] = 5;
     const auto error = errorOf(document);
     REQUIRE(error.code == TacticFileErrorCode::kUnsupportedVersion);
-    REQUIRE(error.message == "test.json: version: unsupported version 4, expected 3");
+    REQUIRE(error.message == "test.json: version: unsupported version 5, expected 4");
     // A file of version 1 predates the goalkeeper's principles, one of
-    // version 2 his directness.
+    // version 2 his directness, one of version 3 eleven-a-side.
     document["version"] = 1;
     REQUIRE(errorOf(document).code == TacticFileErrorCode::kUnsupportedVersion);
     document["version"] = 2;
+    REQUIRE(errorOf(document).code == TacticFileErrorCode::kUnsupportedVersion);
+    document["version"] = 3;
     REQUIRE(errorOf(document).code == TacticFileErrorCode::kUnsupportedVersion);
     document["version"] = "3";
     REQUIRE(errorOf(document).code == TacticFileErrorCode::kUnsupportedVersion);

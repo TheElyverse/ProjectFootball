@@ -83,6 +83,7 @@ catch_discover_tests(sim-replay-tests)
 add_executable(sim-tactics-tests
         sim-tactics/tacticalPhaseTests.cpp
         sim-tactics/rolePresetTests.cpp
+        sim-tactics/formationTests.cpp
         sim-tactics/tacticTests.cpp
         sim-tactics/tacticHashTests.cpp
         sim-tactics/tacticJsonTests.cpp
