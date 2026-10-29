@@ -316,6 +316,15 @@ TEST_CASE("The clock and fitness are read from the initial state and the config"
   REQUIRE(sprint->setup.config.fitness.sprintSeconds == 20.0);
   requireRejected(validJsonWith("\"recoverySeconds\"", "\"recoverySecond\""), kMalformed,
                   "config.fitness.recoverySeconds: missing");
+
+  const auto offside =
+      parseReplayJson(validJsonWith("\"levelMeters\": 0.1", "\"levelMeters\": 0.2"));
+  REQUIRE(offside.has_value());
+  REQUIRE(offside->setup.config.offside.levelMeters == 0.2);
+  const auto freeKicks = parseReplayJson(
+      validJsonWith("\"freeKickLostSeconds\": 10.0", "\"freeKickLostSeconds\": 12.0"));
+  REQUIRE(freeKicks.has_value());
+  REQUIRE(freeKicks->setup.config.clock.freeKickLostSeconds == 12.0);
 }
 
 TEST_CASE("How players decide is read from the initial state and the config", "[replayJson]") {

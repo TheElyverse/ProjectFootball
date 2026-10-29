@@ -43,8 +43,13 @@ void validate(const OffsideConfig& config);
 [[nodiscard]] bool isOffsidePosition(TeamSide side, SimCore::Vec2 position, double line,
                                      const Pitch& pitch, const OffsideConfig& config) noexcept;
 
-// The offside line as a player of `side` believes it: from the opponents he
-// remembers and the ball where it is.
+// The offside line as a player of `side` believes it: offsideLine() of the
+// opponents he remembers and the ball where it is -- but remembering fewer
+// than two, he takes the ball or the halfway line, whichever is deeper, rather
+// than believe nobody offside.
+[[nodiscard]] double believedOffsideLine(TeamSide side,
+                                         std::span<const SimCore::Vec2> rememberedOpponents,
+                                         SimCore::Vec2 ball, const Pitch& pitch);
 [[nodiscard]] double believedOffsideLine(TeamSide side,
                                          const std::vector<RememberedPlayer>& remembered,
                                          SimCore::Vec2 ball, const Pitch& pitch);

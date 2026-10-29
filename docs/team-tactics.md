@@ -426,13 +426,14 @@ every replay.
 ### Staying onside
 
 With [offside](match-engine.md#offside) on, a teammate of the carrier keeps his
-movement target onside: no deeper than the offside line he believes —
-`believedOffsideLine()` of the opponents he remembers and the ball — whatever
-his action, so a target beyond it moves straight back onto it. The exception is
-a **run in behind started from an onside position**: while he stands onside, his
-run may take him past the line, since a pass played before he crosses it is
-onside. Once he stands beyond it, the run is held to the line too and he comes
-back. A high line therefore pushes the attackers back, and is beaten by a run
+movement target onside: half a metre short of the offside line he believes —
+`believedOffsideLine()` of the opponents he remembers and the ball; with fewer
+than two remembered, the ball or the halfway line — whatever his action, so a
+target beyond it moves straight back. The exception is a **run in behind
+started from an onside position**, at least a metre short of the line: his run
+may take him past it, since a pass played before he crosses it is onside. Once
+he is within that metre, the run is held short of the line too, and he waits
+there rather than hover across it. A high line therefore pushes the attackers back, and is beaten by a run
 timed from onside. Standing in an offside position on the way back is passive,
 and no offence.
 

@@ -239,9 +239,13 @@ void updateAction(const MatchStepContext& context, const MatchState& current,
   }
 }
 
-// With offside enabled, an attacker's target no deeper than the offside line he
-// believes (docs/team-tactics.md#staying-onside), unless he runs in behind
-// from where he still is onside: the run that beats a line.
+// How far short of the offside line he believes an attacker holds his target.
+inline constexpr double kOnsideMargin = 0.5;  // m
+
+// With offside enabled, an attacker's target kOnsideMargin short of the offside
+// line he believes, if it was deeper (docs/team-tactics.md#staying-onside),
+// unless he runs in behind from twice that margin onside: the run that beats a
+// line.
 [[nodiscard]] SimCore::Vec2 onsideTarget(const MatchStepContext& context, const MatchState& current,
                                          const std::size_t index,
                                          const TacticalMovementRules& rules,
@@ -259,13 +263,15 @@ void updateAction(const MatchStepContext& context, const MatchState& current,
                           rememberedPlayers(current, index, context.time(), rules.perception,
                                             rules.positioning.minConfidence),
                           current.ball().position, pitch);
+  // Clearly onside, with room for the line to step up, he may run in behind; once
+  // held back he waits a step short of the line instead of hovering across it.
   const bool runningInBehind =
       tactical.action && tactical.action->type == ActionType::kRunInBehind &&
-      !isOffsidePosition(player.side, player.position, line, pitch, rules.offside);
-  if (runningInBehind || depthOf(player.side, target, pitch) <= line) {
+      depthOf(player.side, player.position, pitch) < line - (2.0 * kOnsideMargin);
+  if (runningInBehind || depthOf(player.side, target, pitch) <= line - kOnsideMargin) {
     return target;
   }
-  return {.x = xAtDepth(player.side, line, pitch), .y = target.y};
+  return {.x = xAtDepth(player.side, line - kOnsideMargin, pitch), .y = target.y};
 }
 
 }  // namespace

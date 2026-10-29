@@ -250,6 +250,16 @@ bool awardFreeKick(const MatchStepContext& context, const MatchState& current,
         .tick = context.tick(), .previousOwner = next.ball().owner, .newOwner = player.playerId});
   }
   next.addLostSeconds(lostSeconds(RestartKind::kFreeKick, clock));
+  // A shot still open was stopped by the whistle.
+  if (const auto& shot = next.lastShot(); shot && !shot->resolved) {
+    ShotRecord resolved = *shot;
+    resolved.resolved = true;
+    next.setLastShot(resolved);
+    context.record(ShotResolved{.tick = context.tick(),
+                                .shooter = shot->shooter,
+                                .shotTick = shot->tick,
+                                .outcome = ShotOutcome::kBlocked});
+  }
   // Play has stopped: nobody plays on what he meant to.
   for (std::size_t index = 0; index < current.players().size(); ++index) {
     next.setPendingAction(index, std::nullopt);
@@ -265,6 +275,8 @@ bool awardFreeKick(const MatchStepContext& context, const MatchState& current,
   next.setBallSideSpin(0.0);
   next.tactical(*taker).handsReleased.reset();
   next.tactical(*taker).stumbledUntil.reset();
+  next.tactical(*taker).dive.reset();
+  next.tactical(*taker).carry.reset();
   const SimCore::Vec2 facing = kickoffFacing(side);
   placeTaker(next, *taker, player, current.pitch().clamp(spot - (facing * physics.carryDistance)),
              facing, physics, current.pitch());
@@ -283,8 +295,11 @@ void takeKickoffLineUp(const MatchState& current, const KickoffLineUp& lineUp,
     next.perception(index) = {};
     next.tactical(index) = {};
   }
-  // Pitch control from where they stood before would outlive them.
+  // Pitch control from where they stood before would outlive them, and so
+  // would the play the offside rule watched.
   next.setPitchControl(std::nullopt);
+  next.setOffside(std::nullopt);
+  next.setOffsideExemption(std::nullopt);
   for (const TeamSide side : {TeamSide::kHome, TeamSide::kAway}) {
     next.setPress(side, std::nullopt);
     next.setChaser(side, std::nullopt);

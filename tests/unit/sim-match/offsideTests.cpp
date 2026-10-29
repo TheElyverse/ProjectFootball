@@ -345,3 +345,66 @@ TEST_CASE("A carrier does not pass to a teammate he believes offside", "[offside
     REQUIRE((striker == PassRejection::kOffside) == enabled);
   }
 }
+
+TEST_CASE("The whistle ends what the rule watches and the shot it stopped", "[offside]") {
+  using ElyverseFootball::SimMatch::MatchPeriod;
+  using ElyverseFootball::SimMatch::OffsideWatch;
+  using ElyverseFootball::SimMatch::ShotOutcome;
+  using ElyverseFootball::SimMatch::ShotResolved;
+  // A shot by the carrier, deflected by the striker standing offside: the free
+  // kick resolves the shot.
+  const auto shot = [](MatchStateWriter& next) {
+    next.setLastShot(
+        ShotRecord{.shooter = kCarrier, .from = {.x = 30.5, .y = 20.0}, .tick = SimTick(0)});
+    next.setBallLastTouch(BallTouch{.playerId = kCarrier, .tick = SimTick(0)});
+  };
+  const auto deflection = [](MatchStateWriter& next) {
+    ShotRecord deflected{.shooter = kCarrier, .from = {.x = 30.5, .y = 20.0}, .tick = SimTick(0)};
+    deflected.deflection = BallTouch{.playerId = kStriker, .tick = SimTick(1)};
+    next.setLastShot(deflected);
+    next.setBallLastTouch(deflected.deflection);
+  };
+  MatchSimulation simulation(
+      {.initialState = situation({.x = 50.0, .y = 20.0}),
+       .seed = 1,
+       .ticksPerSecond = 30,
+       .systems = {scripted({{0, shot}, {1, deflection}}),
+                   makeOffsideSystem({.offside = {.enabled = true}, .physics = {}, .clock = {}})},
+       .commands = {}});
+  std::vector<ShotResolved> resolved;
+  for (int tick = 0; tick < 3; ++tick) {
+    REQUIRE(simulation.step().has_value());
+    for (const auto& event : eventsOf<ShotResolved>(simulation.events())) {
+      resolved.push_back(event);
+    }
+  }
+  REQUIRE(resolved.size() == 1);
+  REQUIRE(resolved.front().outcome == ShotOutcome::kBlocked);
+  REQUIRE(simulation.state().lastShot().value_or(ShotRecord{}).resolved);
+
+  // A watch still open at half time ends with the second half's kickoff.
+  MatchConfig config = withOffside();
+  config.clock.durationMinutes = 1.0 / 60.0;
+  const auto watch = [](MatchStateWriter& next) {
+    next.setOffside(OffsideWatch{.side = TeamSide::kAway,
+                                 .passer = kDefender,
+                                 .tick = SimTick(0),
+                                 .line = 30.0,
+                                 .offsidePlayers = ~std::uint64_t{0}});
+  };
+  std::vector<MatchSystem> systems{scripted({{0, watch}})};
+  for (MatchSystem& system : makeMatchSystems(config)) {
+    systems.push_back(std::move(system));
+  }
+  MatchSimulation halves({.initialState = situation({.x = 50.0, .y = 20.0}),
+                          .seed = 1,
+                          .ticksPerSecond = config.ticksPerSecond,
+                          .systems = std::move(systems),
+                          .commands = {}});
+  REQUIRE(halves.step().has_value());
+  REQUIRE(halves.state().offside().has_value());
+  while (halves.state().clock().period == MatchPeriod::kFirstHalf) {
+    REQUIRE(halves.step().has_value());
+  }
+  REQUIRE_FALSE(halves.state().offside().has_value());
+}

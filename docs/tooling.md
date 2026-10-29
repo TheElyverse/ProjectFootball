@@ -923,7 +923,7 @@ Two guardrails also apply:
   run to full time with their added time; counter at home against pressing the
   fewest
   ([shot decisions](on-ball.md#shot-decisions)).
-- **Ownership.** No player owns the ball longer than 25 s at a time
+- **Ownership.** No player owns the ball longer than 20 s at a time
   (`longestOwnershipSeconds`, [match analytics](#match-analytics)). A carrier
   without an option once kept it for 318 s; now he
   [looks round](on-ball.md#without-a-valid-option), a carrier standing on the
@@ -933,7 +933,7 @@ Two guardrails also apply:
   10.4 s seven a side. Eleven a side, on the longer pitch, it was 14.3 s with
   seed 1 and 17.4 s at worst over seeds 1 to 5, so the bound rose from 15 s;
   since attackers keep to the [offside line](match-engine.md#offside) it is
-  13.6 s with seed 1 and 21.4 s at worst, so it rose to 25 s.
+  13.3 s with seed 1 and 17.5 s at worst.
 
 The test is registered for Release builds only; in Debug it would take minutes.
 

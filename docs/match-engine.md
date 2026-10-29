@@ -724,7 +724,8 @@ Every event carries the `tick` of its step and the players involved:
 | `PressingStarted`    | `side`, `carrier`, `trigger`, `assignments`                  | a side starts a [coordinated press](team-tactics.md#pressing); `trigger` is empty for a press of the pressing phase |
 | `PressingEnded`      | `side`, `outcome`                                            | the press ends: `ballRegained`, `passedOut` or `carrierEscaped` |
 | `PitchControlSampled` | `homeShare`, `ball`                                         | the [pitch control](team-tactics.md#pitch-control) grid is updated: home's share of the pitch and the ball's position, a regular sample for [analytics](tooling.md#match-analytics) |
-| `RestartTaken`       | `kind`, `player`, `position`                                 | play [restarts](#restarts) after the ball went out or into a goal: `throwIn`, `goalKick`, `corner` or `kickoff`, to `player`; `position` is where the ball left the pitch, the centre spot for a kickoff. `PossessionChanged` follows |
+| `RestartTaken`       | `kind`, `player`, `position`                                 | play [restarts](#restarts) after the ball went out or into a goal: `throwIn`, `goalKick`, `corner` or `kickoff`, to `player`; `position` is where the ball left the pitch, the centre spot for a kickoff -- or after an [offside](#offside): `indirectFreeKick` where the offender was involved. `PossessionChanged` follows |
+| `OffsideCalled`      | `side`, `player`, `passer`, `lineX`, `position`              | `player` of `side`, offside when `passer` played the ball, touched it at `position`; `lineX` is the offside line then ([offside](#offside)) |
 | `TacticChanged`      | `side`, `tactic`, `contentHash`                              | a [tactic change command](#tactic-changes) applies; `tactic` is the new tactic's name |
 | `ShotAttempted`      | `shooter`, `from`, `target`, `height`, `struckAt`, `struckHeight`, `speed`, `distance`, `opening`, `type` | a [shot](on-ball.md#shot-decisions) leaves the shooter's foot toward the aimed point and height; `struckAt` and `struckHeight` are the point and height it really left for, off by his [execution](on-ball.md#shooting) error; `distance` and `opening` are to and of the goal; `type` is how he struck it, `driven`, `curled` or `chipped` ([shot types](on-ball.md#shot-types)), a header always `driven`. `PossessionChanged` follows |
 | `ShotDeflected`      | `shooter`, `shotTick`, `player`, `position`, `height`, `blocked` | a shot comes off an outfield player and flies on; `blocked` if it lost most of its speed |
@@ -996,13 +997,25 @@ Players know the rule ([pass candidates](on-ball.md#pass-candidates),
 teammate he believes offside, and attackers keep their targets onside, except a
 runner who starts his run in behind from an onside position. So a high line
 pushes the attack back, and a run timed from onside beats it.
+This holds for every pass he plays — short, lofted, a keeper's long ball, a
+cross to a runner, and the pass a stuck carrier is forced into.
 `tests/acceptance/offsideTests.cpp` plays ten three-minute eleven-a-side
 matches: without the rule 26 passes go to a teammate in an offside position,
-with it 6, 4 of them called. `tests/unit/sim-match/offsideTests.cpp` covers a
+with it none. Offsides still happen where a carrier's memory is wrong or a
+watched player gets to a rebound or a loose ball: about 1.5 to 8 a side over
+90 minutes in the style benchmark, pressing the most. `tests/unit/sim-match/offsideTests.cpp` covers a
 clear offside, a level attacker, a run from an onside position, the exceptions
 and the end of a watch.
 
 ### What this is not
 
 - No interference with an opponent or with play without touching the ball.
-- The free kick keeps no distance: opponents may stand next to the ball.
+- The free kick keeps no distance: opponents may stand next to the ball, the
+  offender included.
+- The system sees a step's last touch only: two touches in one step count as
+  the second. A teammate's touch that is no pass or shot -- a deflection, a
+  header to nobody -- ends the watch without starting one.
+- A watched player who puts the ball into the goal in the step he touches it
+  scores before the rule sees him; no match has shown it.
+- An offside reception still records `PassReceived`, so the
+  [statistics](tooling.md#match-analytics) count the pass completed.

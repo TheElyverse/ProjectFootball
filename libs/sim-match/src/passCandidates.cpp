@@ -153,15 +153,8 @@ std::vector<PassCandidate> generatePassCandidates(const MatchState& state,
   const auto [teammates, opponents] = LaneReach::rememberedPlayers(
       state, carrierIndex, time, rules.perception, rules.scoring.minConfidence);
 
-  std::optional<double> offsideLine;
-  if (rules.offside.enabled) {
-    std::vector<Vec2> remembered;
-    remembered.reserve(opponents.size());
-    for (const Remembered& opponent : opponents) {
-      remembered.push_back(opponent.player.position);
-    }
-    offsideLine = SimMatch::offsideLine(carrier.side, remembered, from, state.pitch());
-  }
+  const auto offsideLine =
+      LaneReach::believedLine(opponents, carrier.side, from, state.pitch(), rules.offside);
 
   std::vector<PassCandidate> candidates;
   candidates.reserve(teammates.size());

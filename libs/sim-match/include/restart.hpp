@@ -77,8 +77,9 @@ struct KickoffLineUp {
 // An indirect free kick for `side` at `spot` (docs/match-engine.md#offside):
 // its player nearest the spot, ties to the lower index, stands behind the ball
 // at rest, facing the goal he attacks, the ball at his feet. Records
-// RestartTaken and, if the ball was someone else's, PossessionChanged; adds
-// its lostSeconds() to the clock and clears every pending action. False, and
+// RestartTaken and, if the ball was someone else's, PossessionChanged, and
+// resolves a shot still open as kBlocked with ShotResolved; adds its
+// lostSeconds() to the clock and clears every pending action. False, and
 // nothing changed, if the side has no player.
 bool awardFreeKick(const MatchStepContext& context, const MatchState& current,
                    MatchStateWriter& next, TeamSide side, SimCore::Vec2 spot,
@@ -87,7 +88,8 @@ bool awardFreeKick(const MatchStepContext& context, const MatchState& current,
 // Puts both sides into the line-up, at rest and facing the goal they attack,
 // the ball on the centre spot, and starts them as at the beginning of a match:
 // without movement targets, pending actions, memories, tactical states,
-// presses, chasers or pitch control. Who owns the ball is the caller's.
+// presses, chasers, pitch control or a play the offside rule watches. Who owns
+// the ball is the caller's.
 void takeKickoffLineUp(const MatchState& current, const KickoffLineUp& lineUp,
                        MatchStateWriter& next);
 

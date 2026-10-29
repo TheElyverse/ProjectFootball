@@ -99,6 +99,15 @@ bool isOffsidePosition(const TeamSide side, const SimCore::Vec2 position, const 
   return depthOf(side, position, pitch) > line + config.levelMeters;
 }
 
+double believedOffsideLine(const TeamSide side,
+                           const std::span<const SimCore::Vec2> rememberedOpponents,
+                           const SimCore::Vec2 ball, const Pitch& pitch) {
+  if (rememberedOpponents.size() < 2) {
+    return std::max(depthOf(side, ball, pitch), pitch.lengthMeters() / 2.0);
+  }
+  return offsideLine(side, rememberedOpponents, ball, pitch);
+}
+
 double believedOffsideLine(const TeamSide side, const std::vector<RememberedPlayer>& remembered,
                            const SimCore::Vec2 ball, const Pitch& pitch) {
   std::vector<SimCore::Vec2> opponents;
@@ -107,7 +116,7 @@ double believedOffsideLine(const TeamSide side, const std::vector<RememberedPlay
       opponents.push_back(other.position);
     }
   }
-  return offsideLine(side, opponents, ball, pitch);
+  return believedOffsideLine(side, opponents, ball, pitch);
 }
 
 MatchSystem makeOffsideSystem(const OffsideRules& rules) {
