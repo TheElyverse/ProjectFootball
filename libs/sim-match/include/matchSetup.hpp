@@ -16,6 +16,7 @@
 #include "matchSimulation.hpp"
 #include "matchState.hpp"
 #include "offBallActions.hpp"
+#include "offside.hpp"
 #include "passDecision.hpp"
 #include "passing.hpp"
 #include "perception.hpp"
@@ -57,6 +58,7 @@ struct MatchConfig {
   AerialConfig aerial;
   MatchClockConfig clock;
   FitnessConfig fitness;
+  OffsideConfig offside;
 
   friend bool operator==(const MatchConfig&, const MatchConfig&) = default;
 };
@@ -88,8 +90,9 @@ struct MatchSetup {
 //   9. shot stopping    every tick
 //  10. player movement  every tick
 //  11. ball movement    every tick
-//  12. restart          every tick, if restarts.enabled
-//  13. match clock      every tick
+//  12. offside          every tick, if offside.enabled
+//  13. restart          every tick, if restarts.enabled
+//  14. match clock      every tick
 //
 // Tactical movement runs before pursuit, so in a step where both write the
 // same player's target -- a new chaser -- pursuit's wins.

@@ -239,6 +239,35 @@ void updateAction(const MatchStepContext& context, const MatchState& current,
   }
 }
 
+// With offside enabled, an attacker's target no deeper than the offside line he
+// believes (docs/team-tactics.md#staying-onside), unless he runs in behind
+// from where he still is onside: the run that beats a line.
+[[nodiscard]] SimCore::Vec2 onsideTarget(const MatchStepContext& context, const MatchState& current,
+                                         const std::size_t index,
+                                         const TacticalMovementRules& rules,
+                                         const PlayerTacticalState& tactical,
+                                         const SimCore::Vec2 target) {
+  const PlayerMatchState& player = current.players()[index];
+  const auto owner = current.ball().owner;
+  const auto ownerIndex = owner ? findPlayerIndex(current, *owner) : std::nullopt;
+  if (!rules.offside.enabled || !ownerIndex || current.players()[*ownerIndex].side != player.side) {
+    return target;
+  }
+  const Pitch& pitch = current.pitch();
+  const double line =
+      believedOffsideLine(player.side,
+                          rememberedPlayers(current, index, context.time(), rules.perception,
+                                            rules.positioning.minConfidence),
+                          current.ball().position, pitch);
+  const bool runningInBehind =
+      tactical.action && tactical.action->type == ActionType::kRunInBehind &&
+      !isOffsidePosition(player.side, player.position, line, pitch, rules.offside);
+  if (runningInBehind || depthOf(player.side, target, pitch) <= line) {
+    return target;
+  }
+  return {.x = xAtDepth(player.side, line, pitch), .y = target.y};
+}
+
 }  // namespace
 
 MatchSystem makeTacticalMovementSystem(const TacticalMovementRules& rules) {
@@ -274,6 +303,7 @@ MatchSystem makeTacticalMovementSystem(const TacticalMovementRules& rules) {
                     if (tactical.action && tactical.action->type != ActionType::kHoldPosition) {
                       target = tactical.action->target;
                     }
+                    target = onsideTarget(context, current, index, rules, tactical, target);
                   }
                   next.setPlayerTarget(index, target);
                 }

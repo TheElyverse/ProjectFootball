@@ -89,6 +89,7 @@ A candidate can be played unless it is
 | `kTooFar`     | farther than `maxPassDistance` (35 m)                            |
 | `kOutOfReach` | even the planned speed stops before the target                   |
 | `kUnlikely`   | `completion` below `minCompletion` (0.35)                        |
+| `kOffside`    | with [offside](match-engine.md#offside) on: the receiver where the carrier believes him stands in an offside position against `offsideLine()` of the opponents the carrier remembers and the ball |
 
 Invalid candidates stay in the list with their reason, so a decision can be
 explained. Without a valid candidate the carrier has no pass to play.

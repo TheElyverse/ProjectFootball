@@ -25,6 +25,7 @@ using Json = nlohmann::ordered_json;
   json["completedProgressivePasses"] = stats.completedProgressivePasses;
   json["shots"] = stats.shots;
   json["goals"] = stats.goals;
+  json["offsides"] = stats.offsides;
   json["points"] = stats.points ? Json(*stats.points) : Json(nullptr);
   json["turnovers"] = stats.turnovers;
   json["regains"] = stats.regains;

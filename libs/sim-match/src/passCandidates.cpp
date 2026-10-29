@@ -92,6 +92,8 @@ std::string_view passRejectionName(const PassRejection rejection) noexcept {
       return "out of reach";
     case PassRejection::kUnlikely:
       return "unlikely to arrive";
+    case PassRejection::kOffside:
+      return "offside";
   }
   return "unknown";
 }
@@ -151,6 +153,16 @@ std::vector<PassCandidate> generatePassCandidates(const MatchState& state,
   const auto [teammates, opponents] = LaneReach::rememberedPlayers(
       state, carrierIndex, time, rules.perception, rules.scoring.minConfidence);
 
+  std::optional<double> offsideLine;
+  if (rules.offside.enabled) {
+    std::vector<Vec2> remembered;
+    remembered.reserve(opponents.size());
+    for (const Remembered& opponent : opponents) {
+      remembered.push_back(opponent.player.position);
+    }
+    offsideLine = SimMatch::offsideLine(carrier.side, remembered, from, state.pitch());
+  }
+
   std::vector<PassCandidate> candidates;
   candidates.reserve(teammates.size());
   for (const Remembered& receiver : teammates) {
@@ -179,6 +191,10 @@ std::vector<PassCandidate> generatePassCandidates(const MatchState& state,
     scorePassCandidate(candidate, from, carrier.side, arrives, nearestOpponent, state.pitch(),
                        rules.scoring);
     candidate.rejection = rejectionOf(candidate, rules);
+    if (offsideLine && isOffsidePosition(carrier.side, candidate.target, *offsideLine,
+                                         state.pitch(), rules.offside)) {
+      candidate.rejection = PassRejection::kOffside;
+    }
     candidates.push_back(candidate);
   }
 

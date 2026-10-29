@@ -636,8 +636,9 @@ them in their fixed order. Each system's factory takes its configuration, or a
 | 9     | shot stopping   | every tick | the dive of the keeper facing a shot, once he has reacted, in his tactical state ([shot stopping](goalkeeper.md#shot-stopping)) |
 | 10    | player movement | every tick | player positions, velocities, facings -- toward the ball as the systems before it left it --; a keeper busy with a dive where it takes him, a player off his feet nowhere |
 | 11    | ball movement   | every tick | ball position, velocity, owner, last touch, last pass and shot, the score and the last goal, a keeper's dive once the ball passed him; plays the owner's pending pass or shot and clears every other ([shooting](on-ball.md#shooting)) |
-| 12    | restart         | every tick | ball owner, position, velocity and last touch after the ball went out or into a goal or a goalkeeper held it too long, and for a kickoff both sides' line-up; the clock's lost time; only with `restarts.enabled` ([restarts](#restarts)) |
-| 13    | match clock     | every tick | every player's fitness ([fitness](players.md#fitness)); the clock, its added time, and at half time both sides' line-up and the ball for the second half's kickoff ([match clock](match-clock.md)) |
+| 12    | offside         | every tick | the play the rule watches, and after an offence the free kick: ball, taker and pending actions; only with `offside.enabled` ([offside](#offside)) |
+| 13    | restart         | every tick | ball owner, position, velocity and last touch after the ball went out or into a goal or a goalkeeper held it too long, and for a kickoff both sides' line-up; the clock's lost time; the offside exemption; only with `restarts.enabled` ([restarts](#restarts)) |
+| 14    | match clock     | every tick | every player's fitness ([fitness](players.md#fitness)); the clock, its added time, and at half time both sides' line-up and the ball for the second half's kickoff ([match clock](match-clock.md)) |
 
 `MatchSetup` is everything such a match starts from: initial state, config, seed
 and commands. `startMatch(setup)` builds the simulation. A replay records a
@@ -929,3 +930,79 @@ not; only the restart after a goal needs them. Its opening kickoff is a
   him, opponents in the penalty area at a goal kick included.
 - The kickoff need not go to a teammate or forward: the taker decides like any
   carrier, and opponents may enter the circle at once.
+
+## Offside
+
+The offside rule (Law 11) is in `sim-match` (`offside.hpp`): a system that
+watches every play, and the line that carriers and runners keep to. It is
+opt-in like [restarts](#restarts): `OffsideConfig::enabled` is false by default,
+so matches without it play as before; the
+[benchmark](tooling.md#sim-benchmark) turns it on. `OffsideConfig` is part of
+`MatchConfig` and of every replay.
+
+### The position
+
+`offsideLine()` is, for the side attacking, the deepest of three depths from its
+own goal line: the **second-last opponent** — the second deepest, the deepest
+being the goalkeeper as a rule; the opponent's goal line if fewer than two —,
+**the ball**, and **the halfway line**. A player is in an offside position
+(`isOffsidePosition()`) when he is nearer the opponent's goal line than the line
+by more than `levelMeters` (0.1 m): **level is onside**, and the tolerance is the
+rule's, so a marginal call does not hang on rounding. Positions are the players'
+points; no body part counts further forward.
+
+The position is judged **at the moment the ball is played**: when a pass — a
+cross too — or a shot leaves the foot, from the state before that step. The
+system records the play, `MatchState::offside()`: who played it, when, the line
+as a depth and every teammate then in an offside position. Nobody in an
+offside position means nothing to watch.
+
+### Involvement
+
+Only a player who becomes involved is penalised, and involvement here is
+**touching the ball**: the next touch of the ball — a reception, a header, a
+loose ball won, a rebound — that the ball's last touch records. If it is one of
+the players the play found offside, the offence is called. Interfering with an
+opponent without touching the ball is not modelled, so it is never an offence.
+
+A touch ends the watch without an offence when it is a **teammate's** — the
+play moves on from him, and his own pass starts a new one — or a **deliberate
+play by an opponent**: any touch but deflecting a shot or a keeper's parry. A
+blocked shot or a save that comes back to an attacker in an offside position is
+still an offence; an interception, a tackle or a defender's clearance is not.
+
+**No offside from a throw-in, a goal kick or a corner.** The restart system
+records the taker's restart touch as `offsideExemption()`; the next play made
+from that touch starts no watch. A restart ends any watch, a kickoff too.
+
+The call is made at tick resolution and draws no random number: the same state
+always gives the same call.
+
+### The free kick
+
+An offence stops play at once with `OffsideCalled` — the offender, the passer,
+his side, the line in pitch `x` and where he became involved — and
+`awardFreeKick()` gives the other side an indirect free kick there: its player
+nearest the spot stands behind the ball at rest, facing the goal he attacks,
+every pending action is cleared, and the restart records `RestartTaken` of kind
+`freeKick` and costs its `freeKickLostSeconds` (10 s) of
+[added time](match-clock.md#added-time). Indirect means the taker plays it like
+any carrier; opponents are not held off the ball yet.
+
+### The line in play
+
+Players know the rule ([pass candidates](on-ball.md#pass-candidates),
+[staying onside](team-tactics.md#staying-onside)): a carrier does not pass to a
+teammate he believes offside, and attackers keep their targets onside, except a
+runner who starts his run in behind from an onside position. So a high line
+pushes the attack back, and a run timed from onside beats it.
+`tests/acceptance/offsideTests.cpp` plays ten three-minute eleven-a-side
+matches: without the rule 26 passes go to a teammate in an offside position,
+with it 6, 4 of them called. `tests/unit/sim-match/offsideTests.cpp` covers a
+clear offside, a level attacker, a run from an onside position, the exceptions
+and the end of a watch.
+
+### What this is not
+
+- No interference with an opponent or with play without touching the ball.
+- The free kick keeps no distance: opponents may stand next to the ball.

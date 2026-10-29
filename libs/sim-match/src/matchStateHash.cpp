@@ -235,6 +235,29 @@ void addPendingAction(StableHasher& hasher, const PendingAction& action) noexcep
 
 }  // namespace
 
+namespace {
+
+// The play the offside rule watches and the touch free of it.
+void addOffside(StableHasher& hasher, const MatchState& state) noexcept {
+  const auto& offside = state.offside();
+  hasher.addBool(offside.has_value());
+  if (offside) {
+    hasher.addU64(static_cast<std::uint64_t>(offside->side));
+    hasher.addU64(offside->passer.value());
+    hasher.addI64(offside->tick.value());
+    hasher.addDouble(offside->line);
+    hasher.addU64(offside->offsidePlayers);
+  }
+  const auto& exemption = state.offsideExemption();
+  hasher.addBool(exemption.has_value());
+  if (exemption) {
+    hasher.addU64(exemption->playerId.value());
+    hasher.addI64(exemption->tick.value());
+  }
+}
+
+}  // namespace
+
 std::uint64_t hashMatchState(const MatchState& state) noexcept {
   StableHasher hasher;
   hasher.addDouble(state.pitch().lengthMeters());
@@ -319,6 +342,7 @@ std::uint64_t hashMatchState(const MatchState& state) noexcept {
   hasher.addDouble(clock.lostSeconds);
   hasher.addBool(clock.addedMinutes.has_value());
   hasher.addI64(clock.addedMinutes.value_or(0));
+  addOffside(hasher, state);
   for (const TeamSide side : {TeamSide::kHome, TeamSide::kAway}) {
     const auto& tactic = state.tactics().of(side);
     hasher.addBool(tactic.has_value());

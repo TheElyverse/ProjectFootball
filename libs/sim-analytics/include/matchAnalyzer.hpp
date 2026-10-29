@@ -73,6 +73,7 @@ class MatchAnalyzer {
     int passes = 0;
     int shots = 0;
     int goals = 0;
+    int offsides = 0;
     int completedPasses = 0;
     double passMeters = 0.0;
     int progressivePasses = 0;
