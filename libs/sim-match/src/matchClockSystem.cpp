@@ -71,7 +71,9 @@ MatchSystem makeMatchClockSystem(const MatchClockRules& rules) {
                                     elapsed >= half + addedTicks(*clock.addedMinutes, rules.clock,
                                                                  rules.ticksPerSecond);
                 const bool shotOnItsWay = next.lastShot() && !next.lastShot()->resolved;
-                if (!timeUp || shotOnItsWay) {
+                // A foul's sending-off settles before the line-up (docs/fouls.md#cards).
+                const bool foulNow = next.lastFoul() && next.lastFoul()->tick == context.tick();
+                if (!timeUp || shotOnItsWay || foulNow) {
                   return;
                 }
                 context.record(PeriodEnded{.tick = context.tick(),

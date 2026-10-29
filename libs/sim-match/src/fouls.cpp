@@ -54,7 +54,8 @@ void validate(const FoulConfig& config) {
   }
 }
 
-FoulJudgement judgeFoul(const MatchState& state, const FoulRecord& foul, const FoulConfig& config) {
+FoulJudgement judgeFoul(const MatchState& state, const FoulRecord& foul,
+                        const std::optional<SimCore::PlayerId> owner, const FoulConfig& config) {
   const auto offender = findPlayerIndex(state, foul.offender);
   const auto victim = findPlayerIndex(state, foul.victim);
   if (!offender || !victim) {
@@ -75,9 +76,8 @@ FoulJudgement judgeFoul(const MatchState& state, const FoulRecord& foul, const F
   judgement.card = cardOf(judgement.denyingGoal, inArea, judgement.fromBehind, tackler.yellowCards);
 
   const bool sentOff = judgement.card == Card::kRed || judgement.card == Card::kSecondYellow;
-  const auto owner =
-      state.ball().owner ? findPlayerIndex(state, *state.ball().owner) : std::nullopt;
-  const bool kept = owner && state.players()[*owner].side == attacking;
+  const auto ownerIndex = owner ? findPlayerIndex(state, *owner) : std::nullopt;
+  const bool kept = ownerIndex && state.players()[*ownerIndex].side == attacking;
   if (inArea) {
     judgement.restart = FoulRestart::kPenalty;
   } else if (kept && !sentOff &&
@@ -109,7 +109,8 @@ MatchSystem makeFoulSystem(const FoulRules& rules) {
             if (!offender || !victim) {
               return;
             }
-            const FoulJudgement judgement = judgeFoul(current, *foul, rules.fouls);
+            const FoulJudgement judgement =
+                judgeFoul(current, *foul, next.ball().owner, rules.fouls);
             const TeamSide attacking = current.players()[*victim].side;
             context.record(FoulCalled{.tick = context.tick(),
                                       .side = current.players()[*offender].side,

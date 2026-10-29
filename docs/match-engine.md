@@ -134,7 +134,8 @@ both factors are exactly one, so the markings are the Laws' numbers bit for
 bit.
 
 Markings are geometry, not rules: no line is a boundary by itself. Goals are
-[shooting](on-ball.md#goals); offside and penalties do not exist yet.
+[shooting](on-ball.md#goals); [offside](#offside) and [penalties](fouls.md)
+are rules of their own.
 
 ### Goals, areas, spots and arcs
 
@@ -248,7 +249,7 @@ play, `sim-tactics`. Nothing here advances time: the
 
 | Type               | Contents                                                                        |
 |--------------------|---------------------------------------------------------------------------------|
-| `MatchState`       | the `Pitch`, the players in order, the `BallState`, the squad size per side, every player's perception memory, each side's tactic, and the [match clock](match-clock.md) |
+| `MatchState`       | the `Pitch`, the players in order, the `BallState`, the squad size per side, every player's perception memory, each side's tactic, the [match clock](match-clock.md), the play the [offside](#offside) rule watches, and the last [foul](fouls.md) |
 | `PlayerMatchState` | `playerId`, `side`, `position`, `velocity`, `attributes`, `target`, `facing`, `fitness` ([fitness](players.md#fitness)), `yellowCards`, `sentOff` ([cards](fouls.md#cards)) |
 | `PlayerAttributes` | fixed for the match; see below                                                   |
 | `BallState`        | `position`, `velocity`, `height`, `verticalVelocity`, `spin`, `sideSpin`, `owner`, `lastTouch`, `held`, `touch` |

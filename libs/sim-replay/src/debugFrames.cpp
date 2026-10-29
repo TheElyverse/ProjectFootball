@@ -85,6 +85,8 @@ using SimMatch::MatchState;
   json["position"] = vec2Json(player.position);
   json["velocity"] = vec2Json(player.velocity);
   json["facing"] = vec2Json(player.facing);
+  json["yellowCards"] = player.yellowCards;
+  json["sentOff"] = player.sentOff;
   json["look"] = vec2Json(SimMatch::lookDirection(state, index));
   json["target"] = player.target ? vec2Json(*player.target) : Json(nullptr);
   json["observations"] = observationsJson(state.perception(index).observations);

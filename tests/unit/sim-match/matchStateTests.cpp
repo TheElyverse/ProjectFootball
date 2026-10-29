@@ -604,6 +604,22 @@ TEST_CASE("MatchState::create rejects a fitness outside its ranges", "[matchStat
   REQUIRE(MatchState::create(tired).has_value());
 }
 
+TEST_CASE("MatchState::create rejects cards no player on the pitch can have", "[matchState]") {
+  for (const auto& [yellows, sentOff] :
+       {std::pair{2, false}, std::pair{3, true}, std::pair{-1, false}}) {
+    MatchStateSpec spec = validSpec();
+    spec.players.at(12).yellowCards = yellows;
+    spec.players.at(12).sentOff = sentOff;
+    const auto state = MatchState::create(spec);
+    REQUIRE_FALSE(state.has_value());
+    REQUIRE(codesOf(state.error()) == std::vector{MatchStateErrorCode::kInvalidCards});
+  }
+  MatchStateSpec off = validSpec();
+  off.players.at(12).yellowCards = 2;
+  off.players.at(12).sentOff = true;
+  REQUIRE(MatchState::create(off).has_value());
+}
+
 TEST_CASE("MatchState::create accepts any unit facing", "[matchState]") {
   MatchStateSpec spec = validSpec();
   spec.players.at(0).facing = {.x = 0.6, .y = -0.8};

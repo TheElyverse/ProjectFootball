@@ -17,9 +17,9 @@ struct FoulConfig {
   // A tackle from behind: from where the victim's facing points away from,
   // the dot of his facing and the way to the tackler below this.
   double fromBehindDot = -0.5;
-  // An obvious goal-scoring opportunity: the victim no farther than this from
-  // the goal he attacks, and no outfield opponent but the offender nearer its
-  // goal line than he is.
+  // An obvious goal-scoring opportunity: the foul no farther than this from
+  // the goal the victim attacks, and no outfield opponent but the offender
+  // nearer its goal line than he is.
   double denyingDistance = 25.0;  // m
   // Advantage: the victim's side keeps the ball in the third it attacks.
   double advantageDepth = 2.0 / 3.0;
@@ -46,9 +46,11 @@ struct FoulJudgement {
 // denying an obvious goal-scoring opportunity outside the offender's penalty
 // area; a yellow for one inside it or for a tackle from behind, a second
 // yellow for a player already booked. A penalty inside the offender's penalty
-// area; advantage if the victim's side has the ball at least advantageDepth up
-// the pitch and nobody is sent off; a direct free kick otherwise.
+// area; advantage if the victim's side has the ball -- `owner` owns it after
+// the step's play -- at least advantageDepth up the pitch and nobody is sent
+// off; a direct free kick otherwise.
 [[nodiscard]] FoulJudgement judgeFoul(const MatchState& state, const FoulRecord& foul,
+                                      std::optional<SimCore::PlayerId> owner,
                                       const FoulConfig& config);
 
 // Where a player sent off stands: off the pitch, beside the halfway line.

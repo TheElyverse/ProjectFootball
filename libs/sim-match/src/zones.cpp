@@ -140,7 +140,7 @@ std::optional<TeamShape> measureTeamShape(const MatchState& state, const TeamSid
   SimCore::Vec2 sum;
   for (std::size_t index = 0; index < state.players().size(); ++index) {
     const PlayerMatchState& player = state.players()[index];
-    if (player.side != side || isGoalkeeper(state, index)) {
+    if (player.side != side || !isOnPitch(player) || isGoalkeeper(state, index)) {
       continue;
     }
     depths.push_back(depthOf(side, player.position, state.pitch()));

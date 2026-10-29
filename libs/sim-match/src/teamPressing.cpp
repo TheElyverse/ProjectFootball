@@ -234,7 +234,10 @@ std::vector<PressAssignment> assignPressRoles(const MatchState& state, const Tea
   std::vector<std::size_t> options;
   for (std::size_t index = 0; index < state.players().size(); ++index) {
     const PlayerMatchState& player = state.players()[index];
-    if (player.side == pressingSide && isOnPitch(player)) {
+    if (!isOnPitch(player)) {
+      continue;
+    }
+    if (player.side == pressingSide) {
       if (!isGoalkeeper(state, index)) {
         free.push_back(index);
       }

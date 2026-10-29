@@ -669,7 +669,8 @@ ball's `sideSpin` and the `shotType` of `shotAttempted`
 ([crossing](on-ball.md#crossing)); every frame's `clock` (as `formatClock()`
 shows it), `period` and `endsChanged`, and the event `periodEnded`
 ([match clock](match-clock.md)); the event `offsideCalled`
-([offside](match-engine.md#offside)); the event `foulCalled` ([fouls](fouls.md)). From the second half on the viewer turns the
+([offside](match-engine.md#offside)); the event `foulCalled` and every
+player's `yellowCards` and `sentOff` ([fouls](fouls.md)). From the second half on the viewer turns the
 pitch round the centre spot, as the teams have changed ends. Without a `look` the
 viewer draws the vision cone along the facing.
 
@@ -872,7 +873,7 @@ with the most added time: a bound no match that plays on gets near.
 The results file is JSON, format `elyverse-benchmark`, version 2 — version 1
 had `ticks` instead of `minutes`, no `outcomes`, and stats of version 1 —: the
 core version, both tactics by name and content hash, the series (`matches`,
-`baseSeed`, `minutes`, `restarts`), the `outcomes` — `homeWins`, `draws` and
+`baseSeed`, `minutes`, `restarts`, `offside`, `fouls`), the `outcomes` — `homeWins`, `draws` and
 `awayWins` —, a
 `summary` per side and metric, `goals` and `points` among them, and `results`,
 every match's index, seed and statistics with its score. A round robin adds the

@@ -51,8 +51,10 @@ for a red. Each card shown costs `cardLostSeconds` (15 s) of
 
 - Inside the offender's penalty area: a **penalty**. The victim's side's player
   nearest the penalty spot stands behind the ball on it.
-- Otherwise, if the victim's side still has the ball, at least
-  `advantageDepth` (two thirds) up the pitch, and nobody is sent off: **advantage**.
+- Otherwise, if the victim's side still has the ball after the step — the foul
+  takes the victim's pending pass or shot with it, so he keeps it unless a
+  teammate's touch took it on —, at least `advantageDepth` (two thirds) up the
+  pitch, and nobody is sent off: **advantage**.
   Play goes on; the card is shown at once all the same, and the decision is
   final — the referee does not come back to it.
 - Otherwise a **direct free kick** where the foul was: the victim's side's
@@ -75,9 +77,12 @@ snapshot; validation holds that a player on the pitch has at most one yellow.
 beyond the touchline at `y = 0` by the halfway line, at rest, without a target,
 a pending action, a memory or a tactical state, and leaves a ball he owned
 free. From then on no system moves, sees or counts him — `isOnPitch()` keeps him
-out of perception, movement, tactical movement, pressing, pursuit, pitch
-control, the offside line, restart takers and every kickoff line-up — and every
-memory of him is wiped. His side plays on with ten in their slots: his slot's
+out of perception, movement, tactical movement, pressing and its passing
+options, the carrier's looks, headers, every claim of the ball, pursuit, pitch
+control, team shape, shot stopping, the offside line, restart takers and every
+kickoff line-up — and every memory of him is wiped. A half does not end in the
+step of a foul, so the line-up for the second half never sees him before he
+went. His side plays on with ten in their slots: his slot's
 responsibilities go unfilled, every other player keeps his own.
 
 ## Tests
@@ -98,7 +103,6 @@ At the time of writing the style benchmark sees about 0.2 to 7 fouls a side over
 - Advantage is never called back, and the free kick keeps no distance: opponents
   may stand next to the ball. How free kicks and penalties are taken is for
   their own system.
-- A side down to ten does not reorganise its shape; a goalkeeper sent off
-  leaves his side without one.
-- A sending-off in a step that also takes a kickoff can see the player lined
-  up with his side for it.
+- A side down to ten does not reorganise its shape. Goalkeepers do not press,
+  so no duel sends one off; one sent off in a scenario leaves his side without
+  a keeper.

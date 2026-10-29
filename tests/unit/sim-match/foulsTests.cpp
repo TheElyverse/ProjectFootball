@@ -140,7 +140,7 @@ struct Called {
 TEST_CASE("A foul in midfield is a free kick without a card", "[fouls]") {
   const MatchState state = situation(
       {.victim = {.x = 30.0, .y = 20.0}, .offender = {.x = 31.5, .y = 20.0}, .others = 50.0});
-  const auto judged = judgeFoul(state, foulAt(state), {});
+  const auto judged = judgeFoul(state, foulAt(state), state.ball().owner, {});
   REQUIRE(judged.restart == FoulRestart::kFreeKick);
   REQUIRE(judged.card == Card::kNone);
   REQUIRE_FALSE(judged.fromBehind);
@@ -161,7 +161,8 @@ TEST_CASE("A foul in midfield is a free kick without a card", "[fouls]") {
 TEST_CASE("A foul in the attacking third with the ball kept is advantage", "[fouls]") {
   const MatchState state = situation(
       {.victim = {.x = 45.0, .y = 20.0}, .offender = {.x = 46.5, .y = 20.0}, .others = 52.0});
-  REQUIRE(judgeFoul(state, foulAt(state), {}).restart == FoulRestart::kAdvantage);
+  REQUIRE(judgeFoul(state, foulAt(state), state.ball().owner, {}).restart ==
+          FoulRestart::kAdvantage);
   const Called result = called(state);
   REQUIRE(result.fouls.size() == 1);
   REQUIRE(result.restarts.empty());
@@ -172,7 +173,7 @@ TEST_CASE("A foul inside the penalty area is a penalty", "[fouls]") {
   // victim: no goal denied.
   const MatchState state = situation(
       {.victim = {.x = 51.0, .y = 20.0}, .offender = {.x = 52.5, .y = 20.0}, .others = 51.8});
-  const auto judged = judgeFoul(state, foulAt(state), {});
+  const auto judged = judgeFoul(state, foulAt(state), state.ball().owner, {});
   REQUIRE(judged.restart == FoulRestart::kPenalty);
   REQUIRE(judged.card == Card::kNone);
   const Called result = called(state);
@@ -186,42 +187,43 @@ TEST_CASE("Cards follow the tackle from behind and the goal it denied", "[fouls]
   // From behind: a yellow.
   const MatchState behind = situation(
       {.victim = {.x = 30.0, .y = 20.0}, .offender = {.x = 28.5, .y = 20.0}, .others = 50.0});
-  const auto booked = judgeFoul(behind, foulAt(behind), {});
+  const auto booked = judgeFoul(behind, foulAt(behind), behind.ball().owner, {});
   REQUIRE(booked.fromBehind);
   REQUIRE(booked.card == Card::kYellow);
   // The last defender stops a run on goal outside the area: a straight red.
   const MatchState through = situation(
       {.victim = {.x = 38.0, .y = 20.0}, .offender = {.x = 39.5, .y = 20.0}, .others = 30.0});
-  const auto denied = judgeFoul(through, foulAt(through), {});
+  const auto denied = judgeFoul(through, foulAt(through), through.ball().owner, {});
   REQUIRE(denied.denyingGoal);
   REQUIRE(denied.card == Card::kRed);
   REQUIRE(denied.restart == FoulRestart::kFreeKick);
   // Inside the area it is a penalty and a yellow.
   const MatchState inside = situation(
       {.victim = {.x = 51.0, .y = 20.0}, .offender = {.x = 52.5, .y = 20.0}, .others = 30.0});
-  const auto penalty = judgeFoul(inside, foulAt(inside), {});
+  const auto penalty = judgeFoul(inside, foulAt(inside), inside.ball().owner, {});
   REQUIRE(penalty.denyingGoal);
   REQUIRE(penalty.card == Card::kYellow);
   REQUIRE(penalty.restart == FoulRestart::kPenalty);
   // Farther from goal than denyingDistance nothing is denied.
   const MatchState far = situation(
       {.victim = {.x = 25.0, .y = 20.0}, .offender = {.x = 26.5, .y = 20.0}, .others = 20.0});
-  REQUIRE_FALSE(judgeFoul(far, foulAt(far), {}).denyingGoal);
+  REQUIRE_FALSE(judgeFoul(far, foulAt(far), far.ball().owner, {}).denyingGoal);
 }
 
 TEST_CASE("A second yellow sends the offender off", "[fouls]") {
-  const MatchState state = situation({.victim = {.x = 30.0, .y = 20.0},
-                                      .offender = {.x = 28.5, .y = 20.0},
+  const MatchState state = situation({.victim = {.x = 44.0, .y = 20.0},
+                                      .offender = {.x = 42.5, .y = 20.0},
                                       .others = 50.0,
                                       .yellowCards = 1});
-  REQUIRE(judgeFoul(state, foulAt(state), {}).card == Card::kSecondYellow);
+  REQUIRE(judgeFoul(state, foulAt(state), state.ball().owner, {}).card == Card::kSecondYellow);
   const Called result = called(state);
   REQUIRE(result.fouls.front().card == Card::kSecondYellow);
   const PlayerMatchState& offender = result.after.players()[8];
   REQUIRE(offender.sentOff);
   REQUIRE(offender.yellowCards == 2);
   REQUIRE(offender.position == benchPosition(state.pitch()));
-  // No free kick to advantage while a player goes off: a free kick.
+  // In the attacking third, but no advantage while a player goes off: a free
+  // kick.
   REQUIRE(result.restarts.size() == 1);
 }
 
@@ -258,6 +260,19 @@ TEST_CASE("A side plays on with a player sent off", "[fouls]") {
   REQUIRE(off.sentOff);
   REQUIRE(off.position == benchPosition(state.pitch()));
   REQUIRE_FALSE(state.ball().owner == off.playerId);
+  // Nobody presses him, blocks a lane to him or runs at him.
+  for (const TeamSide side : {TeamSide::kHome, TeamSide::kAway}) {
+    if (const auto& press = state.press(side)) {
+      for (const auto& assignment : press->assignments) {
+        REQUIRE_FALSE(assignment.subject == off.playerId);
+      }
+    }
+  }
+  for (std::size_t index = 0; index < state.players().size(); ++index) {
+    if (const auto& action = state.tactical(index).action) {
+      REQUIRE_FALSE(action->subject == off.playerId);
+    }
+  }
   for (std::size_t index = 0; index < state.players().size(); ++index) {
     REQUIRE(state.perception(index).find(ObservedEntity::player(off.playerId)) == nullptr);
   }

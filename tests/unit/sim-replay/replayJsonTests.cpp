@@ -321,6 +321,13 @@ TEST_CASE("The clock and fitness are read from the initial state and the config"
       parseReplayJson(validJsonWith("\"levelMeters\": 0.1", "\"levelMeters\": 0.2"));
   REQUIRE(offside.has_value());
   REQUIRE(offside->setup.config.offside.levelMeters == 0.2);
+  const auto booked = parseReplayJson(validJsonWith("\"yellowCards\": 0", "\"yellowCards\": 1"));
+  REQUIRE(booked.has_value());
+  REQUIRE(booked->setup.initialState.players()[0].yellowCards == 1);
+  const auto fouls =
+      parseReplayJson(validJsonWith("\"denyingDistance\": 25.0", "\"denyingDistance\": 20.0"));
+  REQUIRE(fouls.has_value());
+  REQUIRE(fouls->setup.config.fouls.denyingDistance == 20.0);
   const auto freeKicks = parseReplayJson(
       validJsonWith("\"freeKickLostSeconds\": 10.0", "\"freeKickLostSeconds\": 12.0"));
   REQUIRE(freeKicks.has_value());
