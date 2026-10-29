@@ -36,8 +36,12 @@ struct TeamStats {
   int progressivePasses = 0;
   int completedProgressivePasses = 0;
 
-  // Shots taken.
+  // Shots taken, and goals scored, own goals of the opponent included.
   int shots = 0;
+  int goals = 0;
+  // 3 for a win, 1 for a draw, 0 for a defeat; empty for a match that did not
+  // reach full time.
+  std::optional<int> points;
 
   // Times the side lost the ball to the opponent, and won it from him.
   int turnovers = 0;
@@ -76,6 +80,8 @@ struct Metric {
 struct MatchStats {
   std::int64_t ticks = 0;
   double seconds = 0.0;
+  // Whether the match reached full time; its score is the sides' goals.
+  bool finished = false;
   TeamStats home;
   TeamStats away;
 

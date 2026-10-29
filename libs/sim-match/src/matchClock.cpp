@@ -16,10 +16,6 @@ using ConfigChecks::isWithin;
 // The clock's seconds in a half, and in a minute.
 inline constexpr std::int64_t kHalfSeconds = std::int64_t{45} * 60;
 inline constexpr std::int64_t kMinuteSeconds = 60;
-// A day: longer than any match, and short enough that its ticks fit easily.
-inline constexpr double kMaxDurationMinutes = 24.0 * 60.0;
-// More added minutes than any half needs; keeps them inside an int.
-inline constexpr double kMaxAddedMinutes = 999.0;
 
 }  // namespace
 
@@ -68,8 +64,8 @@ double lostSeconds(const RestartKind kind, const MatchClockConfig& config) noexc
 int addedMinutes(const double lostSeconds, const MatchClockConfig& config) noexcept {
   // Ninety shown minutes over the duration's real ones.
   const double shown = lostSeconds * (90.0 / config.durationMinutes);
-  return static_cast<int>(
-      std::clamp(std::ceil(shown / static_cast<double>(kMinuteSeconds)), 0.0, kMaxAddedMinutes));
+  return static_cast<int>(std::clamp(std::ceil(shown / static_cast<double>(kMinuteSeconds)), 0.0,
+                                     static_cast<double>(kMaxAddedMinutes)));
 }
 
 std::int64_t addedTicks(const int minutes, const MatchClockConfig& config,
@@ -77,6 +73,11 @@ std::int64_t addedTicks(const int minutes, const MatchClockConfig& config,
   // A shown minute is a 45th of a half: to the nearest tick, in integers.
   const std::int64_t half = halfTicks(config, ticksPerSecond);
   return ((2 * static_cast<std::int64_t>(minutes) * half) + 45) / 90;
+}
+
+std::int64_t maxMatchTicks(const MatchClockConfig& config, const int ticksPerSecond) noexcept {
+  return 4 *
+         (halfTicks(config, ticksPerSecond) + addedTicks(kMaxAddedMinutes, config, ticksPerSecond));
 }
 
 ClockReading readClock(const MatchClock& clock, const SimCore::SimTick now,
@@ -103,6 +104,18 @@ std::string formatClock(const ClockReading& reading) {
     return std::format("{}+{}", reading.seconds / kMinuteSeconds, clock(reading.addedSeconds));
   }
   return clock(reading.seconds);
+}
+
+std::optional<MatchResult> matchResult(const MatchState& state) noexcept {
+  if (state.clock().period != MatchPeriod::kFullTime) {
+    return std::nullopt;
+  }
+  const Score& score = state.score();
+  std::optional<TeamSide> winner;
+  if (score.home != score.away) {
+    winner = score.home > score.away ? TeamSide::kHome : TeamSide::kAway;
+  }
+  return MatchResult{.score = score, .winner = winner};
 }
 
 bool endsChanged(const MatchPeriod period) noexcept {

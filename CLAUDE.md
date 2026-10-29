@@ -67,7 +67,7 @@ apps/
   sim-replay, world-editor                                                     [planned]
 data/            schemas, tactics, competitions, fixtures (JSON/YAML, schema-validated) [exists: tactics]
 tests/unit/      Catch2 tests, mirrors libs/ by subdirectory                   [exists: sim-core, sim-tactics, sim-match, sim-replay, sim-analytics, sim-benchmark]
-tests/acceptance/ whole-match scenarios: stability, determinism, pinned hashes [exists: M0, P1, P2, shots, goalkeeper, distribution, carrying, duels, crosses, eleven-a-side, clock]
+tests/acceptance/ whole-match scenarios: stability, determinism, pinned hashes [exists: M0, P1, P2, shots, goalkeeper, distribution, carrying, duels, crosses, eleven-a-side, clock, result]
 tests/benchmark/ sim-benchmark smoke test and the Release-only P2 style benchmark [exists]
 ```
 
@@ -112,6 +112,11 @@ Run a scenario headlessly and play its replay back (see `docs/tooling.md#replay-
 ```
 ./build/debug/apps/sim-cli/sim-cli --scenario kickoff --seed 42 --ticks 300 --replay-out /tmp/replay.json
 ./build/debug/apps/sim-cli/sim-cli --play /tmp/replay.json
+```
+
+Play a whole ten-minute match to full time and see its score and result (see `docs/match-clock.md#from-the-command-line`):
+```
+./build/debug/apps/sim-cli/sim-cli --scenario tactic-match-eleven --seed 3 --duration 10 --replay-out /tmp/replay.json
 ```
 
 Record debug frames and watch them in the web viewer (Node.js 22+, see `docs/tooling.md#debug-viewer`):

@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstdint>
+#include <optional>
 #include <string>
 
 #include "matchState.hpp"
@@ -8,6 +9,10 @@
 #include "simTime.hpp"
 
 namespace ElyverseFootball::SimMatch {
+
+// The longest duration a match may have: a day, longer than any match, and
+// short enough that its ticks fit easily.
+inline constexpr double kMaxDurationMinutes = 24.0 * 60.0;  // min
 
 // The match clock (docs/match-clock.md): how long a match lasts and the real
 // seconds of play each stoppage costs. Part of MatchConfig and of
@@ -26,9 +31,9 @@ struct MatchClockConfig {
   friend bool operator==(const MatchClockConfig&, const MatchClockConfig&) = default;
 };
 
-// Throws std::invalid_argument for a duration that is not positive and
-// finite, or so short that a half lasts no tick at ticksPerSecond, or for a
-// lost time that is negative or not finite.
+// Throws std::invalid_argument for a duration that is not positive or longer
+// than kMaxDurationMinutes, or so short that a half lasts no tick at
+// ticksPerSecond, or for a lost time that is negative or not finite.
 void validate(const MatchClockConfig& config, int ticksPerSecond);
 
 // The ticks of one half's regulation time: half the duration, to the nearest
@@ -45,6 +50,15 @@ void validate(const MatchClockConfig& config, int ticksPerSecond);
 // The ticks those added minutes last, to the nearest tick.
 [[nodiscard]] std::int64_t addedTicks(int minutes, const MatchClockConfig& config,
                                       int ticksPerSecond) noexcept;
+
+// The most added minutes a half can get: more than any half needs.
+inline constexpr int kMaxAddedMinutes = 999;
+
+// The most ticks a match can last: both halves with the most added time, and
+// as long again for the shots the last whistle waits for. A bound to stop a
+// run at, never reached by a match that plays on.
+[[nodiscard]] std::int64_t maxMatchTicks(const MatchClockConfig& config,
+                                         int ticksPerSecond) noexcept;
 
 // What the clock shows at a tick, in whole seconds of the ninety-minute
 // equivalent: the regulation time of the match so far -- up to 45:00 in the
@@ -65,6 +79,18 @@ struct ClockReading {
 
 // "mm:ss", with the added time as "45+mm:ss" or "90+mm:ss".
 [[nodiscard]] std::string formatClock(const ClockReading& reading);
+
+// The result of a finished match (docs/match-clock.md#full-time): the final
+// score and the side that won it, none for a draw.
+struct MatchResult {
+  Score score;
+  std::optional<TeamSide> winner;
+
+  friend bool operator==(const MatchResult&, const MatchResult&) = default;
+};
+
+// The result once the clock stands at full time, empty before.
+[[nodiscard]] std::optional<MatchResult> matchResult(const MatchState& state) noexcept;
 
 // Whether the teams have changed ends: in the second half and at full time.
 // The engine keeps every side's attacking direction (attackingDirection());

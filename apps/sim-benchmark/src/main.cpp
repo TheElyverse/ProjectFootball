@@ -21,6 +21,7 @@
 #include <vector>
 
 #include "benchmark.hpp"
+#include "matchClock.hpp"
 #include "seriesSummary.hpp"
 #include "tacticJson.hpp"
 
@@ -111,6 +112,11 @@ std::expected<Options, std::string> parseOptions(const std::span<char* const> ar
       positive(options.matches);
     } else if (arg == "--minutes") {
       positive(options.minutes);
+      if (options.minutes > ElyverseFootball::SimMatch::kMaxDurationMinutes) {
+        parsed =
+            std::unexpected(std::format("invalid --minutes value '{}', expected at most {}", value,
+                                        ElyverseFootball::SimMatch::kMaxDurationMinutes));
+      }
     } else if (arg == "--jobs") {
       positive(options.jobs);
     } else if (arg == "--seed") {
@@ -156,10 +162,24 @@ std::string interval(const ElyverseFootball::SimAnalytics::SeriesSummary& summar
   return std::format("{:.3f} [{:.3f}, {:.3f}]", *summary.mean, *summary.ciLow, *summary.ciHigh);
 }
 
-// A few headline metrics per side, mean with its 95 % interval.
+// How the matches ended.
+void printOutcomes(const std::vector<MatchResult>& results) {
+  int homeWins = 0;
+  int draws = 0;
+  for (const MatchResult& result : results) {
+    homeWins += result.stats.home.points == 3 ? 1 : 0;
+    draws += result.stats.home.points == 1 ? 1 : 0;
+  }
+  std::cout << std::format("results                 home wins {}, draws {}, away wins {}\n",
+                           homeWins, draws, static_cast<int>(results.size()) - homeWins - draws);
+}
+
+// The results, and a few headline metrics per side, mean with its 95 %
+// interval.
 void printSummary(const std::vector<MatchResult>& results) {
+  printOutcomes(results);
   for (const std::string_view name :
-       {"possessionShare", "passCompletion", "progressivePasses", "regains",
+       {"goals", "points", "possessionShare", "passCompletion", "progressivePasses", "regains",
         "regainsAttackingThird", "ppda", "pitchControlShare"}) {
     std::vector<std::string> sides;
     for (const bool home : {true, false}) {
@@ -187,7 +207,8 @@ std::string failureText(const ElyverseFootball::Benchmark::BenchmarkFailure& fai
 template <typename Spec>
 void applyOptions(const Options& options, Spec& spec) {
   spec.baseSeed = options.seed;
-  spec.ticks = static_cast<std::int64_t>(options.minutes) * 60 * spec.config.ticksPerSecond;
+  // A match of that duration, played to full time.
+  spec.config.clock.durationMinutes = options.minutes;
   spec.config.restarts.enabled = options.restarts;
   spec.jobs = options.jobs;
 }
@@ -268,7 +289,8 @@ int runSeries(const Options& options) {
   }
   Timing timing;
   for (const MatchResult& result : *results) {
-    std::cout << std::format("match {:>3}  seed {:>20}  {:.2f} s\n", result.index, result.seed,
+    std::cout << std::format("match {:>3}  seed {:>20}  {}:{}  {:.2f} s\n", result.index,
+                             result.seed, result.stats.home.goals, result.stats.away.goals,
                              result.wallSeconds);
     timing.add(result);
   }

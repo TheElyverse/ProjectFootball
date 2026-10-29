@@ -53,7 +53,10 @@ TEST_CASE("Statistics are written in a fixed order with nulls for empty values",
   const auto json = nlohmann::ordered_json::parse(text);
 
   REQUIRE(json["format"] == "elyverse-match-stats");
-  REQUIRE(json["version"] == 1);
+  REQUIRE(json["version"] == 2);
+  REQUIRE(json["finished"] == false);
+  REQUIRE(json["score"]["home"] == 0);
+  REQUIRE(json["home"]["points"].is_null());
   REQUIRE(json["ticks"] == 300);
   REQUIRE(json["home"]["passes"] == 4);
   REQUIRE(json["home"]["passCompletion"] == 0.75);
@@ -64,9 +67,24 @@ TEST_CASE("Statistics are written in a fixed order with nulls for empty values",
   for (const auto& [key, value] : json.items()) {
     keys.push_back(key);
   }
-  REQUIRE(keys ==
-          std::vector<std::string>{"format", "version", "ticks", "seconds", "home", "away"});
+  REQUIRE(keys == std::vector<std::string>{"format", "version", "ticks", "seconds", "finished",
+                                           "score", "home", "away"});
   REQUIRE(text.back() == '\n');
+}
+
+TEST_CASE("A finished match writes its score and points", "[statsJson]") {
+  MatchStats stats;
+  stats.finished = true;
+  stats.home.goals = 2;
+  stats.home.points = 3;
+  stats.away.goals = 1;
+  stats.away.points = 0;
+  const auto json = nlohmann::ordered_json::parse(toStatsJson(stats));
+  REQUIRE(json["finished"] == true);
+  REQUIRE(json["score"]["home"] == 2);
+  REQUIRE(json["score"]["away"] == 1);
+  REQUIRE(json["home"]["points"] == 3);
+  REQUIRE(json["away"]["points"] == 0);
 }
 
 TEST_CASE("The same match gives byte-identical statistics", "[statsJson]") {
