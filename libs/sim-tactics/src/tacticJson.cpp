@@ -281,9 +281,12 @@ void checkFormat(const Field& root) {
     return plans;
   }
   const Field field = root.member("setPieces");
-  field.expectOnly({"kickoff", "throwIn", "corner", "goalKick"});
+  field.expectOnly({"kickoff", "throwIn", "corner", "goalKick", "freeKick", "penalty"});
+  // Each kind optional: without it, its default plan.
   for (const SetPieceKind kind : kAllSetPieceKinds) {
-    plans.of(kind) = readSetPiece(field.member(setPieceKindName(kind)));
+    if (field.has(setPieceKindName(kind))) {
+      plans.of(kind) = readSetPiece(field.member(setPieceKindName(kind)));
+    }
   }
   return plans;
 }

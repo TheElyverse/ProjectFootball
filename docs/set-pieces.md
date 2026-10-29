@@ -1,17 +1,19 @@
 # Set pieces
 
-A throw-in, a corner, a goal kick and a kickoff are set pieces: play stops, the
+A throw-in, a corner, a goal kick, a kickoff, a free kick and a penalty are set
+pieces: play stops, the
 players take up their places, and the taker plays the ball as his side's plan
 says. The plans are part of the [tactic](tactics.md#tactic-model)
 (`setPiecePlan.hpp` in `sim-tactics`); the [restart system](match-engine.md#restarts)
 awards a set piece, and the set piece system (`setPieces.hpp` in `sim-match`,
 sixth of the [standard systems](match-engine.md#the-standard-systems)) sets it
-up and takes it. Free kicks and penalties are [their own](fouls.md).
+up and takes it. [Fouls](fouls.md) and [offside](match-engine.md#offside) award
+free kicks and penalties.
 
 ## Plans
 
 `SetPiecePlans` hold a `SetPiecePlan` for each kind — `kickoff`, `throwIn`,
-`corner`, `goalKick`:
+`corner`, `goalKick`, `freeKick`, `penalty`:
 
 | Field      | Meaning |
 |------------|---------|
@@ -22,8 +24,10 @@ up and takes it. Free kicks and penalties are [their own](fouls.md).
 
 Empty lists leave the choice to the match (below), as does a list whose
 players are all sent off or the taker. The defaults are a short kickoff,
-throw-in and goal kick and a corner to the far post. Tactic files hold them in
-an optional `setPieces` block, which needs no new format version
+throw-in and goal kick and a corner to the far post; a free kick's and a
+penalty's delivery is the taker's own decision (below), so only their taker and
+runners are read. Tactic files hold them in
+an optional `setPieces` block, each kind optional, which needs no new format version
 ([versioning](tactics.md#versioning)); a file without one plays the defaults.
 `Tactic::create()` rejects a slot that does not exist, one named twice in a
 list, runners or markers for a kickoff, which lines up instead, and a delivery
@@ -82,6 +86,52 @@ every replay. `tests/unit/sim-match/setPiecesTests.cpp` checks the distances,
 the planned taker and deliveries, the side on the ball, and that a kickoff ends
 a set piece being set up.
 
+## Free kicks
+
+A direct free kick follows a foul outside the offender's penalty area, an
+indirect one an offside ([fouls](fouls.md#the-decision),
+[offside](match-engine.md#the-free-kick)). Both are set up for
+`freeKickSeconds` (8 s). One no farther than `freeKickRange` (32 m) from the
+centre of the goal it attacks goes for goal:
+
+- **The wall.** The defending side's outfield players whose slots stand highest
+  form it across the way from the ball to the goal's centre, half a metre beyond
+  a centre circle's radius from the ball, `wallSpacing` (0.6 m) apart:
+  `wallPlayers` (4) within 22 m of the goal, one fewer within 27 m, two fewer
+  beyond. The keeper keeps his own [positioning](goalkeeper.md#positioning-and-sweeping)
+  for the ball.
+- **The box.** The attacking side's runners go into the box as at a corner, to
+  the penalty spot first; the defenders' markers go goal side of them, and
+  everyone else of the defending side keeps a centre circle's radius from the
+  ball.
+
+Farther out nobody takes a place but the taker, and the other side keeps its
+distance. The taker gets the ball at his feet with nothing pending: he decides
+like any carrier ([decision making](on-ball.md#decision-making)) — a shot, a
+cross, a pass short or long, or a carry —, after his `minHoldSeconds`.
+
+**Indirect.** No goal comes of an indirect free kick until another player has
+touched the ball (Law 13): `MatchState::indirectKick()` holds the taker's touch
+until then, his shot options are empty, and a ball he plays into the goal is
+out over the goal line instead — a goal kick. A free kick is not exempt from
+offside.
+
+## Penalties
+
+A foul in the offender's penalty area gives a penalty from the penalty spot,
+set up for `penaltySeconds` (10 s). Everyone but the taker and the defending
+keeper stands outside the penalty area and a centre circle's radius from the
+spot — by `placeRadius` and half a metre more, so that one near enough to his
+place to count as in it is out —, level with where he stood; the keeper on his
+line between the posts. The taker shoots: the [shot candidates](on-ball.md#shot-decisions)
+from the spot, chosen by their utility at the decision temperature from the
+`kAi` stream, as any shot decision is. The shot is an ordinary shot: the keeper
+[saves](goalkeeper.md#shot-stopping) it or not, and a parry into play is live —
+whoever gets to it first plays the rebound.
+
+`SetPieceTaken` records the kind, the taker and, for a penalty, the shot's
+target; `ShotAttempted`, `ShotResolved` and `GoalScored` record the outcome.
+
 ## Scenarios
 
 `corner` and `throw-in` play the eleven-a-side reference against itself from
@@ -96,6 +146,15 @@ the far-post delivery meant for a runner; at the throw-in a short pass to an
 option near the thrower, both options and their markers in place; and at the
 goal kick that nobody of home is left in the area when it is taken.
 
+`tests/acceptance/freeKickScenarioTests.cpp` awards home a free kick or penalty
+in the eleven-a-side reference at tick 0. Over thirty seeds a direct free kick
+22 m out faces a wall of at least three at the distance, and the wall blocks
+some of the taker's shots while others clear it; over forty seeds a penalty is
+taken with only the taker and the keeper in the area, between half and nine in
+ten are scored — about three in four at the time of writing —, and at least one
+is parried into play and played again. An indirect free kick struck straight in
+gives a goal kick, the same ball without the indirect kick a goal.
+
 ## What this is not
 
 - The taker plays the plan, not a decision: the delivery does not weigh its
@@ -106,6 +165,9 @@ goal kick that nobody of home is left in the area when it is taken.
 - Nobody blocks or holds at a corner, the keeper does not come for it before
   it is played, and a throw-in is a pass along the ground or through the air,
   not a throw.
+- The wall does not jump, and no attacker stands in it; the keeper does not
+  line it up. A free kick taker has no technique of his own beyond his shot and
+  pass; a penalty taker does not feint, and the keeper does not move early.
 - The opening kickoff of a fixture is a `GiveBallCommand`: its taker decides
   like any carrier. The second half's kickoff is a set piece when the match
   takes restarts.

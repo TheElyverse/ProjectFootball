@@ -9,6 +9,7 @@
 #include <string>
 #include <vector>
 
+#include "choicePolicy.hpp"
 #include "configChecks.hpp"
 #include "matchEvents.hpp"
 #include "teamFrame.hpp"
@@ -202,6 +203,24 @@ struct Runners {
   const SetPiecePlan& plan = plansOf(state, setPiece.side).of(setPiece.kind);
   const auto pool = outfield(state, setPiece.side, taker);
   switch (setPiece.kind) {
+    case SetPieceKind::kFreeKick: {
+      // Within range, into the box as at a corner -- for the rebound and the
+      // cross the taker may choose; beyond it, they play on in their shape.
+      if (SimCore::distance(setPiece.spot, attackedGoal(state.pitch(), setPiece.side).center) >
+          config.freeKickRange) {
+        return {};
+      }
+      const auto places =
+          cornerTargets(cornerPlaces(state, setPiece), SetPieceDelivery::kPenaltySpot);
+      auto players = chosen(state, setPiece.side, plan.runners, pool, config.cornerRunners, taker,
+                            [&state](const std::size_t left, const std::size_t right) {
+                              return slotDepth(state, left) > slotDepth(state, right);
+                            });
+      players.resize(std::min(players.size(), places.size()));
+      return {.players = players, .places = places};
+    }
+    case SetPieceKind::kPenalty:
+      return {};
     case SetPieceKind::kCorner: {
       const auto places = cornerTargets(cornerPlaces(state, setPiece), plan.delivery);
       auto players = chosen(state, setPiece.side, plan.runners, pool, config.cornerRunners, taker,
@@ -280,6 +299,75 @@ void cornerZones(const MatchState& state, const SetPiece& setPiece,
   }
 }
 
+// At a penalty everyone but the taker and the defending keeper stands outside
+// the penalty area and a centre circle's radius from the spot, by placeRadius
+// and half a metre more, so that one near enough his place to count as in it
+// is out; the keeper on his line between the posts.
+void clearForPenalty(const MatchState& state, const SetPiece& setPiece,
+                     const SetPieceConfig& config, std::vector<std::optional<Vec2>>& targets) {
+  const Pitch& pitch = state.pitch();
+  const TeamSide attacking = setPiece.side;
+  const PitchRect area = pitch.penaltyArea(ownGoalEnd(opponentOf(attacking)));
+  const double margin = config.placeRadius + 0.5;
+  const double away = pitch.markings().centerCircleRadiusMeters + margin;
+  const double line = pitch.lengthMeters() - pitch.markings().penaltyAreaDepthMeters - margin;
+  const double spotDepth = depthOf(attacking, setPiece.spot, pitch);
+  for (std::size_t index = 0; index < state.players().size(); ++index) {
+    const PlayerMatchState& player = state.players()[index];
+    if (!isOnPitch(player) || player.playerId == setPiece.taker) {
+      continue;
+    }
+    if (player.side != attacking && keepsGoal(state, index)) {
+      targets[index] = Vec2{.x = xAtDepth(player.side, 0.3, pitch),
+                            .y = attackedGoal(pitch, attacking).center.y};
+      continue;
+    }
+    if (!area.contains(player.position) && SimCore::distance(player.position, setPiece.spot) >=
+                                               pitch.markings().centerCircleRadiusMeters) {
+      continue;
+    }
+    // Behind the line and outside the arc, level with where he stands.
+    const double across = std::abs(player.position.y - setPiece.spot.y);
+    double depth = line;
+    if (across < away) {
+      depth = std::min(depth, spotDepth - std::sqrt((away * away) - (across * across)));
+    }
+    targets[index] = pitch.clamp({.x = xAtDepth(attacking, depth, pitch), .y = player.position.y});
+  }
+}
+
+// At a free kick within range the defending side's most advanced outfield
+// players form a wall across the way from the ball to the goal's centre, a
+// centre circle's radius from the ball.
+void buildWall(const MatchState& state, const SetPiece& setPiece, const SetPieceConfig& config,
+               std::vector<std::optional<Vec2>>& targets) {
+  const Pitch& pitch = state.pitch();
+  const TeamSide side = opponentOf(setPiece.side);
+  const Vec2 goal = attackedGoal(pitch, setPiece.side).center;
+  const double distance = SimCore::distance(setPiece.spot, goal);
+  if (distance > config.freeKickRange) {
+    return;
+  }
+  int size = config.wallPlayers;
+  if (distance > 27.0) {
+    size -= 2;
+  } else if (distance > 22.0) {
+    size -= 1;
+  }
+  auto wall = chosen(state, side, {}, outfield(state, side, std::nullopt), size, std::nullopt,
+                     [&state](const std::size_t left, const std::size_t right) {
+                       return slotDepth(state, left) > slotDepth(state, right);
+                     });
+  const Vec2 toGoal = SimCore::unitOr(goal - setPiece.spot, {.x = 1.0, .y = 0.0});
+  const Vec2 across{.x = -toGoal.y, .y = toGoal.x};
+  const Vec2 centre = setPiece.spot + (toGoal * (pitch.markings().centerCircleRadiusMeters + 0.5));
+  const double middle = (static_cast<double>(wall.size()) - 1.0) / 2.0;
+  for (std::size_t place = 0; place < wall.size(); ++place) {
+    targets[wall[place]] = pitch.clamp(
+        centre + (across * ((static_cast<double>(place) - middle) * config.wallSpacing)));
+  }
+}
+
 // The Laws keep the other side from the ball: throwInDistance at a throw-in, a
 // centre circle's radius at a corner. Whoever would stand nearer -- at his
 // place, or where he is without one -- goes out to that distance.
@@ -313,13 +401,21 @@ void defend(const MatchState& state, const SetPiece& setPiece, const SetPieceCon
   if (setPiece.kind == SetPieceKind::kKickoff) {
     return;
   }
+  if (setPiece.kind == SetPieceKind::kPenalty) {
+    clearForPenalty(state, setPiece, config, targets);
+    return;
+  }
+  if (setPiece.kind == SetPieceKind::kFreeKick) {
+    buildWall(state, setPiece, config, targets);
+  }
   const TeamSide side = opponentOf(setPiece.side);
   const SetPiecePlan& plan = plansOf(state, side).of(setPiece.kind);
   const auto pool = outfield(state, side, std::nullopt);
   const Vec2 spot = setPiece.spot;
-  // At a corner the deepest slots mark, at a throw-in those whose slots stand
-  // nearest the ball: the choice holds while they move.
-  const bool corner = setPiece.kind == SetPieceKind::kCorner;
+  // At a corner or a free kick the deepest slots mark, at a throw-in those whose
+  // slots stand nearest the ball: the choice holds while they move.
+  const bool corner =
+      setPiece.kind == SetPieceKind::kCorner || setPiece.kind == SetPieceKind::kFreeKick;
   const auto markers =
       chosen(state, side, plan.markers, pool, static_cast<int>(runners.players.size()),
              std::nullopt, [&state, spot, corner](const std::size_t left, const std::size_t right) {
@@ -332,7 +428,7 @@ void defend(const MatchState& state, const SetPiece& setPiece, const SetPieceCon
   for (std::size_t mark = 0; mark < markers.size() && mark < runners.players.size(); ++mark) {
     targets[markers[mark]] = goalSide(state, side, runners.places[mark], config.markDistance);
   }
-  if (corner) {
+  if (setPiece.kind == SetPieceKind::kCorner) {
     cornerZones(state, setPiece, pool, markers, targets);
   }
   keepAway(state, setPiece, config, targets);
@@ -366,7 +462,10 @@ void validate(const SetPieceConfig& config) {
       isPositiveFinite(config.readyRadius) && isPositiveFinite(config.placeRadius) &&
       isFiniteNonNegative(config.waitSeconds) && isPositiveFinite(config.flightSeconds) &&
       isFiniteNonNegative(config.markDistance) && config.cornerRunners >= 0 &&
-      config.shortOptions >= 0 && isFiniteNonNegative(config.throwInDistance);
+      config.shortOptions >= 0 && isFiniteNonNegative(config.throwInDistance) &&
+      isFiniteNonNegative(config.freeKickSeconds) && isFiniteNonNegative(config.penaltySeconds) &&
+      isFiniteNonNegative(config.freeKickRange) && config.wallPlayers >= 0 &&
+      isFiniteNonNegative(config.wallSpacing);
   if (!valid) {
     throw std::invalid_argument("set pieces: invalid configuration");
   }
@@ -380,6 +479,10 @@ double setupSeconds(const SetPieceKind kind, const SetPieceConfig& config) noexc
       return config.cornerSeconds;
     case SetPieceKind::kGoalKick:
       return config.goalKickSeconds;
+    case SetPieceKind::kFreeKick:
+      return config.freeKickSeconds;
+    case SetPieceKind::kPenalty:
+      return config.penaltySeconds;
     case SetPieceKind::kKickoff:
       return config.kickoffSeconds;
   }
@@ -430,6 +533,10 @@ std::optional<PassIntent> plannedDelivery(const MatchState& state, const SetPiec
                                           const PassConfig& passing) {
   const auto taker = findPlayerIndex(state, setPiece.taker);
   if (!taker) {
+    return std::nullopt;
+  }
+  // Their taker decides for himself (docs/set-pieces.md#free-kicks).
+  if (setPiece.kind == SetPieceKind::kFreeKick || setPiece.kind == SetPieceKind::kPenalty) {
     return std::nullopt;
   }
   const SetPiecePlan& plan = plansOf(state, setPiece.side).of(setPiece.kind);
@@ -497,12 +604,45 @@ namespace {
   return true;
 }
 
-// The taker plays the planned delivery: the ball at his feet, the pass
+// A penalty taker's shot: the shot candidates from the spot, chosen by their
+// utility as any shot decision is (docs/set-pieces.md#penalties).
+[[nodiscard]] std::optional<ShotIntent> penaltyShot(const MatchStepContext& context,
+                                                    const MatchState& current,
+                                                    const std::size_t taker,
+                                                    const SetPieceRules& rules) {
+  const auto shots = generateShotCandidates(current, taker, context.time(), rules.shots);
+  std::vector<double> utilities;
+  std::vector<std::size_t> valid;
+  for (std::size_t index = 0; index < shots.size(); ++index) {
+    if (shots[index].isValid()) {
+      utilities.push_back(shots[index].utility);
+      valid.push_back(index);
+    }
+  }
+  const auto chosen = chooseByUtility(utilities, rules.temperature,
+                                      context.random(SimCore::RandomNumberGeneratorDomain::kAi));
+  if (!chosen) {
+    return std::nullopt;
+  }
+  const ShotCandidate& shot = shots[valid[*chosen]];
+  return ShotIntent{.shooter = current.players()[taker].playerId,
+                    .target = shot.target,
+                    .height = shot.height,
+                    .speed = shot.speed,
+                    .type = shot.type,
+                    .curvature = shot.curvature};
+}
+
+// The taker plays the planned delivery -- a penalty taker his shot, a free
+// kick taker whatever he decides --: the ball at his feet, the pass or shot
 // pending, the set piece over.
 void take(const MatchStepContext& context, const MatchState& current, MatchStateWriter& next,
           const SetPiece& setPiece, const std::size_t taker, const SetPieceRules& rules) {
   const auto delivery =
       plannedDelivery(current, setPiece, rules.setPieces, rules.physics, rules.passing);
+  const auto shot = setPiece.kind == SetPieceKind::kPenalty
+                        ? penaltyShot(context, current, taker, rules)
+                        : std::nullopt;
   // A kickoff's taker has had the ball since the line-up.
   if (next.ball().owner != setPiece.taker) {
     context.record(PossessionChanged{
@@ -518,8 +658,13 @@ void take(const MatchStepContext& context, const MatchState& current, MatchState
   next.setBallVerticalVelocity(0.0);
   next.setBallSpin(0.0);
   next.setBallSideSpin(0.0);
+  Vec2 target = setPiece.spot;
   if (delivery) {
     next.setPendingAction(taker, *delivery);
+    target = delivery->target;
+  } else if (shot) {
+    next.setPendingAction(taker, *shot);
+    target = shot->target;
   }
   context.record(
       SetPieceTaken{.tick = context.tick(),
@@ -527,10 +672,16 @@ void take(const MatchStepContext& context, const MatchState& current, MatchState
                     .side = setPiece.side,
                     .taker = setPiece.taker,
                     .delivery = plansOf(current, setPiece.side).of(setPiece.kind).delivery,
-                    .target = delivery ? delivery->target : setPiece.spot,
+                    .target = target,
                     .receiver = delivery ? delivery->receiver : std::nullopt});
-  if (setPiece.kind != SetPieceKind::kKickoff) {
+  // No offside from a throw-in, a corner or a goal kick.
+  if (setPiece.kind == SetPieceKind::kThrowIn || setPiece.kind == SetPieceKind::kCorner ||
+      setPiece.kind == SetPieceKind::kGoalKick) {
     next.setOffsideExemption(BallTouch{.playerId = setPiece.taker, .tick = context.tick()});
+  }
+  // An indirect free kick scores only off another player (Law 13).
+  if (setPiece.indirect) {
+    next.setIndirectKick(BallTouch{.playerId = setPiece.taker, .tick = context.tick()});
   }
   next.setSetPiece(std::nullopt);
 }
@@ -545,6 +696,12 @@ MatchSystem makeSetPieceSystem(const SetPieceRules& rules) {
           .update =
               [rules](const MatchStepContext& context, const MatchState& current,
                       MatchStateWriter& next) {
+                // Another player's touch makes an indirect free kick count.
+                if (const auto& kick = current.indirectKick();
+                    kick && current.ball().lastTouch &&
+                    current.ball().lastTouch->playerId != kick->playerId) {
+                  next.setIndirectKick(std::nullopt);
+                }
                 const auto& setPiece = current.setPiece();
                 if (!setPiece) {
                   return;

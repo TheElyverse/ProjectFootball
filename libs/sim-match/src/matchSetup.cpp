@@ -22,8 +22,14 @@ std::vector<MatchSystem> makeMatchSystems(const MatchConfig& config) {
                                   .offside = config.offside}));
   // Only with restarts, which award them.
   if (config.restarts.enabled) {
-    systems.push_back(makeSetPieceSystem(
-        {.setPieces = config.setPieces, .physics = config.ball, .passing = config.passing}));
+    systems.push_back(makeSetPieceSystem({.setPieces = config.setPieces,
+                                          .physics = config.ball,
+                                          .passing = config.passing,
+                                          .shots = {.scoring = config.decisions.shooting,
+                                                    .ball = config.ball,
+                                                    .perception = config.perception,
+                                                    .reception = config.reception},
+                                          .temperature = config.decisions.temperature}));
   }
   systems.push_back(makePursuitSystem({.physics = config.ball,
                                        .pursuit = config.pursuit,

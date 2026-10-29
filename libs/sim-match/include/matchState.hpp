@@ -320,6 +320,8 @@ struct SetPiece {
   SimCore::PlayerId taker;
   SimCore::Vec2 spot;
   SimCore::SimTick awarded;
+  // An indirect free kick (docs/set-pieces.md#free-kicks).
+  bool indirect = false;
 
   friend bool operator==(const SetPiece&, const SetPiece&) = default;
 };
@@ -613,6 +615,11 @@ class MatchState {
   }
   [[nodiscard]] const std::optional<FoulRecord>& lastFoul() const noexcept { return lastFoul_; }
   [[nodiscard]] const std::optional<SetPiece>& setPiece() const noexcept { return setPiece_; }
+  // The touch an indirect free kick was played with, until another player
+  // touches the ball: no goal comes of it directly.
+  [[nodiscard]] const std::optional<BallTouch>& indirectKick() const noexcept {
+    return indirectKick_;
+  }
 
   // The last pass kicked, the last shot taken and the last reception of a
   // free ball; empty in every state created from a spec, until the ball
@@ -706,6 +713,7 @@ class MatchState {
   std::optional<BallTouch> offsideExemption_;
   std::optional<FoulRecord> lastFoul_;
   std::optional<SetPiece> setPiece_;
+  std::optional<BallTouch> indirectKick_;
   TeamPossession possession_;
   // Home, away.
   std::array<std::optional<TeamPhase>, 2> phases_;
@@ -816,6 +824,9 @@ class MatchStateWriter {
   }
   void setSetPiece(const std::optional<SetPiece>& setPiece) noexcept {
     state_->setPiece_ = setPiece;
+  }
+  void setIndirectKick(const std::optional<BallTouch>& touch) noexcept {
+    state_->indirectKick_ = touch;
   }
   [[nodiscard]] const std::optional<FoulRecord>& lastFoul() const noexcept {
     return state_->lastFoul_;

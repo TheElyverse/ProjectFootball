@@ -89,5 +89,5 @@ TEST_CASE("Every part of a tactic changes its hash", "[tacticHash]") {
 TEST_CASE("The reference tactic hash is pinned", "[tacticHash]") {
   // Changes when the reference tactic or the hash layout changes; both must
   // be deliberate, since replays record tactic hashes.
-  REQUIRE(hashOf(referenceTacticSpec()) == 0x7f38318a0aff9255ULL);
+  REQUIRE(hashOf(referenceTacticSpec()) == 0x8ebf9708c91041e5ULL);
 }

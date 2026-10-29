@@ -994,12 +994,13 @@ always gives the same call.
 
 An offence stops play at once with `OffsideCalled` — the offender, the passer,
 his side, the line in pitch `x` and where he became involved — and
-`awardFreeKick()` gives the other side an indirect free kick there: its player
-nearest the spot stands behind the ball at rest, facing the goal he attacks,
-every pending action is cleared, and the restart records `RestartTaken` of kind
+`awardFreeKick()` gives the other side an indirect
+[free kick](set-pieces.md#free-kicks) there, a set piece like any other: the
+ball lies dead at the spot, its player nearest the spot or the one its plan
+names takes it, and the restart records `RestartTaken` of kind
 `indirectFreeKick` and costs its `freeKickLostSeconds` (10 s) of
-[added time](match-clock.md#added-time). Indirect means the taker plays it like
-any carrier; opponents are not held off the ball yet.
+[added time](match-clock.md#added-time). Indirect means no goal comes of it
+until another player has touched the ball.
 
 ### The line in play
 

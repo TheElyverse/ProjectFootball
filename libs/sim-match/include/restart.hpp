@@ -77,8 +77,9 @@ struct KickoffLineUp {
 // The unit vector a side faces at a kickoff: toward the goal it attacks.
 [[nodiscard]] SimCore::Vec2 kickoffFacing(TeamSide side) noexcept;
 
-// A throw-in, corner or goal kick to set up: its kind, the side it is for, the
-// taker planRestart() named, and where the ball stands.
+// A set piece to set up -- a throw-in, corner, goal kick, free kick or penalty:
+// its restart kind, the side it is for, the taker chosen without a plan, and
+// where the ball stands.
 struct SetPieceAward {
   RestartKind kind = RestartKind::kThrowIn;
   TeamSide side = TeamSide::kHome;
@@ -106,15 +107,12 @@ struct FreeKick {
 };
 
 // A free kick or penalty for its side at its spot (docs/match-engine.md#offside,
-// docs/fouls.md): the side's player on the pitch nearest the spot, ties to the
-// lower index, stands behind the ball at rest, facing the goal he attacks, the
-// ball at his feet. Records RestartTaken of its kind and, if the ball was
-// someone else's, PossessionChanged, and resolves a shot still open as kBlocked
-// with ShotResolved; adds its lostSeconds() to the clock and clears every
-// pending action. False, and nothing changed, if the side has no player.
+// docs/fouls.md), set up and taken as a set piece (docs/set-pieces.md): resolves
+// a shot still open as kBlocked with ShotResolved, then awardSetPiece() with the
+// side's player on the pitch nearest the spot, ties to the lower index, as the
+// fallback taker. False, and nothing changed, if the side has no player.
 bool awardFreeKick(const MatchStepContext& context, const MatchState& current,
-                   MatchStateWriter& next, const FreeKick& kick, const BallPhysics& physics,
-                   const MatchClockConfig& clock);
+                   MatchStateWriter& next, const FreeKick& kick, const MatchClockConfig& clock);
 
 // Kicks off from this line-up: the ball at rest at the taker's feet, his last
 // touch, PossessionChanged if he did not have it, takeKickoffLineUp(), and with

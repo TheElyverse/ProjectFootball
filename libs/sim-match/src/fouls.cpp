@@ -142,7 +142,7 @@ MatchSystem makeFoulSystem(const FoulRules& rules) {
                  .side = attacking,
                  .spot = penalty ? current.pitch().penaltySpot(ownGoalEnd(opponentOf(attacking)))
                                  : foul->position},
-                rules.physics, rules.clock);
+                rules.clock);
           },
       .intervalTicks = 1,
       .phaseTicks = 0};
