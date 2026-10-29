@@ -57,28 +57,36 @@ TEST_CASE("Scenarios are found by name", "[scenarios]") {
   REQUIRE(findScenario("no-such-scenario") == nullptr);
 }
 
-TEST_CASE("Any two tactic presets can face each other", "[scenarios]") {
+TEST_CASE("Any two tactic presets of one size can face each other", "[scenarios]") {
   const std::filesystem::path directory = std::filesystem::path(PF_DATA_DIR) / "tactics";
-  constexpr std::array<std::string_view, 4> kPresets{"reference", "possession", "counter",
-                                                     "pressing"};
-  for (const std::string_view homeName : kPresets) {
-    for (const std::string_view awayName : kPresets) {
-      CAPTURE(homeName, awayName);
-      const auto home = loadTactic(directory / (std::string(homeName) + ".json"));
-      const auto away = loadTactic(directory / (std::string(awayName) + ".json"));
-      REQUIRE(home.has_value());
-      REQUIRE(away.has_value());
-      const auto setup = makeTacticMatch({.home = *home, .away = *away}, 3);
-      REQUIRE(setup.has_value());
-      REQUIRE(setup->initialState.tactics().of(TeamSide::kHome) == *home);
-      REQUIRE(setup->initialState.tactics().of(TeamSide::kAway) == *away);
-      REQUIRE(setup == makeTacticMatch({.home = *home, .away = *away}, 3));
-      auto simulation = startMatch(*setup);
-      for (int tick = 0; tick < 60; ++tick) {
-        REQUIRE(simulation.step().has_value());
+  constexpr std::array<std::array<std::string_view, 4>, 2> kSizes{
+      {{"reference-eleven", "possession", "counter", "pressing"},
+       {"reference", "possession-seven", "counter-seven", "pressing-seven"}}};
+  for (const auto& presets : kSizes) {
+    for (const std::string_view homeName : presets) {
+      for (const std::string_view awayName : presets) {
+        CAPTURE(homeName, awayName);
+        const auto home = loadTactic(directory / (std::string(homeName) + ".json"));
+        const auto away = loadTactic(directory / (std::string(awayName) + ".json"));
+        REQUIRE(home.has_value());
+        REQUIRE(away.has_value());
+        const auto setup = makeTacticMatch({.home = *home, .away = *away}, 3);
+        REQUIRE(setup.has_value());
+        REQUIRE(setup->initialState.tactics().of(TeamSide::kHome) == *home);
+        REQUIRE(setup->initialState.tactics().of(TeamSide::kAway) == *away);
+        REQUIRE(setup == makeTacticMatch({.home = *home, .away = *away}, 3));
+        auto simulation = startMatch(*setup);
+        for (int tick = 0; tick < 60; ++tick) {
+          REQUIRE(simulation.step().has_value());
+        }
       }
     }
   }
+  // Seven a side cannot meet eleven.
+  const auto seven = loadTactic(directory / "reference.json");
+  const auto eleven = loadTactic(directory / "possession.json");
+  REQUIRE((seven && eleven));
+  REQUIRE_FALSE(makeTacticMatch({.home = *seven, .away = *eleven}, 3).has_value());
 }
 
 TEST_CASE("The goal-kickoff scenario scores and kicks off from the line-up", "[scenarios]") {
