@@ -78,12 +78,12 @@ PlayerKinematics stepPlayerMovement(const PlayerMatchState& player,
 
 double runningSpeed(const PlayerMatchState& player, const BallState& ball,
                     const BallPhysics& physics) noexcept {
+  const double fresh = player.attributes.maxSpeed * player.fitness.topSpeedShare;
   if (ball.owner != player.playerId || ball.held) {
-    return player.attributes.maxSpeed;
+    return fresh;
   }
-  return player.attributes.maxSpeed * SimCore::stableLerp(physics.minCarrySpeedFactor,
-                                                          physics.maxCarrySpeedFactor,
-                                                          player.attributes.ballControl);
+  return fresh * SimCore::stableLerp(physics.minCarrySpeedFactor, physics.maxCarrySpeedFactor,
+                                     player.attributes.ballControl);
 }
 
 PlayerMatchState atRunningSpeed(const PlayerMatchState& player, const BallState& ball,

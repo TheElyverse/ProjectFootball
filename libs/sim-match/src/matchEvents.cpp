@@ -201,6 +201,11 @@ void addFields(StableHasher& hasher, const GoalScored& event) noexcept {
   hasher.addI64(event.score.away);
 }
 
+void addFields(StableHasher& hasher, const PeriodEnded& event) noexcept {
+  hasher.addU64(static_cast<std::uint64_t>(event.period));
+  hasher.addI64(event.addedMinutes);
+}
+
 void addFields(StableHasher& hasher, const SaveAttempted& event) noexcept {
   hasher.addU64(event.keeper.value());
   hasher.addU64(event.shooter.value());
@@ -453,6 +458,9 @@ std::string_view eventName(const MatchEvent& event) {
     }
     std::string_view operator()(const CrossAttempted& /*event*/) const noexcept {
       return "cross attempted";
+    }
+    std::string_view operator()(const PeriodEnded& /*event*/) const noexcept {
+      return "period ended";
     }
   };
   return std::visit(Names{}, event);

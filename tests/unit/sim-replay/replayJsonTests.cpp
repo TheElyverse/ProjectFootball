@@ -66,20 +66,20 @@ TEST_CASE("Documents that are not JSON objects are rejected", "[replayJson]") {
 }
 
 TEST_CASE("Other schema versions are rejected with the version found", "[replayJson]") {
-  requireRejected(validJsonWith("\"schemaVersion\": 18", "\"schemaVersion\": 1"),
+  requireRejected(validJsonWith("\"schemaVersion\": 19", "\"schemaVersion\": 1"),
                   ReplayErrorCode::kUnsupportedSchemaVersion,
                   "schema version 1 holds replay metadata only");
   // Older playable versions name the way to a current file.
-  for (const char* version :
-       {"2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16", "17"}) {
+  for (const char* version : {"2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14",
+                              "15", "16", "17", "18"}) {
     requireRejected(
-        validJsonWith("\"schemaVersion\": 18", std::string("\"schemaVersion\": ") + version),
+        validJsonWith("\"schemaVersion\": 19", std::string("\"schemaVersion\": ") + version),
         ReplayErrorCode::kUnsupportedSchemaVersion,
         std::string("schema version ") + version +
-            " is no longer supported, expected 18; record the scenario again");
+            " is no longer supported, expected 19; record the scenario again");
   }
-  requireRejected(validJsonWith("\"schemaVersion\": 18", "\"schemaVersion\": 19"),
-                  ReplayErrorCode::kUnsupportedSchemaVersion, "unsupported schema version 19");
+  requireRejected(validJsonWith("\"schemaVersion\": 19", "\"schemaVersion\": 20"),
+                  ReplayErrorCode::kUnsupportedSchemaVersion, "unsupported schema version 20");
 }
 
 TEST_CASE("A replay from another core version is rejected", "[replayJson]") {
@@ -289,6 +289,33 @@ TEST_CASE("How players carry the ball is read from the initial state and the con
   REQUIRE(patient->setup.config.decisions.carrying.turnSeconds == 0.7);
   requireRejected(validJsonWith("\"minCarrySpeedFactor\"", "\"minCarrySpeedFactors\""), kMalformed,
                   "config.ball.minCarrySpeedFactor: missing");
+}
+
+TEST_CASE("The clock and fitness are read from the initial state and the config", "[replayJson]") {
+  const auto tired =
+      parseReplayJson(validJsonWith("\"sprintReserve\": 1.0", "\"sprintReserve\": 0.25"));
+  REQUIRE(tired.has_value());
+  REQUIRE(tired->setup.initialState.players()[0].fitness.sprintReserve == 0.25);
+  const auto played = parseReplayJson(validJsonWith("\"playedTicks\": 0", "\"playedTicks\": 900"));
+  REQUIRE(played.has_value());
+  REQUIRE(played->setup.initialState.players()[0].fitness.playedTicks == 900);
+  requireRejected(validJsonWith("\"topSpeedShare\": 1.0", "\"topSpeedShare\": 1.5"),
+                  ReplayErrorCode::kInvalidSetup, "top speed share");
+
+  const auto shorter =
+      parseReplayJson(validJsonWith("\"durationMinutes\": 90.0", "\"durationMinutes\": 10.0"));
+  REQUIRE(shorter.has_value());
+  REQUIRE(shorter->setup.config.clock.durationMinutes == 10.0);
+  const auto lost =
+      parseReplayJson(validJsonWith("\"cornerLostSeconds\": 6.0", "\"cornerLostSeconds\": 9.0"));
+  REQUIRE(lost.has_value());
+  REQUIRE(lost->setup.config.clock.cornerLostSeconds == 9.0);
+  const auto sprint =
+      parseReplayJson(validJsonWith("\"sprintSeconds\": 15.0", "\"sprintSeconds\": 20.0"));
+  REQUIRE(sprint.has_value());
+  REQUIRE(sprint->setup.config.fitness.sprintSeconds == 20.0);
+  requireRejected(validJsonWith("\"recoverySeconds\"", "\"recoverySecond\""), kMalformed,
+                  "config.fitness.recoverySeconds: missing");
 }
 
 TEST_CASE("How players decide is read from the initial state and the config", "[replayJson]") {

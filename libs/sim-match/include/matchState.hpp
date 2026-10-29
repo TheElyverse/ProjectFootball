@@ -26,11 +26,10 @@
 
 namespace ElyverseFootball::SimMatch {
 
-// Which squad a player belongs to. The pitch coordinate system is fixed (see
-// docs/match-engine.md#match-geometry), so this is not itself an attacking
-// direction. The sandbox has no halves yet: home defends x = 0 in every match,
-// and systems that need the direction ask attackingDirection() (teamFrame.hpp),
-// the one place to change once rules let teams switch ends.
+// Which squad a player belongs to; not itself an attacking direction. Home
+// defends x = 0 in both halves -- when the teams change ends only a view
+// turns the pitch round (docs/match-clock.md#halves) -- and systems that need
+// the direction ask attackingDirection() (teamFrame.hpp).
 enum class TeamSide : std::uint8_t {
   kHome,
   kAway,
@@ -135,9 +134,22 @@ struct PlayerAttributes {
   friend bool operator==(const PlayerAttributes&, const PlayerAttributes&) = default;
 };
 
+// How fresh a player is (docs/players.md#fitness). sprintReserve is what is
+// left of his sprint, from 1 when fresh to 0 when he has none, and runs in real
+// time. playedTicks are the ticks he has been on the pitch; their share of the
+// match duration is his fatigue over the match. topSpeedShare is the share of
+// his maxSpeed both leave him, in (0, 1].
+struct PlayerFitness {
+  double sprintReserve = 1.0;
+  std::int64_t playedTicks = 0;
+  double topSpeedShare = 1.0;
+
+  friend bool operator==(const PlayerFitness&, const PlayerFitness&) = default;
+};
+
 // One player as the match simulation sees it. Positions are in meters in pitch
 // coordinates, velocities in meters per second. Deliberately minimal: the
-// orientation, energy, action and perception components of
+// orientation, action and perception components of
 // docs/implementation-plan.md section 6.2 arrive with the systems that fill
 // them.
 //
@@ -155,6 +167,7 @@ struct PlayerMatchState {
   PlayerAttributes attributes;
   std::optional<SimCore::Vec2> target;
   SimCore::Vec2 facing{.x = 1.0, .y = 0.0};
+  PlayerFitness fitness = {};
 
   friend bool operator==(const PlayerMatchState&, const PlayerMatchState&) = default;
 };
@@ -250,6 +263,29 @@ inline constexpr double kMaxBallSpeed = 100.0;  // m/s
 // leaves room for a fixture that exaggerates and still catches a broken one.
 inline constexpr double kMaxBallSpin = 500.0;  // rad/s
 
+// The part of a match being played (docs/match-clock.md).
+enum class MatchPeriod : std::uint8_t {
+  kFirstHalf,
+  kSecondHalf,
+  kFullTime,
+};
+
+// "firstHalf", "secondHalf", "fullTime"; "unknown" outside the enumerators.
+[[nodiscard]] std::string_view matchPeriodName(MatchPeriod period) noexcept;
+
+// Where the match clock stands (docs/match-clock.md): the period, the tick it
+// started at, the real seconds of play lost in it so far, and the added time
+// announced once its regulation time was up. At full time it keeps the second
+// half's.
+struct MatchClock {
+  MatchPeriod period = MatchPeriod::kFirstHalf;
+  SimCore::SimTick periodStart = SimCore::SimTick(0);
+  double lostSeconds = 0.0;
+  std::optional<int> addedMinutes = std::nullopt;
+
+  friend bool operator==(const MatchClock&, const MatchClock&) = default;
+};
+
 // The goals each side has scored.
 struct Score {
   int home = 0;
@@ -275,6 +311,7 @@ enum class MatchStateErrorCode : std::uint8_t {
   kPlayerTooFast,
   kNonFinitePlayerTarget,
   kInvalidPlayerFacing,
+  kInvalidPlayerFitness,
   kNonFiniteBallPosition,
   kBallOutsidePitch,
   kNonFiniteBallVelocity,
@@ -516,6 +553,8 @@ class MatchState {
   // created from a spec, whatever score it starts at.
   [[nodiscard]] const Score& score() const noexcept { return score_; }
   [[nodiscard]] const std::optional<GoalRecord>& lastGoal() const noexcept { return lastGoal_; }
+  // A new state stands at the start of the first half.
+  [[nodiscard]] const MatchClock& clock() const noexcept { return clock_; }
 
   // The last pass kicked, the last shot taken and the last reception of a
   // free ball; empty in every state created from a spec, until the ball
@@ -604,6 +643,7 @@ class MatchState {
   std::optional<ReceptionRecord> lastReception_;
   Score score_;
   std::optional<GoalRecord> lastGoal_;
+  MatchClock clock_;
   TeamPossession possession_;
   // Home, away.
   std::array<std::optional<TeamPhase>, 2> phases_;
@@ -617,10 +657,10 @@ class MatchState {
 };
 
 // What a simulation system or command may change in a state: positions,
-// velocities, movement targets, facings, perception memories, the ball's
+// velocities, movement targets, facings, fitness, perception memories, the ball's
 // height, vertical velocity and spin, who owns and
 // last touched the ball, the players' pending actions, the last pass and shot and reception, the
-// score, team possession and phases, the
+// score, the match clock, team possession and phases, the
 // pitch-control grid, the chasers, presses and players' tactical states,
 // nothing else. Squad, ids, sides,
 // attributes, player order and the pitch have no setter, so a system cannot break those invariants
@@ -635,6 +675,8 @@ class MatchStateWriter {
   void setPlayerTarget(std::size_t playerIndex, std::optional<SimCore::Vec2> target);
   // The facing must be a unit vector; the loop rejects any other.
   void setPlayerFacing(std::size_t playerIndex, SimCore::Vec2 facing);
+  // The loop rejects a fitness outside its ranges (PlayerFitness).
+  void setPlayerFitness(std::size_t playerIndex, const PlayerFitness& fitness);
   // The memory of the player at this index, to update in place.
   [[nodiscard]] PlayerPerception& perception(std::size_t playerIndex);
   // The ball as every system so far this step has left it, unlike
@@ -693,6 +735,11 @@ class MatchStateWriter {
     return state_->lastShot_;
   }
   void setLastReception(std::optional<ReceptionRecord> reception);
+  // The clock as this step has left it so far.
+  [[nodiscard]] const MatchClock& clock() const noexcept { return state_->clock_; }
+  void setClock(const MatchClock& clock) noexcept { state_->clock_ = clock; }
+  // Adds real seconds of play lost to a stoppage to the period's lost time.
+  void addLostSeconds(const double seconds) noexcept { state_->clock_.lostSeconds += seconds; }
   // Counts a goal for the record's side and keeps the record as the last
   // goal; throws std::invalid_argument for a scorer not in the state.
   void addGoal(const GoalRecord& goal);

@@ -125,6 +125,25 @@ void appendFacingErrors(const std::size_t index, const PlayerMatchState& player,
   }
 }
 
+void appendFitnessErrors(const std::size_t index, const PlayerMatchState& player,
+                         std::vector<MatchStateError>& errors) {
+  const PlayerFitness& fitness = player.fitness;
+  // False for NaN.
+  const bool valid = fitness.sprintReserve >= 0.0 && fitness.sprintReserve <= 1.0 &&
+                     fitness.playedTicks >= 0 && fitness.topSpeedShare > 0.0 &&
+                     fitness.topSpeedShare <= 1.0;
+  if (!valid) {
+    errors.push_back({.code = MatchStateErrorCode::kInvalidPlayerFitness,
+                      .message = describePlayer(index, player) + " has sprint reserve " +
+                                 std::to_string(fitness.sprintReserve) + ", " +
+                                 std::to_string(fitness.playedTicks) +
+                                 " played ticks and top speed share " +
+                                 std::to_string(fitness.topSpeedShare) +
+                                 ", expected a reserve in [0, 1], no negative ticks and a share "
+                                 "in (0, 1]"});
+  }
+}
+
 void appendAttributeErrors(const std::size_t index, const PlayerMatchState& player,
                            std::vector<MatchStateError>& errors) {
   const PlayerAttributes& attributes = player.attributes;
@@ -247,6 +266,7 @@ void validatePlayers(const MatchStateSpec& spec, std::vector<MatchStateError>& e
     appendAttributeErrors(index, player, errors);
     appendNonFinitePlayerErrors(index, player, errors);
     appendFacingErrors(index, player, errors);
+    appendFitnessErrors(index, player, errors);
     ++index;
   }
 }
@@ -434,6 +454,11 @@ void MatchStateWriter::setPlayerVelocity(const std::size_t playerIndex,
 
 void MatchStateWriter::setPlayerFacing(const std::size_t playerIndex, const SimCore::Vec2 facing) {
   state_->players_.at(playerIndex).facing = facing;
+}
+
+void MatchStateWriter::setPlayerFitness(const std::size_t playerIndex,
+                                        const PlayerFitness& fitness) {
+  state_->players_.at(playerIndex).fitness = fitness;
 }
 
 void MatchStateWriter::setBallOwner(const std::optional<SimCore::PlayerId> owner) {
@@ -648,6 +673,7 @@ std::vector<MatchStateError> findNonFiniteValues(const MatchState& state) {
   for (std::size_t index = 0; const PlayerMatchState& player : state.players()) {
     appendNonFinitePlayerErrors(index, player, errors);
     appendFacingErrors(index, player, errors);
+    appendFitnessErrors(index, player, errors);
     ++index;
   }
   appendNonFiniteBallErrors(state.ball(), errors);
