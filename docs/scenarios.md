@@ -28,6 +28,9 @@ one.
 | `goal-kickoff` | the clear chance with tactics and restarts, the kickoff after the goal ([restarts](match-engine.md#the-kickoff)) |
 | `hopeless-angle` | home player 1 on the goal line wide of the post, a teammate free |
 | `blocked-lane` | home player 1 twelve meters out, a defender in the way, a teammate free |
+| `early-cross` | home player 1 wide in the final third crosses for a striker running into the box ([crossing](on-ball.md#crossing)) |
+| `cut-back` | home player 1 wide near the goal line cuts the ball back to a teammate at the edge of the area |
+| `cross-keeper-claims` | home player 1 crosses against a keeper quicker than he imagines, who claims it |
 | `curl-around-wall` | home player 1 sixteen meters out, a wall of three in front of him, curls the ball around it ([shot types](on-ball.md#shot-types)) |
 | `chip-advanced-keeper` | home player 1 sixteen meters out, the keeper eight meters off his line, chips him |
 | `keeper-arc` | home player 1 carries the ball across in front of away's goal, the keeper moves with it ([goalkeeper](goalkeeper.md#positioning-and-sweeping)) |
@@ -204,6 +207,31 @@ saved driven, at least 90 seeds chip him and at least 30 score. Both replay
 with the same events. The clear chance is also followed to its end:
 the first shot is a goal in 55 to 90 of the seeds
 ([shooting](on-ball.md#shooting)).
+
+### The cross scenarios
+
+Home player 1 has the ball wide on the right in away's final third; away keeps
+goal with the reference tactic, home plays without one, and the home players a
+scenario sends into the box get their movement targets in the first step.
+Player 1 decides after two perception updates (`minHoldSeconds` 0.2 s).
+
+- **`early-cross`**: player 1 sixteen meters from the goal line by the
+  touchline; striker 2 runs from the edge of the area to the penalty spot, an
+  away centre back level with him on the far side.
+- **`cut-back`**: player 1 three meters from the goal line, looking into the
+  box; teammate 2 waits at the cut-back point, two away defenders stand on
+  their six-yard line.
+- **`cross-keeper-claims`**: the early cross against a keeper quicker off his
+  line (9 m/s, 8 m/s²) and surer of hand than the crosser imagines anyone --
+  he knows nobody's attributes.
+
+`tests/acceptance/crossScenarioTests.cpp` plays each for three seconds over 30
+seeds. The early cross is crossed at least 20 times, always in the air and for
+the striker, who gets to it first at least 8 times and heads it at least 3. The
+cut-back is cut back along the ground at least 25 times and reaches teammate 2
+at least 25. The quick keeper claims the cross in at least half the seeds and
+at least 5 more often than the ordinary keeper of the early cross. Two runs of
+each give the same events.
 
 ### The goalkeeper scenarios
 

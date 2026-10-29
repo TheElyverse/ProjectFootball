@@ -134,10 +134,13 @@ struct ShotStrike {
 // (shotErrorFactor()) widens them all. A shot aimed at the grass or below it
 // is struck along it and rolls. A target on the ball itself is struck along
 // the shooter's facing.
+// The aim strays along `strayAxis`, a unit vector: the goal line for a shot,
+// across the ball's way for a cross (docs/on-ball.md#crossing).
 [[nodiscard]] ShotStrike executeShot(const ShotIntent& intent, SimCore::Vec2 from,
                                      const PlayerMatchState& shooter, double errorFactor,
                                      const ShotConfig& config, const BallPhysics& physics,
-                                     SimCore::RandomNumberGenerator& random) noexcept;
+                                     SimCore::RandomNumberGenerator& random,
+                                     SimCore::Vec2 strayAxis = {.x = 0.0, .y = 1.0}) noexcept;
 
 // A shot coming off a body: the ball where it is, leaving with a share of its
 // speed, off its line and lifted, without spin, and whether that blocked it.
