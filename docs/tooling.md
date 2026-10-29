@@ -868,8 +868,9 @@ of both sides with their intervals, and the mean and slowest match time.
 robin of the three [tactical identities](tactics.md#tactical-identities),
 eleven a side on the standard pitch, twenty six-minute matches per pairing with
 seed 1 and one sampled replay per pairing. It must finish without an invalid
-value within 5 s per match and 300 s for all 180 (about 30 s locally with 16
-jobs at the time of writing), every sampled replay must reproduce, and the
+value within 5 s per match and 450 s for all 180 together — the sum of their
+times, not the elapsed time (a sum of about 120 s locally at the time of
+writing), every sampled replay must reproduce, and the
 styles must separate where their identities promise:
 
 | Metric                  | Separation                              |
@@ -907,16 +908,15 @@ Two guardrails also apply:
 The test is registered for Release builds only; in Debug it would take minutes.
 
 **The full run** is twenty 90-minute matches per pairing, the command above.
-Its results at the time of writing (core 0.18.0) are in
+Its results at the time of writing (core 0.34.0, eleven a side) are in
 [tactical identities](tactics.md#over-whole-matches).
 
 ### P2 performance budget
 
-A 90-minute seven-a-side match with the standard systems, restarts on and two
-P2 tactics must simulate in **under 10 seconds** on one core of a CI-class
-machine, Release build. At the time of writing a pressing-against-counter match
-takes about 5.8 s (2-core cloud container, GCC 13): headroom for the P3
-systems. `--max-seconds-per-match 10` checks it.
+Since the P2 tactics play eleven a side, a 90-minute match has the budget of
+the [eleven-a-side match](match-engine.md#performance): under 45 s, which the
+Release-only `eleven-a-side-budget` test checks. A 90-minute seven-a-side match
+of the seven-a-side presets took about 5.8 s (2-core cloud container, GCC 13).
 
 Debug builds are around ten times slower; the smoke test therefore plays two
 one-minute matches only.

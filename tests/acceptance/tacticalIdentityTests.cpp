@@ -69,7 +69,7 @@ constexpr std::uint64_t kRegainSeeds = 60;
 }
 
 // Where home won the ball back over one-minute tactic matches against the
-// reference tactic, one per seed.
+// eleven-a-side reference tactic, one per seed.
 struct RegainTally {
   int regains = 0;
   // Regains in the opponent's half.

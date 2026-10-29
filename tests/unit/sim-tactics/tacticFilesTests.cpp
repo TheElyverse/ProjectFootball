@@ -77,6 +77,18 @@ TEST_CASE("The reference tactic file equals the reference tactic in code", "[tac
   REQUIRE(eleven->slots().size() == 11);
 }
 
+TEST_CASE("The seven-a-side presets keep their identity's principles and phases", "[tacticFiles]") {
+  for (const std::string name : {"possession", "counter", "pressing"}) {
+    CAPTURE(name);
+    const Tactic eleven = preset(name);
+    const Tactic seven = preset(name + "-seven");
+    REQUIRE(seven.principles() == eleven.principles());
+    for (const TacticalPhase phase : ElyverseFootball::SimTactics::kAllPhases) {
+      REQUIRE(seven.instruction(phase) == eleven.instruction(phase));
+    }
+  }
+}
+
 TEST_CASE("The three tactical identities differ where their intent says", "[tacticFiles]") {
   // Eleven a side, and the seven-a-side presets the short scenarios use.
   for (const auto& [suffix, slots] : {std::pair{std::string(), std::size_t{11}},

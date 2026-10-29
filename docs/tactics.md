@@ -320,6 +320,7 @@ required one does.
 | `data/tactics/possession.json` | keeps the ball, counterpresses ([tactical identities](#tactical-identities)) |
 | `data/tactics/counter.json`   | deep block, vertical after a regain                  |
 | `data/tactics/pressing.json`  | high line, presses on every trigger                  |
+| `data/tactics/possession-seven.json`, `counter-seven.json`, `pressing-seven.json` | the seven-a-side presets of the three identities: the same principles and phases on seven slots, for seven-a-side scenarios |
 
 `tests/unit/sim-tactics/tacticFilesTests.cpp` loads every file in
 `data/tactics/`, checks that each is named after its tactic, and that
@@ -405,7 +406,7 @@ interval:
 
 | Metric                  | possession            | counter              | pressing               |
 |-------------------------|-----------------------|----------------------|------------------------|
-| possession share        | **0.53** [0.53, 0.54] | 0.45 [0.44, 0.45]    | 0.52 [0.51, 0.53]      |
+| possession share        | 0.53 [0.53, 0.54]     | 0.45 [0.44, 0.45]    | 0.52 [0.51, 0.53]      |
 | passes                  | 1095 [1068, 1122]     | **870** [842, 898]   | 1133 [1112, 1155]      |
 | pass completion         | 0.70 [0.69, 0.71]     | 0.71 [0.69, 0.72]    | **0.67** [0.66, 0.68]  |
 | mean pass length (m)    | 16.8 [16.7, 16.9]     | 16.9 [16.8, 17.0]    | **15.3** [15.2, 15.5]  |
@@ -428,13 +429,14 @@ possession and counter on 16, possession and pressing on 12:
 - **Counter** never presses, allows by far the most passes per defensive action,
   controls the least of the pitch and plays the fewest passes; still, the ball
   spends as much time in its attacking third as in pressing's.
-- **Possession** now has the most of the ball, which it did not on the
-  seven-a-side sandbox, and keeps it away from the opponent's third longest.
+- **Possession** has about as much of the ball as pressing, slightly more on
+  average, and the ball spends the least time in its attacking third: it
+  circulates deep.
 
 **What moved with eleven a side**, against the seven-a-side run at core 0.18.0:
-possession now owns the most of the ball and pressing no longer does — on the
-full pitch a press covers less of it, so pressing regains about a fifth less
-and its share falls back. Counter's PPDA rises from about 4 to almost 6, its
+pressing no longer clearly has the most of the ball — on the full pitch a press
+covers less of it, so pressing regains about a fifth less and its share falls
+back to possession's. Counter's PPDA rises from about 4 to almost 6, its
 deep block giving the opponent more room; passes get longer everywhere, as the
 pitch does. The seven-a-side presets play as before.
 
