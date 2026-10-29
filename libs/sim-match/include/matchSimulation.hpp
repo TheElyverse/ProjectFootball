@@ -171,7 +171,8 @@ struct MatchSimulationSpec {
 //
 // A step first applies the commands scheduled for its tick, then copies the
 // current state into the next one, runs every system due in that tick in order
-// against (current, next), and makes next current. The state before the
+// against (current, next), and makes next current. Once the state's clock
+// stands at full time no system runs: steps only advance the tick. The state before the
 // last step stays available as previousState(), which is what a presentation
 // layer interpolates between.
 //

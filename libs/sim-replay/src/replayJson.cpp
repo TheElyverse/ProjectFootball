@@ -75,6 +75,9 @@ using SimMatch::TeamSide;
                         {"decisionMaking", player.attributes.decisionMaking}};
   json["target"] = player.target ? vec2Json(*player.target) : Json(nullptr);
   json["facing"] = vec2Json(player.facing);
+  json["fitness"] = {{"sprintReserve", player.fitness.sprintReserve},
+                     {"playedTicks", player.fitness.playedTicks},
+                     {"topSpeedShare", player.fitness.topSpeedShare}};
   return json;
 }
 
@@ -346,28 +349,35 @@ constexpr std::int64_t kMaxGoals = 1'000'000;
 [[nodiscard]] PlayerMatchState readPlayer(const Field& field) {
   const Field attributes = field.member("attributes");
   const Field target = field.member("target");
-  return {.playerId = readPlayerId(field.member("id")),
-          .side = readSide(field.member("side")),
-          .position = readVec2(field.member("position")),
-          .velocity = readVec2(field.member("velocity")),
-          .attributes = {.maxSpeed = attributes.member("maxSpeed").number(),
-                         .acceleration = attributes.member("acceleration").number(),
-                         .shotAccuracy = attributes.member("shotAccuracy").number(),
-                         .shotTechnique = attributes.member("shotTechnique").number(),
-                         .strongFoot = readFoot(attributes.member("strongFoot")),
-                         .weakFootAccuracy = attributes.member("weakFootAccuracy").number(),
-                         .keeperPositioning = attributes.member("keeperPositioning").number(),
-                         .keeperAnticipation = attributes.member("keeperAnticipation").number(),
-                         .keeperReflexes = attributes.member("keeperReflexes").number(),
-                         .keeperHandling = attributes.member("keeperHandling").number(),
-                         .jumping = attributes.member("jumping").number(),
-                         .heading = attributes.member("heading").number(),
-                         .strength = attributes.member("strength").number(),
-                         .ballControl = attributes.member("ballControl").number(),
-                         .dribbling = attributes.member("dribbling").number(),
-                         .decisionMaking = attributes.member("decisionMaking").number()},
-          .target = target.isNull() ? std::nullopt : std::optional(readVec2(target)),
-          .facing = readVec2(field.member("facing"))};
+  const Field fitness = field.member("fitness");
+  return {
+      .playerId = readPlayerId(field.member("id")),
+      .side = readSide(field.member("side")),
+      .position = readVec2(field.member("position")),
+      .velocity = readVec2(field.member("velocity")),
+      .attributes = {.maxSpeed = attributes.member("maxSpeed").number(),
+                     .acceleration = attributes.member("acceleration").number(),
+                     .shotAccuracy = attributes.member("shotAccuracy").number(),
+                     .shotTechnique = attributes.member("shotTechnique").number(),
+                     .strongFoot = readFoot(attributes.member("strongFoot")),
+                     .weakFootAccuracy = attributes.member("weakFootAccuracy").number(),
+                     .keeperPositioning = attributes.member("keeperPositioning").number(),
+                     .keeperAnticipation = attributes.member("keeperAnticipation").number(),
+                     .keeperReflexes = attributes.member("keeperReflexes").number(),
+                     .keeperHandling = attributes.member("keeperHandling").number(),
+                     .jumping = attributes.member("jumping").number(),
+                     .heading = attributes.member("heading").number(),
+                     .strength = attributes.member("strength").number(),
+                     .ballControl = attributes.member("ballControl").number(),
+                     .dribbling = attributes.member("dribbling").number(),
+                     .decisionMaking = attributes.member("decisionMaking").number()},
+      .target = target.isNull() ? std::nullopt : std::optional(readVec2(target)),
+      .facing = readVec2(field.member("facing")),
+      .fitness = {
+          .sprintReserve = fitness.member("sprintReserve").number(),
+          .playedTicks =
+              fitness.member("playedTicks").integerIn(0, std::numeric_limits<std::int64_t>::max()),
+          .topSpeedShare = fitness.member("topSpeedShare").number()}};
 }
 
 [[nodiscard]] std::uint64_t readUnsigned(const Field& field, const int base,
@@ -903,6 +913,24 @@ void fieldsOf(Visitor& visit, SimMatch::AerialConfig& aerial) {
 }
 
 template <typename Visitor>
+void fieldsOf(Visitor& visit, SimMatch::MatchClockConfig& clock) {
+  visit.number("durationMinutes", clock.durationMinutes);
+  visit.side("openingKickoff", clock.openingKickoff);
+  visit.number("throwInLostSeconds", clock.throwInLostSeconds);
+  visit.number("goalKickLostSeconds", clock.goalKickLostSeconds);
+  visit.number("cornerLostSeconds", clock.cornerLostSeconds);
+  visit.number("kickoffLostSeconds", clock.kickoffLostSeconds);
+}
+
+template <typename Visitor>
+void fieldsOf(Visitor& visit, SimMatch::FitnessConfig& fitness) {
+  visit.number("sprintSpeedShare", fitness.sprintSpeedShare);
+  visit.number("sprintSeconds", fitness.sprintSeconds);
+  visit.number("recoverySeconds", fitness.recoverySeconds);
+  visit.number("fullMatchSpeedLoss", fitness.fullMatchSpeedLoss);
+}
+
+template <typename Visitor>
 void fieldsOf(Visitor& visit, MatchConfig& config) {
   visit.integer("ticksPerSecond", config.ticksPerSecond, 1, kMaxIntervalTicks);
   visit.object("ball", config.ball);
@@ -924,6 +952,8 @@ void fieldsOf(Visitor& visit, MatchConfig& config) {
   visit.object("goalkeeper", config.goalkeeper);
   visit.object("shotStopping", config.shotStopping);
   visit.object("aerial", config.aerial);
+  visit.object("clock", config.clock);
+  visit.object("fitness", config.fitness);
 }
 
 // Writes the fields it visits into a JSON object.
@@ -936,6 +966,10 @@ class ConfigWriter {
   void integer(const std::string_view key, const int value, std::int64_t /*min*/,
                std::int64_t /*max*/) {
     json_[std::string(key)] = value;
+  }
+
+  void side(const std::string_view key, const TeamSide value) {
+    json_[std::string(key)] = SimMatch::teamSideName(value);
   }
 
   template <typename Config>
@@ -967,6 +1001,10 @@ class ConfigReader {
   void integer(const std::string_view key, int& value, const std::int64_t min,
                const std::int64_t max) const {
     value = static_cast<int>(field_.member(key).integerIn(min, max));
+  }
+
+  void side(const std::string_view key, TeamSide& value) const {
+    value = readSide(field_.member(key));
   }
 
   template <typename Config>

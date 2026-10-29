@@ -15,6 +15,9 @@ export function fixture() {
   const frame = (tick, extra = {}) => ({
     tick,
     stateHash: "0000000000000000",
+    clock: "00:00",
+    period: "firstHalf",
+    endsChanged: false,
     ball: {
       position: [30, 20],
       velocity: [0, 0],

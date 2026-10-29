@@ -2,11 +2,16 @@ import type { PlayerFrame, Vec2 } from "./frames.js";
 
 // Maps pitch meters to canvas pixels: the whole pitch plus a margin, as large
 // as the canvas allows, centered. Canvas y grows downward like pitch y, so
-// y = 0 is the top touchline.
+// y = 0 is the top touchline -- unless mirrored, as once the teams have
+// changed ends: then the pitch is turned round, x = 0 on the right and y = 0
+// at the bottom.
 export class Viewport {
   readonly scale: number;
   readonly offsetX: number;
   readonly offsetY: number;
+  mirrored = false;
+  private readonly pitchLength: number;
+  private readonly pitchWidth: number;
 
   constructor(
     canvasWidth: number,
@@ -20,14 +25,27 @@ export class Viewport {
     this.scale = Math.max(Math.min(canvasWidth / totalLength, canvasHeight / totalWidth), 1e-6);
     this.offsetX = (canvasWidth - pitchLength * this.scale) / 2;
     this.offsetY = (canvasHeight - pitchWidth * this.scale) / 2;
+    this.pitchLength = pitchLength;
+    this.pitchWidth = pitchWidth;
   }
 
   toCanvas(point: Vec2): Vec2 {
-    return [this.offsetX + point[0] * this.scale, this.offsetY + point[1] * this.scale];
+    const [x, y] = this.turned(point);
+    return [this.offsetX + x * this.scale, this.offsetY + y * this.scale];
   }
 
   toPitch(point: Vec2): Vec2 {
-    return [(point[0] - this.offsetX) / this.scale, (point[1] - this.offsetY) / this.scale];
+    return this.turned([
+      (point[0] - this.offsetX) / this.scale,
+      (point[1] - this.offsetY) / this.scale,
+    ]);
+  }
+
+  // Half a turn round the centre spot when mirrored; its own inverse.
+  private turned(point: Vec2): Vec2 {
+    return this.mirrored
+      ? [this.pitchLength - point[0], this.pitchWidth - point[1]]
+      : [point[0], point[1]];
   }
 
   // A length in meters as pixels.

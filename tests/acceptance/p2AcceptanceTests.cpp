@@ -49,7 +49,7 @@ struct PressTally {
 // Home presses high on four triggers with the given intensity: at 0.25 a
 // single player commits, at 1.0 four do -- presser, lane blockers and cover.
 [[nodiscard]] PressTally homePresses(const double intensity) {
-  constexpr std::uint64_t seeds = 10;
+  constexpr std::uint64_t seeds = 100;
   auto spec = referenceTacticSpec();
   spec.name = "press";
   spec.principles.pressingLine = 0.5;
@@ -90,12 +90,13 @@ struct PressTally {
 
 TEST_CASE("P2: coordinated pressing wins the ball more often than a lone presser",
           "[acceptance][p2]") {
-  // Ten minutes of play each. A lone presser leaves the carrier's lanes
+  // A hundred minutes of play each (docs/team-tactics.md#coordination-pays): at
+  // the time of writing 0.38 against 0.32. A lone presser leaves the carrier's lanes
   // open; a coordinated press closes the nearest ones and covers behind.
   const PressTally lone = homePresses(0.25);
   const PressTally coordinated = homePresses(1.0);
   CAPTURE(lone.presses, lone.regained, coordinated.presses, coordinated.regained);
-  REQUIRE(lone.presses >= 50);
-  REQUIRE(coordinated.presses >= 50);
-  REQUIRE(coordinated.successRate() > lone.successRate() + 0.05);
+  REQUIRE(lone.presses >= 500);
+  REQUIRE(coordinated.presses >= 500);
+  REQUIRE(coordinated.successRate() > lone.successRate() + 0.03);
 }

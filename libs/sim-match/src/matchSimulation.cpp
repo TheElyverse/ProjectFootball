@@ -302,8 +302,10 @@ std::expected<SimCore::SimTick, MatchStepError> MatchSimulation::step() {
                                           .sweeps = &stepSweepDiagnostics_,
                                           .filter = &diagnosticsFilter_}
           : MatchStepContext::Diagnostics{});
+  // After the final whistle nothing moves (docs/match-clock.md#full-time).
+  const bool over = current.clock().period == MatchPeriod::kFullTime;
   for (const MatchSystem& system : systems_) {
-    if (!isDue(system, context.tick())) {
+    if (over || !isDue(system, context.tick())) {
       continue;
     }
     try {

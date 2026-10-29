@@ -16,9 +16,9 @@ namespace ElyverseFootball::SimMatch {
   return side == TeamSide::kHome ? TeamSide::kAway : TeamSide::kHome;
 }
 
-// The direction along x a side attacks: +1 for home, -1 for away. Fixed in
-// the sandbox, which has no halves and in which every scenario places home at
-// x = 0; the one place to change once rules let teams switch ends.
+// The direction along x a side attacks: +1 for home, -1 for away, in both
+// halves. When the teams change ends the frame stays with them; only a view
+// turns the pitch round (docs/match-clock.md#halves).
 [[nodiscard]] double attackingDirection(TeamSide side) noexcept;
 
 // The end of the pitch whose goal the side defends.

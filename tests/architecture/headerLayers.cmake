@@ -15,14 +15,15 @@ set(model
 # Pure functions of physics, geometry and execution, and the queries every
 # decision asks.
 set(mechanics
-        aerialDuels ballPhysics carrierScan goalFrame goalkeeper passing reception shooting
-        spatialQueries teamFrame zones)
+        aerialDuels ballPhysics carrierScan fitness goalFrame goalkeeper matchClock passing
+        reception shooting spatialQueries teamFrame zones)
 # The fixed-timestep loop and the interface of its systems.
 set(loop matchSimulation)
 # The decisions and the systems that run them.
 set(behaviour
         ballMovement carrying defensiveActions desiredRegion distribution duel offBallActions
-        crossCandidates passCandidates passDecision perception pitchControl playerMovement
+        crossCandidates matchClockSystem passCandidates passDecision perception pitchControl
+        playerMovement
         pursuit restart
         shotCandidates shotStopping tacticalMovement tacticalPhases teamPressing)
 # Configuration and fixtures that put whole matches together.

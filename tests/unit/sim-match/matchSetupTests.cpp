@@ -6,6 +6,7 @@
 
 #include "ballMovement.hpp"
 #include "kickoffScenario.hpp"
+#include "matchClockSystem.hpp"
 #include "matchCommand.hpp"
 #include "matchSetup.hpp"
 #include "matchSimulation.hpp"
@@ -13,12 +14,14 @@
 #include "perception.hpp"
 #include "playerMovement.hpp"
 #include "pursuit.hpp"
+#include "restart.hpp"
 #include "shotStopping.hpp"
 
 using ElyverseFootball::SimCore::PlayerId;
 using ElyverseFootball::SimCore::SimTick;
 using ElyverseFootball::SimMatch::kBallMovementSystemName;
 using ElyverseFootball::SimMatch::kDuelSystemName;
+using ElyverseFootball::SimMatch::kMatchClockSystemName;
 using ElyverseFootball::SimMatch::kPassDecisionSystemName;
 using ElyverseFootball::SimMatch::kPerceptionSystemName;
 using ElyverseFootball::SimMatch::kPhaseSystemName;
@@ -26,6 +29,7 @@ using ElyverseFootball::SimMatch::kPitchControlSystemName;
 using ElyverseFootball::SimMatch::kPlayerMovementSystemName;
 using ElyverseFootball::SimMatch::kPressingSystemName;
 using ElyverseFootball::SimMatch::kPursuitSystemName;
+using ElyverseFootball::SimMatch::kRestartSystemName;
 using ElyverseFootball::SimMatch::kShotStoppingSystemName;
 using ElyverseFootball::SimMatch::kTacticalMovementSystemName;
 using ElyverseFootball::SimMatch::makeMatchSystems;
@@ -65,7 +69,17 @@ TEST_CASE("The standard systems run in their documented order", "[matchSetup]") 
                        std::string(kTacticalMovementSystemName), std::string(kPursuitSystemName),
                        std::string(kPassDecisionSystemName), std::string(kDuelSystemName),
                        std::string(kShotStoppingSystemName), std::string(kPlayerMovementSystemName),
-                       std::string(kBallMovementSystemName)});
+                       std::string(kBallMovementSystemName), std::string(kMatchClockSystemName)});
+
+  MatchConfig restarts;
+  restarts.restarts.enabled = true;
+  names.clear();
+  for (const MatchSystem& system : makeMatchSystems(restarts)) {
+    names.push_back(system.name);
+  }
+  REQUIRE(names.size() == 13);
+  REQUIRE(names[11] == kRestartSystemName);
+  REQUIRE(names[12] == kMatchClockSystemName);
 }
 
 TEST_CASE("startMatch runs the setup with the standard systems", "[matchSetup]") {

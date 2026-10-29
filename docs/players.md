@@ -102,9 +102,37 @@ reach 7.5 m/s over 7 m, 0.8 s at full speed, 1.9 s braking over the last 7 m.
 
 ### What this is not
 
-No reaction time, no fatigue, no turning rate, no collisions: two players can
-stand on the same spot. Where a player should go is for the tactical systems;
+No reaction time, no turning rate, no collisions: two players can stand on the
+same spot. How fast a tired player can still run is [fitness](#fitness). Where a player should go is for the tactical systems;
 this model only decides how he gets there.
+
+## Fitness
+
+Players tire in two ways (game design document §8.10), both in
+`PlayerMatchState::fitness` and both stepped every tick by the
+[match clock](match-clock.md) system with `stepFitness()` (`fitness.hpp`):
+
+- **Over the match**, in the share of the duration he has been on the pitch:
+  `playedTicks` over the ticks of both halves. After the whole duration he has
+  lost `fullMatchSpeedLoss` (6 %) of his top speed, linearly on the way, so a
+  ten-minute match tires as a ninety-minute one: nine minutes of ten cost what
+  81 of 90 do, 5.4 %. Added time tires no further.
+- **In a sprint**, in real seconds. Running faster than `sprintSpeedShare`
+  (85 %) of his `maxSpeed` drains his `sprintReserve` from 1 to 0 in
+  `sprintSeconds` (15 s); running slower fills it again in `recoverySeconds`
+  (45 s). With his reserve empty he runs at most at sprint speed. The same run
+  costs the same, whatever the duration.
+
+`topSpeedShare` is the share of his `maxSpeed` the two leave him, and
+`runningSpeed()` — what the movement system moves him at, and what carrying and
+pursuit predict with — starts from it, with or without the ball. The judgements
+of other systems, such as [pitch control](team-tactics.md#pitch-control) and
+the passes' interception risks, still take every player as fresh.
+
+`FitnessConfig` is part of `MatchConfig` and of every replay; a player's
+fitness is part of the initial snapshot. At the time of writing players sprint
+in about 6 % of their ticks in an eleven-a-side tactic match and practically
+never empty their reserve.
 
 ## Perception
 

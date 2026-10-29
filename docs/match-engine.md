@@ -245,17 +245,19 @@ play, `sim-tactics`. Nothing here advances time: the
 
 | Type               | Contents                                                                        |
 |--------------------|---------------------------------------------------------------------------------|
-| `MatchState`       | the `Pitch`, the players in order, the `BallState`, the squad size per side, every player's perception memory, and each side's tactic |
-| `PlayerMatchState` | `playerId`, `side`, `position`, `velocity`, `attributes`, `target`, `facing`    |
+| `MatchState`       | the `Pitch`, the players in order, the `BallState`, the squad size per side, every player's perception memory, each side's tactic, and the [match clock](match-clock.md) |
+| `PlayerMatchState` | `playerId`, `side`, `position`, `velocity`, `attributes`, `target`, `facing`, `fitness` ([fitness](players.md#fitness)) |
 | `PlayerAttributes` | fixed for the match; see below                                                   |
 | `BallState`        | `position`, `velocity`, `height`, `verticalVelocity`, `spin`, `sideSpin`, `owner`, `lastTouch`, `held`, `touch` |
 | `TeamSide`         | `kHome` or `kAway`                                                              |
 
 Positions are meters and velocities meters per second, in the plane of
 [match geometry](#match-geometry). The coordinates are fixed, so `TeamSide`
-names a squad, not its direction. The sandbox has no halves: home defends
-`x = 0` and attacks `+x` in every match. Systems take the direction from
-`attackingDirection()`, the one place to change once teams switch ends.
+names a squad, not its direction: home defends `x = 0` and attacks `+x` in
+every match and both halves. Systems take the direction from
+`attackingDirection()`. When the teams change ends at half time, the frame stays
+with them; only a view turns the pitch round
+([halves](match-clock.md#halves)).
 
 `target` is where the player is moving to; empty until a command sets one, and
 without one he stops ([player movement](players.md#player-movement)). `facing`
@@ -631,7 +633,8 @@ them in their fixed order. Each system's factory takes its configuration, or a
 | 9     | shot stopping   | every tick | the dive of the keeper facing a shot, once he has reacted, in his tactical state ([shot stopping](goalkeeper.md#shot-stopping)) |
 | 10    | player movement | every tick | player positions, velocities, facings -- toward the ball as the systems before it left it --; a keeper busy with a dive where it takes him, a player off his feet nowhere |
 | 11    | ball movement   | every tick | ball position, velocity, owner, last touch, last pass and shot, the score and the last goal, a keeper's dive once the ball passed him; plays the owner's pending pass or shot and clears every other ([shooting](on-ball.md#shooting)) |
-| 12    | restart         | every tick | ball owner, position, velocity and last touch after the ball went out or into a goal or a goalkeeper held it too long, and for a kickoff both sides' line-up; only with `restarts.enabled` ([restarts](#restarts)) |
+| 12    | restart         | every tick | ball owner, position, velocity and last touch after the ball went out or into a goal or a goalkeeper held it too long, and for a kickoff both sides' line-up; the clock's lost time; only with `restarts.enabled` ([restarts](#restarts)) |
+| 13    | match clock     | every tick | every player's fitness ([fitness](players.md#fitness)); the clock, its added time, and at half time both sides' line-up and the ball for the second half's kickoff ([match clock](match-clock.md)) |
 
 `MatchSetup` is everything such a match starts from: initial state, config, seed
 and commands. `startMatch(setup)` builds the simulation. A replay records a
@@ -908,8 +911,8 @@ targets, pending actions, [memories](players.md#perception), desired regions,
 presses, chasers or [pitch control](team-tactics.md#pitch-control) (its next
 refresh computes it anew) — so nothing of the play before the goal carries over.
 **The match clock** runs on as through every restart: a goal costs only the step
-the ball lies in the goal. No stoppage or added time yet; halves and a whistle
-will decide how long a kickoff takes.
+the ball lies in the goal, and the
+[added time](match-clock.md#added-time) makes up for the celebration.
 
 **The same kickoff starts a match.** The [tactic match](scenarios.md#the-tactic-match)
 begins in this line-up with home kicking off, whether restarts are enabled or

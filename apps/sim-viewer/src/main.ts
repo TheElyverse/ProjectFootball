@@ -90,6 +90,7 @@ function draw(): void {
   if (recording === null || playback === null || viewport === null) {
     return;
   }
+  viewport.mirrored = recording.frames[playback.index]?.endsChanged ?? false;
   renderFrame(context, viewport, recording, {
     frameIndex: playback.index,
     selectedPlayer,

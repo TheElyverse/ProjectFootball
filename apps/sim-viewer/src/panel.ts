@@ -73,6 +73,12 @@ function matchSection(recording: Recording, frame: Frame): HTMLElement[] {
       ["scenario", recording.scenario],
       ["seed", recording.seed],
       ["tick", `${frame.tick} (${number(frameSeconds(recording, frame), 2)} s)`],
+      [
+        "clock",
+        frame.clock === undefined
+          ? "-"
+          : `${frame.clock} (${frame.period ?? "-"}${frame.endsChanged === true ? ", ends changed" : ""})`,
+      ],
       ["state hash", frame.stateHash],
       ["ball owner", player(frame.ball.owner)],
       ["last touch", player(frame.ball.lastTouch)],
