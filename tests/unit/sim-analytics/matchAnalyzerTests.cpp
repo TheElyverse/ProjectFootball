@@ -227,6 +227,29 @@ TEST_CASE("Goals make the score, and full time the points", "[analytics]") {
   REQUIRE(analyze(drawn).away.points == 1);
 }
 
+TEST_CASE("Fouls and cards count against the offender's side", "[analytics]") {
+  using ElyverseFootball::SimMatch::Card;
+  using ElyverseFootball::SimMatch::FoulCalled;
+  using ElyverseFootball::SimMatch::FoulRestart;
+  const auto foul = [](const std::int64_t tick, const Card card) -> MatchEvent {
+    return FoulCalled{.tick = SimTick(tick),
+                      .side = TeamSide::kAway,
+                      .offender = PlayerId(3),
+                      .victim = PlayerId(1),
+                      .position = {.x = 30.0, .y = 20.0},
+                      .restart = FoulRestart::kFreeKick,
+                      .card = card,
+                      .fromBehind = false,
+                      .denyingGoal = false};
+  };
+  const MatchStats stats =
+      analyze({{foul(1, Card::kNone)}, {foul(2, Card::kYellow)}, {foul(3, Card::kSecondYellow)}});
+  REQUIRE(stats.away.fouls == 3);
+  REQUIRE(stats.away.yellowCards == 1);
+  REQUIRE(stats.away.redCards == 1);
+  REQUIRE(stats.home.fouls == 0);
+}
+
 TEST_CASE("A pass just short of the progressive distance is not progressive", "[analytics]") {
   MatchAnalyzer analyzer(context(), AnalyticsConfig{.progressiveMeters = 12.0, .ppdaZone = 0.6});
   analyzer.observeStep(std::vector{pass(1, 1, {.x = 10.0, .y = 10.0}, {.x = 21.9, .y = 10.0})});

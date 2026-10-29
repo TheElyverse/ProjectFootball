@@ -28,6 +28,9 @@ struct MatchClockConfig {
   double cornerLostSeconds = 6.0;     // s
   double kickoffLostSeconds = 30.0;   // s
   double freeKickLostSeconds = 10.0;  // s
+  double penaltyLostSeconds = 45.0;   // s
+  // And each card shown (docs/fouls.md#cards).
+  double cardLostSeconds = 15.0;  // s
 
   friend bool operator==(const MatchClockConfig&, const MatchClockConfig&) = default;
 };

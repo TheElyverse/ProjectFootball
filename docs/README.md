@@ -26,6 +26,8 @@ exists in code, one area each.
 - [Goalkeeper](goalkeeper.md): positioning and sweeping, shot stopping, and
   distribution.
 - [Duels](duels.md): duels on the ball, and aerial duels and headers.
+- [Fouls and cards](fouls.md): where fouls come from, free kicks, penalties,
+  advantage, cards and sending-offs.
 - [Team tactics in the match](team-tactics.md): phases, pitch control, zones and
   team shape, desired regions, off-ball movement, the defensive shape, and
   pressing.

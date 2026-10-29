@@ -48,6 +48,11 @@ MatchSystem makeMatchClockSystem(const MatchClockRules& rules) {
               [rules, half](const MatchStepContext& context, const MatchState& current,
                             MatchStateWriter& next) {
                 for (std::size_t index = 0; const PlayerMatchState& player : current.players()) {
+                  // Off the pitch nobody tires.
+                  if (!isOnPitch(player)) {
+                    ++index;
+                    continue;
+                  }
                   next.setPlayerFitness(
                       index,
                       stepFitness(player,
@@ -66,7 +71,9 @@ MatchSystem makeMatchClockSystem(const MatchClockRules& rules) {
                                     elapsed >= half + addedTicks(*clock.addedMinutes, rules.clock,
                                                                  rules.ticksPerSecond);
                 const bool shotOnItsWay = next.lastShot() && !next.lastShot()->resolved;
-                if (!timeUp || shotOnItsWay) {
+                // A foul's sending-off settles before the line-up (docs/fouls.md#cards).
+                const bool foulNow = next.lastFoul() && next.lastFoul()->tick == context.tick();
+                if (!timeUp || shotOnItsWay || foulNow) {
                   return;
                 }
                 context.record(PeriodEnded{.tick = context.tick(),

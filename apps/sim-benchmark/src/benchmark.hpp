@@ -14,7 +14,7 @@
 
 namespace ElyverseFootball::Benchmark {
 
-// The standard configuration with restarts and offside on -- over whole
+// The standard configuration with restarts, offside and fouls on -- over whole
 // matches, a ball waiting on the line would blur every statistic, and
 // attackers standing beyond the last defender would play a different game --
 // and ten-minute matches.

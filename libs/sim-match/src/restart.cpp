@@ -44,7 +44,7 @@ namespace {
   double nearestDistance = std::numeric_limits<double>::infinity();
   for (std::size_t index = 0; index < state.players().size(); ++index) {
     const PlayerMatchState& player = state.players()[index];
-    if (player.side != side) {
+    if (player.side != side || !isOnPitch(player)) {
       continue;
     }
     if (goalkeeperFirst && isGoalkeeper(state, index)) {
@@ -72,6 +72,11 @@ namespace {
   for (std::size_t index = 0; index < state.players().size(); ++index) {
     const PlayerMatchState& player = state.players()[index];
     const auto& tactic = state.tactics().of(player.side);
+    // A player sent off stays off the pitch.
+    if (!isOnPitch(player)) {
+      positions.push_back(player.position);
+      continue;
+    }
     if (!tactic) {
       const double depth = std::min(depthOf(player.side, player.position, pitch), halfway);
       positions.push_back(
@@ -146,8 +151,12 @@ std::string_view restartKindName(const RestartKind kind) noexcept {
       return "corner";
     case RestartKind::kKickoff:
       return "kickoff";
-    case RestartKind::kFreeKick:
-      return "freeKick";
+    case RestartKind::kIndirectFreeKick:
+      return "indirectFreeKick";
+    case RestartKind::kDirectFreeKick:
+      return "directFreeKick";
+    case RestartKind::kPenalty:
+      return "penalty";
   }
   return "unknown";
 }
@@ -234,22 +243,22 @@ SimCore::Vec2 kickoffFacing(const TeamSide side) noexcept {
 }
 
 bool awardFreeKick(const MatchStepContext& context, const MatchState& current,
-                   MatchStateWriter& next, const TeamSide side, const SimCore::Vec2 spot,
-                   const BallPhysics& physics, const MatchClockConfig& clock) {
+                   MatchStateWriter& next, const FreeKick& kick, const BallPhysics& physics,
+                   const MatchClockConfig& clock) {
+  const TeamSide side = kick.side;
+  const SimCore::Vec2 spot = kick.spot;
   const auto taker = takerOf(current, side, false, spot);
   if (!taker) {
     return false;
   }
   const PlayerMatchState& player = current.players()[*taker];
-  context.record(RestartTaken{.tick = context.tick(),
-                              .kind = RestartKind::kFreeKick,
-                              .player = player.playerId,
-                              .position = spot});
+  context.record(RestartTaken{
+      .tick = context.tick(), .kind = kick.kind, .player = player.playerId, .position = spot});
   if (next.ball().owner != player.playerId) {
     context.record(PossessionChanged{
         .tick = context.tick(), .previousOwner = next.ball().owner, .newOwner = player.playerId});
   }
-  next.addLostSeconds(lostSeconds(RestartKind::kFreeKick, clock));
+  next.addLostSeconds(lostSeconds(kick.kind, clock));
   // A shot still open was stopped by the whistle.
   if (const auto& shot = next.lastShot(); shot && !shot->resolved) {
     ShotRecord resolved = *shot;

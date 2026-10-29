@@ -70,7 +70,7 @@ TEST_CASE("Equal states hash equally", "[matchStateHash]") {
 TEST_CASE("The kickoff hash is pinned", "[matchStateHash]") {
   // Changes when the fixture, a state field or the hash encoding changes;
   // each of those invalidates recorded replays, so update it deliberately.
-  REQUIRE(hashOf(kickoffSpec()) == 0x02d0e7758142a42eULL);
+  REQUIRE(hashOf(kickoffSpec()) == 0x1ff41963b81c5e60ULL);
 }
 
 // Guards against a field that is added to the state but forgotten here.
@@ -117,6 +117,12 @@ TEST_CASE("Every field of the state changes the hash", "[matchStateHash]") {
       {"sprint reserve", [](auto& spec) { spec.players.at(4).fitness.sprintReserve = 0.5; }},
       {"played ticks", [](auto& spec) { spec.players.at(4).fitness.playedTicks = 7; }},
       {"top speed share", [](auto& spec) { spec.players.at(4).fitness.topSpeedShare = 0.9; }},
+      {"yellow cards", [](auto& spec) { spec.players.at(4).yellowCards = 1; }},
+      {"sent off",
+       [](auto& spec) {
+         spec.players.at(4).sentOff = true;
+         spec.players.at(4).position = {.x = 30.0, .y = -5.0};
+       }},
       {"ball position", [](auto& spec) { spec.ball.position.y = 1.0; }},
       {"ball velocity", [](auto& spec) { spec.ball.velocity.x = -1.0; }},
       {"ball height", [](auto& spec) { spec.ball.height = 2.0; }},

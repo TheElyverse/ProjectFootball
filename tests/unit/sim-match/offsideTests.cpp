@@ -259,7 +259,7 @@ TEST_CASE("A striker beyond the line who receives the pass is offside", "[offsid
   // An indirect free kick for away where he received it, its nearest player on
   // the ball.
   REQUIRE(clear.restarts.size() == 1);
-  REQUIRE(clear.restarts.front().kind == RestartKind::kFreeKick);
+  REQUIRE(clear.restarts.front().kind == RestartKind::kIndirectFreeKick);
   REQUIRE(clear.restarts.front().position == call.position);
   REQUIRE(clear.restarts.front().player == kKeeper);
 }

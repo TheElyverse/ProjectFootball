@@ -66,7 +66,7 @@ double passPressure(const MatchState& state, const std::size_t passerIndex,
   // the first without ever pushing the pressure past 1.
   double free = 1.0;
   for (const PlayerMatchState& other : state.players()) {
-    if (other.side != passer.side) {
+    if (other.side != passer.side && isOnPitch(other)) {
       const double distance = std::sqrt((other.position - passer.position).lengthSquared());
       free *= std::min(1.0, distance / config.pressureRadius);
     }

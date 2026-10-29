@@ -106,6 +106,9 @@ namespace {
       std::optional<SimCore::Vec2> option;
       double nearest = std::numeric_limits<double>::infinity();
       for (const PlayerMatchState& other : current.players()) {
+        if (!isOnPitch(other)) {
+          continue;
+        }
         const bool blocked = std::ranges::any_of(press->assignments, [&](const auto& role) {
           return role.role == PressRole::kBlockLane && role.subject == other.playerId;
         });
@@ -170,7 +173,8 @@ namespace {
   std::optional<std::size_t> nearest;
   double nearestDistance = config.idlePressRadius;
   for (std::size_t other = 0; other < current.players().size(); ++other) {
-    if (current.players()[other].side != player.side || isGoalkeeper(current, other)) {
+    if (current.players()[other].side != player.side || !isOnPitch(current.players()[other]) ||
+        isGoalkeeper(current, other)) {
       continue;
     }
     if (const double distance = SimCore::distance(current.players()[other].position, carrierAt);
@@ -290,7 +294,7 @@ MatchSystem makeTacticalMovementSystem(const TacticalMovementRules& rules) {
                   const auto& phase = current.phase(player.side);
                   const bool onTheBall = current.ball().owner == player.playerId;
                   const bool chasing = current.chaser(player.side) == player.playerId;
-                  if (!phase || onTheBall || chasing) {
+                  if (!phase || onTheBall || chasing || !isOnPitch(player)) {
                     continue;
                   }
                   const DesiredRegion region =

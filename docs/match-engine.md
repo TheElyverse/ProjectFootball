@@ -134,7 +134,8 @@ both factors are exactly one, so the markings are the Laws' numbers bit for
 bit.
 
 Markings are geometry, not rules: no line is a boundary by itself. Goals are
-[shooting](on-ball.md#goals); offside and penalties do not exist yet.
+[shooting](on-ball.md#goals); [offside](#offside) and [penalties](fouls.md)
+are rules of their own.
 
 ### Goals, areas, spots and arcs
 
@@ -248,8 +249,8 @@ play, `sim-tactics`. Nothing here advances time: the
 
 | Type               | Contents                                                                        |
 |--------------------|---------------------------------------------------------------------------------|
-| `MatchState`       | the `Pitch`, the players in order, the `BallState`, the squad size per side, every player's perception memory, each side's tactic, and the [match clock](match-clock.md) |
-| `PlayerMatchState` | `playerId`, `side`, `position`, `velocity`, `attributes`, `target`, `facing`, `fitness` ([fitness](players.md#fitness)) |
+| `MatchState`       | the `Pitch`, the players in order, the `BallState`, the squad size per side, every player's perception memory, each side's tactic, the [match clock](match-clock.md), the play the [offside](#offside) rule watches, and the last [foul](fouls.md) |
+| `PlayerMatchState` | `playerId`, `side`, `position`, `velocity`, `attributes`, `target`, `facing`, `fitness` ([fitness](players.md#fitness)), `yellowCards`, `sentOff` ([cards](fouls.md#cards)) |
 | `PlayerAttributes` | fixed for the match; see below                                                   |
 | `BallState`        | `position`, `velocity`, `height`, `verticalVelocity`, `spin`, `sideSpin`, `owner`, `lastTouch`, `held`, `touch` |
 | `TeamSide`         | `kHome` or `kAway`                                                              |
@@ -637,8 +638,9 @@ them in their fixed order. Each system's factory takes its configuration, or a
 | 10    | player movement | every tick | player positions, velocities, facings -- toward the ball as the systems before it left it --; a keeper busy with a dive where it takes him, a player off his feet nowhere |
 | 11    | ball movement   | every tick | ball position, velocity, owner, last touch, last pass and shot, the score and the last goal, a keeper's dive once the ball passed him; plays the owner's pending pass or shot and clears every other ([shooting](on-ball.md#shooting)) |
 | 12    | offside         | every tick | the play the rule watches, and after an offence the free kick: ball, taker and pending actions; only with `offside.enabled` ([offside](#offside)) |
-| 13    | restart         | every tick | ball owner, position, velocity and last touch after the ball went out or into a goal or a goalkeeper held it too long, and for a kickoff both sides' line-up; the clock's lost time; the offside exemption; only with `restarts.enabled` ([restarts](#restarts)) |
-| 14    | match clock     | every tick | every player's fitness ([fitness](players.md#fitness)); the clock, its added time, and at half time both sides' line-up and the ball for the second half's kickoff ([match clock](match-clock.md)) |
+| 13    | fouls           | every tick | after a duel's foul: the card, a sending-off, and unless advantage the free kick or penalty; only with `fouls.enabled` ([fouls](fouls.md)) |
+| 14    | restart         | every tick | ball owner, position, velocity and last touch after the ball went out or into a goal or a goalkeeper held it too long, and for a kickoff both sides' line-up; the clock's lost time; the offside exemption; only with `restarts.enabled` ([restarts](#restarts)) |
+| 15    | match clock     | every tick | every player's fitness ([fitness](players.md#fitness)); the clock, its added time, and at half time both sides' line-up and the ball for the second half's kickoff ([match clock](match-clock.md)) |
 
 `MatchSetup` is everything such a match starts from: initial state, config, seed
 and commands. `startMatch(setup)` builds the simulation. A replay records a
@@ -724,7 +726,8 @@ Every event carries the `tick` of its step and the players involved:
 | `PressingStarted`    | `side`, `carrier`, `trigger`, `assignments`                  | a side starts a [coordinated press](team-tactics.md#pressing); `trigger` is empty for a press of the pressing phase |
 | `PressingEnded`      | `side`, `outcome`                                            | the press ends: `ballRegained`, `passedOut` or `carrierEscaped` |
 | `PitchControlSampled` | `homeShare`, `ball`                                         | the [pitch control](team-tactics.md#pitch-control) grid is updated: home's share of the pitch and the ball's position, a regular sample for [analytics](tooling.md#match-analytics) |
-| `RestartTaken`       | `kind`, `player`, `position`                                 | play [restarts](#restarts) after the ball went out or into a goal: `throwIn`, `goalKick`, `corner` or `kickoff`, to `player`; `position` is where the ball left the pitch, the centre spot for a kickoff -- or after an [offside](#offside): `indirectFreeKick` where the offender was involved. `PossessionChanged` follows |
+| `RestartTaken`       | `kind`, `player`, `position`                                 | play [restarts](#restarts) after the ball went out or into a goal: `throwIn`, `goalKick`, `corner` or `kickoff`, to `player`; `position` is where the ball left the pitch, the centre spot for a kickoff -- or after an [offside](#offside): `indirectFreeKick` where the offender was involved; after a [foul](fouls.md): `directFreeKick` where it was, or `penalty` from the spot. `PossessionChanged` follows |
+| `FoulCalled`         | `side`, `offender`, `victim`, `position`, `restart`, `card`, `fromBehind`, `denyingGoal` | a foul judged ([fouls](fouls.md)): what the referee gave and the card |
 | `OffsideCalled`      | `side`, `player`, `passer`, `lineX`, `position`              | `player` of `side`, offside when `passer` played the ball, touched it at `position`; `lineX` is the offside line then ([offside](#offside)) |
 | `TacticChanged`      | `side`, `tactic`, `contentHash`                              | a [tactic change command](#tactic-changes) applies; `tactic` is the new tactic's name |
 | `ShotAttempted`      | `shooter`, `from`, `target`, `height`, `struckAt`, `struckHeight`, `speed`, `distance`, `opening`, `type` | a [shot](on-ball.md#shot-decisions) leaves the shooter's foot toward the aimed point and height; `struckAt` and `struckHeight` are the point and height it really left for, off by his [execution](on-ball.md#shooting) error; `distance` and `opening` are to and of the goal; `type` is how he struck it, `driven`, `curled` or `chipped` ([shot types](on-ball.md#shot-types)), a header always `driven`. `PossessionChanged` follows |
@@ -986,7 +989,7 @@ his side, the line in pitch `x` and where he became involved — and
 `awardFreeKick()` gives the other side an indirect free kick there: its player
 nearest the spot stands behind the ball at rest, facing the goal he attacks,
 every pending action is cleared, and the restart records `RestartTaken` of kind
-`freeKick` and costs its `freeKickLostSeconds` (10 s) of
+`indirectFreeKick` and costs its `freeKickLostSeconds` (10 s) of
 [added time](match-clock.md#added-time). Indirect means the taker plays it like
 any carrier; opponents are not held off the ball yet.
 

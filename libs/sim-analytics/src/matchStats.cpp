@@ -37,6 +37,9 @@ std::vector<Metric> metricsOf(const TeamStats& stats) {
       {.name = "shots", .value = count(stats.shots)},
       {.name = "goals", .value = count(stats.goals)},
       {.name = "offsides", .value = count(stats.offsides)},
+      {.name = "fouls", .value = count(stats.fouls)},
+      {.name = "yellowCards", .value = count(stats.yellowCards)},
+      {.name = "redCards", .value = count(stats.redCards)},
       {.name = "points", .value = stats.points ? count(*stats.points) : std::optional<double>()},
       {.name = "longestOwnershipSeconds", .value = stats.longestOwnershipSeconds}};
 }
