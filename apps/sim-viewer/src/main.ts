@@ -210,12 +210,17 @@ document.addEventListener("keydown", (event) => {
     case "Escape":
       selectedPlayer = null;
       break;
-    // The next or previous shot, save, goal or set piece.
+    // The next or previous shot, save, goal or set piece, paused there to
+    // step through it.
     case "n":
-      playback.seek(nextMoment(recording, playback.index, 1));
-      break;
+    case "N":
     case "p":
-      playback.seek(nextMoment(recording, playback.index, -1));
+    case "P":
+      if (event.ctrlKey || event.metaKey || event.altKey) {
+        return;
+      }
+      playback.pause();
+      playback.seek(nextMoment(recording, playback.index, event.key.toLowerCase() === "n" ? 1 : -1));
       break;
     default:
       return;

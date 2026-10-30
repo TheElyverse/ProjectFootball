@@ -22,7 +22,6 @@
 #include "passCandidate.hpp"
 #include "setPieces.hpp"
 #include "shotCandidates.hpp"
-#include "teamFrame.hpp"
 #include "version.hpp"
 #include "zones.hpp"
 
@@ -612,11 +611,7 @@ void addEventFields(Json& json, const SimMatch::PeriodEnded& event) {
         !SimMatch::guardsGoal(state.players(), state.tactics(), index)) {
       continue;
     }
-    const SimMatch::Goal goal = state.pitch().goal(SimMatch::ownGoalEnd(player.side));
-    const double toMin = SimCore::distance(ball, goal.postAtMinY());
-    const double toMax = SimCore::distance(ball, goal.postAtMaxY());
-    const double share = toMin + toMax > 0.0 ? toMin / (toMin + toMax) : 0.5;
-    const Vec2 onLine = goal.postAtMinY() + ((goal.postAtMaxY() - goal.postAtMinY()) * share);
+    const Vec2 onLine = SimMatch::goalBisector(player.side, ball, state.pitch()).foot;
     json.push_back({{"player", player.playerId.value()},
                     {"onLine", vec2Json(onLine)},
                     {"target", vec2Json(SimMatch::goalkeeperTarget(

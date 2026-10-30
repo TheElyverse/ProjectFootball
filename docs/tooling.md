@@ -657,7 +657,8 @@ values:
   `setPieceTargets()` gives — each `player` with his `target`
   ([set pieces](set-pieces.md#positions)). `keepers` holds, for each keeper of
   a side with a tactic and a phase, where the bisector of his posts' angle from
-  the ball meets his goal line (`onLine`) and his `target` on it
+  the ball meets his goal line (`onLine`) and the `target` he goes for, along
+  it but kept within his posts and off the line when the ball is on it
   ([where he stands](goalkeeper.md#where-he-stands)).
 - Frames carry `teams`: each side's `tactic` name, `phase`, the phase's
   `instruction` (`lineHeight`, `blockLength`, `blockWidth` as fractions of the
