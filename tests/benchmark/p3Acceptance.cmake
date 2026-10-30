@@ -64,24 +64,24 @@ foreach(index RANGE ${lastPairing})
 endforeach()
 
 # The guardrails: each style's mean per match, over its six sides of the round
-# robin, inside its band. The bands guard the measured baseline against a
-# change that breaks it, not against the numbers of real football, which the
-# baseline does not reach yet; docs/scenarios.md#p3-acceptance gives the
-# measurements, the reasoning for each band and real football's values.
+# robin, inside its band. The baseline is calibrated to real football (#232),
+# and the bands guard it against a change that breaks it;
+# docs/scenarios.md#p3-acceptance gives the measurements, the reasoning for
+# each band and real football's values.
 #
 #   metric          low   high   measured over seeds 1 to 5, all three styles
 set(bands
-        "goals          5     55"    # 11.2 to 36.3
-        "shots          14    125"   # 28.5 to 82.0
-        "passCompletion 0.60  0.80"  # 0.67 to 0.73
-        "possessionShare 0.35 0.65"  # 0.44 to 0.55
-        "fouls          0     15"    # 0.0 to 8.2
-        "offsides       0     15"    # 0.3 to 9.7
-        "corners        0.5   9"     # 1.3 to 5.5
-        "throwIns       0.5   8"     # 1.8 to 4.8
-        "goalKicks      1.5   16"    # 3.3 to 10.3
-        "freeKicks      0.5   16"    # 1.3 to 10.5
-        "penalties      0     1")    # 0.0 to 0.2
+        "goals          0.2   12"    # 0.5 to 7.2
+        "shots          2     40"    # 4.5 to 25.2
+        "passCompletion 0.70  0.88"  # 0.77 to 0.82
+        "possessionShare 0.30 0.70"  # 0.37 to 0.58
+        "fouls          1     30"    # 2.5 to 20.0
+        "offsides       0     10"    # 0.3 to 5.2
+        "corners        0.2   7"     # 0.5 to 3.7
+        "throwIns       2     20"    # 4.2 to 12.2
+        "goalKicks      1.5   10"    # 3.0 to 6.2
+        "freeKicks      2     28"    # 4.8 to 18.5
+        "penalties      0     1")    # 0.0 to 0.5
 foreach(style IN ITEMS possession counter pressing)
     foreach(band IN LISTS bands)
         string(REGEX REPLACE " +" ";" fields "${band}")
@@ -102,11 +102,11 @@ foreach(style IN ITEMS possession counter pressing)
 endforeach()
 
 # The rules fire: pressing, which takes carriers on most and keeps the highest
-# line, commits fouls and catches opponents offside in every whole match (4.3 to
-# 8.2 fouls and 6.0 to 9.7 offsides per match measured over seeds 1 to 5), so a
-# rule that stops being called fails here although the other styles' bands
-# start at 0. Penalties are too rare in nine matches to need one.
-foreach(floor IN ITEMS "fouls 1.5" "offsides 2")
+# line, commits fouls and catches opponents offside in every whole match (17.2
+# to 20.0 fouls and 3.8 to 5.2 offsides per match measured over seeds 1 to 5),
+# so a rule that stops being called fails here although the offsides band
+# starts at 0. Penalties are too rare in nine matches to need one.
+foreach(floor IN ITEMS "fouls 8" "offsides 2")
     string(REGEX REPLACE " +" ";" fields "${floor}")
     list(GET fields 0 metric)
     list(GET fields 1 low)

@@ -562,6 +562,9 @@ struct ShotIntent {
   // radians per meter, positive bending left (docs/on-ball.md#shot-types).
   ShotType type = ShotType::kDriven;
   double curvature = 0.0;
+  // Whether he places it from a ball laid still for him, with all the time he
+  // wants: a penalty (docs/set-pieces.md#penalties).
+  bool placed = false;
 
   friend bool operator==(const ShotIntent&, const ShotIntent&) = default;
 };

@@ -188,8 +188,8 @@ TEST_CASE("The way to the ball is clear in front of the carrier and blocked behi
   const DuelConfig config;
   const double inFront = wayClearance(geometry(kInFront), config);
   const double beside = wayClearance(geometry(kBeside), config);
-  // In front the way passes him half a meter off, (0.5 - 0.35) / 0.35.
-  REQUIRE_THAT(inFront, WithinAbs(0.15 / 0.35, 1e-12));
+  // In front the way passes him half a meter off, (0.5 - body) / body.
+  REQUIRE_THAT(inFront, WithinAbs((0.5 - config.bodyRadius) / config.bodyRadius, 1e-12));
   REQUIRE(beside > 0.0);
   REQUIRE(beside < inFront);
   REQUIRE(wayClearance(geometry(kBehind), config) == 0.0);

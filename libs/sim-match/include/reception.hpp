@@ -41,7 +41,9 @@ struct ReceptionConfig {
 // radius of each other. Both move in a straight line over the tick, from
 // their start to their end position. contactFraction is that moment as a
 // fraction of the tick, 0 if they start within reach; closestDistance is how
-// close they come at all during the tick.
+// close they come at all during the tick. A ball that starts within reach and
+// moves away from him is leaving him -- kicked on from beside him -- and no
+// contact (docs/ball.md#reception-interceptions-and-loose-balls).
 struct Contact {
   double contactFraction = 0.0;
   double closestDistance = 0.0;

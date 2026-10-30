@@ -19,7 +19,7 @@ struct ShotConfig {
   // meter to his target, for a player of average accuracy and technique --
   // what the shot decision assumes of him (ShotScoringConfig).
   double spreadAtZero = 0.2;     // m
-  double spreadPerMeter = 0.04;  // m per m
+  double spreadPerMeter = 0.11;  // m per m
   // The strike is up to this fraction harder or softer than intended, for a
   // player of average technique -- and never by more than half, however badly
   // he strikes it.
@@ -39,10 +39,17 @@ struct ShotConfig {
   // top speed the shooter moves at across or away from his shot; the weak
   // foot a foot without any accuracy; unsettled a ball he has only just
   // received at unsettledBallSpeed.
-  double pressureErrorFactor = 1.0;
+  double pressureErrorFactor = 3.5;
   double balanceErrorFactor = 1.0;
   double weakFootErrorFactor = 1.0;
   double unsettledErrorFactor = 1.0;
+  // A placed shot -- a penalty, from a still ball and in his own time -- errs
+  // this share of what the same strike in open play would: the spread above
+  // is open play's, hurried even in the clear. A cross, struck into an area
+  // rather than past a keeper, errs crossErrorShare of a shot
+  // (docs/on-ball.md#crossing).
+  double placedErrorShare = 0.5;
+  double crossErrorShare = 0.4;
   // A target this far to the side of his weaker foot is struck with it: the
   // cross product of his facing and the direction of the shot, 0.3 being
   // about 17 degrees.
@@ -91,6 +98,7 @@ struct ShotConditions {
   double imbalance = 0.0;
   bool weakFoot = false;
   double unsettled = 0.0;
+  bool placed = false;
 
   friend bool operator==(const ShotConditions&, const ShotConditions&) = default;
 };
@@ -106,7 +114,8 @@ struct ShotConditions {
                                             const PassConfig& passing);
 
 // How much the conditions widen a player's errors: 1 in the clear, standing
-// or running at his shot, on his strong foot, with a settled ball.
+// or running at his shot, on his strong foot, with a settled ball;
+// placedErrorShare of that for a placed shot.
 [[nodiscard]] double shotErrorFactor(const ShotConditions& conditions,
                                      const PlayerAttributes& attributes,
                                      const ShotConfig& config) noexcept;

@@ -229,6 +229,7 @@ void addPendingAction(StableHasher& hasher, const PendingAction& action) noexcep
     hasher.addDouble(shot->speed);
     hasher.addByte(static_cast<std::uint8_t>(shot->type));
     hasher.addDouble(shot->curvature);
+    hasher.addBool(shot->placed);
   }
   if (const auto* carry = std::get_if<CarryIntent>(&action)) {
     hasher.addU64(carry->carrier.value());

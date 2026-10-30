@@ -502,6 +502,18 @@ defensive meanings:
 The choice uses `temperature` (0.2). `DefensiveConfig` is part of `MatchConfig`
 and of every replay.
 
+**Near the own goal.** There a defender picks up the men about the ball rather
+than hold his place. For marking, tracking and covering, the urgency weighs up
+to `1 + dangerUrgency` (5) times as much and the region up to
+`1 − dangerRegionRelief` (0.1) times as much, by the danger: how near the ball
+is to the own goal, times how near his region's centre is — each 1 at the goal
+and 0 at `dangerShare` (0.48) of the pitch's length, 50 m on the standard pitch.
+So the defenders tighten up about their box while the forwards, whose places
+are far from it, stay up for the counter; pressing the ball and blocking lanes
+are the [press's](#pressing), and a set piece's places the
+[set piece](set-pieces.md) system's. Without it, receivers in the box stood free
+and shots came at twice real football's rate.
+
 ### When defenders decide
 
 Defensive decisions follow the cadence of off-ball decisions: every 6 ticks within

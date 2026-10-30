@@ -66,20 +66,21 @@ TEST_CASE("Documents that are not JSON objects are rejected", "[replayJson]") {
 }
 
 TEST_CASE("Other schema versions are rejected with the version found", "[replayJson]") {
-  requireRejected(validJsonWith("\"schemaVersion\": 24", "\"schemaVersion\": 1"),
+  requireRejected(validJsonWith("\"schemaVersion\": 25", "\"schemaVersion\": 1"),
                   ReplayErrorCode::kUnsupportedSchemaVersion,
                   "schema version 1 holds replay metadata only");
   // Older playable versions name the way to a current file.
-  for (const char* version : {"2",  "3",  "4",  "5",  "6",  "7",  "8",  "9",  "10", "11", "12",
-                              "13", "14", "15", "16", "17", "18", "19", "20", "21", "22", "23"}) {
+  for (const char* version :
+       {"2",  "3",  "4",  "5",  "6",  "7",  "8",  "9",  "10", "11", "12", "13",
+        "14", "15", "16", "17", "18", "19", "20", "21", "22", "23", "24"}) {
     requireRejected(
-        validJsonWith("\"schemaVersion\": 24", std::string("\"schemaVersion\": ") + version),
+        validJsonWith("\"schemaVersion\": 25", std::string("\"schemaVersion\": ") + version),
         ReplayErrorCode::kUnsupportedSchemaVersion,
         std::string("schema version ") + version +
-            " is no longer supported, expected 24; record the scenario again");
+            " is no longer supported, expected 25; record the scenario again");
   }
-  requireRejected(validJsonWith("\"schemaVersion\": 24", "\"schemaVersion\": 25"),
-                  ReplayErrorCode::kUnsupportedSchemaVersion, "unsupported schema version 25");
+  requireRejected(validJsonWith("\"schemaVersion\": 25", "\"schemaVersion\": 26"),
+                  ReplayErrorCode::kUnsupportedSchemaVersion, "unsupported schema version 26");
 }
 
 TEST_CASE("A replay from another core version is rejected", "[replayJson]") {
@@ -174,9 +175,9 @@ TEST_CASE("How a keeper stops shots is read from the initial state and the confi
   requireRejected(validJsonWith("\"keeperHandling\": 0.5", "\"keeperHandling\": 2.0"),
                   ReplayErrorCode::kInvalidSetup, "keeper handling 2");
 
-  const auto diving = parseReplayJson(validJsonWith("\"diveSpeed\": 6.0", "\"diveSpeed\": 7.0"));
+  const auto diving = parseReplayJson(validJsonWith("\"diveSpeed\": 7.0", "\"diveSpeed\": 8.0"));
   REQUIRE(diving.has_value());
-  REQUIRE(diving->setup.config.shotStopping.diveSpeed == 7.0);
+  REQUIRE(diving->setup.config.shotStopping.diveSpeed == 8.0);
   requireRejected(validJsonWith("\"diveSpeed\"", "\"diveSpeeds\""), kMalformed,
                   "config.shotStopping.diveSpeed: missing");
 }

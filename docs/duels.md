@@ -81,7 +81,7 @@ Each step reads `DuelGeometry`: the carrier, the defender, the ball and the
 centre of the goal the carrier attacks.
 
 - **The way to the ball** (`wayClearance()`): how far the straight line from
-  the defender to the ball passes the carrier, less `bodyRadius` (0.35 m), over
+  the defender to the ball passes the carrier, less `bodyRadius` (0.3 m), over
   `bodyRadius`, between 0 and 1. 0 means the way goes through him: the ball is
   shielded. In front of a carrier who faces the defender the way is clear by
   0.43, beside him by less, behind him not at all.
@@ -138,7 +138,7 @@ going straight from him to where it lands:
    `maxHold` (0.9) at 1.
    - better than the hold: **won** cleanly;
    - better than half the hold: knocked **loose** -- it leaves the foot at
-     `looseSpeed` (5 m/s) away from where the foot met it;
+     `looseSpeed` (12 m/s) away from where the foot met it;
    - worse: the carrier keeps it, and the lunge **missed**.
 3. **Missed**: anything else.
 
@@ -266,10 +266,10 @@ checked in `duelScenarioTests.cpp`, fouls included.
 | `turnStep`, `accelerateStep` | 2 m, 4 m | how far ahead a carrier runs turning away and accelerating |
 | `tackleReach`        | 1.8 m   | how far a lunge reaches                                      |
 | `footRadius`         | 0.3 m   | a foot this close to the ball meets it                       |
-| `bodyRadius`         | 0.35 m  | how wide the carrier's body is                               |
+| `bodyRadius`         | 0.3 m   | how wide the carrier's body is                               |
 | `footError`          | 0.3 m   | how far off the ball a balanced foot lands at most           |
 | `minHold`, `maxHold` | 0.3, 0.9 | the carrier's hold at a `ballControl` of 0 and of 1         |
-| `looseSpeed`         | 5 m/s   | how fast a ball knocked loose leaves                         |
+| `looseSpeed`         | 12 m/s  | how fast a ball knocked loose leaves                         |
 | `contactDistance`    | 1.2 m   | bodies this close push each other                            |
 | `shovePerSecond`     | 1       | the most balance pushing takes a second                      |
 | `commitCost`, `turnCost` | 0.3, 0.2 | the balance a lunge and a turn right round cost        |

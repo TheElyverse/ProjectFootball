@@ -26,6 +26,19 @@ using SimCore::Vec2;
              : BallReach{.radius = config.controlRadius, .height = config.controlHeight};
 }
 
+// Whether the ball's last touch let it go from his hands: he held it at the
+// start of the step, or the release is recorded as that touch.
+[[nodiscard]] bool releasedFromHands(const MatchState& state, const BallState& ball) {
+  if (!ball.lastTouch) {
+    return false;
+  }
+  if (state.ball().held && state.ball().owner == ball.lastTouch->playerId) {
+    return true;
+  }
+  const auto index = findPlayerIndex(state, ball.lastTouch->playerId);
+  return index && state.tactical(*index).handsReleased == ball.lastTouch->tick;
+}
+
 }  // namespace
 
 bool mayCompete(const MatchState& state, const BallState& ball, const std::size_t playerIndex,
@@ -36,13 +49,19 @@ bool mayCompete(const MatchState& state, const BallState& ball, const std::size_
     return false;
   }
   // The last touch cannot take the ball back until reclaimDelaySeconds after
-  // his touch.
+  // his touch, and nobody may stop a goalkeeper letting the ball go from his
+  // hands (Law 12): his opponents cannot play it that long either.
   const PlayerMatchState& player = state.players()[playerIndex];
-  if (!ball.lastTouch || ball.lastTouch->playerId != player.playerId) {
+  if (!ball.lastTouch) {
     return true;
   }
   const double sinceTouch = time.secondsSince(ball.lastTouch->tick);
-  return sinceTouch >= config.reclaimDelaySeconds;
+  if (ball.lastTouch->playerId == player.playerId) {
+    return sinceTouch >= config.reclaimDelaySeconds;
+  }
+  const auto toucher = findPlayerIndex(state, ball.lastTouch->playerId);
+  return !toucher || state.players()[*toucher].side == player.side ||
+         sinceTouch >= config.reclaimDelaySeconds || !releasedFromHands(state, ball);
 }
 
 bool hasHands(const MatchState& state, const std::size_t playerIndex, const Vec2 playerPosition,
@@ -119,10 +138,13 @@ std::optional<Contact> findContact(const Vec2 playerFrom, const Vec2 playerTo, c
 
   // |start + t·change|² = radius², the smaller root: a·t² + b·t + c = 0.
   const double startOutside = start.lengthSquared() - (radius * radius);
+  const double linear = 2.0 * start.dot(change);
   if (startOutside <= 0.0) {
+    if (linear > 0.0) {
+      return std::nullopt;
+    }
     return Contact{.contactFraction = 0.0, .closestDistance = closestDistance};
   }
-  const double linear = 2.0 * start.dot(change);
   const double discriminant = (linear * linear) - (4.0 * changeSquared * startOutside);
   const double fraction =
       (-linear - std::sqrt(std::max(discriminant, 0.0))) / (2.0 * changeSquared);

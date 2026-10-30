@@ -259,11 +259,13 @@ class BallTick {
         state, passer, ball.position, strike, context().time(), rules().shooting, rules().passing);
     const PlayerMatchState& crosser = state.players()[passer];
     const SimCore::Vec2 way = SimCore::unitOr(intent.target - ball.position, crosser.facing);
-    const ShotStrike struck = executeShot(
-        strike, ball.position, crosser,
-        shotErrorFactor(conditions, crosser.attributes, rules().shooting), rules().shooting,
-        rules().physics, context().random(SimCore::RandomNumberGeneratorDomain::kExecution),
-        {.x = -way.y, .y = way.x});
+    const ShotStrike struck =
+        executeShot(strike, ball.position, crosser,
+                    shotErrorFactor(conditions, crosser.attributes, rules().shooting) *
+                        rules().shooting.crossErrorShare,
+                    rules().shooting, rules().physics,
+                    context().random(SimCore::RandomNumberGeneratorDomain::kExecution),
+                    {.x = -way.y, .y = way.x});
     ball.velocity = struck.velocity;
     ball.verticalVelocity = struck.verticalVelocity;
     ball.spin = struck.spin;

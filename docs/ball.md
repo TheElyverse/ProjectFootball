@@ -335,6 +335,12 @@ player against the ball:
   gains the ball if they come within `controlRadius` (1 m) at any moment of the
   tick, so a fast pass cannot slip through a player between ticks.
   `findContact()` computes the first such moment.
+- **Leaving him.** A ball that starts the tick within his reach and moves away
+  from him — relative to him, so one he runs after faster than it goes still
+  comes to him — is no contact: kicked on from beside him, it is gone. Before,
+  a presser standing a metre from the carrier took every pass and touch off his
+  foot the moment it was played, even standing behind him; half the passes
+  under close pressure went that way.
 - **Reach upwards.** A ball higher than `controlHeight` (1 m) at the moment of
   contact passes over the player. The height comes from the flight at that
   moment (`ballHeightAfter()`), not from the ends of the tick, which miss a
@@ -344,6 +350,9 @@ player against the ball:
   ([aerial duels](duels.md#aerial-duels-and-headers)).
 - **No instant reclaim.** The ball's last touch cannot take it back for
   `reclaimDelaySeconds` (0.3 s), so a pass does not stick to the passer's foot.
+  Nobody may stop a goalkeeper letting the ball go from his hands (Law 12): his
+  opponents cannot play it that long either
+  ([goalkeeper](goalkeeper.md#positioning-and-sweeping)).
 - **On his feet.** A player off his feet after a
   [duel](duels.md#off-his-feet) takes no ball, also in the step he stumbled in.
 - **Not a fast shot.** A [shot](on-ball.md#shooting) that is still fast comes off

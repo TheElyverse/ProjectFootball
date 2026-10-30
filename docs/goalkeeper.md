@@ -44,17 +44,25 @@ every platform.
 
 | Situation                                              | Depth from the goal line |
 |--------------------------------------------------------|--------------------------|
-| the ball far up the pitch                              | `highDepthShare` (0.5) of his defensive line's depth, at most the depth of his penalty area |
-| his own side on the ball                               | that high depth times `possessionDepthShare` (0.5): behind his defenders, never level with them |
-| an opponent on the ball within `shotRange` of his goal | `lineDepth` (1.5 m)      |
-| in between                                             | from `lineDepth` to the high depth, by the ball's distance from his goal over his defensive line's depth |
+| the ball far up the pitch                              | `highDepthShare` (0.4) of his defensive line's depth, at most the depth of his penalty area |
+| his own side on the ball                               | that high depth times `possessionDepthShare` (0.4): behind his defenders, never level with them |
+| anyone on the ball within `shotRange` of his goal      | `lineDepth` (1.5 m)      |
+| someone on the ball between `shotRange` and the far distance | from `lineDepth` to the high depth, by how far between the two the ball is |
+| a loose ball                                           | from `lineDepth` to the high depth, by the ball's distance from his goal over the far distance |
 
 His defensive line is the outfield block's (`defensiveLineDepth()`, the same
 line [desired regions](team-tactics.md#desired-region) scale the block into): the phase's
 `lineHeight`, shifted with the ball by its `ballShift`. So a high line takes
 him up, a deep block keeps him near his goal. `shotRange` is the shot decision's
 `maxShotDistance` (25 m): the keeper treats as a threat what a shooter
-considers.
+considers. The far distance is his line's depth or twice `shotRange`, whichever
+is farther.
+
+He is on his line against a ball someone has within shot range, his own side
+too: a pass there may be lost and shot before he gets back. Standing high
+whenever his side had the ball, he conceded long shots straight after a
+turnover, 10 m and more off his line. A loose ball within range — a cross, a
+clearance in the air — leaves him higher, ready to come for it.
 
 He never stands beyond the ball, off the pitch, or wider than his posts by more
 than he stands off his goal line: near his line with the ball out wide he
@@ -130,6 +138,9 @@ passes and loose balls alike; a shot at his goal he meets with a dive instead
 ([shot stopping](#shot-stopping)). Outside his area he plays as an outfield
 player, with his feet. A ball he takes with his hands he holds: nobody takes
 him on for it in a [duel](duels.md#duels-on-the-ball), he throws or punts it,
+nobody may stop him letting it go (Law 12) — his opponents cannot play it until
+the reception's `reclaimDelaySeconds` (0.3 s) after it left his hands, so a
+forward standing beside him does not take his punt off his foot —,
 and once it has left his hands he may not take it in them again until another
 player has touched it ([distribution](#distribution)). There is no back-pass
 rule yet; holding the ball too long is the eight-second rule of
@@ -150,8 +161,8 @@ part of `ReceptionConfig`.
 | Field                  | Default | Meaning |
 |------------------------|---------|---------|
 | `lineDepth`            | 1.5 m   | how far off his line he stands against a shot |
-| `highDepthShare`       | 0.5     | his depth far from the ball, as a share of his defensive line's |
-| `possessionDepthShare` | 0.5     | the share of that depth he keeps with his own side on the ball |
+| `highDepthShare`       | 0.4     | his depth far from the ball, as a share of his defensive line's |
+| `possessionDepthShare` | 0.4     | the share of that depth he keeps with his own side on the ball |
 | `positionErrorAlong`   | 1.5 m   | how far off his target a keeper of positioning 0 may stand along his bisector |
 | `positionErrorAcross`  | 0.6 m   | the same across it |
 | `cautiousMargin`       | 0.5 s   | the head start he needs at sweeping 0 |
@@ -239,7 +250,7 @@ stopping system decides his dive, once per flight (`decideDive()`):
    with `predictPlanePassage()` — the same flight the ball system moves it on,
    curve included — and knows when it will get there.
 2. **Read.** He misreads where it passes him by a triangular draw across and
-   one up, each spread by `readError` (0.8 m) times `1 − keeperAnticipation`:
+   one up, each spread by `readError` (0.4 m) times `1 − keeperAnticipation`:
    two draws from the `kAi` stream, always. A keeper of anticipation 1 reads
    it exactly.
 3. **Plan.** He can run across his plane first and dive the rest. Of every run
@@ -265,16 +276,16 @@ unless he is still busy with his dive.
 
 ### Reach
 
-While he runs his hands stay ready, `readyHeight` (1.4 m) above his feet
+While he runs his hands stay ready, `readyHeight` (1.0 m) above his feet
 (`readyHands()`). Then they go in a straight line to his target at
-`diveSpeed` (6 m/s) (`handsAt()`). They reach no farther from his feet than an
+`diveSpeed` (7 m/s) (`handsAt()`). They reach no farther from his feet than an
 ellipse in his plane: `diveReach` (2.8 m) to either side along the ground and
 `jumpReach` (2.5 m) up (`clampToReach()`). The ellipse makes the top corner
-hard: with his body's reach he gets to a low ball 3.3 m to his side, to one
-just under the crossbar about 1.1 m. The farther the corner, the longer his
+hard: with his body's reach he gets to a low ball 3.5 m to his side, to one
+just under the crossbar about 1.3 m. The farther the corner, the longer his
 hands take; a run before the dive makes up for that if there is time.
 
-He **touches** the ball if its centre comes within `bodyReach` (0.5 m) of the
+He **touches** the ball if its centre comes within `bodyReach` (0.7 m) of the
 line from his feet to his hands (`touchesKeeper()`): his body, his arms and his
 hands. Before he has reacted — or if he left the ball — that is his body
 standing set, so a shot at him is still in his way.
@@ -374,12 +385,12 @@ replay:
 |-----------------------|----------|-------------------------------------------------------------|
 | `slowestReaction`     | 0.3 s    | how long a keeper of reflexes 0 takes to react              |
 | `quickestReaction`    | 0.1 s    | and one of reflexes 1                                        |
-| `readError`           | 0.8 m    | how far a keeper of anticipation 0 may misread where the ball passes him |
-| `readyHeight`         | 1.4 m    | his hands as he stands set                                  |
+| `readError`           | 0.4 m    | how far a keeper of anticipation 0 may misread where the ball passes him |
+| `readyHeight`         | 1.0 m    | his hands as he stands set                                  |
 | `diveReach`           | 2.8 m    | how far to the side of his feet his hands reach along the ground |
 | `jumpReach`           | 2.5 m    | how high they reach above his feet                          |
-| `diveSpeed`           | 6 m/s    | how fast his hands go once he dives                         |
-| `bodyReach`           | 0.5 m    | how close the ball's centre must come to his body and arms  |
+| `diveSpeed`           | 7 m/s    | how fast his hands go once he dives                         |
+| `bodyReach`           | 0.7 m    | how close the ball's centre must come to his body and arms  |
 | `catchableSpeed`      | 40 m/s   | a ball this fast he never holds                             |
 | `minParrySpeed`       | 0.2      | the least share of its speed into his palm a parry keeps    |
 | `maxParrySpeed`       | 0.5      | the most                                                    |

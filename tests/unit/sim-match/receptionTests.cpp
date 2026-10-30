@@ -152,10 +152,18 @@ TEST_CASE("Contact is the first moment player and ball are within reach", "[rece
   REQUIRE_THAT(hit.contactFraction, WithinAbs((5.0 - std::sqrt(0.75)) / 10.0, 1e-12));
   REQUIRE_THAT(hit.closestDistance, WithinAbs(0.5, 1e-12));
 
-  // Already within reach at the start.
-  REQUIRE(findContact({}, {}, {.x = 0.5, .y = 0.0}, {.x = 3.0, .y = 0.0}, 1.0)
+  // Already within reach at the start, the ball coming at him or lying still.
+  REQUIRE(findContact({}, {}, {.x = 0.5, .y = 0.0}, {.x = -3.0, .y = 0.0}, 1.0)
               .value_or(kNoContact)
               .contactFraction == 0.0);
+  REQUIRE(findContact({}, {}, {.x = 0.5, .y = 0.0}, {.x = 0.5, .y = 0.0}, 1.0)
+              .value_or(kNoContact)
+              .contactFraction == 0.0);
+  // Within reach, but kicked away from him: it leaves him -- unless he runs
+  // after it faster than it goes.
+  REQUIRE_FALSE(findContact({}, {}, {.x = 0.5, .y = 0.0}, {.x = 3.0, .y = 0.0}, 1.0).has_value());
+  REQUIRE(findContact({}, {.x = 0.6, .y = 0.0}, {.x = 0.5, .y = 0.0}, {.x = 0.8, .y = 0.0}, 1.0)
+              .has_value());
   // Never within reach.
   REQUIRE_FALSE(
       findContact({.x = 5.0, .y = 2.0}, {.x = 5.0, .y = 2.0}, {}, {.x = 10.0, .y = 0.0}, 1.0)
@@ -371,17 +379,18 @@ TEST_CASE("A chaser runs to where a high ball comes down", "[reception]") {
 TEST_CASE("The passer cannot take his own pass back at once", "[reception]") {
   const MatchState state = twoASide(
       {{.x = 20.0, .y = 20.0}, {.x = 5.0, .y = 5.0}, {.x = 50.0, .y = 35.0}, {.x = 55.0, .y = 5.0}},
-      freeBall({.x = 20.5, .y = 20.0}, {.x = 5.0, .y = 0.0},
+      freeBall({.x = 20.5, .y = 20.0}, {.x = -5.0, .y = 0.0},
                BallTouch{.playerId = PlayerId(1), .tick = SimTick(10)}));
   const ReceptionConfig config;
 
-  REQUIRE_FALSE(findBallClaim(state, state.ball(), movedTo(state.ball(), {.x = 20.7, .y = 20.0}),
+  // The ball rolls back toward him, as one off a teammate's shin would.
+  REQUIRE_FALSE(findBallClaim(state, state.ball(), movedTo(state.ball(), {.x = 20.3, .y = 20.0}),
                               BallPhysics{},
                               {.tick = SimTick(12), .secondsPerTick = kSecondsPerTick}, config)
                     .has_value());
   // 0.3 s = 9 ticks later he may.
   REQUIRE(claimant(findBallClaim(
-              state, state.ball(), movedTo(state.ball(), {.x = 20.7, .y = 20.0}), BallPhysics{},
+              state, state.ball(), movedTo(state.ball(), {.x = 20.3, .y = 20.0}), BallPhysics{},
               {.tick = SimTick(19), .secondsPerTick = kSecondsPerTick}, config)) == 1);
 }
 

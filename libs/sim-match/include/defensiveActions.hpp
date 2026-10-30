@@ -52,6 +52,17 @@ struct DefensiveConfig {
   double spaceWeight = 0.4;
   double urgencyWeight = 0.8;
   double effortWeight = 0.3;
+  // Near his own goal a defender picks up the men about the ball -- marks,
+  // tracks and covers -- rather than hold his place
+  // (docs/team-tactics.md#defensive-shape): with the ball
+  // and his region's centre within dangerShare of the pitch's length of it
+  // (50 m on the standard pitch), the urgency weighs up to 1 + dangerUrgency
+  // times as much and the region up to 1 - dangerRegionRelief as much, the
+  // more the nearer both. Farther out the shape holds as the tactic asks, and
+  // a forward stays up.
+  double dangerShare = 0.48;
+  double dangerUrgency = 4.0;
+  double dangerRegionRelief = 0.9;
 
   friend bool operator==(const DefensiveConfig&, const DefensiveConfig&) = default;
 };

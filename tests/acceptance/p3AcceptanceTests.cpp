@@ -167,6 +167,6 @@ TEST_CASE("P3: a whole match with every rule replays with identical hashes, pinn
   REQUIRE(playback->checkpointsVerified == replay->checkpoints.size());
   // Identical on every platform and compiler CI builds with; they change only
   // with the simulation's behaviour, the identities or the state layout.
-  CHECK(replay->checkpoints.back().stateHash == 0x5d3a387ce404e72aULL);
-  CHECK(replay->checkpoints.back().eventHash == 0xd5f20c0274a5363eULL);
+  CHECK(replay->checkpoints.back().stateHash == 0x7b01775679e6d9aeULL);
+  CHECK(replay->checkpoints.back().eventHash == 0xc32514208e6320b5ULL);
 }

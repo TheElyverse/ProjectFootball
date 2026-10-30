@@ -26,12 +26,12 @@ directory); `--play` plays one back. The file is written before the terminal
 interface opens, so a run rejected by argument or terminal validation leaves no
 file.
 
-### Schema version 24
+### Schema version 25
 
 ```json
 {
-  "schemaVersion": 24,
-  "coreVersion": "0.40.0",
+  "schemaVersion": 25,
+  "coreVersion": "0.41.0",
   "createdAt": "2026-09-24T10:00:00Z",
   "seed": "18446744073709551615",
   "gameTime": 300,
@@ -325,6 +325,7 @@ record the scenario again with the same seed.
 | 22      | The configuration gains its `setPieces` block, restarts are on by default, and tactics carry their set-piece plans in `setPieces` ([set pieces](set-pieces.md)). |
 | 23      | The `setPieces` block gains `freeKickSeconds`, `penaltySeconds`, `freeKickRange`, `wallPlayers` and `wallSpacing`, and tactics may plan a `freeKick` and a `penalty` ([free kicks](set-pieces.md#free-kicks), [penalties](set-pieces.md#penalties)). |
 | 24      | The configuration gains its `coaching` block, commands a `substitute` type (`side`, `off`, `on`, `attributes`), and a tactic change reaches the players after the coaching delay ([coaching](match-engine.md#coaching)). |
+| 25      | The configuration gains the defenders' `dangerShare`, `dangerUrgency` and `dangerRegionRelief`, the shot scoring's `blockRadius` and the strike's `placedErrorShare` and `crossErrorShare` ([calibration](scenarios.md#p3-acceptance)). |
 
 ## Decision trace
 
@@ -573,7 +574,7 @@ values:
 {
   "format": "elyverse-debug-frames",
   "version": 6,
-  "coreVersion": "0.40.0",
+  "coreVersion": "0.41.0",
   "scenario": "m0-acceptance",
   "seed": "42",
   "ticksPerSecond": 30,
@@ -1003,12 +1004,12 @@ attacking-third regains above possession's (seed 5).
 
 Two guardrails also apply:
 
-- **Shots.** Every side of every pairing shoots between 0.25 and 40 times per
+- **Shots.** Every side of every pairing shoots between 0.1 and 40 times per
   six-minute match on average, so a change cannot stop the shooting or turn the
-  pitch into a shooting gallery. At the time of writing the range is 2.3 to
-  9.4 -- 2.15 to 9.65 over seeds 1 to 5 -- on the full pitch, since matches
-  run to full time with their added time; counter at home against pressing the
-  fewest
+  pitch into a shooting gallery. At the time of writing the range is 0.2 to
+  1.8, real football's 12 shots a side in 90 minutes being 0.8 in six
+  ([calibration](scenarios.md#p3-acceptance)); possession away at counter the
+  fewest, pressing the most
   ([shot decisions](on-ball.md#shot-decisions)).
 - **Ownership.** No player owns the ball longer than 20 s at a time
   (`longestOwnershipSeconds`, [match analytics](#match-analytics)). A carrier

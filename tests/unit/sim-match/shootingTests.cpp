@@ -249,7 +249,8 @@ TEST_CASE("Execution error stays within its spread and uses six draws", "[shooti
   const ShotConfig config;
   const ShotIntent intent = shotAt({.x = 60.0, .y = 20.0});
   // Twelve meters out: 0.2 + 0.04 * 12.
-  constexpr double kSpread = 0.68;
+  // Twelve metres from an average shooter: the configured spread there.
+  const double kSpread = ShotConfig{}.spreadAtZero + (ShotConfig{}.spreadPerMeter * 12.0);
   double widest = 0.0;
   double highest = 0.0;
   for (std::uint64_t seed = 1; seed <= 500; ++seed) {
@@ -342,7 +343,8 @@ TEST_CASE("The nearest opponent puts a shooter under the pressure of a passer", 
   const ShotConditions conditions = conditionsOf(state, shotAt({.x = 60.0, .y = 20.0}));
 
   REQUIRE_THAT(conditions.pressure, WithinAbs(0.5, 1e-12));
-  REQUIRE_THAT(shotErrorFactor(conditions, {}, ShotConfig{}), WithinAbs(1.5, 1e-12));
+  REQUIRE_THAT(shotErrorFactor(conditions, {}, ShotConfig{}),
+               WithinAbs(1.0 + (0.5 * ShotConfig{}.pressureErrorFactor), 1e-12));
 }
 
 TEST_CASE("Running across or away from his shot unbalances a shooter", "[shooting]") {
@@ -418,7 +420,11 @@ TEST_CASE("A ball only just received is unsettled, the harder it came the more",
 
 TEST_CASE("The conditions of a shot multiply", "[shooting]") {
   const ShotConditions all{.pressure = 1.0, .imbalance = 1.0, .weakFoot = true, .unsettled = 1.0};
-  REQUIRE(shotErrorFactor(all, {.weakFootAccuracy = 0.0}, ShotConfig{}) == 16.0);
+  const ShotConfig config;
+  // Each condition at its worst adds its factor: 1 + factor each, multiplied.
+  REQUIRE(shotErrorFactor(all, {.weakFootAccuracy = 0.0}, config) ==
+          (1.0 + config.pressureErrorFactor) * (1.0 + config.balanceErrorFactor) *
+              (1.0 + config.weakFootErrorFactor) * (1.0 + config.unsettledErrorFactor));
 }
 
 TEST_CASE("A deflected shot keeps a share of its speed, off its line and lifted", "[shooting]") {

@@ -76,7 +76,7 @@ TEST_CASE("Match result: a whole match ends with a final score", "[acceptance][r
     auto setup = makeTacticMatch({.home = *reference, .away = *reference}, seed);
     REQUIRE(setup.has_value());
     setup->config.restarts.enabled = true;
-    setup->config.clock.durationMinutes = 10.0;
+    setup->config.clock.durationMinutes = 20.0;
     MatchSimulation simulation = startMatch(*setup);
     MatchAnalyzer analyzer(contextOf(setup->initialState, setup->config.ticksPerSecond));
     Score counted;

@@ -22,7 +22,7 @@ struct DecisionConfig {
   // 6 ticks at 30 Hz: a player on the ball decides five times a second.
   int intervalTicks = 6;
   // A player keeps a ball he has just taken at least this long.
-  double minHoldSeconds = 0.5;
+  double minHoldSeconds = 1.0;
   // Softmax temperature over utility for an average decider: lower picks the
   // best option more often, higher spreads the choice.
   double temperature = 0.15;

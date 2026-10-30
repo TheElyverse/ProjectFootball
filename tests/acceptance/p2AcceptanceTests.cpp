@@ -73,6 +73,10 @@ struct PressTally {
     // by a throw-in.
     MatchConfig config;
     config.restarts.enabled = false;
+    // Nor do the defenders near their goal pick up the men about the ball
+    // (docs/team-tactics.md#defensive-shape): it closes lanes for a lone
+    // presser too, and only the press's own coordination is measured.
+    config.defensive.dangerShare = 0.0;
     MatchSimulation simulation = startMatch(MatchSetup{
         .initialState = *std::move(state),
         .config = config,

@@ -25,18 +25,18 @@ struct ShotStoppingConfig {
   // How far a keeper of keeperAnticipation 0 may misread where the ball
   // passes him, across his plane and up. The spread shrinks with his skill
   // and is gone for a keeper of 1.
-  double readError = 0.8;  // m
+  double readError = 0.4;  // m
   // His hands as he stands set, this high above his feet.
-  double readyHeight = 1.4;  // m
+  double readyHeight = 1.0;  // m
   // The farthest his hands get from where his feet are: an ellipse in his
   // plane, this far to either side along the ground and this high above it.
   double diveReach = 2.8;  // m
   double jumpReach = 2.5;  // m
   // How fast his hands go once he dives.
-  double diveSpeed = 6.0;  // m/s
+  double diveSpeed = 7.0;  // m/s
   // He touches a ball whose centre comes this close to the line from his
   // feet to his hands.
-  double bodyReach = 0.5;  // m
+  double bodyReach = 0.7;  // m
   // A ball this fast he never holds, however it comes.
   double catchableSpeed = 40.0;  // m/s
   // A ball he does not hold comes off his hands with a share of its speed

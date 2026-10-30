@@ -33,13 +33,6 @@ using SimCore::Vec2;
   return length > 0.0 && offset.dot(fallback) > 0.0 ? offset * (1.0 / length) : fallback;
 }
 
-// Whether an opponent of the side has the ball.
-[[nodiscard]] bool opponentOnTheBall(const MatchState& state, const TeamSide side) {
-  const auto& owner = state.ball().owner;
-  const auto index = owner ? findPlayerIndex(state, *owner) : std::nullopt;
-  return index && state.players()[*index].side != side;
-}
-
 }  // namespace
 
 Bisector goalBisector(const TeamSide side, const Vec2 ball, const Pitch& pitch) {
@@ -85,12 +78,17 @@ Vec2 goalkeeperTarget(const MatchState& state, const std::size_t playerIndex,
                            : config.highDepthShare;
   const double highDepth =
       std::max(config.lineDepth, std::min(share * line, area.max.x - area.min.x));
+  // On his line against a ball someone has within shot range -- an opponent
+  // shoots, a teammate's pass there may be lost and shot before he gets
+  // back --, up to the high depth at twice that range or his line, whichever
+  // is farther. A loose ball, a cross or a clearance in the air, leaves him
+  // higher by its distance alone, ready to come for it.
   const double fromGoal = (ball - goal.center).length();
-  double depth = stableLerp(config.lineDepth, highDepth,
-                            line > 0.0 ? std::clamp(fromGoal / line, 0.0, 1.0) : 1.0);
-  if (fromGoal <= shotRange && opponentOnTheBall(state, side)) {
-    depth = config.lineDepth;
-  }
+  const double far = std::max(line, 2.0 * shotRange);
+  const double rise =
+      state.ball().owner ? (fromGoal - shotRange) / (far - shotRange) : fromGoal / far;
+  double depth =
+      stableLerp(config.lineDepth, highDepth, far > shotRange ? std::clamp(rise, 0.0, 1.0) : 1.0);
   depth = std::min(depth, (ball - foot).length());
 
   // Never wider than his posts by more than he stands off his line: out wide

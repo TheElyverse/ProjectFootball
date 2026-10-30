@@ -584,6 +584,7 @@ void fieldsOf(Visitor& visit, SimMatch::ShotScoringConfig& shooting) {
   visit.number("keeperDiveReach", shooting.keeperDiveReach);
   visit.number("keeperJumpReach", shooting.keeperJumpReach);
   visit.number("keeperDiveSeconds", shooting.keeperDiveSeconds);
+  visit.number("blockRadius", shooting.blockRadius);
   visit.number("blockReach", shooting.blockReach);
   visit.number("blockMarginSeconds", shooting.blockMarginSeconds);
   visit.number("saveMarginSeconds", shooting.saveMarginSeconds);
@@ -769,6 +770,9 @@ void fieldsOf(Visitor& visit, SimMatch::DefensiveConfig& defensive) {
   visit.number("spaceWeight", defensive.spaceWeight);
   visit.number("urgencyWeight", defensive.urgencyWeight);
   visit.number("effortWeight", defensive.effortWeight);
+  visit.number("dangerShare", defensive.dangerShare);
+  visit.number("dangerUrgency", defensive.dangerUrgency);
+  visit.number("dangerRegionRelief", defensive.dangerRegionRelief);
 }
 
 template <typename Visitor>
@@ -835,6 +839,8 @@ void fieldsOf(Visitor& visit, SimMatch::ShotConfig& shooting) {
   visit.number("balanceErrorFactor", shooting.balanceErrorFactor);
   visit.number("weakFootErrorFactor", shooting.weakFootErrorFactor);
   visit.number("unsettledErrorFactor", shooting.unsettledErrorFactor);
+  visit.number("placedErrorShare", shooting.placedErrorShare);
+  visit.number("crossErrorShare", shooting.crossErrorShare);
   visit.number("weakFootSide", shooting.weakFootSide);
   visit.number("unsettledSeconds", shooting.unsettledSeconds);
   visit.number("unsettledBallSpeed", shooting.unsettledBallSpeed);
