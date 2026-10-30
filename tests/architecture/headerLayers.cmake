@@ -21,7 +21,7 @@ set(mechanics
 set(loop matchSimulation)
 # The decisions and the systems that run them.
 set(behaviour
-        ballMovement carrying defensiveActions desiredRegion distribution duel offBallActions
+        ballMovement carrying coaching defensiveActions desiredRegion distribution duel offBallActions
         crossCandidates matchClockSystem passCandidates passDecision perception pitchControl
         playerMovement
         fouls offside pursuit restart setPieces

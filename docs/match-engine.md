@@ -544,13 +544,19 @@ the command types:
 | `MovePlayerCommand` | sets a player's movement target, moved onto the pitch if it lies off it |
 | `GiveBallCommand`   | puts the ball at a player's feet; he owns it from this step on        |
 | `PassCommand`       | asks a player to pass; played in this step if he owns the ball       |
-| `ChangeTacticCommand` | switches a side to another tactic from this step on               |
+| `ChangeTacticCommand` | gives a side another tactic, which reaches the players after the [coaching delay](#instructions) |
+| `SubstituteCommand` | orders a [substitution](#substitutions) for the next stoppage         |
 
 `schedule(ScheduledCommand)` queues a command for the step that starts at its
 tick; a command for `tick()` itself applies in the next step. Commands of one
 tick apply in scheduling order, the explicit order a replay needs. `schedule()`
-rejects a tick before `tick()`, an unknown player, a non-finite target and a
-tactic that does not fit the squad, and leaves the queue unchanged. Commands
+rejects a tick before `tick()`, an unknown player, a non-finite target, a
+tactic that does not fit the squad and a substitution that cannot be made, and
+leaves the queue unchanged. It checks against the state when it is called and
+the players substitutions queued or waiting will bring on, so a replay, which
+schedules every command before the first step, accepts a command for a
+substitute; a command for a player who is not on the pitch when it applies does
+nothing. Commands
 known before kickoff go into `MatchSimulationSpec::commands`; the constructor
 schedules them in order and throws `std::invalid_argument` for an invalid one.
 
@@ -564,8 +570,9 @@ contract. Commands apply to a copy of the current state, so a failed step leaves
 A coach, the AI and a test all change a tactic the same way: a
 `ChangeTacticCommand` with the side and the new, validated tactic. So every
 change is in the command log, and a replay reproduces it, tactic content
-included. It applies at the start of its tick's step and records a
-`TacticChanged` event with the tactic's name and content hash. The side's phase,
+included. It reaches the players after the [coaching delay](#instructions):
+`InstructionGiven` records it when it is given, `TacticChanged` with the
+tactic's name and content hash when it arrives. The side's phase,
 press and the players' tactical state stay; each system follows the new tactic
 at its next update, the tactical phase within a third of a second. A side
 without a tactic plays the new one from then on.
@@ -588,9 +595,10 @@ instance — it reads the writer instead of `current`.
 
 **Write only what a match changes.** `MatchStateWriter` sets what systems change
 — positions, velocities, targets, facings, perception, the ball, pending
-actions, tactical state, phases, presses, records and the score. Squad, ids,
-sides, attributes, player order and the pitch have no setter, so no system can
-break those invariants. Players are addressed by their index in
+actions, tactical state, phases, presses, records and the score. Sides, player
+order and the pitch have no setter; ids and attributes change only by a
+[substitution](#substitutions), which checks them, so no system can break those
+invariants. Players are addressed by their index in
 `MatchState::players()`.
 
 **Keep no state of your own.** Everything that must survive a tick belongs in
@@ -642,6 +650,7 @@ them in their fixed order. Each system's factory takes its configuration, or a
 | 14    | fouls           | every tick | after a duel's foul: the card, a sending-off, and unless advantage the free kick or penalty; only with `fouls.enabled` ([fouls](fouls.md)) |
 | 15    | restart         | every tick | the `SetPiece` it awards after the ball went out or into a goal or a goalkeeper held it too long: the ball dead at its spot, every pending action and chaser cleared, and for a kickoff both sides' line-up; the clock's lost time; the offside exemption; only with `restarts.enabled` ([restarts](#restarts)) |
 | 16    | match clock     | every tick | every player's fitness ([fitness](players.md#fitness)); the clock, its added time, and at half time both sides' line-up and the ball for the second half's kickoff ([match clock](match-clock.md)) |
+| 17    | coaching        | every tick | a tactic that has reached the players, and at a stoppage the substitutions ordered ([coaching](#coaching)) |
 
 `MatchSetup` is everything such a match starts from: initial state, config, seed
 and commands. `startMatch(setup)` builds the simulation. A replay records a
@@ -698,6 +707,83 @@ job runs it.
 - Simulation time is never scaled: a shorter match ends earlier, it does not
   run faster ([match clock](match-clock.md)).
 
+## Coaching
+
+A coach acts on a running match through commands, like anyone outside the
+systems: a tactic or a touchline instruction (`ChangeTacticCommand`) and a
+substitution (`SubstituteCommand`). Neither takes effect at once (game design
+document §8.10): an instruction needs time to reach the players, a substitution
+a stoppage. The coaching system (`coaching.hpp`), last of the
+[standard systems](#the-standard-systems), passes both on. `CoachingConfig` is
+part of `MatchConfig` and of every replay.
+
+### Instructions
+
+A tactic given at a tick waits in `MatchState::pendingTactic(side)` and reaches
+the players `instructionDelaySeconds` (5 s, at most 600 s) later —
+`instructionDelayTicks()`, of the delay in whole milliseconds, rounded up so it
+is never early. The delay runs in real seconds of play: a ten-
+or ninety-minute match, a replay or a viewer at any speed, the same command at
+the same tick takes effect at the same tick. A later tactic given while one is
+on its way replaces it. The coaching system records **`InstructionGiven`** — the
+side, the tactic's name and content hash, the tick it takes effect — in the step
+it was given, and **`TacticChanged`** with the tick it was given when the
+players have it; the systems play it from the next step. A few seconds is the
+game design document's "einige Sekunden"; how long feels right is still open
+there.
+
+### Substitutions
+
+A `SubstituteCommand` names the side, the player who comes off and the one who
+comes on, with his attributes. `schedule()` rejects it if the player coming off
+is not on the pitch for that side, or the one coming on has an invalid id, an id
+on the pitch, came off before, or invalid attributes. It waits in
+`MatchState::pendingSubstitutions()` for the next **stoppage**: a step that ends
+with a [set piece](set-pieces.md) being set up, a restart's or a kickoff's. Then
+the coaching system makes every substitution waiting, in order:
+
+- **Refused** — `SubstitutionRefused` with the first reason that applies — if
+  the player coming off is no longer on the pitch, sent off or substituted
+  (`playerOff`), the one coming on is in the match or came off (`playerUsed`),
+  or the side has made `maxSubstitutions` (5, at most 11) already
+  (`limitReached`).
+- **Made** otherwise — `SubstitutionMade` with the tick it was ordered. The
+  newcomer takes the place of the player who comes off: his slot, position and
+  facing, at rest, fresh, without cards, a target, a pending action, a memory
+  or a tactical state. Nobody remembers the other. The ball, the set piece, an
+  indirect free kick's touch and the offside exemption he held pass to the
+  newcomer; a chase, press or action about him ends.
+
+A player who came off is in `MatchState::substitutions()` and never returns:
+`cameOff()` holds it, and neither a command nor the coaching system brings him
+back. The [statistics](tooling.md#match-analytics) count the newcomer for his
+side from his substitution on.
+
+### Tests
+
+`tests/unit/sim-match/coachingTests.cpp` plays the eleven-a-side reference with
+home's striker substituted at one second: the substitution waits for the first
+set piece, the newcomer stands in his place with fresh legs, and the striker
+cannot come back; with a limit of one a second substitution is refused; and
+`schedule()` rejects the wrong side, a used or invalid id and invalid
+attributes. `matchCommandTests.cpp` checks that a tactic reaches the players
+three ticks after it was given at a delay of a tenth of a second, with both
+events, and that a later one replaces it; `replayTests.cpp` that matches with a
+tactic change or a substitution replay identically.
+
+### What this is not
+
+- Without restarts the only stoppages are the free kicks and penalties of
+  [offside](#offside) and [fouls](fouls.md); without any of the three no
+  substitution is made.
+- No substitution windows, no concussion substitutes, and a substitution costs
+  no added time. The newcomer comes on where the other went off, not at the
+  halfway line.
+- Every instruction is a whole tactic; there are no instructions to single
+  players. One replaced on its way leaves its `InstructionGiven` naming a tick
+  at which nothing happens; of two given in the same tick only the last is
+  recorded.
+
 ## Match events and decision diagnostics
 
 A match produces two kinds of output besides its state: **events**, immutable
@@ -730,7 +816,7 @@ Every event carries the `tick` of its step and the players involved:
 | `RestartTaken`       | `kind`, `player`, `position`                                 | play [restarts](#restarts) after the ball went out or into a goal: `throwIn`, `goalKick`, `corner` or `kickoff`, to `player`; `position` is where the ball left the pitch, the centre spot for a kickoff -- or after an [offside](#offside): `indirectFreeKick` where the offender was involved; after a [foul](fouls.md): `directFreeKick` where it was, or `penalty` from the spot. `PossessionChanged` follows |
 | `FoulCalled`         | `side`, `offender`, `victim`, `position`, `restart`, `card`, `fromBehind`, `denyingGoal` | a foul judged ([fouls](fouls.md)): what the referee gave and the card |
 | `OffsideCalled`      | `side`, `player`, `passer`, `lineX`, `position`              | `player` of `side`, offside when `passer` played the ball, touched it at `position`; `lineX` is the offside line then ([offside](#offside)) |
-| `TacticChanged`      | `side`, `tactic`, `contentHash`                              | a [tactic change command](#tactic-changes) applies; `tactic` is the new tactic's name |
+| `TacticChanged`      | `side`, `tactic`, `contentHash`, `given`                     | a [tactic change](#tactic-changes) given at `given` reaches the players; `tactic` is the new tactic's name |
 | `ShotAttempted`      | `shooter`, `from`, `target`, `height`, `struckAt`, `struckHeight`, `speed`, `distance`, `opening`, `type` | a [shot](on-ball.md#shot-decisions) leaves the shooter's foot toward the aimed point and height; `struckAt` and `struckHeight` are the point and height it really left for, off by his [execution](on-ball.md#shooting) error; `distance` and `opening` are to and of the goal; `type` is how he struck it, `driven`, `curled` or `chipped` ([shot types](on-ball.md#shot-types)), a header always `driven`. `PossessionChanged` follows |
 | `ShotDeflected`      | `shooter`, `shotTick`, `player`, `position`, `height`, `blocked` | a shot comes off an outfield player and flies on; `blocked` if it lost most of its speed |
 | `ShotHitWoodwork`    | `shooter`, `shotTick`, `part`, `position`, `height`          | a shot rebounds from `postAtMinY`, `postAtMaxY` or the `crossbar` |
@@ -744,6 +830,9 @@ Every event carries the `tick` of its step and the players involved:
 | `DuelEnded`          | `carrier`, `defender`, `outcome`, `position`                 | the duel is over: `kept` by the carrier, `won` by the defender -- `BallWon` and `PossessionChanged` follow --, the ball knocked `loose` -- `PossessionChanged` to nobody follows --, or a `foul` |
 | `CrossAttempted`     | `crosser`, `area`, `from`, `target`, `height`, `runner`, `speed` | a [cross](on-ball.md#crossing) leaves the crosser's foot for an area of the box -- `nearPost`, `penaltySpot`, `farPost`, `cutBack` or a `run` --, meant to arrive at `target` and `height` for `runner`; after its `PassAttempted` |
 | `TackleAttempted`    | `tackler`, `carrier`, `block`, `result`, `position`          | a defender lunges at the ball: a tackle in a duel, or a `block` of a shot -- `carrier` is then the shooter --, which `won`, knocked `loose`, `missed`, went through the man (`foul`) or `blocked` it ([tackles and blocks](duels.md#tackles-and-blocks)); a tackle's comes before its `DuelEnded`, a block's before its `ShotDeflected` |
+| `InstructionGiven`   | `side`, `tactic`, `contentHash`, `effective`                 | a coach gives a tactic, which reaches the players at `effective` ([instructions](#instructions)) |
+| `SubstitutionMade`   | `side`, `off`, `on`, `ordered`                               | a [substitution](#substitutions) ordered at `ordered` is made at a stoppage |
+| `SubstitutionRefused` | `side`, `off`, `on`, `ordered`, `reason`                    | an ordered substitution is not made: `limitReached`, `playerOff` or `playerUsed` |
 
 The shot events name their shot by its `shooter` and `shotTick`, the tick of its
 `ShotAttempted`; see [shooting](on-ball.md#shooting) and [shot stopping](goalkeeper.md#shot-stopping)

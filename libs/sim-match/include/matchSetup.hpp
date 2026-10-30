@@ -5,6 +5,7 @@
 
 #include "aerialDuels.hpp"
 #include "ballMovement.hpp"
+#include "coaching.hpp"
 #include "desiredRegion.hpp"
 #include "duel.hpp"
 #include "fitness.hpp"
@@ -63,6 +64,7 @@ struct MatchConfig {
   OffsideConfig offside;
   FoulConfig fouls;
   SetPieceConfig setPieces;
+  CoachingConfig coaching;
 
   friend bool operator==(const MatchConfig&, const MatchConfig&) = default;
 };

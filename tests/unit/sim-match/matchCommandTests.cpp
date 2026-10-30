@@ -219,37 +219,82 @@ namespace {
 
 }  // namespace
 
-TEST_CASE("A tactic change applies in the step of its tick with an event", "[matchCommand]") {
+// The coaching system with a delay of a tenth of a second: three ticks.
+[[nodiscard]] std::vector<MatchSystem> coaching() {
+  return {ElyverseFootball::SimMatch::makeCoachingSystem(
+      {.coaching = {.instructionDelaySeconds = 0.1}, .ticksPerSecond = kDefaultTicksPerSecond})};
+}
+
+TEST_CASE("A tactic change reaches the players after the delay, with events", "[matchCommand]") {
+  using ElyverseFootball::SimMatch::InstructionGiven;
+  using ElyverseFootball::SimMatch::MatchEvent;
   const Tactic bold = tacticNamed("bold");
+  const std::uint64_t hash = ElyverseFootball::SimTactics::contentHash(bold);
   MatchSimulation simulation =
       simulationOf({{.tick = SimTick(2),
-                     .command = ChangeTacticCommand{.side = TeamSide::kAway, .tactic = bold}}});
+                     .command = ChangeTacticCommand{.side = TeamSide::kAway, .tactic = bold}}},
+                   coaching());
   stepTimes(simulation, 2);
-  REQUIRE_FALSE(simulation.state().tactics().away.has_value());
   REQUIRE(simulation.events().empty());
 
+  // Given at tick 2: announced, on its way.
+  stepTimes(simulation, 1);
+  REQUIRE(simulation.events().size() == 1);
+  REQUIRE(simulation.events().front() == MatchEvent{InstructionGiven{.tick = SimTick(2),
+                                                                     .side = TeamSide::kAway,
+                                                                     .tactic = "bold",
+                                                                     .contentHash = hash,
+                                                                     .effective = SimTick(5)}});
+  REQUIRE_FALSE(simulation.state().tactics().away.has_value());
+  REQUIRE(simulation.state().pendingTactic(TeamSide::kAway).has_value());
+
+  stepTimes(simulation, 2);
+  REQUIRE_FALSE(simulation.state().tactics().away.has_value());
+
+  // Three ticks later the players have it.
   stepTimes(simulation, 1);
   REQUIRE(simulation.state().tactics().away == bold);
-  REQUIRE_FALSE(simulation.state().tactics().home.has_value());
+  REQUIRE_FALSE(simulation.state().pendingTactic(TeamSide::kAway).has_value());
   REQUIRE(simulation.events().size() == 1);
-  REQUIRE(simulation.events().front() ==
-          ElyverseFootball::SimMatch::MatchEvent{
-              TacticChanged{.tick = SimTick(2),
-                            .side = TeamSide::kAway,
-                            .tactic = "bold",
-                            .contentHash = ElyverseFootball::SimTactics::contentHash(bold)}});
+  REQUIRE(simulation.events().front() == MatchEvent{TacticChanged{.tick = SimTick(5),
+                                                                  .side = TeamSide::kAway,
+                                                                  .tactic = "bold",
+                                                                  .contentHash = hash,
+                                                                  .given = SimTick(2)}});
   REQUIRE(simulation.appliedCommands().size() == 1);
 }
 
-TEST_CASE("A later tactic change replaces an earlier one", "[matchCommand]") {
+TEST_CASE("The delay runs in real time, whatever the tick rate or the match's duration",
+          "[matchCommand]") {
+  using ElyverseFootball::SimMatch::CoachingConfig;
+  using ElyverseFootball::SimMatch::instructionDelayTicks;
+  REQUIRE(instructionDelayTicks(CoachingConfig{}, 30) == 150);
+  REQUIRE(instructionDelayTicks(CoachingConfig{}, 60) == 300);
+  // Rounded up: never early.
+  REQUIRE(instructionDelayTicks({.instructionDelaySeconds = 0.05}, 30) == 2);
+  REQUIRE_THROWS_AS(
+      ElyverseFootball::SimMatch::validate(CoachingConfig{.instructionDelaySeconds = 601.0}),
+      std::invalid_argument);
+  REQUIRE_THROWS_AS(ElyverseFootball::SimMatch::validate(CoachingConfig{.maxSubstitutions = 12}),
+                    std::invalid_argument);
+  // Whole milliseconds: 8.3 s at 30 Hz is exactly 249 ticks.
+  REQUIRE(instructionDelayTicks({.instructionDelaySeconds = 8.3}, 30) == 249);
+  REQUIRE_THROWS_AS(
+      ElyverseFootball::SimMatch::validate(CoachingConfig{.instructionDelaySeconds = -1.0}),
+      std::invalid_argument);
+}
+
+TEST_CASE("A later tactic change on its way replaces an earlier one", "[matchCommand]") {
   MatchSimulation simulation = simulationOf(
       {{.tick = SimTick(0),
         .command = ChangeTacticCommand{.side = TeamSide::kHome, .tactic = tacticNamed("first")}},
-       {.tick = SimTick(0),
-        .command = ChangeTacticCommand{.side = TeamSide::kHome, .tactic = tacticNamed("second")}}});
-  stepTimes(simulation, 1);
+       {.tick = SimTick(1),
+        .command = ChangeTacticCommand{.side = TeamSide::kHome, .tactic = tacticNamed("second")}}},
+      coaching());
+  stepTimes(simulation, 3);
+  REQUIRE_FALSE(simulation.state().tactics().home.has_value());
+  stepTimes(simulation, 2);
   REQUIRE(simulation.state().tactics().home == tacticNamed("second"));
-  REQUIRE(simulation.events().size() == 2);
 }
 
 TEST_CASE("A tactic that does not fit the squad is rejected", "[matchCommand]") {
@@ -297,7 +342,8 @@ TEST_CASE("A scripted side plays a tactic it is given mid-match", "[matchCommand
        .commands = {{.tick = SimTick(30),
                      .command = ChangeTacticCommand{.side = TeamSide::kHome,
                                                     .tactic = tacticNamed("late")}}}});
-  stepTimes(simulation, 90);
+  // Given at 1 s, on the players at 6 s: the default delay is five seconds.
+  stepTimes(simulation, 30 + 150 + 30);
   REQUIRE(simulation.state().tactics().home == tacticNamed("late"));
   REQUIRE(simulation.state().phase(TeamSide::kHome).has_value());
   REQUIRE_FALSE(simulation.state().phase(TeamSide::kAway).has_value());

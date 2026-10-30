@@ -81,13 +81,14 @@ TEST_CASE("The standard systems run in their documented order", "[matchSetup]") 
               std::string(kDuelSystemName), std::string(kShotStoppingSystemName),
               std::string(kPlayerMovementSystemName), std::string(kBallMovementSystemName),
               std::string(kOffsideSystemName), std::string(kFoulSystemName),
-              std::string(kRestartSystemName), std::string(kMatchClockSystemName)});
+              std::string(kRestartSystemName), std::string(kMatchClockSystemName),
+              std::string(ElyverseFootball::SimMatch::kCoachingSystemName)});
 
   // A scenario without restarts has no set pieces either.
   MatchConfig sandbox;
   sandbox.restarts.enabled = false;
   const auto names = namesOf(sandbox);
-  REQUIRE(names.size() == 12);
+  REQUIRE(names.size() == 13);
   REQUIRE(std::ranges::find(names, std::string(kSetPieceSystemName)) == names.end());
   REQUIRE(std::ranges::find(names, std::string(kRestartSystemName)) == names.end());
 }
