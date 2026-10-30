@@ -69,9 +69,12 @@ endforeach()
 # 3.3 to 13.7 since they cross (docs/on-ball.md#crossing), 1.3 to 7.0 -- 0.7
 # at worst over seeds 1 to 5 -- since the identities play eleven a side on
 # the standard pitch, and 2.3 to 9.4 -- 2.15 to 9.65 over seeds 1 to 5 --
-# since matches run to full time with their added time -- with room above; it guards against a change that stops
-# the shooting or makes a shooting gallery of the pitch, not against balancing.
-set(minShots 0.25)
+# since matches run to full time with their added time, and 0.2 to 1.8 since
+# the baseline is calibrated to real football's 12 shots a side in 90 minutes,
+# 0.8 in six (docs/scenarios.md#p3-acceptance) -- with room above; it guards
+# against a change that stops the shooting or makes a shooting gallery of the
+# pitch, not against balancing.
+set(minShots 0.1)
 set(maxShots 40)
 math(EXPR lastPairing "${pairings} - 1")
 foreach(index RANGE ${lastPairing})

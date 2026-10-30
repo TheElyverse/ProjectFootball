@@ -20,10 +20,10 @@ struct GoalkeeperConfig {
   double lineDepth = 1.5;  // m
   // Far from the ball he stands at this share of his defensive line's depth,
   // at most at the edge of his penalty area.
-  double highDepthShare = 0.5;
+  double highDepthShare = 0.4;
   // With his own side on the ball he stands at most at this share of that
   // depth: behind his defenders to be played back to, never level with them.
-  double possessionDepthShare = 0.5;
+  double possessionDepthShare = 0.4;
   // How far from his ideal place a keeper of keeperPositioning 0 may stand:
   // along his bisector, and across it. The spread shrinks with his skill and
   // is gone for a keeper of 1.

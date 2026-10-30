@@ -259,11 +259,13 @@ class BallTick {
         state, passer, ball.position, strike, context().time(), rules().shooting, rules().passing);
     const PlayerMatchState& crosser = state.players()[passer];
     const SimCore::Vec2 way = SimCore::unitOr(intent.target - ball.position, crosser.facing);
-    const ShotStrike struck = executeShot(
-        strike, ball.position, crosser,
-        shotErrorFactor(conditions, crosser.attributes, rules().shooting), rules().shooting,
-        rules().physics, context().random(SimCore::RandomNumberGeneratorDomain::kExecution),
-        {.x = -way.y, .y = way.x});
+    const ShotStrike struck =
+        executeShot(strike, ball.position, crosser,
+                    shotErrorFactor(conditions, crosser.attributes, rules().shooting) *
+                        rules().shooting.crossErrorShare,
+                    rules().shooting, rules().physics,
+                    context().random(SimCore::RandomNumberGeneratorDomain::kExecution),
+                    {.x = -way.y, .y = way.x});
     ball.velocity = struck.velocity;
     ball.verticalVelocity = struck.verticalVelocity;
     ball.spin = struck.spin;
@@ -563,6 +565,44 @@ class BallTick {
     }
   }
 
+  // Whether the claim is an outfield opponent of the passer at full stretch
+  // for a pass still fast -- standing farther than cleanRadius off the ball's
+  // way --: he only gets a touch on it (touchedOff()).
+  [[nodiscard]] bool stretchesFor(const BallState& ball, const BallClaim& claim) const {
+    const ReceptionConfig& reception = rules().reception;
+    const auto passer = passerOf(ball, next().lastPass());
+    const double speed = ball.velocity.length();
+    if (!passer || speed < reception.deflectSpeed || isGoalkeeper(current(), claim.playerIndex)) {
+      return false;
+    }
+    const PlayerMatchState& claimant = current().players()[claim.playerIndex];
+    const Vec2 way = ball.velocity * (1.0 / speed);
+    const Vec2 offset = claimant.position - ball.position;
+    if (std::abs((way.x * offset.y) - (way.y * offset.x)) <= reception.cleanRadius) {
+      return false;
+    }
+    const auto passerIndex = findPlayerIndex(current(), *passer);
+    return passerIndex && current().players()[*passerIndex].side != claimant.side;
+  }
+
+  // The pass as it comes off the opponent who stretched for it: deflected as
+  // a shot is off a body, with him as its last touch, and loose from there.
+  [[nodiscard]] BallState touchedOff(const BallClaim& contact, const FreeBall& free) const {
+    const double moment = contact.contact.contactFraction * free.step.seconds;
+    BallState ball = deflectShot(ballAfter(free.ball, rules().physics, moment), rules().shooting,
+                                 context().random(SimCore::RandomNumberGeneratorDomain::kExecution))
+                         .ball;
+    ball.lastTouch = BallTouch{.playerId = contact.playerId, .tick = context().tick()};
+    next().setBallLastTouch(ball.lastTouch);
+    // The pass remembers him: a deflection is no deliberate play (Law 11).
+    std::optional<PassRecord> pass = next().lastPass();
+    if (pass) {
+      pass->deflection = ball.lastTouch;
+      next().setLastPass(pass);
+    }
+    return ball;
+  }
+
   // The shot as it comes off the outfield player who got in its way: he is its
   // last touch, the shot remembers him, and the ball flies on from there.
   [[nodiscard]] BallState deflectedBy(const BallClaim& contact, FreeBall& free) const {
@@ -791,12 +831,24 @@ class BallTick {
       resolveShot(*free.shot, controlOutcome(current(), *free.shot, there, claim));
       free.shot.reset();
     }
-    const HeaderStrike strike =
+    HeaderStrike strike =
         executeHeader(intent, there, player,
                       headerErrorFactor(timingSkill(player.attributes, winner.hands), jump.mistime,
                                         rules().aerial),
                       rules().aerial, rules().physics,
                       context().random(SimCore::RandomNumberGeneratorDomain::kExecution));
+    // A mistimed header only glances the ball: it keeps some of its own way,
+    // never leaving faster than maxHeaderSpeed in all
+    // (docs/duels.md#the-header). A keeper's punch is his fist's.
+    if (!winner.hands) {
+      const Vec2 glanced =
+          strike.velocity + (there.velocity * (rules().aerial.glanceShare * jump.mistime));
+      const double fastest = rules().aerial.maxHeaderSpeed;
+      const double ground = std::sqrt(
+          std::max(0.0, (fastest * fastest) - (strike.verticalVelocity * strike.verticalVelocity)));
+      const double speed = glanced.length();
+      strike.velocity = speed > ground ? glanced * (ground / speed) : glanced;
+    }
     BallState from = there;
     from.velocity = strike.velocity;
     from.verticalVelocity = strike.verticalVelocity;
@@ -1054,6 +1106,13 @@ class BallTick {
       if (meetsKeeper(contact)) {
         return;
       }
+    }
+    if (contact && !deflects && stretchesFor(ball, *contact)) {
+      const double moment = contact->contact.contactFraction * free.step.seconds;
+      const BallState from = touchedOff(*contact, free);
+      free.step = stepFreeBallTimed(from, rules().physics, pitch, secondsPerTick - moment);
+      settleFreeBall(from, free);
+      return;
     }
     if (contact && (!deflects || isGoalkeeper(current(), contact->playerIndex))) {
       takeBall(free, *contact, current().players()[contact->playerIndex]);

@@ -119,10 +119,11 @@ struct Interception {
 // The trace of a scenario's first seconds, through a watched playback.
 [[nodiscard]] std::vector<TraceEntry> traceOf(const std::string& scenario,
                                               const DiagnosticsFilter& filter,
-                                              const std::int64_t ticks) {
+                                              const std::int64_t ticks,
+                                              const std::uint64_t seed = 7) {
   const auto* definition = ElyverseFootball::SimMatch::findScenario(scenario);
   REQUIRE(definition != nullptr);
-  const auto setup = definition->make(7);
+  const auto setup = definition->make(seed);
   REQUIRE(setup.has_value());
   const auto replay = recordMatch(*setup, SimTick(ticks), 30, "2026-09-25T12:00:00Z");
   REQUIRE(replay.has_value());
@@ -209,7 +210,8 @@ TEST_CASE("The tracer attributes the risky pass of intercepted-pass to the decis
 
   const std::string text = formatTrace(std::vector<TraceEntry>{first});
   CAPTURE(text);
-  REQUIRE(text.starts_with("t=18 #1 passes to #2 (utility "));
+  // He decides once he has held the ball minHoldSeconds (1 s).
+  REQUIRE(text.starts_with("t=30 #1 passes to #2 (utility "));
   REQUIRE(text.contains("because "));
   REQUIRE(text.contains("-> intercepted by #8 at t="));
   REQUIRE(text.ends_with(": decision\n"));
@@ -477,11 +479,11 @@ TEST_CASE("A cross is traced with its area, its runner and its reason", "[decisi
 
 TEST_CASE("The tracer follows a cross to whoever wins it in the air", "[decisionTrace]") {
   const auto passes = passesOf(traceOf(
-      "early-cross", {.players = {PlayerId(1)}, .from = std::nullopt, .to = std::nullopt}, 90));
+      "early-cross", {.players = {PlayerId(1)}, .from = std::nullopt, .to = std::nullopt}, 150, 1));
   REQUIRE_FALSE(passes.empty());
   const PassDecisionTrace& first = passes.front();
   REQUIRE(first.decision.outcome == DecisionOutcome::kCrossed);
-  // Seed 7: the keeper claims it in the air -- an interception by #8.
+  // Seed 1: the keeper claims it in the air -- an interception by #8.
   REQUIRE(first.outcome.result == PassResult::kIntercepted);
   REQUIRE(first.outcome.by == PlayerId(8));
 }

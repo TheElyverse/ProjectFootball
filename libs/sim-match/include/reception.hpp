@@ -20,6 +20,12 @@ namespace ElyverseFootball::SimMatch {
 struct ReceptionConfig {
   // A player controls a free ball that comes this close to him.
   double controlRadius = 1.0;  // m
+  // An opponent of the passer who only gets to a pass at full stretch --
+  // farther than cleanRadius from the ball's way -- while it is still at
+  // least deflectSpeed fast does not control it: it comes off him as a shot
+  // does off a body (docs/ball.md#reception-interceptions-and-loose-balls).
+  double cleanRadius = 0.7;   // m
+  double deflectSpeed = 8.0;  // m/s
   // The last player to touch the ball cannot take it back for this long, so
   // a pass does not stick to the passer's foot.
   double reclaimDelaySeconds = 0.3;
@@ -41,7 +47,9 @@ struct ReceptionConfig {
 // radius of each other. Both move in a straight line over the tick, from
 // their start to their end position. contactFraction is that moment as a
 // fraction of the tick, 0 if they start within reach; closestDistance is how
-// close they come at all during the tick.
+// close they come at all during the tick. A ball that starts within reach and
+// moves away from him is leaving him -- kicked on from beside him -- and no
+// contact (docs/ball.md#reception-interceptions-and-loose-balls).
 struct Contact {
   double contactFraction = 0.0;
   double closestDistance = 0.0;
@@ -72,7 +80,8 @@ struct BallClaim {
 // `ball` is the free ball at the start of the tick, `moved` the step
 // stepFreeBallTimed() makes of it. Every player of `state` competes, moving as
 // the movement system moves him in this tick, except the ball's last touch
-// within reclaimDelaySeconds of it. The earliest contact wins; equal contact
+// within reclaimDelaySeconds of it and, for a ball a goalkeeper let go from his
+// hands, his opponents as long (Law 12). The earliest contact wins; equal contact
 // times go to the player who comes closer, and then to the lower id. A contact
 // above controlHeight does not count: the ball flies over the player. A
 // goalkeeper who stands in his own penalty area, with the ball in it, at the
@@ -106,7 +115,8 @@ struct BallClaim {
 
 // Whether the player at this index competes for the free ball in the step of
 // `time` at all: he is not `excluded`, not busy with a dive (isDiving()),
-// and not the ball's last touch within reclaimDelaySeconds of it.
+// not the ball's last touch within reclaimDelaySeconds of it, and not an
+// opponent of a goalkeeper who let it go from his hands that recently.
 [[nodiscard]] bool mayCompete(const MatchState& state, const BallState& ball,
                               std::size_t playerIndex, SimCore::StepTime time,
                               const ReceptionConfig& config, std::span<const std::size_t> excluded);

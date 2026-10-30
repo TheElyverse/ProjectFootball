@@ -35,7 +35,7 @@ struct DuelConfig {
   // must land to meet it, and how wide the carrier's body is.
   double tackleReach = 1.8;  // m
   double footRadius = 0.3;   // m
-  double bodyRadius = 0.35;  // m
+  double bodyRadius = 0.3;   // m
   // How far from his aim a defender square on his feet lands his foot at
   // most: the half-width of a triangular spread, widened by 2 - balance.
   double footError = 0.3;  // m
@@ -46,7 +46,7 @@ struct DuelConfig {
   double minHold = 0.3;
   double maxHold = 0.9;
   // How fast a ball knocked loose leaves the foot.
-  double looseSpeed = 5.0;  // m/s
+  double looseSpeed = 12.0;  // m/s
   // Balance: bodies this close push each other, each losing up to
   // shovePerSecond -- half of it against an equally strong opponent, all of
   // it against one stronger by half the scale or more --; a lunge costs

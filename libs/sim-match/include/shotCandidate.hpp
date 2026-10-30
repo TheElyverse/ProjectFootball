@@ -48,8 +48,10 @@ struct ShotScoringConfig {
   // ball closer to him takes proportionally less, one out of reach the run
   // until it is in reach and then the full dive.
   double keeperDiveSeconds = 0.5;
-  // An outfield player blocks a shot below this height only.
-  double blockReach = 1.8;  // m
+  // An outfield player blocks a shot that comes within blockRadius of him
+  // below blockReach only, as the strike's ShotConfig has it.
+  double blockRadius = 0.5;  // m
+  double blockReach = 1.8;   // m
   // A player's time to spare reaching the shot, negative if he gets there
   // first. The chance he gets to it falls smoothly from 1 at minus this many
   // seconds through 1/2 at zero to 0 at plus this: narrow for a blocker, who
@@ -61,12 +63,12 @@ struct ShotScoringConfig {
   // down: the half-width of a triangular spread, at zero distance and per
   // meter from the goal, for a player of average accuracy.
   double spreadAtZero = 0.2;     // m
-  double spreadPerMeter = 0.04;  // m per m
+  double spreadPerMeter = 0.08;  // m per m
   // An opponent this close to the shooter puts no pressure on him at the
   // edge and full pressure at zero distance; full pressure widens the spread
   // by this share.
   double pressureRadius = 3.0;  // m
-  double pressureSpread = 1.0;
+  double pressureSpread = 3.5;
   // A shot is aimed at least this far inside a post or the crossbar, however
   // accurate the shooter.
   double frameMargin = 0.1;  // m
@@ -76,7 +78,7 @@ struct ShotScoringConfig {
   // Shots more likely to be blocked, or less likely to go in, are not
   // offered to the decision.
   double maxBlockRisk = 0.7;
-  double minGoalChance = 0.05;
+  double minGoalChance = 0.02;
   // Utility = goal·w_g + secondBall·w_s − loss·w_k, where loss is the chance
   // the team loses the ball: neither a goal nor a second ball. Keeping the
   // ball is worth 0, so a shot is only offered at a positive utility; w_k

@@ -451,6 +451,9 @@ struct PassRecord {
   SimCore::Vec2 from;
   SimCore::SimTick tick;
   std::optional<SimCore::PlayerId> receiver;
+  // The opponent the pass came off at full stretch, if one did
+  // (docs/ball.md#reception-interceptions-and-loose-balls).
+  std::optional<BallTouch> deflection = std::nullopt;
 
   friend bool operator==(const PassRecord&, const PassRecord&) = default;
 };
@@ -562,6 +565,9 @@ struct ShotIntent {
   // radians per meter, positive bending left (docs/on-ball.md#shot-types).
   ShotType type = ShotType::kDriven;
   double curvature = 0.0;
+  // Whether he places it from a ball laid still for him, with all the time he
+  // wants: a penalty (docs/set-pieces.md#penalties).
+  bool placed = false;
 
   friend bool operator==(const ShotIntent&, const ShotIntent&) = default;
 };

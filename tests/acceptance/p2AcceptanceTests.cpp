@@ -73,6 +73,12 @@ struct PressTally {
     // by a throw-in.
     MatchConfig config;
     config.restarts.enabled = false;
+    // Nor do the defenders near their goal pick up the men about the ball
+    // (docs/team-tactics.md#defensive-shape), nor does a pressed carrier near
+    // his goal clear it (docs/on-ball.md#clearances): either ends a press
+    // however many press, and only the press's own coordination is measured.
+    config.defensive.dangerShare = 0.0;
+    config.decisions.clearPressureRadius = 0.0;
     MatchSimulation simulation = startMatch(MatchSetup{
         .initialState = *std::move(state),
         .config = config,

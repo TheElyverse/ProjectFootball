@@ -32,15 +32,15 @@ void validate(const ShotConfig& config) {
       isFiniteNonNegative(config.pressureErrorFactor) &&
       isFiniteNonNegative(config.balanceErrorFactor) &&
       isFiniteNonNegative(config.weakFootErrorFactor) &&
-      isFiniteNonNegative(config.unsettledErrorFactor) &&
-      isFiniteNonNegative(config.weakFootSide) && isPositiveFinite(config.unsettledSeconds) &&
-      isPositiveFinite(config.unsettledBallSpeed) && isFiniteNonNegative(config.deflectionSpeed) &&
-      isPositiveFinite(config.blockRadius) && isFiniteNonNegative(config.blockReach) &&
-      isFiniteNonNegative(config.lungeRadius) && isFiniteNonNegative(config.lungeHeight) &&
-      isFiniteNonNegative(config.chipBackspin) && isShare(config.minDeflectedSpeed) &&
-      isShare(config.maxDeflectedSpeed) && config.minDeflectedSpeed <= config.maxDeflectedSpeed &&
-      isShare(config.blockedBelow) && isFiniteNonNegative(config.deflectionSpread) &&
-      isFiniteNonNegative(config.deflectionLift);
+      isFiniteNonNegative(config.unsettledErrorFactor) && isShare(config.placedErrorShare) &&
+      isShare(config.crossErrorShare) && isFiniteNonNegative(config.weakFootSide) &&
+      isPositiveFinite(config.unsettledSeconds) && isPositiveFinite(config.unsettledBallSpeed) &&
+      isFiniteNonNegative(config.deflectionSpeed) && isPositiveFinite(config.blockRadius) &&
+      isFiniteNonNegative(config.blockReach) && isFiniteNonNegative(config.lungeRadius) &&
+      isFiniteNonNegative(config.lungeHeight) && isFiniteNonNegative(config.chipBackspin) &&
+      isShare(config.minDeflectedSpeed) && isShare(config.maxDeflectedSpeed) &&
+      config.minDeflectedSpeed <= config.maxDeflectedSpeed && isShare(config.blockedBelow) &&
+      isFiniteNonNegative(config.deflectionSpread) && isFiniteNonNegative(config.deflectionLift);
   if (!valid) {
     throw std::invalid_argument("shooting: invalid configuration");
   }
@@ -59,6 +59,7 @@ ShotConditions shotConditions(const MatchState& state, const std::size_t shooter
   const Vec2 line = unitOr(intent.target - from, shooter.facing);
   ShotConditions conditions;
   conditions.pressure = passPressure(state, shooterIndex, passing);
+  conditions.placed = intent.placed;
 
   // What he moves at other than toward his shot, of all he can run.
   const double toward = std::max(0.0, shooter.velocity.dot(line));
@@ -90,7 +91,8 @@ double shotErrorFactor(const ShotConditions& conditions, const PlayerAttributes&
       conditions.weakFoot ? config.weakFootErrorFactor * (1.0 - attributes.weakFootAccuracy) : 0.0;
   return (1.0 + (config.pressureErrorFactor * conditions.pressure)) *
          (1.0 + (config.balanceErrorFactor * conditions.imbalance)) * (1.0 + foot) *
-         (1.0 + (config.unsettledErrorFactor * conditions.unsettled));
+         (1.0 + (config.unsettledErrorFactor * conditions.unsettled)) *
+         (conditions.placed ? config.placedErrorShare : 1.0);
 }
 
 ShotStrike executeShot(const ShotIntent& intent, const Vec2 from, const PlayerMatchState& shooter,

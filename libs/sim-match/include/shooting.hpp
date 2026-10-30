@@ -16,10 +16,11 @@ namespace ElyverseFootball::SimMatch {
 struct ShotConfig {
   // How far from his aim a shot may go at the goal line, to either side and up
   // or down: the half-width of a triangular spread, at zero distance and per
-  // meter to his target, for a player of average accuracy and technique --
-  // what the shot decision assumes of him (ShotScoringConfig).
+  // meter to his target, for a player of average accuracy and technique in
+  // open play -- wider than the shot decision judges it (ShotScoringConfig):
+  // a shooter believes himself a little better than he is.
   double spreadAtZero = 0.2;     // m
-  double spreadPerMeter = 0.04;  // m per m
+  double spreadPerMeter = 0.11;  // m per m
   // The strike is up to this fraction harder or softer than intended, for a
   // player of average technique -- and never by more than half, however badly
   // he strikes it.
@@ -39,10 +40,17 @@ struct ShotConfig {
   // top speed the shooter moves at across or away from his shot; the weak
   // foot a foot without any accuracy; unsettled a ball he has only just
   // received at unsettledBallSpeed.
-  double pressureErrorFactor = 1.0;
+  double pressureErrorFactor = 3.5;
   double balanceErrorFactor = 1.0;
   double weakFootErrorFactor = 1.0;
   double unsettledErrorFactor = 1.0;
+  // A placed shot -- a penalty, from a still ball and in his own time -- errs
+  // this share of what the same strike in open play would: the spread above
+  // is open play's, hurried even in the clear. A cross, struck into an area
+  // rather than past a keeper, errs crossErrorShare of a shot
+  // (docs/on-ball.md#crossing).
+  double placedErrorShare = 0.5;
+  double crossErrorShare = 0.4;
   // A target this far to the side of his weaker foot is struck with it: the
   // cross product of his facing and the direction of the shot, 0.3 being
   // about 17 degrees.
@@ -77,8 +85,9 @@ struct ShotConfig {
 
 // Throws std::invalid_argument unless every value is finite and not negative,
 // the launch slope, the unsettled time and speed and the block radius are
-// positive, and the deflected speeds and the blocked share lie in [0, 1] with
-// the lowest speed not above the highest.
+// positive, and the deflected speeds, the blocked share and the placed and
+// cross error shares lie in [0, 1] with the lowest speed not above the
+// highest.
 void validate(const ShotConfig& config);
 
 // How much wider than an average player's an error is for a skill in [0, 1]:
@@ -91,6 +100,7 @@ struct ShotConditions {
   double imbalance = 0.0;
   bool weakFoot = false;
   double unsettled = 0.0;
+  bool placed = false;
 
   friend bool operator==(const ShotConditions&, const ShotConditions&) = default;
 };
@@ -106,7 +116,8 @@ struct ShotConditions {
                                             const PassConfig& passing);
 
 // How much the conditions widen a player's errors: 1 in the clear, standing
-// or running at his shot, on his strong foot, with a settled ball.
+// or running at his shot, on his strong foot, with a settled ball;
+// placedErrorShare of that for a placed shot.
 [[nodiscard]] double shotErrorFactor(const ShotConditions& conditions,
                                      const PlayerAttributes& attributes,
                                      const ShotConfig& config) noexcept;

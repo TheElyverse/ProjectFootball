@@ -113,9 +113,11 @@ TEST_CASE("Keeper: he follows the ball across on the bisector of his goal's angl
         REQUIRE(simulation.state().ball().position.y < 15.0);
         lowSide = keeper.y;
       }
-      // Off his line, short of the edge of his area.
+      // Off his line -- with the ball just beyond shot range he stands about
+      // lineDepth (1.5 m) off it, give or take an average keeper's placing
+      // error of 0.75 m --, short of the edge of his area.
       if (simulation.tick() > SimTick(30)) {
-        REQUIRE(keeper.x < 58.0);
+        REQUIRE(keeper.x < 59.25);
         REQUIRE(keeper.x > 60.0 - simulation.state().pitch().markings().penaltyAreaDepthMeters);
       }
       // Carried to the far touchline, the ball has stopped by tick 180: a

@@ -37,7 +37,7 @@ string(JSON seedType TYPE "${contents}" seed)
 string(JSON gameTime GET "${contents}" gameTime)
 string(JSON schemaVersion GET "${contents}" schemaVersion)
 if(NOT seedType STREQUAL "STRING" OR NOT seed STREQUAL "42" OR NOT gameTime STREQUAL "300"
-        OR NOT schemaVersion STREQUAL "24")
+        OR NOT schemaVersion STREQUAL "25")
     message(FATAL_ERROR "Unexpected replay: ${contents}")
 endif()
 
@@ -220,7 +220,7 @@ if(NOT result STREQUAL "0" OR NOT output MATCHES "checkpoints: +6 verified"
     message(FATAL_ERROR "Trace failed: ${result}: ${output}${error}")
 endif()
 file(READ "${trace}" traceText)
-if(NOT traceText MATCHES "^t=18 #1 passes to #2 .* -> intercepted by #8 at t=70: decision\n$")
+if(NOT traceText MATCHES "^t=30 #1 passes to #2 .* -> intercepted by #8 at t=84: decision\n$")
     message(FATAL_ERROR "Unexpected trace: ${traceText}")
 endif()
 expect_failure("only apply to --play" --scenario kickoff --trace "${trace}")

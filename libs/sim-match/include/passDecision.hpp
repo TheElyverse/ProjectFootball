@@ -22,7 +22,7 @@ struct DecisionConfig {
   // 6 ticks at 30 Hz: a player on the ball decides five times a second.
   int intervalTicks = 6;
   // A player keeps a ball he has just taken at least this long.
-  double minHoldSeconds = 0.5;
+  double minHoldSeconds = 1.0;
   // Softmax temperature over utility for an average decider: lower picks the
   // best option more often, higher spreads the choice.
   double temperature = 0.15;
@@ -37,14 +37,23 @@ struct DecisionConfig {
   ShotScoringConfig shooting;
   // How the goalkeeper distributes the ball (docs/goalkeeper.md#distribution).
   DistributionConfig distribution;
+  // Whether outfield players of a side with a tactic kick long too, the
+  // keeper's long balls, as readily as their phase's passingRisk says, each
+  // worth longBallCost less (docs/on-ball.md#long-balls).
+  bool longBalls = true;
+  double longBallCost = 0.9;
   // A carrier without a valid option looks around for one this long, then
   // plays the best pass he rejected (docs/on-ball.md#pass-decisions).
   double stuckSeconds = 3.0;
   // Without any pass to play, he kicks the ball long this far inside a
   // touchline, and no closer than clearGoalLineMargin to the opponent's
   // goal line.
-  double clearTouchlineMargin = 5.0;  // m
+  double clearTouchlineMargin = 0.0;  // m
   double clearGoalLineMargin = 10.0;  // m
+  // Pressed in his own third -- an opponent within this distance -- an
+  // outfield player who would not play the ball clears it the same way
+  // (docs/on-ball.md#clearances); 0 never.
+  double clearPressureRadius = 3.0;  // m
   // How he weighs holding, turning, carrying and dribbling
   // (docs/on-ball.md#ball-carrying).
   CarryScoringConfig carrying;
@@ -157,13 +166,16 @@ inline constexpr std::string_view kPassDecisionSystemName = "pass decision";
 //      (activeCarry()).
 //   3. He lists and scores his options with generatePassCandidates(),
 //      generateShotCandidates() and generateCarryCandidates(), from his
-//      perception only -- scored for the passing risk of his side's tactic in
+//      memory -- scored for the passing risk of his side's tactic in
 //      its current phase (scoringForRisk(), shotScoringForRisk(),
 //      carryScoringForRisk()) and his carries for the phase itself
 //      (carryScoringForPhase()), if it has one. A goalkeeper adds his long
 //      balls (generateLongBallCandidates()), biased by his tactic's
 //      directness (directnessBias()), and from his hands throws no farther
-//      than the distribution's throwRange (docs/goalkeeper.md#distribution).
+//      than the distribution's throwRange (docs/goalkeeper.md#distribution);
+//      with longBalls on, an outfield player of a side with a tactic and a
+//      phase adds his in his own half, biased by the phase's passingRisk
+//      less longBallCost (docs/on-ball.md#long-balls).
 //   4. A poor decider misjudges his passes and shots (misjudgeOptions(),
 //      drawing from the kCognition random stream). He picks one of the valid
 //      passes, the best valid shot and the valid carries with
@@ -183,12 +195,16 @@ inline constexpr std::string_view kPassDecisionSystemName = "pass decision";
 //      of all he rejected, and without any a lofted kick to
 //      clearanceTarget() at the speed that brings it down there after the
 //      distribution's flightSeconds, no farther than the passing's
-//      maxLoftedSpeed reaches. Neither draws a number.
+//      maxLoftedSpeed reaches. Neither draws a number. An outfield carrier in
+//      his own third with an opponent truly within clearPressureRadius, who
+//      neither plays the ball nor gains ground with it, makes that kick at
+//      once (docs/on-ball.md#clearances).
 //
 // Writes the carrier's pending action, movement target, scan (CarrierScan)
 // and run (CarryRun) only; a carrier who acts ends his scan. Throws
 // std::invalid_argument for an interval below one tick, a negative or
-// non-finite hold time, stuck time or margin, a temperature that is not
+// non-finite hold time, stuck time, margin, long-ball cost or clearance
+// radius, a temperature that is not
 // positive and finite, a skillTemperatureSpread outside [0, 1) or a
 // maxMisjudgement outside [0, 1], or invalid scoring or distribution
 // (validate(PassScoringConfig), validate(ShotScoringConfig),

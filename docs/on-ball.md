@@ -57,7 +57,12 @@ straight line from the ball to the target.
 **Interception risk.** The ball's time to reach a point `s` meters along the lane
 follows from rolling friction, `s = v·t − a·t²/2`. Every half meter along the lane
 the carrier compares it with how soon a player can come within the control radius
-of that point (`estimateArrivalSeconds()` minus the radius covered at full speed):
+of that point (`reachSeconds()`): his arrival time (`estimateArrivalSeconds()`)
+at the nearest point that close, or, within the radius already, minus the
+radius he has left covered at full speed. Arriving at the point itself less the
+radius at full speed, as before, a presser a metre away still needed a fifth
+of a second from standing; the passer judged three in four passes past him safe
+where only half arrived.
 
 1. The lane ends where the receiver can take the ball, the first point he reaches
    no later than the ball; beyond it, the ball is his.
@@ -98,8 +103,9 @@ explained. Without a valid candidate the carrier has no pass to play.
 
 Valid candidates come first, by descending utility, then the invalid ones;
 equal utilities go by receiver id, a ground pass before a lofted one to the same
-receiver (`orderPassCandidates()`). A goalkeeper's long balls
-([goalkeeper distribution](goalkeeper.md#long-balls)) are lofted candidates
+receiver (`orderPassCandidates()`). Long balls — a goalkeeper's
+([goalkeeper distribution](goalkeeper.md#long-balls)) and an outfield
+player's ([long balls](#long-balls)) — are lofted candidates
 scored the same way (`scorePassCandidate()`), with the risk of losing the ball
 where it comes down as interception risk, in the same list. The same state
 always gives the same list.
@@ -157,7 +163,7 @@ after a carrier got his touched ball back
 
 1. **Is there a decision to make?** Not while the ball is free, rolls ahead of
    its owner after a touch, or its owner already has an action pending.
-2. **Hold.** A player keeps a ball he took less than `minHoldSeconds` (0.5 s) ago,
+2. **Hold.** A player keeps a ball he took less than `minHoldSeconds` (1 s) ago,
    measured from his last touch — a goalkeeper one he holds in his hands less
    than the distribution's `holdSeconds` (2 s). A player who owns the ball from
    the start of a state may pass at once, and so may one whose last touch was
@@ -188,7 +194,8 @@ after a carrier got his touched ball back
 
 A carrier without a valid option does not stand on the ball for good: he looks
 around for one and, after long enough, plays the best he has. Only a goalkeeper
-with the ball in his hands has his own rule.
+with the ball in his hands has his own rule, and a defender pressed near his
+goal [clears](#clearances) it at once.
 
 The same holds for a carrier who holds the ball despite options, or carries it
 without gaining anything — less than `minCarryDistance` toward goal, no better
@@ -224,8 +231,8 @@ the two while he has no option.
 **He acts when stuck.** `stuckSeconds` (3 s) after the decision that first
 found no option -- time for teammates to get free -- he plays the pass with
 the highest utility of all he rejected. Without any pass at all he kicks the
-ball long: lofted, to `clearanceTarget()`, `clearTouchlineMargin` (5 m) inside
-a touchline, as far up the pitch as his longest kick reaches but no closer
+ball long: lofted, to `clearanceTarget()`, `clearTouchlineMargin` (0 m) inside
+a touchline — on it, so that about half of them go into touch —, as far up the pitch as his longest kick reaches but no closer
 than `clearGoalLineMargin` (10 m) to the opponent's goal line, on the side
 where his team's [pitch control](team-tactics.md#pitch-control) is higher -- the nearer
 side on a tie or without a grid. A side whose point lies closer to the ball
@@ -238,6 +245,32 @@ number.
 
 Should he stand on the ball anyway, an opponent nearby
 [goes at him](team-tactics.md#a-carrier-who-stands-on-the-ball).
+
+### Clearances
+
+Pressed near his goal a defender does not dwell on the ball. An outfield
+player in his own third with an opponent within `clearPressureRadius` (3 m) of
+him — by the true positions, as a press is felt rather than remembered — who
+would neither play the ball nor gain ground with it — he chose to hold, or to
+turn, carry or dribble without getting anywhere ([ball carrying](#ball-carrying)),
+or found no option — clears it at once, the long kick of a stuck carrier above:
+up the pitch and on the touchline. Real defenders clear some twenty balls a
+match, and a good share go into touch; without it the ball hardly ever left
+the pitch, and throw-ins came at half real football's rate.
+
+### Long balls
+
+Outfield players of a side with a tactic kick long too, from their own half:
+the goalkeeper's long balls ([goalkeeper distribution](goalkeeper.md#long-balls)),
+lofted passes of at least the distribution's `minLongDistance` (25 m) to where
+a teammate stands, contested where they come down. They join the ground passes
+in one list. Their lofted bias is the phase's `passingRisk` through the
+distribution's dial — `directnessWeight · (2 · passingRisk − 1)` — less
+`longBallCost` (0.9): a direct side, counter's 0.6 to 0.9, kicks long far more
+than possession's 0.2 to 0.35, and nobody as readily as a keeper. Without the
+cost, every other pass went long and only a third of them arrived. Farther up
+the pitch they are not offered: a ball over the top from midfield made a
+chance of every second one. `longBalls` switches them off.
 
 ### Seeded softmax
 
@@ -334,19 +367,21 @@ twice:
 | Field            | Default | Meaning                                         |
 |------------------|---------|-------------------------------------------------|
 | `intervalTicks`  | 6       | ticks between decisions                         |
-| `minHoldSeconds` | 0.5 s   | a new owner keeps the ball at least this long   |
+| `minHoldSeconds` | 1 s     | a new owner keeps the ball at least this long   |
 | `temperature`    | 0.15    | softmax temperature over utility for an average decider |
 | `skillTemperatureSpread`, `maxMisjudgement` | 0.75, 0.3 | how [decision-making](#decision-making) shifts the temperature and how far a poor decider misjudges |
 | `scoring`        |         | the pass candidates' scoring configuration      |
 | `shooting`       |         | the shot candidates' scoring configuration      |
 | `distribution`   |         | how a goalkeeper distributes the ball ([goalkeeper distribution](goalkeeper.md#distribution)) |
 | `stuckSeconds`   | 3 s     | a carrier without a valid option looks for one this long |
-| `clearTouchlineMargin` | 5 m | his long kick without any pass lands this far inside a touchline |
+| `clearTouchlineMargin` | 0 m | his long kick without any pass lands this far inside a touchline |
 | `clearGoalLineMargin`  | 10 m | and no closer than this to the opponent's goal line |
+| `clearPressureRadius`  | 3 m | an opponent this close in his own third makes him [clear](#clearances); 0 never |
+| `longBalls`, `longBallCost` | on, 0.9 | whether outfield players [kick long](#long-balls), and how much less such a ball is worth |
 | `carrying`       |         | how he weighs holding, turning, carrying and dribbling ([ball carrying](#configuration-5)) |
 
 The system rejects an interval below one tick, a negative or non-finite hold,
-stuck time or margin, a temperature that is not positive and finite, a
+stuck time, margin, long-ball cost or clearance radius, a temperature that is not positive and finite, a
 temperature spread outside [0, 1) or a misjudgement outside [0, 1], and invalid
 scoring, carrying or distribution. It runs every tick, to follow a
 touched ball and to decide when a carrier gets it back, but decides at the
@@ -472,14 +507,15 @@ A `PassIntent` with `lofted` set goes through the air: its `speed` is the
 ball's speed along the ground, and the ball goes up at the vertical speed that
 brings it down on the target. It is executed with `loftedPassConfig()` —
 `maxLoftedSpeed` for `maxSpeed`, both errors `loftedErrorFactor` times as
-large — and the pace error scales its rise as it scales its speed. So far only
-a goalkeeper plays one ([goalkeeper distribution](goalkeeper.md#distribution)).
+large — and the pace error scales its rise as it scales its speed. A
+goalkeeper's long balls ([goalkeeper distribution](goalkeeper.md#distribution)),
+an outfield player's [long balls](#long-balls) and [clearances](#clearances) are
+lofted.
 
 ### What this is not
 
-- Every pass but a goalkeeper's long ball is a ground pass, without vertical
-  velocity or spin: outfield players have no chip or lofted pass, and nobody
-  spins one.
+- Every pass but a long ball or a clearance is a ground pass, without vertical
+  velocity or spin: nobody chips one or spins one.
 - The error depends on pressure, not yet on the passer's technique or body
   shape; those come with the player model.
 - Who gets the ball is decided by
@@ -560,9 +596,11 @@ spread = (spreadAtZero + spreadPerMeter · distance)
 ```
 
 with `distance` to the goal's center and `pressure = max(0, 1 − d / pressureRadius)`
-for the nearest remembered opponent at `d`. An average finisher (0.5) spreads
-0.2 m plus 4 cm per meter, a pinpoint one a tenth of that, a wild one almost
-twice. The triangle's distribution function is quadratic, so each zone's share
+for the nearest remembered opponent at `d`. An average finisher (0.5) judges
+his spread at 0.2 m plus 8 cm per meter, a pinpoint one a tenth of that, a wild
+one almost twice; full pressure widens it four and a half times. The strike
+itself strays further in open play ([the strike](#the-strike)): a shooter
+believes himself a little better than he is, and so goes for the corners. The triangle's distribution function is quadratic, so each zone's share
 is exact arithmetic. A low shot skids along the grass: the lowest row takes
 everything below its top.
 
@@ -576,9 +614,9 @@ instead. As for passes, every half meter along it the shooter compares when
 the ball gets there with when a player can ([pass candidates](#pass-candidates)):
 
 - **A blocker** — every remembered opponent but the keeper — gets a body part to
-  the ball where it is no higher than `blockReach` (1.8 m). Standing within the
-  control radius of the ball's path he needs no time at all; farther away, the
-  run until he is.
+  the ball where it is no higher than `blockReach` (1.8 m). Standing within
+  `blockRadius` (0.5 m) of the ball's path — the strike's own — he needs no time
+  at all; farther away, the run until he is.
 - **The keeper** reaches the ball within an ellipse: `keeperDiveReach` (2 m) to
   either side at his feet, `keeperJumpReach` (2.6 m) straight up, narrower in
   between. Within it he needs `keeperDiveSeconds` (0.5 s) times the share of his
@@ -632,7 +670,7 @@ when
 | Rejection     | When                                                     |
 |---------------|----------------------------------------------------------|
 | `kBlocked`    | the judged `blockRisk` is at least `maxBlockRisk` (0.7)  |
-| `kUnlikely`   | the judged `goalChance` is below `minGoalChance` (0.05)  |
+| `kUnlikely`   | the judged `goalChance` is below `minGoalChance` (0.02)  |
 | `kNotWorthIt` | the utility is 0 or less: keeping the ball is worth more |
 
 Every zone stays in the list with its reason, so a decision can be explained.
@@ -746,17 +784,18 @@ from 8 m, 0.41 from 12 m, 0.09 from 18 m and 0.06 from 22 m.
 | `keeperDiveReach`    | 2 m     | the keeper's reach to either side at his feet            |
 | `keeperJumpReach`    | 2.6 m   | the keeper's reach straight up                           |
 | `keeperDiveSeconds`  | 0.5 s   | reaction and dive to the edge of his reach               |
+| `blockRadius`        | 0.5 m   | an outfield player blocks a shot this close to its way, as the strike's `blockRadius` has it |
 | `blockReach`         | 1.8 m   | an outfield player blocks below this height              |
 | `blockMarginSeconds` | 0.15 s  | width of a blocker's risk step                           |
 | `saveMarginSeconds`  | 0.4 s   | width of the keeper's risk step                          |
 | `spreadAtZero`       | 0.2 m   | an average finisher's spread at the goal                 |
-| `spreadPerMeter`     | 0.04    | and how much it grows per meter of distance              |
+| `spreadPerMeter`     | 0.08    | and how much it grows per meter of distance              |
 | `pressureRadius`     | 3 m     | reach of an opponent's pressure on the shooter           |
-| `pressureSpread`     | 1.0     | how much full pressure widens the spread                 |
+| `pressureSpread`     | 3.5     | how much full pressure widens the spread                 |
 | `frameMargin`        | 0.1 m   | the closest a shot is aimed to a post or the crossbar    |
 | `reboundShare`       | 0.3     | blocked and saved shots his team gets the ball back from |
 | `maxBlockRisk`       | 0.7     | more likely blocked, not offered                         |
-| `minGoalChance`      | 0.05    | less likely to go in, not offered                        |
+| `minGoalChance`      | 0.02    | less likely to go in, not offered: real finishers try their luck from the edge of the area |
 | `goalWeight`         | 2.5     | `w_g`                                                    |
 | `secondBallWeight`   | 0.5     | `w_s`                                                    |
 | `lossWeight`         | 1.0     | `w_k`                                                    |
@@ -817,8 +856,12 @@ draws from the `kExecution` stream:
 spread = (spreadAtZero + spreadPerMeter · distance) · errorFactor
 ```
 
-with `distance` from the ball to the aimed point: 0.2 m plus 4 cm per meter,
-the spread the [decision](#the-spread) judges the shot by. Each
+with `distance` from the ball to the aimed point: 0.2 m plus 11 cm per meter in
+open play, wider than the spread the [decision](#the-spread) judges the shot by
+— hurried even in the clear, real finishers put fewer than half their shots on
+target. A penalty is **placed**: from a still ball and in his own time
+(`ShotIntent::placed`), its errors are `placedErrorShare` (0.5) of open play's,
+so three in five are scored and few miss the frame. Each
 skill scales its errors by `skillErrorFactor(skill) = 0.1 + 1.8 · (1 − skill)`:
 a tenth at 1, exactly as given at 0.5, almost twice at 0. The aim strays along
 the goal line and in height, and the launch is solved for the point it strays
@@ -850,17 +893,18 @@ sidespin how it [curves](ball.md#curve) in the air.
 `shotConditions()` reads four things off the true state, each in [0, 1], and
 `shotErrorFactor()` multiplies them into the factor above — 1 for a player in
 the clear, standing or running at his shot, on his strong foot, with a settled
-ball:
+ball, `placedErrorShare` of that for a placed shot:
 
 | Condition   | What it is                                                                 | At its worst |
 |-------------|----------------------------------------------------------------------------|--------------|
-| `pressure`  | the opponents close to him, as for a pass (`passPressure()`)               | × (1 + `pressureErrorFactor`) |
+| `pressure`  | the opponents close to him, as for a pass (`passPressure()`)               | × (1 + `pressureErrorFactor`), 4.5 by default |
 | `imbalance` | how much of his top speed the shooter moves at across or away from his shot | × (1 + `balanceErrorFactor`) |
 | `weakFoot`  | the target lies on the side of his weaker foot                             | × (1 + `weakFootErrorFactor` · (1 − `weakFootAccuracy`)) |
 | `unsettled` | he has only just received the ball, and it came fast                       | × (1 + `unsettledErrorFactor`) |
 
-Every factor is 1 by default, so each condition doubles the errors at its
-worst, and all four together make them sixteen times as wide.
+Every factor but pressure's is 1 by default, so each of those conditions
+doubles the errors at its worst; full pressure makes them four and a half times
+as wide.
 
 - **Balance.** The part of his velocity that points along the shot costs
   nothing: running onto the ball is how a shot is struck. What he moves at
@@ -978,16 +1022,18 @@ never a pass received or intercepted.
 | Field                  | Default  | Meaning                                                   |
 |------------------------|----------|-----------------------------------------------------------|
 | `spreadAtZero`         | 0.2 m    | an average shooter's spread at the goal line              |
-| `spreadPerMeter`       | 0.04     | and how much it grows per meter to the aimed point        |
+| `spreadPerMeter`       | 0.11     | and how much it grows per meter to the aimed point        |
 | `speedError`           | 0.05     | how much harder or softer an average strike is            |
 | `maxLaunchSlope`       | 1.0      | the steepest a ball leaves the foot: vertical over ground speed |
 | `topspin`              | 30 rad/s | the topspin of a clean strike at perfect technique        |
 | `chipBackspin`         | 20 rad/s | the backspin of a clean chip at perfect technique         |
 | `spinError`            | 15 rad/s | how far an average strike's spin is off                   |
-| `pressureErrorFactor`  | 1.0      | how much full pressure widens the errors                  |
+| `pressureErrorFactor`  | 3.5      | how much full pressure widens the errors                  |
 | `balanceErrorFactor`   | 1.0      | how much a shot fully off balance does                    |
 | `weakFootErrorFactor`  | 1.0      | how much a weak foot without any accuracy does            |
 | `unsettledErrorFactor` | 1.0      | how much a fully unsettled ball does                      |
+| `placedErrorShare`     | 0.5      | the share of open play's errors a placed shot -- a penalty -- makes |
+| `crossErrorShare`      | 0.4      | the share of a shot's errors a cross in the air makes     |
 | `weakFootSide`         | 0.3      | how far to the weak side a target is struck with that foot |
 | `unsettledSeconds`     | 1 s      | how long a received ball takes to settle                  |
 | `unsettledBallSpeed`   | 20 m/s   | a ball received this fast is fully unsettled              |
@@ -1024,12 +1070,12 @@ a keeper standing set, a wide shot, a shot that stops short, and that every
 shot has exactly one outcome.
 
 The `clear-chance` [scenario](scenarios.md#scenario-catalogue) checks the whole of it over 100
-seeds: the first shot is a goal 55 to 90 times. At the time of writing an
-average finisher scores 72 of them and hits the woodwork with 48 — he aims
-0.3 m inside the post with a spread of 0.5 m, and the decision that sends him
-there counts every ball inside the frame as on target, while a ball within
-17 cm of a post's axis hits it. From eight meters the ball is past the keeper
-before he has reacted.
+seeds: the first shot is a goal more than 50 and at most 90 times — real
+football turns about half of such big chances into goals. At the time of
+writing an average finisher scores 54 of them, puts 71 on target and hits the
+woodwork with 18: the decision that sends him toward a post counts every ball
+inside the frame as on target, while a ball within 17 cm of a post's axis hits
+it.
 
 ### What this is not
 
@@ -1144,7 +1190,8 @@ ball, and the keeper claims it with his hands where he gets to it first.
   height at its target along its arc, with the crosser's errors and conditions
   of [shooting](#the-strike) -- accuracy scatters it across its way,
   technique its lift, pace and spin -- in the six draws from `kExecution` a
-  shot makes, none of a pass's.
+  shot makes, none of a pass's. Struck into an area rather than past a keeper,
+  it errs `crossErrorShare` (0.4) of a shot's.
 - **A cut-back** is a ground pass ([passing](#passing)).
 
 The ball system records `PassAttempted` and then `CrossAttempted` with the

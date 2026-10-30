@@ -52,11 +52,15 @@ using ElyverseFootball::TestSupport::setupOf;
 namespace {
 
 // The match from tactic-match-eleven with a free kick or penalty of this kind
-// for home at `spot` awarded in its first step.
+// for home at `spot` awarded in its first step; without the defenders near
+// their goal picking up the men about the ball if `danger` is off.
 [[nodiscard]] MatchSimulation awarded(const RestartKind kind, const Vec2 spot,
-                                      const std::uint64_t seed) {
+                                      const std::uint64_t seed, const bool danger = true) {
   auto setup = setupOf("tactic-match-eleven", seed);
   setup.commands.clear();
+  if (!danger) {
+    setup.config.defensive.dangerShare = 0.0;
+  }
   MatchSystem award{.name = "award",
                     .update =
                         [kind, spot](const MatchStepContext& context, const MatchState& current,
@@ -145,7 +149,11 @@ TEST_CASE("Free kicks: the wall takes some shots, others clear it", "[acceptance
   int cleared = 0;
   for (std::uint64_t seed = 1; seed <= 30; ++seed) {
     CAPTURE(seed);
-    MatchSimulation simulation = awarded(RestartKind::kDirectFreeKick, spot, seed);
+    // The taker plays the ball a minHoldSeconds after the set piece is over
+    // (docs/set-pieces.md#free-kicks), and by then defenders near their goal
+    // would have left the wall to pick up the runners; only the wall's work
+    // is measured here.
+    MatchSimulation simulation = awarded(RestartKind::kDirectFreeKick, spot, seed, false);
     const Kick kick = kicked(simulation, SimTick(1200));
     REQUIRE(kick.takenFrom.has_value());
     // The wall: away players a centre circle's radius from the ball, between

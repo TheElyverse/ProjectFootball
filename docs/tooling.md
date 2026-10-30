@@ -26,12 +26,12 @@ directory); `--play` plays one back. The file is written before the terminal
 interface opens, so a run rejected by argument or terminal validation leaves no
 file.
 
-### Schema version 24
+### Schema version 25
 
 ```json
 {
-  "schemaVersion": 24,
-  "coreVersion": "0.40.0",
+  "schemaVersion": 25,
+  "coreVersion": "0.41.0",
   "createdAt": "2026-09-24T10:00:00Z",
   "seed": "18446744073709551615",
   "gameTime": 300,
@@ -67,7 +67,7 @@ file.
     "fitness": { "sprintSpeedShare": 0.85, "...": "..." },
     "offside": { "enabled": false, "levelMeters": 0.1 },
     "fouls": { "enabled": false, "fromBehindDot": -0.5, "...": "..." },
-    "setPieces": { "throwInSeconds": 3.0, "cornerSeconds": 8.0, "...": "..." },
+    "setPieces": { "throwInSeconds": 8.0, "cornerSeconds": 20.0, "...": "..." },
     "coaching": { "instructionDelaySeconds": 5.0, "maxSubstitutions": 5 }
   },
   "initialState": {
@@ -325,6 +325,7 @@ record the scenario again with the same seed.
 | 22      | The configuration gains its `setPieces` block, restarts are on by default, and tactics carry their set-piece plans in `setPieces` ([set pieces](set-pieces.md)). |
 | 23      | The `setPieces` block gains `freeKickSeconds`, `penaltySeconds`, `freeKickRange`, `wallPlayers` and `wallSpacing`, and tactics may plan a `freeKick` and a `penalty` ([free kicks](set-pieces.md#free-kicks), [penalties](set-pieces.md#penalties)). |
 | 24      | The configuration gains its `coaching` block, commands a `substitute` type (`side`, `off`, `on`, `attributes`), and a tactic change reaches the players after the coaching delay ([coaching](match-engine.md#coaching)). |
+| 25      | The configuration gains the defenders' `dangerShare`, `dangerUrgency` and `dangerRegionRelief`, the shot scoring's `blockRadius`, the strike's `placedErrorShare` and `crossErrorShare`, the decisions' `longBalls`, `longBallCost` and `clearPressureRadius`, the reception's `cleanRadius` and `deflectSpeed` and the aerial `glanceShare` ([calibration](scenarios.md#p3-acceptance)). |
 
 ## Decision trace
 
@@ -349,7 +350,7 @@ usual.
 decision of the match is traced. A trace line reads
 
 ```text
-t=18 #1 passes to #2 (utility 0.42: completion +0.36 progression +0.26 pressure -0.00 risk -0.19; estimated risk 0.64; 1 options, 9 observed; no shot: goal unseen) because completion -> intercepted by #8 at t=70: decision
+t=30 #1 passes to #2 (utility 0.44: completion +0.37 progression +0.26 pressure +0.00 risk -0.19; estimated risk 0.63; 1 options, 9 observed; no shot: too far) because completion -> intercepted by #8 at t=84: decision
 t=40 #7 shoots at (60.0, 21.2) 0.43 m high (utility 1.62: goal +1.60 secondBall +0.04 possession -0.02; goal chance 0.64, save 0.21, block 0.03; 3 options, 11 observed) because goal
 t=66 #4 pressCarrier #14 (utility 0.97: responsibility +0.60 region -0.47 space +0.19 lane +0.00 urgency +0.68 effort -0.03; 5 options) because urgency
 t=81 #5 blockLane #12 (assigned by the team press)
@@ -402,7 +403,9 @@ t=2082 #1 dives at #21's shot after a run of +0.00 m (gap 0.14 m, within 1.00 m;
   option ([pass decisions](on-ball.md#without-a-valid-option)) names
   how he dealt with it instead: `scanFirstSide` or `scanOtherSide` toward the
   point he looks at, `forcedRejected` for the best rejected pass he plays once
-  stuck, `forcedClear` for his long kick when he has no pass at all. An action
+  stuck, `forcedClear` for his long kick when he has no pass at all — or,
+  pressed near his goal, for his [clearance](on-ball.md#clearances), the line
+  then reading `pressed near his goal` for `no pass to play`. An action
   marked `idlePress` sent a player at a carrier who stood on the ball
   ([pressing](team-tactics.md#a-carrier-who-stands-on-the-ball)).
 - **Duels**: a carrier's move `in the duel against #n` — `shield`, `turnAway`
@@ -573,7 +576,7 @@ values:
 {
   "format": "elyverse-debug-frames",
   "version": 6,
-  "coreVersion": "0.40.0",
+  "coreVersion": "0.41.0",
   "scenario": "m0-acceptance",
   "seed": "42",
   "ticksPerSecond": 30,
@@ -1003,12 +1006,12 @@ attacking-third regains above possession's (seed 5).
 
 Two guardrails also apply:
 
-- **Shots.** Every side of every pairing shoots between 0.25 and 40 times per
+- **Shots.** Every side of every pairing shoots between 0.1 and 40 times per
   six-minute match on average, so a change cannot stop the shooting or turn the
-  pitch into a shooting gallery. At the time of writing the range is 2.3 to
-  9.4 -- 2.15 to 9.65 over seeds 1 to 5 -- on the full pitch, since matches
-  run to full time with their added time; counter at home against pressing the
-  fewest
+  pitch into a shooting gallery. At the time of writing the range is 0.2 to
+  1.8, real football's 12 shots a side in 90 minutes being 0.8 in six
+  ([calibration](scenarios.md#p3-acceptance)); possession away at counter the
+  fewest, pressing the most
   ([shot decisions](on-ball.md#shot-decisions)).
 - **Ownership.** No player owns the ball longer than 20 s at a time
   (`longestOwnershipSeconds`, [match analytics](#match-analytics)). A carrier

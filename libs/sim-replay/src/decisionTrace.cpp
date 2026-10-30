@@ -207,10 +207,14 @@ using SimMatch::MatchEvent;
     return carryLine(decision, *decision.chosen, line, context);
   }
   if (reason == SimMatch::OnBallReason::kForcedClear && decision.target) {
+    // Stuck without a pass at all, or pressed near his goal with one
+    // (docs/on-ball.md#clearances).
+    const bool anyPass = std::ranges::any_of(
+        decision.candidates, [](const SimMatch::PassCandidate& pass) { return pass.isValid(); });
     return line +
-           std::format("clears the ball to ({:.1f}, {:.1f}): no pass to play ({}; {})",
-                       decision.target->x, decision.target->y, context,
-                       SimMatch::onBallReasonName(reason)) +
+           std::format("clears the ball to ({:.1f}, {:.1f}): {} ({}; {})", decision.target->x,
+                       decision.target->y, anyPass ? "pressed near his goal" : "no pass to play",
+                       context, SimMatch::onBallReasonName(reason)) +
            outcomeText(trace.outcome);
   }
   if (!decision.chosen || looking || *decision.chosen >= decision.candidates.size()) {

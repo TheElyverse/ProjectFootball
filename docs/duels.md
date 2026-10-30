@@ -81,10 +81,10 @@ Each step reads `DuelGeometry`: the carrier, the defender, the ball and the
 centre of the goal the carrier attacks.
 
 - **The way to the ball** (`wayClearance()`): how far the straight line from
-  the defender to the ball passes the carrier, less `bodyRadius` (0.35 m), over
+  the defender to the ball passes the carrier, less `bodyRadius` (0.3 m), over
   `bodyRadius`, between 0 and 1. 0 means the way goes through him: the ball is
   shielded. In front of a carrier who faces the defender the way is clear by
-  0.43, beside him by less, behind him not at all.
+  0.67, beside him by less, behind him not at all.
 - **The threat** (`threat()`): how close the defender is, from 1 at
   `contactDistance` (1.2 m) to 0 at `breakRadius`, times how squarely he stands
   between the carrier and the goal -- 1 goal-side, ½ level, 0 behind him --
@@ -138,7 +138,7 @@ going straight from him to where it lands:
    `maxHold` (0.9) at 1.
    - better than the hold: **won** cleanly;
    - better than half the hold: knocked **loose** -- it leaves the foot at
-     `looseSpeed` (5 m/s) away from where the foot met it;
+     `looseSpeed` (12 m/s) away from where the foot met it;
    - worse: the carrier keeps it, and the lunge **missed**.
 3. **Missed**: anything else.
 
@@ -266,10 +266,10 @@ checked in `duelScenarioTests.cpp`, fouls included.
 | `turnStep`, `accelerateStep` | 2 m, 4 m | how far ahead a carrier runs turning away and accelerating |
 | `tackleReach`        | 1.8 m   | how far a lunge reaches                                      |
 | `footRadius`         | 0.3 m   | a foot this close to the ball meets it                       |
-| `bodyRadius`         | 0.35 m  | how wide the carrier's body is                               |
+| `bodyRadius`         | 0.3 m   | how wide the carrier's body is                               |
 | `footError`          | 0.3 m   | how far off the ball a balanced foot lands at most           |
 | `minHold`, `maxHold` | 0.3, 0.9 | the carrier's hold at a `ballControl` of 0 and of 1         |
-| `looseSpeed`         | 5 m/s   | how fast a ball knocked loose leaves                         |
+| `looseSpeed`         | 12 m/s  | how fast a ball knocked loose leaves                         |
 | `contactDistance`    | 1.2 m   | bodies this close push each other                            |
 | `shovePerSecond`     | 1       | the most balance pushing takes a second                      |
 | `commitCost`, `turnCost` | 0.3, 0.2 | the balance a lunge and a turn right round cost        |
@@ -454,7 +454,13 @@ the ground and up alike, and a header never leaves faster than
 `maxHeaderSpeed` in all; an aim on the ball itself is headed along his
 facing. Both errors are scaled by `headerErrorFactor()`: `skillErrorFactor()` of his
 heading, times `1 + mistimedErrorFactor · mistiming` — a fully mistimed header
-is three times as wide. The ball leaves without spin.
+is three times as wide. A mistimed header only glances the ball, too: it keeps
+`glanceShare · mistiming` (0.6 at worst) of its own way along the ground on top
+of where his head sends it — still no faster than `maxHeaderSpeed` in all —, so
+a cross glanced on goes on behind the goal or into touch; a keeper's punch is
+his fist's and does not glance. `PassAttempted` and `ShotAttempted` carry the
+speed the ball leaves with; `struckAt` stays where his head aimed it. The ball
+leaves without spin.
 
 What the ball is afterwards follows the play:
 
@@ -518,6 +524,7 @@ events of the play follow it.
 | `directionError`      | 0.06    | how far an average header strays per meter to his aim           |
 | `speedError`          | 0.1     | how much harder or softer                                       |
 | `mistimedErrorFactor` | 2       | how much a fully mistimed jump widens both                      |
+| `glanceShare`         | 0.6     | how much of its own way a fully mistimed header leaves the ball |
 
 `validate()` rejects values outside their rules; see `aerialDuels.hpp`. The
 players' side is `PlayerAttributes` ([match state](match-engine.md#match-state)):
@@ -547,9 +554,10 @@ players' side is `PlayerAttributes` ([match state](match-engine.md#match-state))
 
 ### What this is not
 
-- No crosses, and only goalkeepers loft passes: a high ball comes from a
-  keeper's long ball ([goalkeeper distribution](goalkeeper.md#distribution)), a
-  shot, a deflection, a parry, the woodwork or a test. A keeper who catches a
+- A high ball comes from a cross, a long ball — a keeper's
+  ([goalkeeper distribution](goalkeeper.md#distribution)) or an outfield
+  player's ([long balls](on-ball.md#long-balls)) —, a clearance, a shot, a
+  deflection, a parry, the woodwork or a test. A keeper who catches a
   ball distributes it like any ball in his hands.
 - The jump happens at the ball's arrival: no take-off before it, no hang time,
   no landing elsewhere; the movement system does not know he jumped.

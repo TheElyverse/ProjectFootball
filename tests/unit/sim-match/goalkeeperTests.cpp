@@ -123,12 +123,12 @@ TEST_CASE("The keeper stands on the bisector of the angle the posts make", "[goa
 }
 
 TEST_CASE("Far from the ball the keeper stands at a share of his defensive line", "[goalkeeper]") {
-  const MatchState state = scene({.x = 45.0, .y = 20.0});
+  const MatchState state = scene({.x = 55.0, .y = 20.0});
   const GoalkeeperConfig config;
   const double line =
       defensiveLineDepth(state, ElyverseFootball::SimMatch::TeamSide::kHome, kPhase);
   const double area = state.pitch().penaltyArea(GoalEnd::kMinX).max.x;
-  REQUIRE(45.0 > line);
+  REQUIRE(55.0 > std::max(line, 2.0 * kShotRange));
   REQUIRE_THAT(target(state).x, WithinAbs(std::min(config.highDepthShare * line, area), 1e-9));
 }
 
@@ -143,18 +143,20 @@ TEST_CASE("The closer the ball, the nearer his line the keeper stands", "[goalke
   }
 }
 
-TEST_CASE("Against an opponent on the ball within shooting range he is on his line",
-          "[goalkeeper]") {
-  // Away's striker, player 14, on the ball 20 m out.
+TEST_CASE("With the ball within shooting range he is on his line, whoever has it", "[goalkeeper]") {
+  // Away's striker, player 14, on the ball 20 m out, then home's centre back,
+  // player 2: a pass there may be lost and shot before he gets back.
   const Vec2 ball{.x = 20.0, .y = 20.0};
-  REQUIRE_THAT(target(scene(ball, PlayerId(14))).x, WithinAbs(GoalkeeperConfig{}.lineDepth, 1e-9));
-  // Loose, the same ball leaves him higher.
+  for (const PlayerId owner : {PlayerId(14), PlayerId(2)}) {
+    REQUIRE_THAT(target(scene(ball, owner)).x, WithinAbs(GoalkeeperConfig{}.lineDepth, 1e-9));
+  }
+  // Loose, the same ball leaves him higher, ready to come for it.
   REQUIRE(target(scene(ball)).x > GoalkeeperConfig{}.lineDepth);
 }
 
 TEST_CASE("With his side on the ball the keeper stays behind his defenders", "[goalkeeper]") {
-  // Home's centre back, player 2, on the ball in the middle of the pitch.
-  const Vec2 ball{.x = 40.0, .y = 20.0};
+  // Home's centre back, player 2, on the ball far up the pitch.
+  const Vec2 ball{.x = 55.0, .y = 20.0};
   const double without = target(scene(ball)).x;
   const double with = target(scene(ball, PlayerId(2))).x;
   REQUIRE_THAT(with, WithinAbs(std::max(GoalkeeperConfig{}.lineDepth,

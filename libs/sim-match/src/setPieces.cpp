@@ -671,7 +671,8 @@ namespace {
                     .height = shot.height,
                     .speed = shot.speed,
                     .type = shot.type,
-                    .curvature = shot.curvature};
+                    .curvature = shot.curvature,
+                    .placed = true};
 }
 
 // The taker plays the planned delivery -- a penalty taker his shot, a free
