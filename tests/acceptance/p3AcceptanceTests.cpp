@@ -9,6 +9,7 @@
 #include <catch2/catch_test_macros.hpp>
 #include <cstdint>
 #include <filesystem>
+#include <map>
 #include <string>
 #include <utility>
 #include <variant>
@@ -20,6 +21,7 @@
 #include "matchState.hpp"
 #include "replay.hpp"
 #include "scenarios.hpp"
+#include "setPiecePlan.hpp"
 #include "simTime.hpp"
 #include "tacticJson.hpp"
 
@@ -35,6 +37,10 @@ using ElyverseFootball::SimReplay::playReplay;
 using ElyverseFootball::SimReplay::recordMatch;
 
 namespace {
+
+// How long each match lasts, in real minutes: long enough for every kind of
+// set piece to come up over the six.
+constexpr double kMinutes = 6.0;
 
 // A tactical identity from data/tactics.
 [[nodiscard]] ElyverseFootball::SimTactics::Tactic identity(const std::string& name) {
@@ -60,47 +66,61 @@ namespace {
 }
 // NOLINTEND(bugprone-easily-swappable-parameters)
 
-// How long, in real seconds, the match went at most without its ball changing
-// owner, and lay dead for a set piece at a stretch.
-struct Stalls {
-  double withoutOwnerChange = 0.0;
-  double deadBall = 0.0;
-  bool fullTime = false;
+// The longest the match may go without its ball changing owner, and lie dead
+// for a set piece, in real seconds: over these matches 11.2 s and 8 s at most
+// when measured (docs/scenarios.md#p3-acceptance).
+constexpr double kMaxWithoutOwnerChange = 30.0;
+constexpr double kMaxDeadBall = 25.0;
+
+// What the rules and set pieces did in a match: how often each set piece was
+// taken, by kind name, and how many fouls and offsides were called.
+struct Rules {
+  std::map<std::string, int> setPieces;
+  int fouls = 0;
+  int offsides = 0;
 };
 
-[[nodiscard]] Stalls played(const MatchSetup& setup) {
+// Plays the match to full time -- within maxMatchTicks(), which no match that
+// plays on gets near -- failing at the first invalid step, non-finite value or
+// stall.
+[[nodiscard]] Rules played(const MatchSetup& setup) {
+  using ElyverseFootball::SimMatch::FoulCalled;
+  using ElyverseFootball::SimMatch::OffsideCalled;
+  using ElyverseFootball::SimMatch::PossessionChanged;
+  using ElyverseFootball::SimMatch::SetPieceTaken;
   MatchSimulation simulation = startMatch(setup);
   const double secondsPerTick = 1.0 / setup.config.ticksPerSecond;
   const std::int64_t bound =
       ElyverseFootball::SimMatch::maxMatchTicks(setup.config.clock, setup.config.ticksPerSecond);
-  Stalls stalls;
+  Rules rules;
   std::int64_t sinceChange = 0;
   std::int64_t dead = 0;
-  while (simulation.tick().value() < bound) {
+  while (simulation.state().clock().period != MatchPeriod::kFullTime) {
+    REQUIRE(simulation.tick().value() < bound);
     // A step that would leave an invalid state fails; so would this test.
-    const auto stepped = simulation.step();
-    REQUIRE(stepped.has_value());
+    REQUIRE(simulation.step().has_value());
     const auto& state = simulation.state();
     if (simulation.tick().value() % 300 == 0) {
       REQUIRE(findNonFiniteValues(state).empty());
     }
     bool changed = false;
     for (const MatchEvent& event : simulation.events()) {
-      changed =
-          changed || std::holds_alternative<ElyverseFootball::SimMatch::PossessionChanged>(event);
+      changed = changed || std::holds_alternative<PossessionChanged>(event);
+      if (const auto* taken = std::get_if<SetPieceTaken>(&event)) {
+        ++rules.setPieces[std::string(ElyverseFootball::SimTactics::setPieceKindName(taken->kind))];
+      }
+      rules.fouls += std::holds_alternative<FoulCalled>(event) ? 1 : 0;
+      rules.offsides += std::holds_alternative<OffsideCalled>(event) ? 1 : 0;
     }
     sinceChange = changed ? 0 : sinceChange + 1;
     dead = state.setPiece() ? dead + 1 : 0;
-    stalls.withoutOwnerChange =
-        std::max(stalls.withoutOwnerChange, static_cast<double>(sinceChange) * secondsPerTick);
-    stalls.deadBall = std::max(stalls.deadBall, static_cast<double>(dead) * secondsPerTick);
-    if (state.clock().period == MatchPeriod::kFullTime) {
-      stalls.fullTime = true;
-      break;
-    }
+    // Somebody plays the ball on, and a set piece is taken.
+    CAPTURE(simulation.tick().value());
+    REQUIRE(static_cast<double>(sinceChange) * secondsPerTick < kMaxWithoutOwnerChange);
+    REQUIRE(static_cast<double>(dead) * secondsPerTick < kMaxDeadBall);
   }
   REQUIRE(findNonFiniteValues(simulation.state()).empty());
-  return stalls;
+  return rules;
 }
 
 }  // namespace
@@ -111,24 +131,30 @@ TEST_CASE("P3: whole eleven-a-side matches with every rule stay valid and never 
     const char* home;
     const char* away;
   };
+  Rules all;
   for (const Pairing pairing : {Pairing{.home = "pressing", .away = "counter"},
                                 Pairing{.home = "possession", .away = "pressing"},
                                 Pairing{.home = "counter", .away = "possession"}}) {
     for (std::uint64_t seed = 1; seed <= 2; ++seed) {
       CAPTURE(pairing.home, pairing.away, seed);
-      const Stalls stalls = played(wholeMatch(pairing.home, pairing.away, seed, 3.0));
-      // To full time within the bound no match that plays on gets near.
-      REQUIRE(stalls.fullTime);
-      // Somebody plays the ball on: the longest a ball kept its owner, or lay
-      // free for nobody, was 11.2 s over these six matches
-      // (docs/scenarios.md#p3-acceptance).
-      CAPTURE(stalls.withoutOwnerChange, stalls.deadBall);
-      REQUIRE(stalls.withoutOwnerChange < 30.0);
-      // A set piece is taken: within its setup time and waitSeconds, 8 s at
-      // most over these six matches.
-      REQUIRE(stalls.deadBall < 25.0);
+      const Rules rules = played(wholeMatch(pairing.home, pairing.away, seed, kMinutes));
+      for (const auto& [kind, count] : rules.setPieces) {
+        all.setPieces[kind] += count;
+      }
+      all.fouls += rules.fouls;
+      all.offsides += rules.offsides;
     }
   }
+  // Every kind of set piece came up and was taken, and offside was called:
+  // over these six matches 5 corners, 1 throw-in, 3 goal kicks, 2 free kicks
+  // and 2 offsides when measured. Fouls are rare in matches this short; the
+  // Release run checks that they are called (tests/benchmark/p3Acceptance.cmake).
+  CAPTURE(all.fouls, all.offsides);
+  for (const char* kind : {"kickoff", "throwIn", "corner", "goalKick", "freeKick"}) {
+    CAPTURE(kind);
+    REQUIRE(all.setPieces[kind] >= 1);
+  }
+  REQUIRE(all.offsides >= 1);
 }
 
 TEST_CASE("P3: a whole match with every rule replays with identical hashes, pinned",

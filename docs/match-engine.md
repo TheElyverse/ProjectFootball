@@ -701,8 +701,8 @@ development machine, 390 to 540 times real time. The Release-only
 `eleven-a-side-budget` test plays one with seed 1, fails above the budget and
 plays its replay back with every checkpoint verified; CI's `style-benchmark`
 job runs it. With every rule on — restarts and set pieces, offside, fouls —
-a whole match of the tactical identities took about 17 s, some 300 times real
-time; the [P3 acceptance](scenarios.md#p3-acceptance) holds each of its nine
+a whole match of the tactical identities took 14.5 to 17 s, some 300 to 370
+times real time; the [P3 acceptance](scenarios.md#p3-acceptance) holds each of its nine
 to 45 s too.
 
 ### What this is not

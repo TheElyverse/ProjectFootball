@@ -20,7 +20,7 @@ execute_process(
         --max-seconds-per-match 45 --max-seconds-total 300
         --out "${results}"
         RESULT_VARIABLE result OUTPUT_VARIABLE output ERROR_VARIABLE error
-        TIMEOUT 600
+        TIMEOUT 900
 )
 message(STATUS "${output}")
 if(NOT result STREQUAL "0")
@@ -39,7 +39,10 @@ if(NOT restarts OR NOT offside OR NOT fouls)
     message(FATAL_ERROR "Expected every rule on: restarts ${restarts}, offside ${offside}, fouls ${fouls}")
 endif()
 
-# Every match plays to full time.
+# Every match plays to full time, and nobody stands on the ball or carries it
+# about for good over the 90 minutes: no player owns it longer than 20 s at a
+# time (9 to 12 s measured), as in the P2 style benchmark.
+set(maxOwnershipSeconds 20)
 math(EXPR lastPairing "${pairings} - 1")
 foreach(index RANGE ${lastPairing})
     string(JSON matches LENGTH "${json}" pairings ${index} results)
@@ -49,6 +52,14 @@ foreach(index RANGE ${lastPairing})
         if(NOT finished)
             message(FATAL_ERROR "Pairing ${index}, match ${match} did not reach full time")
         endif()
+        foreach(side IN ITEMS home away)
+            string(JSON longest GET "${json}" pairings ${index} results ${match} stats ${side}
+                   longestOwnershipSeconds)
+            if(longest GREATER maxOwnershipSeconds)
+                message(FATAL_ERROR
+                        "Pairing ${index}, match ${match}: a ${side} player owned the ball for ${longest} s, more than ${maxOwnershipSeconds} s")
+            endif()
+        endforeach()
     endforeach()
 endforeach()
 
@@ -77,10 +88,30 @@ foreach(style IN ITEMS possession counter pressing)
         list(GET fields 0 metric)
         list(GET fields 1 low)
         list(GET fields 2 high)
+        string(JSON count GET "${json}" styleSummary ${style} ${metric} count)
         string(JSON mean GET "${json}" styleSummary ${style} ${metric} mean)
+        # Every side has the value: an empty mean -- no passes at all -- fails.
+        if(NOT count EQUAL 6)
+            message(FATAL_ERROR "${style}: ${metric} has ${count} values, expected one per side")
+        endif()
         if(mean LESS low OR mean GREATER high)
             message(FATAL_ERROR
                     "${style}: ${metric} ${mean} per match, outside its band ${low} to ${high}")
         endif()
     endforeach()
+endforeach()
+
+# The rules fire: pressing, which takes carriers on most and keeps the highest
+# line, commits fouls and catches opponents offside in every whole match (4.3 to
+# 8.2 fouls and 6.0 to 9.7 offsides per match measured over seeds 1 to 5), so a
+# rule that stops being called fails here although the other styles' bands
+# start at 0. Penalties are too rare in nine matches to need one.
+foreach(floor IN ITEMS "fouls 1.5" "offsides 2")
+    string(REGEX REPLACE " +" ";" fields "${floor}")
+    list(GET fields 0 metric)
+    list(GET fields 1 low)
+    string(JSON mean GET "${json}" styleSummary pressing ${metric} mean)
+    if(mean LESS low)
+        message(FATAL_ERROR "pressing: ${metric} ${mean} per match, below ${low}: is the rule called?")
+    endif()
 endforeach()
