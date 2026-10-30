@@ -454,7 +454,10 @@ the ground and up alike, and a header never leaves faster than
 `maxHeaderSpeed` in all; an aim on the ball itself is headed along his
 facing. Both errors are scaled by `headerErrorFactor()`: `skillErrorFactor()` of his
 heading, times `1 + mistimedErrorFactor · mistiming` — a fully mistimed header
-is three times as wide. The ball leaves without spin.
+is three times as wide. A mistimed header only glances the ball, too: it keeps
+`glanceShare · mistiming` (0.6 at worst) of its own way along the ground on top
+of where his head sends it, so a cross glanced on goes on behind the goal or
+into touch. The ball leaves without spin.
 
 What the ball is afterwards follows the play:
 
@@ -518,6 +521,7 @@ events of the play follow it.
 | `directionError`      | 0.06    | how far an average header strays per meter to his aim           |
 | `speedError`          | 0.1     | how much harder or softer                                       |
 | `mistimedErrorFactor` | 2       | how much a fully mistimed jump widens both                      |
+| `glanceShare`         | 0.6     | how much of its own way a fully mistimed header leaves the ball |
 
 `validate()` rejects values outside their rules; see `aerialDuels.hpp`. The
 players' side is `PlayerAttributes` ([match state](match-engine.md#match-state)):

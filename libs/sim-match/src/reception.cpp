@@ -179,7 +179,8 @@ void validate(const ReceptionConfig& config) {
   if (!isFiniteNonNegative(config.controlRadius) ||
       !isFiniteNonNegative(config.reclaimDelaySeconds) ||
       !isFiniteNonNegative(config.controlHeight) || !isFiniteNonNegative(config.handsRadius) ||
-      !isFiniteNonNegative(config.handsHeight)) {
+      !isFiniteNonNegative(config.handsHeight) || !isFiniteNonNegative(config.cleanRadius) ||
+      !isFiniteNonNegative(config.deflectSpeed)) {
     throw std::invalid_argument("reception: invalid configuration");
   }
 }

@@ -37,14 +37,23 @@ struct DecisionConfig {
   ShotScoringConfig shooting;
   // How the goalkeeper distributes the ball (docs/goalkeeper.md#distribution).
   DistributionConfig distribution;
+  // Whether outfield players of a side with a tactic kick long too, the
+  // keeper's long balls, as readily as their phase's passingRisk says, each
+  // worth longBallCost less (docs/on-ball.md#long-balls).
+  bool longBalls = true;
+  double longBallCost = 0.9;
   // A carrier without a valid option looks around for one this long, then
   // plays the best pass he rejected (docs/on-ball.md#pass-decisions).
   double stuckSeconds = 3.0;
   // Without any pass to play, he kicks the ball long this far inside a
   // touchline, and no closer than clearGoalLineMargin to the opponent's
   // goal line.
-  double clearTouchlineMargin = 5.0;  // m
+  double clearTouchlineMargin = 0.0;  // m
   double clearGoalLineMargin = 10.0;  // m
+  // Pressed in his own third -- an opponent within this distance -- an
+  // outfield player who would not play the ball clears it the same way
+  // (docs/on-ball.md#clearances); 0 never.
+  double clearPressureRadius = 3.0;  // m
   // How he weighs holding, turning, carrying and dribbling
   // (docs/on-ball.md#ball-carrying).
   CarryScoringConfig carrying;

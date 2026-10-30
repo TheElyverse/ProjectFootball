@@ -85,6 +85,10 @@ struct AerialConfig {
   double directionError = 0.06;
   double speedError = 0.1;
   double mistimedErrorFactor = 2.0;
+  // A mistimed header only glances the ball: it keeps up to this share of
+  // its own way along the ground, the more mistimed the more, on top of
+  // where the head sends it -- a cross glanced on goes behind.
+  double glanceShare = 0.6;
 
   friend bool operator==(const AerialConfig&, const AerialConfig&) = default;
 };

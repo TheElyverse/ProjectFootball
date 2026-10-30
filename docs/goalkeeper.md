@@ -503,7 +503,8 @@ touch. A restart forgets it too.
 
 ### Long balls
 
-Only a goalkeeper kicks long. `generateLongBallCandidates()` lists a lofted
+Outfield players kick long from their own half too, more sparingly
+([long balls](on-ball.md#long-balls)). `generateLongBallCandidates()` lists a lofted
 pass to every teammate he remembers with at least the scoring's
 `minConfidence`, aimed at where he believes that teammate is now, from his
 memory alone like every pass candidate:
@@ -639,7 +640,5 @@ the ball, and `restartTests.cpp` where a goal kick is taken from.
 - No back-pass rule (he takes a teammate's pass in his hands), no rule against
   the goal kick taker playing the ball twice, and opponents need not leave the
   penalty area for a goal kick.
-- Outfield players do not kick long; their lofted passes and crosses are to
-  come (#94).
 - A long ball aims at a teammate's position, not a space to run onto, and its
   flight time is the same for every distance.

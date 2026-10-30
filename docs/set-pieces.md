@@ -62,12 +62,15 @@ the [match phase](team-tactics.md#match-phases) that follows from it.
 
 ## The delivery
 
-The taker plays once the kind's setup time has passed — `throwInSeconds` (3 s),
-`cornerSeconds` (8 s), `goalKickSeconds` (6 s), `kickoffSeconds` (0 s) — he
+The taker plays once the kind's setup time has passed — `throwInSeconds` (8 s),
+`cornerSeconds` (20 s), `goalKickSeconds` (15 s), `kickoffSeconds` (0 s) — he
 stands within `readyRadius` (0.75 m) of his place behind the ball, and everyone
 else with a place stands within `placeRadius` (2 m) of it, or `waitSeconds`
 (10 s) more have passed. The ball lies dead until then: no player receives,
-chases or wins it, and no restart is taken.
+chases or wins it, and no restart is taken. The setup times are real
+football's, give or take — fetching the ball, lining up, the referee's
+whistle —: with them the ball is dead a fifth of the match rather than a
+twentieth.
 
 `plannedDelivery()` is the pass:
 
@@ -98,7 +101,7 @@ a set piece being set up.
 A direct free kick follows a foul outside the offender's penalty area, an
 indirect one an offside ([fouls](fouls.md#the-decision),
 [offside](match-engine.md#the-free-kick)). Both are set up for
-`freeKickSeconds` (8 s). One no farther than `freeKickRange` (32 m) from the
+`freeKickSeconds` (20 s). One no farther than `freeKickRange` (32 m) from the
 centre of the goal it attacks goes for goal:
 
 - **The wall.** The defending side's outfield players whose slots stand highest
@@ -162,7 +165,7 @@ in the eleven-a-side reference at tick 0. Over thirty seeds a direct free kick
 22 m out faces a wall of at least three at the distance, and the wall blocks
 some of the taker's shots while others clear it; over forty seeds a penalty is
 taken with only the taker and the keeper in the area, between half and nine in
-ten are scored — 28 of the 40, seven in ten, at the time of writing; real
+ten are scored — 24 of the 40, three in five, at the time of writing; real
 football scores about three in four —, and at least one
 is parried into play and played again. An indirect free kick struck straight in
 gives a goal kick, the same ball without the indirect kick a goal.

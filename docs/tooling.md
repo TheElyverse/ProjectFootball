@@ -67,7 +67,7 @@ file.
     "fitness": { "sprintSpeedShare": 0.85, "...": "..." },
     "offside": { "enabled": false, "levelMeters": 0.1 },
     "fouls": { "enabled": false, "fromBehindDot": -0.5, "...": "..." },
-    "setPieces": { "throwInSeconds": 3.0, "cornerSeconds": 8.0, "...": "..." },
+    "setPieces": { "throwInSeconds": 8.0, "cornerSeconds": 20.0, "...": "..." },
     "coaching": { "instructionDelaySeconds": 5.0, "maxSubstitutions": 5 }
   },
   "initialState": {
@@ -325,7 +325,7 @@ record the scenario again with the same seed.
 | 22      | The configuration gains its `setPieces` block, restarts are on by default, and tactics carry their set-piece plans in `setPieces` ([set pieces](set-pieces.md)). |
 | 23      | The `setPieces` block gains `freeKickSeconds`, `penaltySeconds`, `freeKickRange`, `wallPlayers` and `wallSpacing`, and tactics may plan a `freeKick` and a `penalty` ([free kicks](set-pieces.md#free-kicks), [penalties](set-pieces.md#penalties)). |
 | 24      | The configuration gains its `coaching` block, commands a `substitute` type (`side`, `off`, `on`, `attributes`), and a tactic change reaches the players after the coaching delay ([coaching](match-engine.md#coaching)). |
-| 25      | The configuration gains the defenders' `dangerShare`, `dangerUrgency` and `dangerRegionRelief`, the shot scoring's `blockRadius` and the strike's `placedErrorShare` and `crossErrorShare` ([calibration](scenarios.md#p3-acceptance)). |
+| 25      | The configuration gains the defenders' `dangerShare`, `dangerUrgency` and `dangerRegionRelief`, the shot scoring's `blockRadius`, the strike's `placedErrorShare` and `crossErrorShare`, the decisions' `longBalls`, `longBallCost` and `clearPressureRadius`, the reception's `cleanRadius` and `deflectSpeed` and the aerial `glanceShare` ([calibration](scenarios.md#p3-acceptance)). |
 
 ## Decision trace
 

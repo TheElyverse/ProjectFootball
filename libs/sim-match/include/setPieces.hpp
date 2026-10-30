@@ -20,12 +20,12 @@ namespace ElyverseFootball::SimMatch {
 struct SetPieceConfig {
   // Real seconds the players have to take up their positions before the taker
   // may play the ball, by kind.
-  double throwInSeconds = 3.0;   // s
-  double cornerSeconds = 8.0;    // s
-  double goalKickSeconds = 6.0;  // s
-  double kickoffSeconds = 0.0;   // s
-  double freeKickSeconds = 8.0;  // s
-  double penaltySeconds = 10.0;  // s
+  double throwInSeconds = 8.0;    // s
+  double cornerSeconds = 20.0;    // s
+  double goalKickSeconds = 15.0;  // s
+  double kickoffSeconds = 0.0;    // s
+  double freeKickSeconds = 20.0;  // s
+  double penaltySeconds = 10.0;   // s
   // A free kick no farther than this from the goal it attacks goes for goal:
   // the defenders build a wall and the attackers go into the box.
   double freeKickRange = 32.0;  // m

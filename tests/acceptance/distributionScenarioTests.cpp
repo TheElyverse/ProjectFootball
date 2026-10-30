@@ -277,9 +277,9 @@ TEST_CASE("Distribution: the keeper takes a goal kick from his goal area",
     REQUIRE(state.setPiece().has_value());
     REQUIRE(state.setPiece().value_or(ElyverseFootball::SimMatch::SetPiece{}).taker == kAwayKeeper);
 
-    // And he plays it from there, once the goal kick's six seconds are up.
+    // And he plays it from there, once the goal kick's fifteen seconds are up.
     const Distribution run = distribute(simulation, kAwayKeeper, kAwayKeeperIndex,
-                                        SimTick(simulation.tick().value() + 300));
+                                        SimTick(simulation.tick().value() + 600));
     REQUIRE(run.pass.has_value());
     REQUIRE(ElyverseFootball::SimCore::distance(run.pass.value_or(PassAttempted{}).from, spot) <
             0.5);

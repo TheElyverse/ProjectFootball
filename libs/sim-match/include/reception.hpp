@@ -20,6 +20,12 @@ namespace ElyverseFootball::SimMatch {
 struct ReceptionConfig {
   // A player controls a free ball that comes this close to him.
   double controlRadius = 1.0;  // m
+  // An opponent of the passer who only gets to a pass at full stretch --
+  // farther than cleanRadius from the ball's way -- while it is still at
+  // least deflectSpeed fast does not control it: it comes off him as a shot
+  // does off a body (docs/ball.md#reception-interceptions-and-loose-balls).
+  double cleanRadius = 0.7;   // m
+  double deflectSpeed = 8.0;  // m/s
   // The last player to touch the ball cannot take it back for this long, so
   // a pass does not stick to the passer's foot.
   double reclaimDelaySeconds = 0.3;

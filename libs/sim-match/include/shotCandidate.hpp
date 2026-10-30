@@ -78,7 +78,7 @@ struct ShotScoringConfig {
   // Shots more likely to be blocked, or less likely to go in, are not
   // offered to the decision.
   double maxBlockRisk = 0.7;
-  double minGoalChance = 0.05;
+  double minGoalChance = 0.02;
   // Utility = goal·w_g + secondBall·w_s − loss·w_k, where loss is the chance
   // the team loses the ball: neither a goal nor a second ball. Keeping the
   // ball is worth 0, so a shot is only offered at a positive utility; w_k

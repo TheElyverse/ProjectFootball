@@ -565,6 +565,34 @@ class BallTick {
     }
   }
 
+  // Whether the claim is an outfield opponent of the passer at full stretch
+  // for a pass still fast: he only gets a touch on it (touchedOff()).
+  [[nodiscard]] bool stretchesFor(const BallState& ball, const BallClaim& claim) const {
+    const ReceptionConfig& reception = rules().reception;
+    const auto passer = passerOf(ball, next().lastPass());
+    if (!passer || claim.contact.closestDistance <= reception.cleanRadius ||
+        ball.velocity.length() < reception.deflectSpeed ||
+        hasHands(current(), claim.playerIndex, current().players()[claim.playerIndex].position,
+                 ball.position)) {
+      return false;
+    }
+    const auto passerIndex = findPlayerIndex(current(), *passer);
+    return passerIndex &&
+           current().players()[*passerIndex].side != current().players()[claim.playerIndex].side;
+  }
+
+  // The pass as it comes off the opponent who stretched for it: deflected as
+  // a shot is off a body, with him as its last touch, and loose from there.
+  [[nodiscard]] BallState touchedOff(const BallClaim& contact, const FreeBall& free) const {
+    const double moment = contact.contact.contactFraction * free.step.seconds;
+    BallState ball = deflectShot(ballAfter(free.ball, rules().physics, moment), rules().shooting,
+                                 context().random(SimCore::RandomNumberGeneratorDomain::kExecution))
+                         .ball;
+    ball.lastTouch = BallTouch{.playerId = contact.playerId, .tick = context().tick()};
+    next().setBallLastTouch(ball.lastTouch);
+    return ball;
+  }
+
   // The shot as it comes off the outfield player who got in its way: he is its
   // last touch, the shot remembers him, and the ball flies on from there.
   [[nodiscard]] BallState deflectedBy(const BallClaim& contact, FreeBall& free) const {
@@ -800,7 +828,10 @@ class BallTick {
                       rules().aerial, rules().physics,
                       context().random(SimCore::RandomNumberGeneratorDomain::kExecution));
     BallState from = there;
-    from.velocity = strike.velocity;
+    // Mistimed, he only glances it: it keeps some of its own way
+    // (docs/duels.md#the-header).
+    from.velocity =
+        strike.velocity + (there.velocity * (rules().aerial.glanceShare * jump.mistime));
     from.verticalVelocity = strike.verticalVelocity;
     from.spin = 0.0;
     from.sideSpin = 0.0;
@@ -1056,6 +1087,13 @@ class BallTick {
       if (meetsKeeper(contact)) {
         return;
       }
+    }
+    if (contact && !deflects && stretchesFor(ball, *contact)) {
+      const double moment = contact->contact.contactFraction * free.step.seconds;
+      const BallState from = touchedOff(*contact, free);
+      free.step = stepFreeBallTimed(from, rules().physics, pitch, secondsPerTick - moment);
+      settleFreeBall(from, free);
+      return;
     }
     if (contact && (!deflects || isGoalkeeper(current(), contact->playerIndex))) {
       takeBall(free, *contact, current().players()[contact->playerIndex]);

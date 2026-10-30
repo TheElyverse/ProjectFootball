@@ -539,6 +539,8 @@ void fieldsOf(Visitor& visit, SimMatch::PassConfig& passing) {
 template <typename Visitor>
 void fieldsOf(Visitor& visit, SimMatch::ReceptionConfig& reception) {
   visit.number("controlRadius", reception.controlRadius);
+  visit.number("cleanRadius", reception.cleanRadius);
+  visit.number("deflectSpeed", reception.deflectSpeed);
   visit.number("reclaimDelaySeconds", reception.reclaimDelaySeconds);
   visit.number("controlHeight", reception.controlHeight);
   visit.number("handsRadius", reception.handsRadius);
@@ -695,9 +697,12 @@ void fieldsOf(Visitor& visit, SimMatch::DecisionConfig& decisions) {
   visit.object("scoring", decisions.scoring);
   visit.object("shooting", decisions.shooting);
   visit.object("distribution", decisions.distribution);
+  visit.boolean("longBalls", decisions.longBalls);
+  visit.number("longBallCost", decisions.longBallCost);
   visit.number("stuckSeconds", decisions.stuckSeconds);
   visit.number("clearTouchlineMargin", decisions.clearTouchlineMargin);
   visit.number("clearGoalLineMargin", decisions.clearGoalLineMargin);
+  visit.number("clearPressureRadius", decisions.clearPressureRadius);
   visit.object("carrying", decisions.carrying);
   visit.object("crossing", decisions.crossing);
 }
@@ -933,6 +938,7 @@ void fieldsOf(Visitor& visit, SimMatch::AerialConfig& aerial) {
   visit.number("directionError", aerial.directionError);
   visit.number("speedError", aerial.speedError);
   visit.number("mistimedErrorFactor", aerial.mistimedErrorFactor);
+  visit.number("glanceShare", aerial.glanceShare);
 }
 
 template <typename Visitor>

@@ -75,7 +75,8 @@ void validate(const AerialConfig& config) {
       isFiniteNonNegative(config.shotInside) && isFiniteNonNegative(config.knockDownRange) &&
       isFiniteNonNegative(config.passWeight) && isFiniteNonNegative(config.clearanceDistance) &&
       isFiniteNonNegative(config.maxHeaderSpeed) && isFiniteNonNegative(config.directionError) &&
-      isFiniteNonNegative(config.mistimedErrorFactor);
+      isFiniteNonNegative(config.mistimedErrorFactor) && config.glanceShare >= 0.0 &&
+      config.glanceShare <= 1.0;
   const bool positive =
       isPositiveFinite(config.headHeight) && isPositiveFinite(config.headRadius) &&
       isPositiveFinite(config.contestRadius) && isPositiveFinite(config.duelTemperature) &&

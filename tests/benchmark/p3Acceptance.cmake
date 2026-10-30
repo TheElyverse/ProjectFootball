@@ -71,17 +71,17 @@ endforeach()
 #
 #   metric          low   high   measured over seeds 1 to 5, all three styles
 set(bands
-        "goals          0.2   12"    # 0.5 to 7.2
-        "shots          2     40"    # 4.5 to 25.2
-        "passCompletion 0.70  0.88"  # 0.77 to 0.82
-        "possessionShare 0.30 0.70"  # 0.37 to 0.58
-        "fouls          1     30"    # 2.5 to 20.0
-        "offsides       0     10"    # 0.3 to 5.2
-        "corners        0.2   7"     # 0.5 to 3.7
-        "throwIns       2     20"    # 4.2 to 12.2
-        "goalKicks      1.5   10"    # 3.0 to 6.2
-        "freeKicks      2     28"    # 4.8 to 18.5
-        "penalties      0     1")    # 0.0 to 0.5
+        "goals          0.4   7"     # 0.8 to 4.7
+        "shots          3     24"    # 5.8 to 15.8
+        "passCompletion 0.68  0.86"  # 0.74 to 0.79
+        "possessionShare 0.30 0.70"  # 0.36 to 0.57
+        "fouls          1     24"    # 1.8 to 15.5
+        "offsides       0     8"     # 0.3 to 4.5
+        "corners        0.4   6"     # 0.8 to 3.5
+        "throwIns       4     30"    # 7.7 to 19.5
+        "goalKicks      1.5   9"     # 3.5 to 6.0
+        "freeKicks      1.5   27"    # 2.8 to 18.0
+        "penalties      0     1")    # 0.0 to 0.7
 foreach(style IN ITEMS possession counter pressing)
     foreach(band IN LISTS bands)
         string(REGEX REPLACE " +" ";" fields "${band}")
@@ -102,8 +102,8 @@ foreach(style IN ITEMS possession counter pressing)
 endforeach()
 
 # The rules fire: pressing, which takes carriers on most and keeps the highest
-# line, commits fouls and catches opponents offside in every whole match (17.2
-# to 20.0 fouls and 3.8 to 5.2 offsides per match measured over seeds 1 to 5),
+# line, commits fouls and catches opponents offside in every whole match (13.7
+# to 15.5 fouls and 4.0 to 4.5 offsides per match measured over seeds 1 to 5),
 # so a rule that stops being called fails here although the offsides band
 # starts at 0. Penalties are too rare in nine matches to need one.
 foreach(floor IN ITEMS "fouls 8" "offsides 2")

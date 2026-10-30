@@ -30,13 +30,14 @@ using ConfigChecks::isFiniteNonNegative;
 using ConfigChecks::isPositiveFinite;
 
 void validate(const DecisionConfig& config) {
-  const bool valid = config.intervalTicks >= 1 && isFiniteNonNegative(config.minHoldSeconds) &&
-                     isPositiveFinite(config.temperature) &&
-                     isFiniteNonNegative(config.stuckSeconds) &&
-                     isFiniteNonNegative(config.clearTouchlineMargin) &&
-                     isFiniteNonNegative(config.clearGoalLineMargin) &&
-                     config.skillTemperatureSpread >= 0.0 && config.skillTemperatureSpread < 1.0 &&
-                     ConfigChecks::isWithin(config.maxMisjudgement, 0.0, 1.0);
+  const bool valid =
+      config.intervalTicks >= 1 && isFiniteNonNegative(config.minHoldSeconds) &&
+      isPositiveFinite(config.temperature) && isFiniteNonNegative(config.stuckSeconds) &&
+      isFiniteNonNegative(config.clearTouchlineMargin) &&
+      isFiniteNonNegative(config.clearGoalLineMargin) && isFiniteNonNegative(config.longBallCost) &&
+      isFiniteNonNegative(config.clearPressureRadius) && config.skillTemperatureSpread >= 0.0 &&
+      config.skillTemperatureSpread < 1.0 &&
+      ConfigChecks::isWithin(config.maxMisjudgement, 0.0, 1.0);
   if (!valid) {
     throw std::invalid_argument("pass decision: invalid configuration");
   }
@@ -73,17 +74,30 @@ constexpr double kRunThroughCosine = 0.7071067811865476;
 // The carrier's passes, ordered by orderPassCandidates(): his ground passes
 // -- from his hands throws, no farther than throwRange -- and, a goalkeeper,
 // his long balls, with his tactic's directness as the lofted bias of
-// `rules`, which they are scored with.
+// `rules`, which they are scored with; an outfield player of a side with a
+// tactic and a phase, with longBalls on, his long balls too, with the phase's
+// passingRisk as their lofted bias (docs/on-ball.md#long-balls).
 [[nodiscard]] std::vector<PassCandidate> passOptions(const MatchStepContext& context,
                                                      const MatchState& current,
                                                      const std::size_t carrier,
-                                                     const DistributionConfig& distribution,
+                                                     const DecisionConfig& config,
                                                      PassCandidateRules& rules) {
+  const DistributionConfig& distribution = config.distribution;
+  const TeamSide side = current.players()[carrier].side;
   const bool keeper = isGoalkeeper(current, carrier);
-  const auto& tactic = current.tactics().of(current.players()[carrier].side);
+  const auto& tactic = current.tactics().of(side);
+  const auto& phase = current.phase(side);
+  const Pitch& pitch = current.pitch();
+  const bool ownHalf =
+      depthOf(side, current.players()[carrier].position, pitch) < pitch.lengthMeters() / 2.0;
+  const bool kicksLong = keeper || (config.longBalls && tactic && phase && ownHalf);
   if (keeper && tactic) {
     rules.scoring.loftedBias =
         directnessBias(tactic->principles().goalkeeper.directness, distribution);
+  } else if (kicksLong && tactic && phase) {
+    rules.scoring.loftedBias =
+        directnessBias(tactic->instruction(phase->phase).passingRisk, distribution) -
+        config.longBallCost;
   }
   PassCandidateRules ground = rules;
   if (current.ball().held) {
@@ -92,7 +106,7 @@ constexpr double kRunThroughCosine = 0.7071067811865476;
   }
   std::vector<PassCandidate> candidates =
       generatePassCandidates(current, carrier, context.time(), ground);
-  if (keeper) {
+  if (kicksLong) {
     const std::vector<PassCandidate> longBalls =
         generateLongBallCandidates(current, carrier, context.time(), rules, distribution);
     candidates.insert(candidates.end(), longBalls.begin(), longBalls.end());
@@ -137,6 +151,46 @@ struct ScanStep {
   std::optional<CarrierScan> scan = std::nullopt;
 };
 
+// His clearance: his longest kick toward clearanceTarget(); empty if no
+// flight gets it there.
+[[nodiscard]] std::optional<ScanStep> clearanceStep(const MatchState& current,
+                                                    const std::size_t carrier,
+                                                    const DecisionConfig& config,
+                                                    const PassCandidateRules& rules) {
+  // The speed along the ground a flight needs grows in proportion to its
+  // distance.
+  const double flightSeconds = config.distribution.flightSeconds;
+  const double reach =
+      rules.passing.maxLoftedSpeed / flightSpeed(1.0, flightSeconds, rules.ball).value_or(1.0);
+  const SimCore::Vec2 target = clearanceTarget(current, carrier,
+                                               {.reach = reach,
+                                                .minDistance = config.distribution.minLongDistance,
+                                                .touchlineMargin = config.clearTouchlineMargin,
+                                                .goalLineMargin = config.clearGoalLineMargin});
+  const auto speed =
+      flightSpeed(SimCore::distance(current.ball().position, target), flightSeconds, rules.ball);
+  if (!speed) {
+    return std::nullopt;
+  }
+  return ScanStep{.reason = OnBallReason::kForcedClear, .target = target, .clearSpeed = *speed};
+}
+
+// Whether the outfield carrier at this index is pressed in his own third: an
+// opponent within clearPressureRadius of him.
+[[nodiscard]] bool pressedNearGoal(const MatchState& current, const std::size_t carrier,
+                                   const DecisionConfig& config) {
+  const PlayerMatchState& player = current.players()[carrier];
+  const Pitch& pitch = current.pitch();
+  if (isGoalkeeper(current, carrier) ||
+      depthOf(player.side, player.position, pitch) > pitch.lengthMeters() / 3.0) {
+    return false;
+  }
+  return std::ranges::any_of(current.players(), [&](const PlayerMatchState& other) {
+    return other.side != player.side && isOnPitch(other) &&
+           SimCore::distance(other.position, player.position) <= config.clearPressureRadius;
+  });
+}
+
 [[nodiscard]] ScanStep scanStep(const MatchStepContext& context, const MatchState& current,
                                 const std::size_t carrier,
                                 const std::span<const PassCandidate> passes,
@@ -152,21 +206,9 @@ struct ScanStep {
         })) {
       return {.reason = OnBallReason::kForcedRejected, .chosen = best};
     }
-    // His longest kick: the speed along the ground a flight needs grows in
-    // proportion to its distance.
-    const double flightSeconds = config.distribution.flightSeconds;
-    const double reach =
-        rules.passing.maxLoftedSpeed / flightSpeed(1.0, flightSeconds, rules.ball).value_or(1.0);
-    const SimCore::Vec2 target =
-        clearanceTarget(current, carrier,
-                        {.reach = reach,
-                         .minDistance = config.distribution.minLongDistance,
-                         .touchlineMargin = config.clearTouchlineMargin,
-                         .goalLineMargin = config.clearGoalLineMargin});
-    const auto speed =
-        flightSpeed(SimCore::distance(current.ball().position, target), flightSeconds, rules.ball);
-    if (speed) {
-      return {.reason = OnBallReason::kForcedClear, .target = target, .clearSpeed = *speed};
+    // His longest kick.
+    if (auto clear = clearanceStep(current, carrier, config, rules)) {
+      return *std::move(clear);
     }
   }
   const int looks = active != nullptr ? active->looks : 0;
@@ -409,8 +451,7 @@ struct OnBallOptions {
         carryScoringForRisk(carryScoringForPhase(rules.carries.scoring, phase->phase), risk);
     options.rules.crosses.scoring = crossScoringForRisk(rules.crosses.scoring, risk);
   }
-  options.passes =
-      passOptions(context, current, carrier, rules.config.distribution, options.rules.passes);
+  options.passes = passOptions(context, current, carrier, rules.config, options.rules.passes);
   // The taker of an indirect free kick cannot score with it
   // (docs/set-pieces.md#free-kicks): no shot until someone else touched it.
   const auto& indirect = current.indirectKick();
@@ -450,6 +491,14 @@ struct OnBallOptions {
   }
   if (playing) {
     return step;
+  }
+  // Pressed near his goal, he does not hold, turn or take the ball on: he
+  // clears it (docs/on-ball.md#clearances).
+  if (pressedNearGoal(current, carrier, config)) {
+    if (auto clear = clearanceStep(current, carrier, config, options.rules.passes)) {
+      chosen.reset();
+      return *std::move(clear);
+    }
   }
   step = scanStep(context, current, carrier, options.passes, config, options.rules.passes);
   if (step.chosen || step.reason == OnBallReason::kForcedClear) {

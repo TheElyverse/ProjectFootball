@@ -114,7 +114,13 @@ void checkPossession(const MatchSetup& setup, const MatchState& before, const Ma
       REQUIRE(changed->newOwner != owner);
       owner = changed->newOwner;
     } else if (const auto* attempted = std::get_if<PassAttempted>(&event)) {
-      REQUIRE(before.ball().owner == attempted->passer);
+      // From the ball at his feet, or headed on from the air
+      // (docs/duels.md#the-header).
+      const bool headed = std::ranges::any_of(events, [&](const MatchEvent& other) {
+        const auto* contest = std::get_if<ElyverseFootball::SimMatch::AerialContest>(&other);
+        return contest != nullptr && contest->winner == attempted->passer;
+      });
+      REQUIRE((before.ball().owner == attempted->passer || headed));
     } else if (const auto* received = std::get_if<PassReceived>(&event)) {
       REQUIRE(sideOf(after, received->receiver) == sideOf(after, received->passer));
     } else if (const auto* intercepted = std::get_if<PassIntercepted>(&event)) {
