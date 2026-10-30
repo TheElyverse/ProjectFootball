@@ -57,7 +57,10 @@ MatchSystem makeMatchClockSystem(const MatchClockRules& rules) {
                 const bool shotOnItsWay = next.lastShot() && !next.lastShot()->resolved;
                 // A foul's sending-off settles before the line-up (docs/fouls.md#cards).
                 const bool foulNow = next.lastFoul() && next.lastFoul()->tick == context.tick();
-                if (!timeUp || shotOnItsWay || foulNow) {
+                // A half is extended for a penalty to be taken (Law 7).
+                const bool penaltyDue =
+                    next.setPiece() && next.setPiece()->kind == SimTactics::SetPieceKind::kPenalty;
+                if (!timeUp || shotOnItsWay || foulNow || penaltyDue) {
                   return;
                 }
                 context.record(PeriodEnded{.tick = context.tick(),

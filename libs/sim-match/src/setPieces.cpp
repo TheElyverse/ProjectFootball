@@ -18,6 +18,9 @@
 namespace ElyverseFootball::SimMatch {
 namespace {
 
+// How far beyond the distance the Laws ask the other side's places lie.
+constexpr double kKeptMargin = 0.5;  // m
+
 using SimCore::Vec2;
 using SimTactics::SetPieceDelivery;
 using SimTactics::SetPieceKind;
@@ -360,7 +363,8 @@ void buildWall(const MatchState& state, const SetPiece& setPiece, const SetPiece
                      });
   const Vec2 toGoal = SimCore::unitOr(goal - setPiece.spot, {.x = 1.0, .y = 0.0});
   const Vec2 across{.x = -toGoal.y, .y = toGoal.x};
-  const Vec2 centre = setPiece.spot + (toGoal * (pitch.markings().centerCircleRadiusMeters + 0.5));
+  const Vec2 centre =
+      setPiece.spot + (toGoal * (pitch.markings().centerCircleRadiusMeters + kKeptMargin));
   const double middle = (static_cast<double>(wall.size()) - 1.0) / 2.0;
   for (std::size_t place = 0; place < wall.size(); ++place) {
     targets[wall[place]] = pitch.clamp(
@@ -368,25 +372,56 @@ void buildWall(const MatchState& state, const SetPiece& setPiece, const SetPiece
   }
 }
 
-// The Laws keep the other side from the ball: throwInDistance at a throw-in, a
-// centre circle's radius at a corner. Whoever would stand nearer -- at his
-// place, or where he is without one -- goes out to that distance.
+// How far the other side keeps from the ball (Laws 13, 15, 17): throwInDistance
+// at a throw-in, a centre circle's radius at a corner or a free kick, nothing
+// the set piece system enforces at a goal kick, a kickoff or a penalty, which
+// have their own places.
+[[nodiscard]] double keptDistance(const SetPiece& setPiece, const SetPieceConfig& config,
+                                  const Pitch& pitch) noexcept {
+  switch (setPiece.kind) {
+    case SetPieceKind::kThrowIn:
+      return config.throwInDistance;
+    case SetPieceKind::kCorner:
+    case SetPieceKind::kFreeKick:
+      return pitch.markings().centerCircleRadiusMeters;
+    case SetPieceKind::kGoalKick:
+    case SetPieceKind::kKickoff:
+    case SetPieceKind::kPenalty:
+      break;
+  }
+  return 0.0;
+}
+
+// Whoever of the other side would stand nearer the ball than keptDistance() --
+// at his place, or where he is without one -- goes out to half a metre beyond
+// it, so that he stands clear of it once he is near his place.
 void keepAway(const MatchState& state, const SetPiece& setPiece, const SetPieceConfig& config,
               std::vector<std::optional<Vec2>>& targets) {
   const TeamSide side = opponentOf(setPiece.side);
   const Pitch& pitch = state.pitch();
   const Vec2 spot = setPiece.spot;
-  const double away = setPiece.kind == SetPieceKind::kThrowIn
-                          ? config.throwInDistance
-                          : pitch.markings().centerCircleRadiusMeters;
+  const double kept = keptDistance(setPiece, config, pitch);
+  const double away = kept + kKeptMargin;
   for (std::size_t index = 0; index < state.players().size(); ++index) {
     const PlayerMatchState& player = state.players()[index];
     const Vec2 target = targets[index].value_or(player.position);
-    if (player.side == side && isOnPitch(player) && SimCore::distance(target, spot) < away) {
+    if (kept > 0.0 && player.side == side && isOnPitch(player) &&
+        SimCore::distance(target, spot) < away) {
       targets[index] =
           pitch.clamp(spot + (SimCore::unitOr(target - spot, pitch.center() - spot) * away));
     }
   }
+}
+
+// Whether every player of the other side stands at least keptDistance() from
+// the ball.
+[[nodiscard]] bool keptAway(const MatchState& state, const SetPiece& setPiece,
+                            const SetPieceConfig& config) {
+  const double kept = keptDistance(setPiece, config, state.pitch());
+  return std::ranges::none_of(state.players(), [&](const PlayerMatchState& player) {
+    return player.side != setPiece.side && isOnPitch(player) &&
+           SimCore::distance(player.position, setPiece.spot) < kept;
+  });
 }
 
 // The defenders' places: markers goal side of the runners, at a corner its
@@ -410,7 +445,9 @@ void defend(const MatchState& state, const SetPiece& setPiece, const SetPieceCon
   }
   const TeamSide side = opponentOf(setPiece.side);
   const SetPiecePlan& plan = plansOf(state, side).of(setPiece.kind);
-  const auto pool = outfield(state, side, std::nullopt);
+  // The wall stays a wall.
+  auto pool = outfield(state, side, std::nullopt);
+  std::erase_if(pool, [&targets](const std::size_t index) { return targets[index].has_value(); });
   const Vec2 spot = setPiece.spot;
   // At a corner or a free kick the deepest slots mark, at a throw-in those whose
   // slots stand nearest the ball: the choice holds while they move.
@@ -593,12 +630,16 @@ namespace {
           rules.setPieces.readyRadius) {
     return false;
   }
+  const bool waited = elapsed >= setup + rules.setPieces.waitSeconds;
+  if (!keptAway(current, setPiece, rules.setPieces)) {
+    return waited;
+  }
   for (std::size_t index = 0; index < targets.size(); ++index) {
     const auto& target = targets[index];
     if (target && index != taker &&
         SimCore::distance(current.players()[index].position, *target) >
             rules.setPieces.placeRadius) {
-      return elapsed >= setup + rules.setPieces.waitSeconds;
+      return waited;
     }
   }
   return true;

@@ -88,7 +88,7 @@ struct MatchSetup {
 //   3. pitch control    every pitchControl.intervalTicks ticks
 //   4. team pressing    every pressing.intervalTicks ticks
 //   5. tactical movement every positioning.intervalTicks ticks
-//   6. set pieces       every tick, if restarts.enabled
+//   6. set pieces       every tick, if restarts, offside or fouls are enabled
 //   7. ball pursuit     every pursuit.intervalTicks ticks
 //   8. pass decision    every decisions.intervalTicks ticks
 //   9. duel             every duels.intervalTicks ticks

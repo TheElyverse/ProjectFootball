@@ -25,8 +25,9 @@ free kicks and penalties.
 Empty lists leave the choice to the match (below), as does a list whose
 players are all sent off or the taker. The defaults are a short kickoff,
 throw-in and goal kick and a corner to the far post; a free kick's and a
-penalty's delivery is the taker's own decision (below), so only their taker and
-runners are read. Tactic files hold them in
+penalty's delivery is the taker's own decision (below), so of a free kick's
+plan only the taker, runners and markers are read, of a penalty's only the
+taker. Tactic files hold them in
 an optional `setPieces` block, each kind optional, which needs no new format version
 ([versioning](tactics.md#versioning)); a file without one plays the defaults.
 `Tactic::create()` rejects a slot that does not exist, one named twice in a
@@ -47,9 +48,12 @@ ball.
 | goal kick | its runners — by default the two outfield players whose slots stand deepest — to the front of the penalty area, at its sides | everyone in the penalty area out of it |
 | kickoff | the [line-up](match-engine.md#the-kickoff) | the line-up |
 
-The other side keeps its distance from the ball: `throwInDistance` (2 m) at a
-throw-in (Law 15), a centre circle's radius at a corner (Law 17). Whoever would
-stand nearer, at his place or where he is without one, goes out to it. Choosing
+The other side keeps its distance from the ball (`keptDistance()`):
+`throwInDistance` (2 m) at a throw-in (Law 15), a centre circle's radius at a
+corner or a free kick (Laws 17, 13). Whoever would stand nearer, at his place or
+where he is without one, goes out to half a metre beyond it, and the taker
+plays only once nobody of the other side stands nearer — or `waitSeconds` more
+have passed. Choosing
 by slots rather than by where the players stand keeps the choice while they
 move.
 
@@ -80,6 +84,9 @@ the planned delivery, the pass's target and its receiver. Nobody is offside
 from a throw-in, a corner or a goal kick ([offside](match-engine.md#offside)).
 The [statistics](tooling.md#match-analytics) count each side's corners,
 throw-ins and goal kicks.
+
+Offside and fouls award free kicks and penalties without restarts too, so the
+set piece system runs whenever restarts, offside or fouls are on.
 
 `SetPieceConfig` holds every number above and is part of `MatchConfig` and of
 every replay. `tests/unit/sim-match/setPiecesTests.cpp` checks the distances,
@@ -113,7 +120,8 @@ cross, a pass short or long, or a carry —, after his `minHoldSeconds`.
 **Indirect.** No goal comes of an indirect free kick until another player has
 touched the ball (Law 13): `MatchState::indirectKick()` holds the taker's touch
 until then, his shot options are empty, and a ball he plays into the goal is
-out over the goal line instead — a goal kick. A free kick is not exempt from
+out over the goal line instead — into the opponents' goal a goal kick, into
+his own a corner. A free kick is not exempt from
 offside.
 
 ## Penalties
@@ -168,6 +176,13 @@ gives a goal kick, the same ball without the indirect kick a goal.
 - The wall does not jump, and no attacker stands in it; the keeper does not
   line it up. A free kick taker has no technique of his own beyond his shot and
   pass; a penalty taker does not feint, and the keeper does not move early.
+- The taker may play the ball twice: carry a free kick, or play his own penalty
+  again off the woodwork (Laws 13, 14 forbid it). A direct free kick played
+  straight into his own goal counts, where Law 13 gives a corner. At a penalty
+  the others are not kept behind the penalty mark.
+- A penalty taker without a valid shot from the spot (a `maxShotDistance`
+  below 11 m) plays on as any carrier. A plan's free-kick taker takes every
+  free kick, wherever it is.
 - The opening kickoff of a fixture is a `GiveBallCommand`: its taker decides
   like any carrier. The second half's kickoff is a set piece when the match
   takes restarts.

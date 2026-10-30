@@ -5,6 +5,7 @@
 // and saved, a parry live for the rebound; an indirect free kick scores no
 // goal directly.
 
+#include <algorithm>
 #include <catch2/catch_test_macros.hpp>
 #include <cstdint>
 #include <optional>
@@ -27,6 +28,7 @@ using ElyverseFootball::SimCore::SimTick;
 using ElyverseFootball::SimCore::Vec2;
 using ElyverseFootball::SimMatch::awardFreeKick;
 using ElyverseFootball::SimMatch::BallState;
+using ElyverseFootball::SimMatch::findPlayerIndex;
 using ElyverseFootball::SimMatch::GoalEnd;
 using ElyverseFootball::SimMatch::GoalScored;
 using ElyverseFootball::SimMatch::makeMatchSystems;
@@ -83,7 +85,9 @@ struct Kick {
   std::optional<MatchState> takenFrom;
   std::optional<SetPieceTaken> taken;
   std::optional<ShotAttempted> shot;
-  bool blocked = false;
+  // Who deflected the shot, if anyone did, and how it ended.
+  std::optional<PlayerId> blockedBy;
+  std::optional<ElyverseFootball::SimMatch::ShotOutcome> outcome;
   bool goal = false;
   // The keeper who parried the shot into play, if one did.
   std::optional<PlayerId> parriedBy;
@@ -105,8 +109,9 @@ struct Kick {
                  shot != nullptr && kick.taken && shot->shooter == kick.taken->taker &&
                  !kick.shot) {
         kick.shot = *shot;
-      } else if (std::holds_alternative<ShotDeflected>(event) && kick.shot && !resolved) {
-        kick.blocked = true;
+      } else if (const auto* deflected = std::get_if<ShotDeflected>(&event);
+                 deflected != nullptr && kick.shot && !resolved && !kick.blockedBy) {
+        kick.blockedBy = deflected->player;
       } else if (std::holds_alternative<GoalScored>(event) && kick.shot) {
         kick.goal = true;
       } else if (const auto* save = std::get_if<SaveAttempted>(&event);
@@ -115,6 +120,7 @@ struct Kick {
       } else if (const auto* end = std::get_if<ShotResolved>(&event);
                  end != nullptr && kick.shot && end->shotTick == kick.shot->tick) {
         resolved = true;
+        kick.outcome = end->outcome;
       }
     }
     // After a parry, whoever touches the ball next plays the rebound.
@@ -143,22 +149,30 @@ TEST_CASE("Free kicks: the wall takes some shots, others clear it", "[acceptance
     const Kick kick = kicked(simulation, SimTick(1200));
     REQUIRE(kick.takenFrom.has_value());
     // The wall: away players a centre circle's radius from the ball, between
-    // it and the goal.
-    int wall = 0;
+    // it and the goal; nobody of away nearer.
+    std::vector<PlayerId> wall;
     const MatchState* const taken = kick.takenFrom ? &*kick.takenFrom : nullptr;
     REQUIRE(taken != nullptr);
     for (const PlayerMatchState& player : taken->players()) {
       const double distance = ElyverseFootball::SimCore::distance(player.position, spot);
-      wall += player.side == TeamSide::kAway && distance > 9.0 && distance < 11.0 &&
-                      player.position.x > spot.x
-                  ? 1
-                  : 0;
+      if (player.side == TeamSide::kAway) {
+        REQUIRE(distance >= taken->pitch().markings().centerCircleRadiusMeters);
+        if (distance < 11.0 && player.position.x > spot.x) {
+          wall.push_back(player.playerId);
+        }
+      }
     }
-    REQUIRE(wall >= 3);
+    REQUIRE(wall.size() >= 3);
     if (kick.shot) {
       ++shots;
-      blocked += kick.blocked ? 1 : 0;
-      cleared += kick.blocked ? 0 : 1;
+      const bool byWall = kick.blockedBy && std::ranges::find(wall, *kick.blockedBy) != wall.end();
+      blocked += byWall ? 1 : 0;
+      // Over the wall or round it: not deflected, and on target or into the goal.
+      using ElyverseFootball::SimMatch::ShotOutcome;
+      cleared += !kick.blockedBy &&
+                         (kick.outcome == ShotOutcome::kGoal || kick.outcome == ShotOutcome::kSaved)
+                     ? 1
+                     : 0;
     }
   }
   CAPTURE(shots, blocked, cleared);
@@ -186,6 +200,9 @@ TEST_CASE("Penalties: scored, and saved with the rebound live", "[acceptance][fr
       inside += area.contains(player.position) ? 1 : 0;
     }
     REQUIRE(inside == 2);
+    const auto keeper = findPlayerIndex(state, state.players()[11].playerId);
+    REQUIRE(keeper.has_value());
+    REQUIRE(state.players()[11].position.x > 104.0);
     goals += kick.goal ? 1 : 0;
     rebounds += kick.rebound ? 1 : 0;
   }
@@ -256,4 +273,46 @@ TEST_CASE("Free kicks: an indirect free kick scores no goal directly", "[accepta
   const auto [counted, countedRestart] = run(false);
   REQUIRE(counted == 1);
   REQUIRE(countedRestart == RestartKind::kKickoff);
+}
+
+TEST_CASE(
+    "Free kicks: an indirect free kick's taker does not shoot, and it counts after another "
+    "touch",
+    "[acceptance][freeKicks]") {
+  const Vec2 spot{.x = 105.0 - 22.0, .y = 34.0};
+  int played = 0;
+  for (std::uint64_t seed = 1; seed <= 30; ++seed) {
+    CAPTURE(seed);
+    MatchSimulation simulation = awarded(RestartKind::kIndirectFreeKick, spot, seed);
+    std::optional<PlayerId> taker;
+    bool cleared = false;
+    while (simulation.tick() < SimTick(1200) && !cleared) {
+      const MatchState before = simulation.state();
+      REQUIRE(simulation.step().has_value());
+      for (const MatchEvent& event : simulation.events()) {
+        if (const auto* taken = std::get_if<SetPieceTaken>(&event)) {
+          taker = taken->taker;
+          REQUIRE(simulation.state().indirectKick().has_value());
+          REQUIRE(simulation.state()
+                      .indirectKick()
+                      .value_or(ElyverseFootball::SimMatch::BallTouch{})
+                      .playerId == taken->taker);
+        } else if (const auto* shot = std::get_if<ShotAttempted>(&event);
+                   shot != nullptr && shot->shooter == taker) {
+          // No shot by him while the kick is indirect.
+          REQUIRE_FALSE(before.indirectKick().has_value());
+        }
+      }
+      // Another player's touch: the step after, the kick counts like any ball.
+      const auto& touch = before.ball().lastTouch;
+      if (taker && before.indirectKick() && touch && touch->playerId != *taker) {
+        REQUIRE_FALSE(simulation.state().indirectKick().has_value());
+        cleared = true;
+      }
+    }
+    REQUIRE(taker.has_value());
+    played += cleared ? 1 : 0;
+  }
+  // Nearly every one is played on to someone else.
+  REQUIRE(played >= 25);
 }

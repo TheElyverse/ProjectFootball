@@ -20,8 +20,8 @@ std::vector<MatchSystem> makeMatchSystems(const MatchConfig& config) {
                                   .goalkeeper = config.goalkeeper,
                                   .shotRange = config.decisions.shooting.maxShotDistance,
                                   .offside = config.offside}));
-  // Only with restarts, which award them.
-  if (config.restarts.enabled) {
+  // Only with the systems that award them: restarts, offside and fouls.
+  if (config.restarts.enabled || config.offside.enabled || config.fouls.enabled) {
     systems.push_back(makeSetPieceSystem({.setPieces = config.setPieces,
                                           .physics = config.ball,
                                           .passing = config.passing,

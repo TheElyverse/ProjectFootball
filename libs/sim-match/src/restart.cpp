@@ -276,6 +276,8 @@ void awardSetPiece(const MatchStepContext& context, const MatchState& current,
   next.setBallSideSpin(0.0);
   next.tactical(taker).handsReleased.reset();
   next.tactical(taker).stumbledUntil.reset();
+  next.tactical(taker).dive.reset();
+  next.tactical(taker).carry.reset();
   next.setSetPiece(SetPiece{.kind = kind,
                             .side = award.side,
                             .taker = takerId,
@@ -300,8 +302,6 @@ bool awardFreeKick(const MatchStepContext& context, const MatchState& current,
                                 .shotTick = shot->tick,
                                 .outcome = ShotOutcome::kBlocked});
   }
-  next.tactical(*taker).dive.reset();
-  next.tactical(*taker).carry.reset();
   awardSetPiece(context, current, next,
                 {.kind = kick.kind, .side = kick.side, .fallback = *taker, .spot = kick.spot},
                 clock);
