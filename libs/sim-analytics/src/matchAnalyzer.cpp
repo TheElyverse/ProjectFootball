@@ -65,12 +65,16 @@ MatchAnalyzer::MatchAnalyzer(MatchContext context, const AnalyticsConfig config)
   if (!validContext) {
     throw std::invalid_argument("MatchAnalyzer: the context needs a pitch length and tick rate");
   }
+  const ChanceQualityModel& chances = config_.chances;
   const bool validConfig = config_.progressiveMeters >= 0.0 &&
                            std::isfinite(config_.progressiveMeters) && config_.ppdaZone > 0.0 &&
-                           config_.ppdaZone <= 1.0;
+                           config_.ppdaZone <= 1.0 && std::isfinite(chances.intercept) &&
+                           std::isfinite(chances.perMeter) && std::isfinite(chances.perOpening) &&
+                           chances.penaltyChance >= 0.0 && chances.penaltyChance <= 1.0;
   if (!validConfig) {
     throw std::invalid_argument(
-        "MatchAnalyzer: progressiveMeters must be finite and non-negative, ppdaZone in (0, 1]");
+        "MatchAnalyzer: progressiveMeters must be finite and non-negative, ppdaZone in (0, 1], "
+        "the chance coefficients finite and penaltyChance in [0, 1]");
   }
 }
 
@@ -81,14 +85,13 @@ void MatchAnalyzer::observeStep(const std::span<const SimMatch::MatchEvent> even
   // keeps a step with more than one ownership change from assigning one
   // event's position to another's regain.
   std::optional<SimCore::Vec2> wonAt;
-  std::optional<SimCore::PlayerId> penaltyTaker;
   for (const SimMatch::MatchEvent& event : events) {
     if (const auto* pass = std::get_if<SimMatch::PassAttempted>(&event)) {
       onPass(*pass);
     } else if (const auto* reception = std::get_if<SimMatch::PassReceived>(&event)) {
       onReception(*reception);
     } else if (const auto* shot = std::get_if<SimMatch::ShotAttempted>(&event)) {
-      onShot(*shot, penaltyTaker);
+      onShot(*shot);
     } else if (const auto* resolved = std::get_if<SimMatch::ShotResolved>(&event)) {
       onShotResolved(*resolved);
     } else if (const auto* duel = std::get_if<SimMatch::DuelEnded>(&event)) {
@@ -103,9 +106,9 @@ void MatchAnalyzer::observeStep(const std::span<const SimMatch::MatchEvent> even
       onFoul(*foul);
     } else if (const auto* setPiece = std::get_if<SimMatch::SetPieceTaken>(&event)) {
       onSetPiece(*setPiece);
-      if (setPiece->kind == SimTactics::SetPieceKind::kPenalty) {
-        penaltyTaker = setPiece->taker;
-      }
+      penaltyTaker_ = setPiece->kind == SimTactics::SetPieceKind::kPenalty
+                          ? std::optional(setPiece->taker)
+                          : std::nullopt;
     } else if (const auto* substitution = std::get_if<SimMatch::SubstitutionMade>(&event)) {
       // The newcomer plays for the side from now on.
       context_.sides[substitution->on] = substitution->side;
@@ -245,8 +248,9 @@ void MatchAnalyzer::onSetPiece(const SimMatch::SetPieceTaken& setPiece) {
   counts.penalties += setPiece.kind == SetPieceKind::kPenalty ? 1 : 0;
 }
 
-void MatchAnalyzer::onShot(const SimMatch::ShotAttempted& shot,
-                           const std::optional<SimCore::PlayerId>& penaltyTaker) {
+void MatchAnalyzer::onShot(const SimMatch::ShotAttempted& shot) {
+  const std::optional<SimCore::PlayerId> penaltyTaker = penaltyTaker_;
+  penaltyTaker_.reset();
   const auto side = sideOf(shot.shooter);
   if (!side) {
     return;
@@ -312,6 +316,10 @@ void MatchAnalyzer::onFoul(const SimMatch::FoulCalled& foul) {
 }
 
 void MatchAnalyzer::onPass(const SimMatch::PassAttempted& pass) {
+  // A penalty taker who passes did not shoot it.
+  if (penaltyTaker_ == pass.passer) {
+    penaltyTaker_.reset();
+  }
   const auto side = sideOf(pass.passer);
   if (!side) {
     return;
@@ -357,6 +365,10 @@ void MatchAnalyzer::onDefensiveAction(const SimCore::PlayerId player,
 
 void MatchAnalyzer::onOwner(const SimMatch::PossessionChanged& change,
                             const std::optional<SimCore::Vec2>& wonAt) {
+  // A penalty taker who lost the ball did not shoot it.
+  if (penaltyTaker_ && change.previousOwner == penaltyTaker_ && change.newOwner != penaltyTaker_) {
+    penaltyTaker_.reset();
+  }
   if (ownerSide_) {
     std::int64_t& longest = tally(*ownerSide_).longestOwnershipTicks;
     longest = std::max(longest, change.tick.value() - ownerSince_.value());

@@ -775,8 +775,9 @@ sums `possessionShare` home + away and `turnovers` of one side = `regains` of
 the other hold for every match.
 
 `AnalyticsConfig` holds `progressiveMeters`, `ppdaZone` and the chance-quality
-model `chances`; the analyzer rejects a negative or non-finite distance and a
-zone outside `(0, 1]`.
+model `chances`; the analyzer rejects a negative or non-finite distance, a zone
+outside `(0, 1]`, a non-finite coefficient and a `penaltyChance` outside
+`[0, 1]`.
 
 ### Chance quality
 
@@ -788,12 +789,13 @@ logistic model of the two:
 
     chanceQuality = 1 / (1 + e^-(−2.8 − 0.05 · distance + 2.8 · opening))
 
-A penalty — the taker's shot in the step his penalty is taken — is worth
+A penalty — the taker's first shot after his penalty is taken, in that step or
+a later one, unless he passed or lost the ball first — is worth
 `penaltyChance` (0.76) instead. The coefficients (`ChanceQualityModel`) are
 fitted by hand to rough real-football values of open-play chances, not to this
-simulation's shots: about 0.46 from 6 m in front of goal, 0.17 from the penalty
-spot, 0.08 from the edge of the area, 0.04 from 25 m, and 0.04 from a narrow
-angle 12 m wide of the posts. The sum over a side's shots says how many goals
+simulation's shots: about 0.45 from 6 m in front of goal, 0.17 from the penalty
+spot, 0.08 from the edge of the area, 0.04 from 25 m, and 0.04 from 2 m off the
+goal line and 12 m wide of the goal's centre. The sum over a side's shots says how many goals
 its chances were worth whoever took them; against `goals` it shows finishing and
 goalkeeping. The model knows nothing of defenders in the way, the shot type, a
 header or the keeper's position.
@@ -832,8 +834,11 @@ order, so the same events always give the same bytes, on every platform.
 
 ### What this is not
 
-No shot outcomes, expected goals or player ratings yet: goals are counted, but
-no other shot outcomes. Pressures are team presses, not every individual pressing action.
+Chance quality is a geometric estimate fitted by hand, not a model trained on
+shots; there are no player ratings. Pressures are team presses, not every
+individual pressing action. `duelsWon` counts duels a carrier came through —
+he `kept` the ball, by a pass, a touch past or a defender giving up — as well as
+those a defender won.
 
 ## sim-benchmark
 

@@ -116,10 +116,9 @@ class MatchAnalyzer {
   [[nodiscard]] SideTally& tally(SimMatch::TeamSide side);
   void onFoul(const SimMatch::FoulCalled& foul);
   void onSetPiece(const SimMatch::SetPieceTaken& setPiece);
-  // A penalty's taker, set in the step the penalty is taken: his shot in that
-  // step is the penalty.
-  void onShot(const SimMatch::ShotAttempted& shot,
-              const std::optional<SimCore::PlayerId>& penaltyTaker);
+  // A penalty's taker until his next shot, which is the penalty -- or until he
+  // passes or loses the ball, or another set piece is taken.
+  void onShot(const SimMatch::ShotAttempted& shot);
   void onShotResolved(const SimMatch::ShotResolved& resolved);
   void onDuel(const SimMatch::DuelEnded& duel);
   void onAerial(const SimMatch::AerialContest& contest);
@@ -139,6 +138,8 @@ class MatchAnalyzer {
 
   MatchContext context_;
   AnalyticsConfig config_;
+  // The taker of a penalty taken and not yet shot (onShot()).
+  std::optional<SimCore::PlayerId> penaltyTaker_;
   std::array<SideTally, 2> sides_{};
   std::optional<SimMatch::TeamSide> possession_;
   SimCore::SimTick possessionSince_;

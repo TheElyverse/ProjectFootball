@@ -155,6 +155,7 @@ TEST_CASE("A round robin plays every ordered pairing with its own seeds", "[benc
   const auto json =
       nlohmann::json::parse(ElyverseFootball::Benchmark::toRoundRobinJson(roundRobin, *pairings));
   REQUIRE(json.at("format") == "elyverse-style-benchmark");
+  REQUIRE(json.at("version") == 3);
   REQUIRE(json.at("pairings").size() == 4);
   // Each style's summary counts its matches home and away: 2 + 2 + 2 x 2.
   REQUIRE(json.at("styleSummary").at("press").at("passes").at("count") == 8);

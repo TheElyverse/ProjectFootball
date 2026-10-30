@@ -167,9 +167,9 @@ endif()
 file(READ "${stats}" firstStats)
 string(JSON statsFormat GET "${firstStats}" format)
 string(JSON statsVersion GET "${firstStats}" version)
+# Fails the test if the field is missing.
 string(JSON chanceQuality GET "${firstStats}" home chanceQuality)
-if(NOT statsFormat STREQUAL "elyverse-match-stats" OR NOT statsVersion STREQUAL "3"
-        OR chanceQuality STREQUAL "")
+if(NOT statsFormat STREQUAL "elyverse-match-stats" OR NOT statsVersion STREQUAL "3")
     message(FATAL_ERROR "Unexpected stats: ${firstStats}")
 endif()
 run_cli(--scenario tactic-match --seed 5 --ticks 300 --replay-out "${replay}" --stats-out "${stats}")

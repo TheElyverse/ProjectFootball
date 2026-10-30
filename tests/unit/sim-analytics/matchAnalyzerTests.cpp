@@ -5,6 +5,7 @@
 #include <catch2/catch_approx.hpp>
 #include <catch2/catch_test_macros.hpp>
 #include <cstdint>
+#include <limits>
 #include <optional>
 #include <stdexcept>
 #include <vector>
@@ -500,7 +501,7 @@ TEST_CASE("Chance quality sums each shot's worth, a penalty at its fixed value",
   using ElyverseFootball::SimTactics::SetPieceDelivery;
   using ElyverseFootball::SimTactics::SetPieceKind;
   // The documented reference values.
-  REQUIRE(chanceQuality(6.0, 1.042) == Approx(0.458).margin(0.005));
+  REQUIRE(chanceQuality(6.0, 1.042) == Approx(0.455).margin(0.001));
   REQUIRE(chanceQuality(25.0, 0.29) == Approx(0.038).margin(0.005));
   REQUIRE(chanceQuality(6.0, 1.042) > chanceQuality(11.0, 0.63));
   REQUIRE(chanceQuality(11.0, 0.63) > chanceQuality(11.0, 0.2));
@@ -512,14 +513,34 @@ TEST_CASE("Chance quality sums each shot's worth, a penalty at its fixed value",
                                            .delivery = SetPieceDelivery::kShort,
                                            .target = {.x = 60.0, .y = 20.0},
                                            .receiver = std::nullopt};
+  // The penalty is taken in one step and shot in the next, as the set piece
+  // system and the ball system play it.
   const MatchStats stats = analyze({{shotFrom(1, 1, 11.0, 0.63)},
-                                    {penalty, shotFrom(40, 2, 11.0, 0.63)},
+                                    {penalty},
+                                    {shotFrom(41, 2, 11.0, 0.63)},
                                     // The same taker's next shot is open play again.
                                     {shotFrom(60, 2, 11.0, 0.63)}});
   REQUIRE(stats.home.chanceQuality ==
           Approx((2.0 * chanceQuality(11.0, 0.63)) + 0.76).epsilon(1e-12));
   REQUIRE(stats.home.penalties == 1);
   REQUIRE(stats.away.chanceQuality == 0.0);
+
+  // A taker who passes instead did not shoot the penalty.
+  const MatchStats passed = analyze({{penalty},
+                                     {pass(41, 2, {.x = 49.0, .y = 20.0}, {.x = 45.0, .y = 25.0})},
+                                     {shotFrom(60, 2, 11.0, 0.63)}});
+  REQUIRE(passed.home.chanceQuality == Approx(chanceQuality(11.0, 0.63)).epsilon(1e-12));
+}
+
+TEST_CASE("The chance model is checked", "[analytics]") {
+  using ElyverseFootball::SimAnalytics::ChanceQualityModel;
+  const auto analyzerWith = [](const ChanceQualityModel& chances) {
+    return MatchAnalyzer(context(),
+                         {.progressiveMeters = 10.0, .ppdaZone = 0.6, .chances = chances});
+  };
+  REQUIRE_THROWS_AS(analyzerWith({.penaltyChance = 1.5}), std::invalid_argument);
+  REQUIRE_THROWS_AS(analyzerWith({.perMeter = std::numeric_limits<double>::quiet_NaN()}),
+                    std::invalid_argument);
 }
 
 TEST_CASE("Duels count for the side that won and the side that lost them", "[analytics]") {
