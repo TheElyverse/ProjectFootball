@@ -123,8 +123,9 @@ part of the initial snapshot.
 ## What this is not
 
 No extra time or penalty shoot-out, no recovery at half time, and the referee
-waits for nothing but a shot on its way and a penalty. Only restarts and cards cost time
-so far: injuries and substitutions will add theirs.
+waits for nothing but a shot on its way and a penalty. Only restarts and cards
+cost time so far: injuries and [substitutions](match-engine.md#substitutions)
+add none.
 
 ## From the command line
 

@@ -137,8 +137,34 @@ static_assert(static_cast<std::size_t>(RandomNumberGeneratorDomain::kCognition) 
   return std::nullopt;
 }
 
-// Validation needs only the squad, which no step changes, so a command valid
-// when scheduled is still valid when applied.
+[[nodiscard]] std::optional<MatchCommandError> validate(const MatchState& state,
+                                                        const SubstituteCommand& command) {
+  const auto off = findPlayerIndex(state, command.off);
+  if (!off || state.players()[*off].side != command.side || !isOnPitch(state.players()[*off])) {
+    return MatchCommandError{
+        .code = MatchCommandErrorCode::kInvalidSubstitution,
+        .message = std::format("player {} is not on the pitch for {} to come off",
+                               command.off.value(), teamSideName(command.side))};
+  }
+  if (!command.on.isValid() || findPlayerIndex(state, command.on) || state.cameOff(command.on)) {
+    return MatchCommandError{
+        .code = MatchCommandErrorCode::kInvalidSubstitution,
+        .message = std::format("player {} cannot come on: his id is invalid or used, or he "
+                               "came off before",
+                               command.on.value())};
+  }
+  if (!areValid(command.attributes)) {
+    return MatchCommandError{
+        .code = MatchCommandErrorCode::kInvalidSubstitution,
+        .message =
+            std::format("player {} cannot come on with invalid attributes", command.on.value())};
+  }
+  return std::nullopt;
+}
+
+// Validated against the state when scheduled. A substitution may change the
+// squad before a command is applied: a command for a player no longer on the
+// pitch then does nothing.
 [[nodiscard]] std::optional<MatchCommandError> validate(const MatchState& state,
                                                         const MatchCommand& command) {
   return std::visit([&state](const auto& alternative) { return validate(state, alternative); },
@@ -156,6 +182,9 @@ void apply(const MovePlayerCommand& command, const MatchState& state,
 
 void apply(const GiveBallCommand& command, const MatchState& state, const SimCore::SimTick tick,
            MatchStateWriter& writer, std::vector<MatchEvent>& events) {
+  if (!findPlayerIndex(state, command.playerId)) {
+    return;
+  }
   if (state.ball().owner != command.playerId) {
     events.emplace_back(PossessionChanged{
         .tick = tick, .previousOwner = state.ball().owner, .newOwner = command.playerId});
@@ -166,21 +195,34 @@ void apply(const GiveBallCommand& command, const MatchState& state, const SimCor
 
 void apply(const PassCommand& command, const MatchState& state, const SimCore::SimTick /*tick*/,
            MatchStateWriter& writer, std::vector<MatchEvent>& /*events*/) {
-  // validate() has checked the player.
-  const std::size_t passer = findPlayerIndex(state, command.playerId).value_or(0);
-  writer.setPendingAction(passer, PassIntent{.passer = command.playerId,
-                                             .target = command.target,
-                                             .speed = command.speed,
-                                             .receiver = command.receiver});
+  const auto passer = findPlayerIndex(state, command.playerId);
+  if (!passer || (command.receiver && !findPlayerIndex(state, *command.receiver))) {
+    return;
+  }
+  writer.setPendingAction(*passer, PassIntent{.passer = command.playerId,
+                                              .target = command.target,
+                                              .speed = command.speed,
+                                              .receiver = command.receiver});
 }
 
+// The coaching system passes it on to the players (coaching.hpp).
 void apply(const ChangeTacticCommand& command, const MatchState& /*state*/,
-           const SimCore::SimTick tick, MatchStateWriter& writer, std::vector<MatchEvent>& events) {
-  events.emplace_back(TacticChanged{.tick = tick,
-                                    .side = command.side,
-                                    .tactic = command.tactic.name(),
-                                    .contentHash = SimTactics::contentHash(command.tactic)});
-  writer.setTactic(command.side, command.tactic);
+           const SimCore::SimTick tick, MatchStateWriter& writer,
+           std::vector<MatchEvent>& /*events*/) {
+  writer.setPendingTactic(command.side, PendingTactic{.tactic = command.tactic, .given = tick});
+}
+
+// The coaching system makes it at the next stoppage (coaching.hpp).
+void apply(const SubstituteCommand& command, const MatchState& state, const SimCore::SimTick tick,
+           MatchStateWriter& writer, std::vector<MatchEvent>& /*events*/) {
+  std::vector<Substitution> pending(state.pendingSubstitutions().begin(),
+                                    state.pendingSubstitutions().end());
+  pending.push_back({.side = command.side,
+                     .off = command.off,
+                     .on = command.on,
+                     .attributes = command.attributes,
+                     .ordered = tick});
+  writer.setPendingSubstitutions(std::move(pending));
 }
 
 }  // namespace

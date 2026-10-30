@@ -46,10 +46,11 @@ struct PassCommand {
   friend bool operator==(const PassCommand&, const PassCommand&) = default;
 };
 
-// Switches a side to another tactic from this step on: the same command for a
-// human coach, a script and an AI, so every tactic change goes through the
-// ordered command log and a replay reproduces it
-// (docs/match-engine.md#match-loop). The tactic is already valid by
+// Gives a side another tactic: the same command for a human coach, a script
+// and an AI, so every tactic change goes through the ordered command log and a
+// replay reproduces it (docs/match-engine.md#match-loop). It reaches the
+// players after the coaching delay (docs/match-engine.md#instructions); a
+// later one on its way replaces it. The tactic is already valid by
 // construction; the command is rejected if it does not fit the squad. Phase,
 // press and the players' tactical state are kept and follow the new tactic at
 // the systems' next update.
@@ -60,12 +61,26 @@ struct ChangeTacticCommand {
   friend bool operator==(const ChangeTacticCommand&, const ChangeTacticCommand&) = default;
 };
 
+// Orders a substitution for a side (docs/match-engine.md#substitutions): `off`
+// comes off at the next stoppage and `on`, with these attributes, takes his
+// place. Rejected if `off` is not on that side or not on the pitch, or `on`
+// has an invalid or used id, came off before, or invalid attributes; the
+// limit per match and what has changed by the stoppage are checked there.
+struct SubstituteCommand {
+  TeamSide side = TeamSide::kHome;
+  SimCore::PlayerId off;
+  SimCore::PlayerId on;
+  PlayerAttributes attributes;
+
+  friend bool operator==(const SubstituteCommand&, const SubstituteCommand&) = default;
+};
+
 // An intent from outside the systems -- a scenario script, a coach, a test --
 // that changes the match state at a tick. Every command type is a
 // std::variant alternative, so a replay can record and a reader can dispatch
 // on them without a class hierarchy.
-using MatchCommand =
-    std::variant<MovePlayerCommand, GiveBallCommand, PassCommand, ChangeTacticCommand>;
+using MatchCommand = std::variant<MovePlayerCommand, GiveBallCommand, PassCommand,
+                                  ChangeTacticCommand, SubstituteCommand>;
 
 // A command and the tick whose step applies it. Commands of the same tick are
 // applied in the order they were scheduled.
@@ -82,6 +97,7 @@ enum class MatchCommandErrorCode : std::uint8_t {
   kNonFiniteTarget,
   kInvalidPassSpeed,
   kTacticDoesNotFitSquad,
+  kInvalidSubstitution,
 };
 
 struct MatchCommandError {

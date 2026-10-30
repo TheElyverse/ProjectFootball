@@ -304,6 +304,32 @@ void addEventFields(Json& json, const SimMatch::TacticChanged& event) {
   json["side"] = SimMatch::teamSideName(event.side);
   json["tactic"] = event.tactic;
   json["contentHash"] = std::format("{:016x}", event.contentHash);
+  json["given"] = event.given.value();
+}
+
+void addEventFields(Json& json, const SimMatch::InstructionGiven& event) {
+  json["type"] = "instructionGiven";
+  json["side"] = SimMatch::teamSideName(event.side);
+  json["tactic"] = event.tactic;
+  json["contentHash"] = std::format("{:016x}", event.contentHash);
+  json["effective"] = event.effective.value();
+}
+
+void addEventFields(Json& json, const SimMatch::SubstitutionMade& event) {
+  json["type"] = "substitutionMade";
+  json["side"] = SimMatch::teamSideName(event.side);
+  json["off"] = event.off.value();
+  json["on"] = event.on.value();
+  json["ordered"] = event.ordered.value();
+}
+
+void addEventFields(Json& json, const SimMatch::SubstitutionRefused& event) {
+  json["type"] = "substitutionRefused";
+  json["side"] = SimMatch::teamSideName(event.side);
+  json["off"] = event.off.value();
+  json["on"] = event.on.value();
+  json["ordered"] = event.ordered.value();
+  json["reason"] = SimMatch::substitutionRefusalName(event.reason);
 }
 
 void addEventFields(Json& json, const SimMatch::PitchControlSampled& event) {

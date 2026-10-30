@@ -8,6 +8,7 @@
 #include <span>
 #include <string>
 #include <string_view>
+#include <utility>
 #include <variant>
 #include <vector>
 
@@ -326,6 +327,28 @@ struct SetPiece {
   friend bool operator==(const SetPiece&, const SetPiece&) = default;
 };
 
+// A substitution a coach ordered (docs/match-engine.md#substitutions): the
+// side, the player who comes off, the one who comes on with his attributes,
+// and when it was ordered.
+struct Substitution {
+  TeamSide side = TeamSide::kHome;
+  SimCore::PlayerId off;
+  SimCore::PlayerId on;
+  PlayerAttributes attributes;
+  SimCore::SimTick ordered;
+
+  friend bool operator==(const Substitution&, const Substitution&) = default;
+};
+
+// A tactic a coach gave his side, on its way to the players
+// (docs/match-engine.md#instructions), and when he gave it.
+struct PendingTactic {
+  SimTactics::Tactic tactic;
+  SimCore::SimTick given;
+
+  friend bool operator==(const PendingTactic&, const PendingTactic&) = default;
+};
+
 // The last foul a duel saw (docs/fouls.md): who committed it on whom, when,
 // and where the ball was. The foul system judges it in the step it happened.
 struct FoulRecord {
@@ -620,6 +643,23 @@ class MatchState {
   [[nodiscard]] const std::optional<BallTouch>& indirectKick() const noexcept {
     return indirectKick_;
   }
+  // The substitutions ordered and not made yet, and those made, in order;
+  // none in a state created from a spec (docs/match-engine.md#substitutions).
+  [[nodiscard]] std::span<const Substitution> pendingSubstitutions() const noexcept {
+    return pendingSubstitutions_;
+  }
+  [[nodiscard]] std::span<const Substitution> substitutions() const noexcept {
+    return substitutions_;
+  }
+  // How many substitutions the side has made, and whether the player came off.
+  [[nodiscard]] int substitutionsMade(TeamSide side) const noexcept;
+  [[nodiscard]] bool cameOff(SimCore::PlayerId playerId) const noexcept;
+  // The tactic on its way to a side's players, if any
+  // (docs/match-engine.md#instructions).
+  [[nodiscard]] const std::optional<PendingTactic>& pendingTactic(
+      const TeamSide side) const noexcept {
+    return side == TeamSide::kHome ? pendingTactics_[0] : pendingTactics_[1];
+  }
 
   // The last pass kicked, the last shot taken and the last reception of a
   // free ball; empty in every state created from a spec, until the ball
@@ -714,6 +754,10 @@ class MatchState {
   std::optional<FoulRecord> lastFoul_;
   std::optional<SetPiece> setPiece_;
   std::optional<BallTouch> indirectKick_;
+  std::vector<Substitution> pendingSubstitutions_;
+  std::vector<Substitution> substitutions_;
+  // Home, away.
+  std::array<std::optional<PendingTactic>, 2> pendingTactics_;
   TeamPossession possession_;
   // Home, away.
   std::array<std::optional<TeamPhase>, 2> phases_;
@@ -755,6 +799,10 @@ class MatchStateWriter {
   // owner a duel already assigned this same step, and the movement system
   // where a duel rolled the ball.
   [[nodiscard]] const BallState& ball() const noexcept { return state_->ball_; }
+  // The players as this step has left them so far; see ball().
+  [[nodiscard]] std::span<const PlayerMatchState> players() const noexcept {
+    return state_->players_;
+  }
   // The action the player at this index waits to do, as this step has left
   // it so far; see ball() for why this differs from
   // MatchState::pendingAction().
@@ -837,6 +885,23 @@ class MatchStateWriter {
   // pitch, at rest and without a target, a pending action, a memory or a
   // tactical state, nobody remembers him, and a ball he owned is free.
   void sendOff(std::size_t playerIndex, SimCore::Vec2 position);
+  void setPendingSubstitutions(std::vector<Substitution> substitutions) noexcept {
+    state_->pendingSubstitutions_ = std::move(substitutions);
+  }
+  // Makes the substitution: the player who comes on takes the place of the
+  // one who comes off, at rest and fresh, without a target, a pending action,
+  // a memory, cards or a tactical state; nobody remembers the other, and what
+  // the state holds of him for the play to come -- the ball, the set piece,
+  // the indirect kick and the offside exemption -- passes to the newcomer,
+  // while a chase, press or action about him ends. Throws
+  // std::invalid_argument if the player coming off is not on the pitch for
+  // that side, or the one coming on has an invalid or used id, came off
+  // before, or has invalid attributes.
+  void substitute(const Substitution& substitution);
+  void setPendingTactic(TeamSide side, std::optional<PendingTactic> tactic) {
+    (side == TeamSide::kHome ? state_->pendingTactics_[0] : state_->pendingTactics_[1]) =
+        std::move(tactic);
+  }
   // Counts a goal for the record's side and keeps the record as the last
   // goal; throws std::invalid_argument for a scorer not in the state.
   void addGoal(const GoalRecord& goal);
@@ -881,6 +946,10 @@ class MatchStateWriter {
 
   MatchState* state_;
 };
+
+// Whether the attributes are ones a player may have (docs/players.md):
+// MatchState::create() rejects any other.
+[[nodiscard]] bool areValid(const PlayerAttributes& attributes);
 
 // The index of the player with this id in MatchState::players(), or nothing
 // if no player has it.
