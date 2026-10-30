@@ -403,7 +403,9 @@ t=2082 #1 dives at #21's shot after a run of +0.00 m (gap 0.14 m, within 1.00 m;
   option ([pass decisions](on-ball.md#without-a-valid-option)) names
   how he dealt with it instead: `scanFirstSide` or `scanOtherSide` toward the
   point he looks at, `forcedRejected` for the best rejected pass he plays once
-  stuck, `forcedClear` for his long kick when he has no pass at all. An action
+  stuck, `forcedClear` for his long kick when he has no pass at all — or,
+  pressed near his goal, for his [clearance](on-ball.md#clearances), the line
+  then reading `pressed near his goal` for `no pass to play`. An action
   marked `idlePress` sent a player at a carrier who stood on the ball
   ([pressing](team-tactics.md#a-carrier-who-stands-on-the-ball)).
 - **Duels**: a carrier's move `in the duel against #n` — `shield`, `turnAway`

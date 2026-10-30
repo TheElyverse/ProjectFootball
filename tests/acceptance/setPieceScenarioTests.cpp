@@ -108,8 +108,10 @@ TEST_CASE("Set pieces: a corner is taken from its plan, both sides in place",
     REQUIRE(taken.setPiece.kind == SetPieceKind::kCorner);
     REQUIRE(taken.setPiece.side == TeamSide::kHome);
     REQUIRE_FALSE(taken.touchedDead);
-    // Not before its eight seconds.
-    REQUIRE(taken.taken.tick.value() - taken.awarded.value() >= SimTick::ValueType{8} * 30);
+    // Not before its cornerSeconds.
+    REQUIRE(taken.taken.tick.value() - taken.awarded.value() >=
+            static_cast<SimTick::ValueType>(
+                ElyverseFootball::SimMatch::SetPieceConfig{}.cornerSeconds * 30));
     // The reference plans a far-post delivery to its first runner.
     REQUIRE(taken.taken.delivery == ElyverseFootball::SimTactics::SetPieceDelivery::kFarPost);
     REQUIRE(taken.taken.receiver.has_value());
@@ -142,7 +144,9 @@ TEST_CASE("Set pieces: a throw-in finds a near option, marked", "[acceptance][se
     const Taken taken = played("throw-in", seed);
     REQUIRE(taken.setPiece.kind == SetPieceKind::kThrowIn);
     REQUIRE_FALSE(taken.touchedDead);
-    REQUIRE(taken.taken.tick.value() - taken.awarded.value() >= SimTick::ValueType{3} * 30);
+    REQUIRE(taken.taken.tick.value() - taken.awarded.value() >=
+            static_cast<SimTick::ValueType>(
+                ElyverseFootball::SimMatch::SetPieceConfig{}.throwInSeconds * 30));
     REQUIRE(taken.taken.delivery == ElyverseFootball::SimTactics::SetPieceDelivery::kShort);
     REQUIRE(taken.taken.receiver.has_value());
     // The receiver is one of the two options, near the thrower.
@@ -158,7 +162,9 @@ TEST_CASE("Set pieces: a goal kick waits until the opponents have left the area"
     CAPTURE(seed);
     const Taken taken = played("goal-kick", seed);
     REQUIRE(taken.setPiece.kind == SetPieceKind::kGoalKick);
-    REQUIRE(taken.taken.tick.value() - taken.awarded.value() >= SimTick::ValueType{6} * 30);
+    REQUIRE(taken.taken.tick.value() - taken.awarded.value() >=
+            static_cast<SimTick::ValueType>(
+                ElyverseFootball::SimMatch::SetPieceConfig{}.goalKickSeconds * 30));
     // Home, the opponents, have left away's penalty area.
     const auto area = taken.before.pitch().penaltyArea(GoalEnd::kMaxX);
     for (const PlayerMatchState& player : taken.before.players()) {

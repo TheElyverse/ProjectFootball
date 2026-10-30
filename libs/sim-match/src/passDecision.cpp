@@ -181,7 +181,7 @@ struct ScanStep {
                                    const DecisionConfig& config) {
   const PlayerMatchState& player = current.players()[carrier];
   const Pitch& pitch = current.pitch();
-  if (isGoalkeeper(current, carrier) ||
+  if (!(config.clearPressureRadius > 0.0) || isGoalkeeper(current, carrier) ||
       depthOf(player.side, player.position, pitch) > pitch.lengthMeters() / 3.0) {
     return false;
   }

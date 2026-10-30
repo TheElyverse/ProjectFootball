@@ -362,6 +362,9 @@ std::uint64_t hashMatchState(const MatchState& state) noexcept {
     hasher.addI64(lastPass->tick.value());
     hasher.addBool(lastPass->receiver.has_value());
     hasher.addU64(lastPass->receiver.value_or(SimCore::PlayerId::invalid()).value());
+    hasher.addBool(lastPass->deflection.has_value());
+    hasher.addU64(lastPass->deflection.value_or(BallTouch{}).playerId.value());
+    hasher.addI64(lastPass->deflection.value_or(BallTouch{}).tick.value());
   }
   const auto& lastShot = state.lastShot();
   hasher.addBool(lastShot.has_value());

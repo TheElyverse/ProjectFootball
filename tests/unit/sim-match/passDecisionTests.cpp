@@ -395,6 +395,46 @@ TEST_CASE("A carrier without any pass clears the ball long after looking round",
   REQUIRE_FALSE(simulation.state().ball().owner.has_value());
 }
 
+TEST_CASE("A carrier pressed near his goal clears the ball at once", "[passDecision]") {
+  // Player 5 on the ball in his own third, seeing next to nothing as above,
+  // an opponent 2.5 m from him: with clearances he kicks long as soon as he
+  // may play the ball, without them he is still looking round.
+  const auto pending = [](const double clearPressureRadius) {
+    auto kickoff = makeSevenASideKickoff(Pitch(60.0, 40.0));
+    REQUIRE(kickoff.has_value());
+    MatchStateSpec spec{.pitch = kickoff->pitch(),
+                        .players = {kickoff->players().begin(), kickoff->players().end()},
+                        .ball = kickoff->ball(),
+                        .playersPerSide = kickoff->playersPerSide()};
+    spec.players[4].position = {.x = 10.0, .y = 20.0};
+    spec.players[4].facing = {.x = 1.0, .y = 0.0};
+    spec.players[7].position = {.x = 12.5, .y = 20.0};
+    spec.ball.position = {.x = 10.5, .y = 20.0};
+    spec.ball.owner = PlayerId(5);
+    const auto state = MatchState::create(spec);
+    REQUIRE(state.has_value());
+    MatchConfig config;
+    config.perception.viewDistance = 1.0;
+    config.perception.awarenessRadius = 0.5;
+    config.decisions.stuckSeconds = 10.0;
+    config.decisions.carrying.horizonSeconds = kNoCarrySeconds;
+    config.decisions.clearPressureRadius = clearPressureRadius;
+    MatchSimulation simulation =
+        startMatch({.initialState = *state, .config = config, .seed = 1, .commands = {}});
+    std::optional<PassIntent> kick;
+    while (!kick && simulation.tick() < SimTick(45)) {
+      REQUIRE(simulation.step().has_value());
+      kick = simulation.state().pendingPass();
+    }
+    return kick;
+  };
+  const auto cleared = pending(DecisionConfig{}.clearPressureRadius);
+  REQUIRE(cleared.has_value());
+  REQUIRE(cleared.value_or(PassIntent{}).lofted);
+  REQUIRE_FALSE(cleared.value_or(PassIntent{}).receiver.has_value());
+  REQUIRE_FALSE(pending(0.0).has_value());
+}
+
 TEST_CASE("The decision system rejects a negative stuck time or margin", "[passDecision]") {
   const auto rejects = [](const auto& change) {
     DecisionConfig config;
@@ -404,6 +444,8 @@ TEST_CASE("The decision system rejects a negative stuck time or margin", "[passD
   };
   REQUIRE(rejects([](DecisionConfig& config) { config.stuckSeconds = -1.0; }));
   REQUIRE(rejects([](DecisionConfig& config) { config.clearTouchlineMargin = -1.0; }));
+  REQUIRE(rejects([](DecisionConfig& config) { config.clearPressureRadius = -1.0; }));
+  REQUIRE(rejects([](DecisionConfig& config) { config.longBallCost = -1.0; }));
   REQUIRE(rejects([](DecisionConfig& config) {
     config.clearGoalLineMargin = std::numeric_limits<double>::infinity();
   }));

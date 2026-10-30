@@ -103,8 +103,9 @@ explained. Without a valid candidate the carrier has no pass to play.
 
 Valid candidates come first, by descending utility, then the invalid ones;
 equal utilities go by receiver id, a ground pass before a lofted one to the same
-receiver (`orderPassCandidates()`). A goalkeeper's long balls
-([goalkeeper distribution](goalkeeper.md#long-balls)) are lofted candidates
+receiver (`orderPassCandidates()`). Long balls — a goalkeeper's
+([goalkeeper distribution](goalkeeper.md#long-balls)) and an outfield
+player's ([long balls](#long-balls)) — are lofted candidates
 scored the same way (`scorePassCandidate()`), with the risk of losing the ball
 where it comes down as interception risk, in the same list. The same state
 always gives the same list.
@@ -193,7 +194,8 @@ after a carrier got his touched ball back
 
 A carrier without a valid option does not stand on the ball for good: he looks
 around for one and, after long enough, plays the best he has. Only a goalkeeper
-with the ball in his hands has his own rule.
+with the ball in his hands has his own rule, and a defender pressed near his
+goal [clears](#clearances) it at once.
 
 The same holds for a carrier who holds the ball despite options, or carries it
 without gaining anything — less than `minCarryDistance` toward goal, no better
@@ -248,8 +250,10 @@ Should he stand on the ball anyway, an opponent nearby
 
 Pressed near his goal a defender does not dwell on the ball. An outfield
 player in his own third with an opponent within `clearPressureRadius` (3 m) of
-him who would not play the ball — he chose to hold, turn, carry or dribble, or
-found no option — clears it at once, the long kick of a stuck carrier above:
+him — by the true positions, as a press is felt rather than remembered — who
+would neither play the ball nor gain ground with it — he chose to hold, or to
+turn, carry or dribble without getting anywhere ([ball carrying](#ball-carrying)),
+or found no option — clears it at once, the long kick of a stuck carrier above:
 up the pitch and on the touchline. Real defenders clear some twenty balls a
 match, and a good share go into touch; without it the ball hardly ever left
 the pitch, and throw-ins came at half real football's rate.
@@ -262,7 +266,7 @@ lofted passes of at least the distribution's `minLongDistance` (25 m) to where
 a teammate stands, contested where they come down. They join the ground passes
 in one list. Their lofted bias is the phase's `passingRisk` through the
 distribution's dial — `directnessWeight · (2 · passingRisk − 1)` — less
-`longBallCost` (0.9): a direct side, counter's 0.6 to 0.8, kicks long far more
+`longBallCost` (0.9): a direct side, counter's 0.6 to 0.9, kicks long far more
 than possession's 0.2 to 0.35, and nobody as readily as a keeper. Without the
 cost, every other pass went long and only a third of them arrived. Farther up
 the pitch they are not offered: a ball over the top from midfield made a
@@ -377,7 +381,7 @@ twice:
 | `carrying`       |         | how he weighs holding, turning, carrying and dribbling ([ball carrying](#configuration-5)) |
 
 The system rejects an interval below one tick, a negative or non-finite hold,
-stuck time or margin, a temperature that is not positive and finite, a
+stuck time, margin, long-ball cost or clearance radius, a temperature that is not positive and finite, a
 temperature spread outside [0, 1) or a misjudgement outside [0, 1], and invalid
 scoring, carrying or distribution. It runs every tick, to follow a
 touched ball and to decide when a carrier gets it back, but decides at the

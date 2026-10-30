@@ -566,19 +566,23 @@ class BallTick {
   }
 
   // Whether the claim is an outfield opponent of the passer at full stretch
-  // for a pass still fast: he only gets a touch on it (touchedOff()).
+  // for a pass still fast -- standing farther than cleanRadius off the ball's
+  // way --: he only gets a touch on it (touchedOff()).
   [[nodiscard]] bool stretchesFor(const BallState& ball, const BallClaim& claim) const {
     const ReceptionConfig& reception = rules().reception;
     const auto passer = passerOf(ball, next().lastPass());
-    if (!passer || claim.contact.closestDistance <= reception.cleanRadius ||
-        ball.velocity.length() < reception.deflectSpeed ||
-        hasHands(current(), claim.playerIndex, current().players()[claim.playerIndex].position,
-                 ball.position)) {
+    const double speed = ball.velocity.length();
+    if (!passer || speed < reception.deflectSpeed || isGoalkeeper(current(), claim.playerIndex)) {
+      return false;
+    }
+    const PlayerMatchState& claimant = current().players()[claim.playerIndex];
+    const Vec2 way = ball.velocity * (1.0 / speed);
+    const Vec2 offset = claimant.position - ball.position;
+    if (std::abs((way.x * offset.y) - (way.y * offset.x)) <= reception.cleanRadius) {
       return false;
     }
     const auto passerIndex = findPlayerIndex(current(), *passer);
-    return passerIndex &&
-           current().players()[*passerIndex].side != current().players()[claim.playerIndex].side;
+    return passerIndex && current().players()[*passerIndex].side != claimant.side;
   }
 
   // The pass as it comes off the opponent who stretched for it: deflected as
@@ -590,6 +594,12 @@ class BallTick {
                          .ball;
     ball.lastTouch = BallTouch{.playerId = contact.playerId, .tick = context().tick()};
     next().setBallLastTouch(ball.lastTouch);
+    // The pass remembers him: a deflection is no deliberate play (Law 11).
+    std::optional<PassRecord> pass = next().lastPass();
+    if (pass) {
+      pass->deflection = ball.lastTouch;
+      next().setLastPass(pass);
+    }
     return ball;
   }
 
@@ -821,17 +831,26 @@ class BallTick {
       resolveShot(*free.shot, controlOutcome(current(), *free.shot, there, claim));
       free.shot.reset();
     }
-    const HeaderStrike strike =
+    HeaderStrike strike =
         executeHeader(intent, there, player,
                       headerErrorFactor(timingSkill(player.attributes, winner.hands), jump.mistime,
                                         rules().aerial),
                       rules().aerial, rules().physics,
                       context().random(SimCore::RandomNumberGeneratorDomain::kExecution));
+    // A mistimed header only glances the ball: it keeps some of its own way,
+    // never leaving faster than maxHeaderSpeed in all
+    // (docs/duels.md#the-header). A keeper's punch is his fist's.
+    if (!winner.hands) {
+      const Vec2 glanced =
+          strike.velocity + (there.velocity * (rules().aerial.glanceShare * jump.mistime));
+      const double fastest = rules().aerial.maxHeaderSpeed;
+      const double ground = std::sqrt(
+          std::max(0.0, (fastest * fastest) - (strike.verticalVelocity * strike.verticalVelocity)));
+      const double speed = glanced.length();
+      strike.velocity = speed > ground ? glanced * (ground / speed) : glanced;
+    }
     BallState from = there;
-    // Mistimed, he only glances it: it keeps some of its own way
-    // (docs/duels.md#the-header).
-    from.velocity =
-        strike.velocity + (there.velocity * (rules().aerial.glanceShare * jump.mistime));
+    from.velocity = strike.velocity;
     from.verticalVelocity = strike.verticalVelocity;
     from.spin = 0.0;
     from.sideSpin = 0.0;

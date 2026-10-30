@@ -456,8 +456,11 @@ facing. Both errors are scaled by `headerErrorFactor()`: `skillErrorFactor()` of
 heading, times `1 + mistimedErrorFactor · mistiming` — a fully mistimed header
 is three times as wide. A mistimed header only glances the ball, too: it keeps
 `glanceShare · mistiming` (0.6 at worst) of its own way along the ground on top
-of where his head sends it, so a cross glanced on goes on behind the goal or
-into touch. The ball leaves without spin.
+of where his head sends it — still no faster than `maxHeaderSpeed` in all —, so
+a cross glanced on goes on behind the goal or into touch; a keeper's punch is
+his fist's and does not glance. `PassAttempted` and `ShotAttempted` carry the
+speed the ball leaves with; `struckAt` stays where his head aimed it. The ball
+leaves without spin.
 
 What the ball is afterwards follows the play:
 
@@ -551,9 +554,10 @@ players' side is `PlayerAttributes` ([match state](match-engine.md#match-state))
 
 ### What this is not
 
-- No crosses, and only goalkeepers loft passes: a high ball comes from a
-  keeper's long ball ([goalkeeper distribution](goalkeeper.md#distribution)), a
-  shot, a deflection, a parry, the woodwork or a test. A keeper who catches a
+- A high ball comes from a cross, a long ball — a keeper's
+  ([goalkeeper distribution](goalkeeper.md#distribution)) or an outfield
+  player's ([long balls](on-ball.md#long-balls)) —, a clearance, a shot, a
+  deflection, a parry, the woodwork or a test. A keeper who catches a
   ball distributes it like any ball in his hands.
 - The jump happens at the ball's arrival: no take-off before it, no hang time,
   no landing elsewhere; the movement system does not know he jumped.

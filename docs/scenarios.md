@@ -439,7 +439,7 @@ fall inside the bands below — every side with a value —, and pressing must
 commit at least 8 fouls and catch at least 2 offsides a match, so that a rule
 that stops being called fails although the offsides band starts at 0. At
 the time of writing the nine matches took 12.2 s each on average, 13.5 s at
-most and 110 s together; the test took 386 s, most of it the nine replays,
+most and 110 s together; the test took 336 s, most of it the nine replays,
 each recorded and played back one after the other.
 
 **The full run** for local use plays twenty matches per pairing and five seeds,
@@ -482,10 +482,10 @@ the round robin, per side and match:
 | Metric | Before | After | Real football |
 |---|---|---|---|
 | goals | 22 | 2.7 | 1.4 |
-| shots, on target | 47, – | 11.0, 5.9 | 12, 4.5 |
-| passes, completion | 1300, 0.69 | 790, 0.77 | about 480, 0.80 |
-| fouls, free kicks | 2.4, – | 9.6, 11.1 | 11, 12 |
-| corners, throw-ins, goal kicks | –, 2.5, – | 2.3, 13.2, 5.2 | 5, 20, 7 |
+| shots, on target | 47, – | 11.0, 6.4 | 12, 4.5 |
+| passes, completion | 1300, 0.69 | 790, 0.76 | about 480, 0.80 |
+| fouls, free kicks | 2.4, – | 9.3, 11.0 | 11, 12 |
+| corners, throw-ins, goal kicks | –, 2.5, – | 2.4, 12.9, 4.6 | 5, 20, 7 |
 
 Most of it came from flaws, not from turning numbers:
 

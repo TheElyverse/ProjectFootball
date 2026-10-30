@@ -451,6 +451,9 @@ struct PassRecord {
   SimCore::Vec2 from;
   SimCore::SimTick tick;
   std::optional<SimCore::PlayerId> receiver;
+  // The opponent the pass came off at full stretch, if one did
+  // (docs/ball.md#reception-interceptions-and-loose-balls).
+  std::optional<BallTouch> deflection = std::nullopt;
 
   friend bool operator==(const PassRecord&, const PassRecord&) = default;
 };

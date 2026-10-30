@@ -215,10 +215,12 @@ like any invalid state.
 ### What this is not
 
 Only a [shot](on-ball.md#shooting) -- [curled](on-ball.md#shot-types) with
-sidespin or not -- and a goalkeeper's long ball
-([goalkeeper distribution](goalkeeper.md#distribution)) lift the ball. Every
-other pass is a ground pass and leaves the foot without height, vertical
-velocity or spin. Crosses and outfield lofted passes will fill the third
+sidespin or not --, a [cross](on-ball.md#crossing), a long ball -- a
+goalkeeper's ([goalkeeper distribution](goalkeeper.md#distribution)) or an
+outfield player's ([long balls](on-ball.md#long-balls)) -- and a
+[clearance](on-ball.md#clearances) lift the ball. Every other pass is a ground
+pass and leaves the foot without height, vertical velocity or spin. Chips and
+spun passes will fill the third
 dimension further. Who wins a high ball is decided in the air
 ([aerial duels](duels.md#aerial-duels-and-headers)).
 
@@ -353,8 +355,11 @@ player against the ball:
 - **At full stretch.** An outfield opponent of the passer who gets to a pass
   only farther than `cleanRadius` (0.7 m) from the ball's way — the last 30 cm
   of his reach — while it is still at least `deflectSpeed` (8 m/s) fast does not
-  control it: it comes off him as a shot does off a body (`deflectShot()`, one
-  more `kExecution` draw), and is loose with him as its last touch.
+  control it: it comes off him as a shot does off a body (`deflectShot()`, its
+  three `kExecution` draws), and is loose with him as its last touch. The pass
+  remembers him (`PassRecord::deflection`): a deflection is no deliberate play,
+  so it does not end an [offside](match-engine.md#offside) watch. The distance
+  is his off the ball's way, the line it travels at the start of the tick.
 - **No instant reclaim.** The ball's last touch cannot take it back for
   `reclaimDelaySeconds` (0.3 s), so a pass does not stick to the passer's foot.
   Nobody may stop a goalkeeper letting the ball go from his hands (Law 12): his

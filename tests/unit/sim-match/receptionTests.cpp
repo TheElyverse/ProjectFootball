@@ -44,6 +44,7 @@ using ElyverseFootball::SimMatch::MatchStateWriter;
 using ElyverseFootball::SimMatch::MatchStepContext;
 using ElyverseFootball::SimMatch::MatchSystem;
 using ElyverseFootball::SimMatch::PassCommand;
+using ElyverseFootball::SimMatch::PassRecord;
 using ElyverseFootball::SimMatch::Pitch;
 using ElyverseFootball::SimMatch::planPassSpeed;
 using ElyverseFootball::SimMatch::PlayerMatchState;
@@ -265,6 +266,35 @@ TEST_CASE("An opponent standing in the lane intercepts the pass", "[reception]")
   stepUntilTaken(simulation, 150);
 
   REQUIRE(simulation.state().ball().owner == PlayerId(3));
+}
+
+TEST_CASE("An opponent at full stretch for a fast pass only deflects it", "[reception]") {
+  // Player 3 stands 0.9 m off the line from 1 to 2, three meters out: a hard
+  // pass reaches him before he can step in, at the edge of his reach.
+  const auto played = [](const double off, const double speed) {
+    const MatchState state = twoASide({{.x = 10.0, .y = 20.0},
+                                       {.x = 30.0, .y = 20.0},
+                                       {.x = 13.0, .y = 20.0 + off},
+                                       {.x = 50.0, .y = 5.0}},
+                                      freeBall({.x = 10.0, .y = 20.0}));
+    MatchSimulation simulation = passFrom(state, {.x = 30.0, .y = 20.0}, speed);
+    for (int tick = 0; tick < 30; ++tick) {
+      REQUIRE(simulation.step().has_value());
+      const BallState& ball = simulation.state().ball();
+      if (ball.lastTouch && ball.lastTouch->playerId == PlayerId(3)) {
+        return simulation.state();
+      }
+    }
+    return simulation.state();
+  };
+  // Hard: off him, loose, with him as the last touch the pass remembers.
+  const MatchState stretched = played(0.9, 18.0);
+  REQUIRE(stretched.ball().lastTouch.value_or(BallTouch{}).playerId == PlayerId(3));
+  REQUIRE_FALSE(stretched.ball().owner.has_value());
+  REQUIRE(stretched.lastPass().value_or(PassRecord{}).deflection == stretched.ball().lastTouch);
+  // Closer to its way, or slower than deflectSpeed, he controls it.
+  REQUIRE(played(0.5, 18.0).ball().owner == PlayerId(3));
+  REQUIRE(played(0.9, ReceptionConfig{}.deflectSpeed - 1.0).ball().owner == PlayerId(3));
 }
 
 TEST_CASE("Simultaneous claims are decided by time, distance, then id", "[reception]") {
