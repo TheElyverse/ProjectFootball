@@ -279,6 +279,18 @@ void MatchStepContext::diagnose(ActionDiagnostic diagnostic) const {
   }
 }
 
+void MatchStepContext::diagnose(DuelDiagnostic diagnostic) const {
+  if (collectsDiagnostics(diagnostic.player)) {
+    diagnostics_.duels->push_back(std::move(diagnostic));
+  }
+}
+
+void MatchStepContext::diagnose(DiveDiagnostic diagnostic) const {
+  if (collectsDiagnostics(diagnostic.player)) {
+    diagnostics_.dives->push_back(std::move(diagnostic));
+  }
+}
+
 void MatchStepContext::diagnose(SweepDiagnostic diagnostic) const {
   if (collectsDiagnostics(diagnostic.player)) {
     diagnostics_.sweeps->push_back(diagnostic);
@@ -367,6 +379,8 @@ std::expected<SimCore::SimTick, MatchStepError> MatchSimulation::step() {
   stepDiagnostics_.clear();
   stepActionDiagnostics_.clear();
   stepSweepDiagnostics_.clear();
+  stepDuelDiagnostics_.clear();
+  stepDiveDiagnostics_.clear();
   const MatchState& current = applyDueCommands();
   // Copy-assigning a state of the same squad reuses next_'s storage.
   next_ = current;
@@ -378,6 +392,8 @@ std::expected<SimCore::SimTick, MatchStepError> MatchSimulation::step() {
           ? MatchStepContext::Diagnostics{.decisions = &stepDiagnostics_,
                                           .actions = &stepActionDiagnostics_,
                                           .sweeps = &stepSweepDiagnostics_,
+                                          .duels = &stepDuelDiagnostics_,
+                                          .dives = &stepDiveDiagnostics_,
                                           .filter = &diagnosticsFilter_}
           : MatchStepContext::Diagnostics{});
   // After the final whistle nothing moves (docs/match-clock.md#full-time).
@@ -413,6 +429,8 @@ std::expected<SimCore::SimTick, MatchStepError> MatchSimulation::step() {
   std::swap(diagnostics_, stepDiagnostics_);
   std::swap(actionDiagnostics_, stepActionDiagnostics_);
   std::swap(sweepDiagnostics_, stepSweepDiagnostics_);
+  std::swap(duelDiagnostics_, stepDuelDiagnostics_);
+  std::swap(diveDiagnostics_, stepDiveDiagnostics_);
   return tick;
 }
 

@@ -358,7 +358,10 @@ t=18 #1 keeps the ball: no valid option (0 options, 8 observed; no shot: too far
 t=18 #1 carries to (33.0, 20.0) (utility 0.98: keep +0.80 progression +0.17 space +0.01 shot +0.00 bypassed +0.00 risk -0.00; estimated risk 0.00; 0 options, 8 observed; no shot: too far) because keep
 t=120 #1 dribbles past #8 to (40.4, 14.6) (utility 1.10: keep +0.74 progression +0.06 space -0.04 shot +0.00 bypassed +0.15 risk -0.03; estimated risk 0.08; 0 options, 9 observed; no shot: too far) because keep
 t=3 #8 sweeps (reaches the ball in 2.20 s, the first attacker in 4.20 s; misjudged by +0.00 s, needs +0.15 s)
-t=0 #1 kicks long to #5 (utility 1.24: completion +0.86 progression +0.42 pressure -0.00 risk -0.04 directness +0.00; estimated risk 0.14; 12 options, 13 observed) because completion -> pending
+t=0 #1 kicks long to #5 (utility 1.24: completion +0.86 progression +0.42 pressure +0.00 risk -0.04 directness +0.00; estimated risk 0.14; 12 options, 13 observed) because completion -> pending
+t=897 #15 accelerate in the duel against #10 (utility 0.55: shield 0.07 turnAway 0.40 accelerate 0.55; 3 options) because best
+t=900 #10 jockey in the duel with #15 (utility 0.30: jockey 0.30; 1 options) because best
+t=2082 #1 dives at #21's shot after a run of +0.00 m (gap 0.14 m, within 1.00 m; read -2.44 m across, 2.20 m up; 17 runs) because dive
 ```
 
 - **Observations**: how many entities the player remembered when he decided.
@@ -402,6 +405,18 @@ t=0 #1 kicks long to #5 (utility 1.24: completion +0.86 progression +0.42 pressu
   stuck, `forcedClear` for his long kick when he has no pass at all. An action
   marked `idlePress` sent a player at a carrier who stood on the ball
   ([pressing](team-tactics.md#a-carrier-who-stands-on-the-ball)).
+- **Duels**: a carrier's move `in the duel against #n` — `shield`, `turnAway`
+  or `accelerate` —, a defender's `in the duel with #n` — `jockey`, or
+  `commit` once he may lunge —, each move's utility, and `best` if he drew the
+  best one or `drawn` if the softmax drew another
+  ([duels](duels.md#duels-on-the-ball)).
+- **Dives**: a keeper facing a shot `dives at #n's shot after a run of` so many
+  metres across his plane, how far his body still was from where he read the
+  shot (`gap`) against the margin he goes within, where he read it across and
+  up his plane, and how many runs he weighed; or `leaves` it, because he read
+  it going wide (`leaveWide`) or even his best run left it beyond his margin
+  (`leaveOutOfReach`) ([shot stopping](goalkeeper.md#reacting-and-deciding)).
+  Numbers that round to zero read `+0.00`.
 - **Outcome** of a pass (a shot's outcome comes with shot execution): `received`, `intercepted`, `recovered by the passer`,
   `not played` (he lost the ball first) or `pending` at the end of the trace.
 
@@ -488,6 +503,7 @@ so it can be matched against a replay checkpoint.
 | white disc                     | the ball; a flying ball grows with its height and casts a shadow on the grass |
 | dashed yellow line             | a pending pass, from the passer to its target               |
 | dashed white line and cross    | a movement target (selected player, or all with **all targets**) |
+| white lines, to scale          | the centre circle, both penalty and goal areas, the penalty spots, and each goal's mouth drawn thick on its line |
 
 Clicking a player selects him; Escape or a click on empty grass clears it. For
 the selected player the pitch adds:
@@ -501,7 +517,10 @@ the selected player the pitch adds:
   ball, fainter as its confidence falls;
 - his **latest pass decision**: a line from where he decided to every candidate
   target, green if valid, grey and dashed if rejected, the chosen pass yellow
-  and thick ([pass candidates](on-ball.md#pass-candidates), [pass decisions](on-ball.md#pass-decisions));
+  and thick ([pass candidates](on-ball.md#pass-candidates), [pass decisions](on-ball.md#pass-decisions)),
+  and a dot at every zone of the goal he weighed for a shot, green if valid,
+  grey if not, the one he shot at yellow and joined to him
+  ([the aiming grid](on-ball.md#the-aiming-grid));
 - his **latest action decision** without the ball: a dashed white line and ring
   at every candidate target, the chosen one yellow
   ([off-ball movement](team-tactics.md#off-ball-movement), [defensive shape](team-tactics.md#defensive-shape)).
@@ -516,11 +535,14 @@ overlays, drawn under the players:
 | **regions**       | each player's desired region: a ring at its centre joined to him, a dot at its tactical target ([desired region](team-tactics.md#desired-region)) |
 | **lines**         | each side's defensive line (solid) and front line (faint), and the defensive line its phase's instruction asks for (dashed) |
 | **press**         | a running press: a ring around the pressed carrier, pressers joined to him, each blocked lane dashed from the carrier to the receiver it cuts off with its blocker joined to it, covers dotted to whom they cover ([pressing](team-tactics.md#pressing)) |
+| **set piece**     | a set piece being set up: a yellow ring at its spot, and every player with a place in it dashed to that place in his side's colour ([positions](set-pieces.md#positions)) |
+| **keepers**       | each keeper's bisector: dashed from where it meets his goal line to where on it he wants to stand ([where he stands](goalkeeper.md#where-he-stands)) |
 
 Each side's tactic and phase stand above its half of the pitch.
 
-The side panel lists the match (tick, time, state hash, ball owner, last touch,
-and how fast and how high the ball is); each side's tactic, phase, defensive line against the one asked for,
+The side panel lists the match (tick, time, clock, score, the set piece being
+set up, state hash, ball owner, last touch, and how fast and how high the ball
+is); each side's tactic, phase, defensive line against the one asked for,
 length and width, and running press with its trigger and roles; the selected
 player's position, speed, target, observations, his latest action decision
 (action, subject, utility and the dominant reason) and the candidate table of
@@ -533,6 +555,7 @@ his latest pass decision (`*` marks the choice); and the latest
 | ◀ / ▶              | Left / Right (Shift: ten)    | step one tick back or forward, paused |
 | speed              |                              | 0.25x to 8x match time                 |
 | slider             |                              | jump to any tick                       |
+| moments            | N / P                        | jump to the next or previous frame with a shot, a save, a goal or a set piece taken |
 
 ### Frame format
 
@@ -549,8 +572,8 @@ values:
 ```json
 {
   "format": "elyverse-debug-frames",
-  "version": 4,
-  "coreVersion": "0.34.0",
+  "version": 6,
+  "coreVersion": "0.40.0",
   "scenario": "m0-acceptance",
   "seed": "42",
   "ticksPerSecond": 30,
@@ -625,6 +648,18 @@ values:
   previous frame's.
 - The header's `zones` hold the pitch `y` of every boundary between lanes and
   the pitch `x` of the boundaries between thirds ([zones](team-tactics.md#zones-and-team-shape)).
+- The header's `geometry` holds the markings to scale: for each end, `kMinX`
+  first, its `goalLineX`, the `posts` and `crossbar` height of its goal, its
+  `penaltyArea` and `goalArea` (`min` and `max` corners) and `penaltySpot`;
+  and the `centerCircleRadius` ([markings](match-engine.md#markings)).
+- A frame's `setPiece` is the set piece being set up, `null` without one: its
+  `kind`, `side`, `taker`, `spot`, whether it is `indirect`, and the `places`
+  `setPieceTargets()` gives — each `player` with his `target`
+  ([set pieces](set-pieces.md#positions)). `keepers` holds, for each keeper of
+  a side with a tactic and a phase, where the bisector of his posts' angle from
+  the ball meets his goal line (`onLine`) and the `target` he goes for, along
+  it but kept within his posts and off the line when the ball is on it
+  ([where he stands](goalkeeper.md#where-he-stands)).
 - Frames carry `teams`: each side's `tactic` name, `phase`, the phase's
   `instruction` (`lineHeight`, `blockLength`, `blockWidth` as fractions of the
   pitch, `pressingIntensity`), its running `press` (`carrier`, `since`,
@@ -646,8 +681,10 @@ values:
   `buildUp`, ... as in [tactics](tactics.md#tactic-model). The viewer shows an event type it
   does not know by its name. A decision's `outcome` is `passed`, `shot`, `held`,
   `turned`, `carried`, `dribbled`, `crossed` or `noValidOption`, `chosen` indexes
-  `candidates` (null for a shot or a cross), and `rejection` is `valid` or
-  the reason a candidate cannot be played. A candidate's `completion`, `utility` and
+  `candidates` (null for a shot or a cross), `shots` lists every zone of the
+  goal he weighed — `target`, `height`, `type`, `goalChance`, `utility`,
+  `rejection` — and `chosenShot` indexes them for a shot (null otherwise), and
+  `rejection` is `valid` or the reason a candidate cannot be played. A candidate's `completion`, `utility` and
   `rejection` follow its `judgedInterceptionRisk`, which differs from its
   `interceptionRisk` only for a poor decider ([decision-making](on-ball.md#decision-making)).
 
@@ -661,6 +698,7 @@ viewer shows an unknown event by its name and ignores an unknown field.
 | 3 | the ball's `height`, `verticalVelocity` and `spin` ([ball movement](ball.md#ball-movement)) |
 | 4 | the decision outcome `shot` and the `shotAttempted` event ([shot decisions](on-ball.md#shot-decisions)) |
 | 5 | every frame's `score`; `struckAt` and `struckHeight` in `shotAttempted`; the events `shotDeflected`, `shotHitWoodwork`, `shotResolved` and `goalScored` ([shooting](on-ball.md#shooting)) |
+| 6 | the header's `geometry`; every frame's `setPiece` and `keepers`; a decision's `shots` and `chosenShot` |
 
 Added without a new version: the events `saveAttempted`
 ([shot stopping](goalkeeper.md#shot-stopping)) and `aerialContest`

@@ -16,9 +16,12 @@
 #include <vector>
 
 #include "carrierScan.hpp"
+#include "goalkeeper.hpp"
 #include "matchStateHash.hpp"
 #include "observation.hpp"
 #include "passCandidate.hpp"
+#include "setPieces.hpp"
+#include "shotCandidates.hpp"
 #include "version.hpp"
 #include "zones.hpp"
 
@@ -491,9 +494,21 @@ void addEventFields(Json& json, const SimMatch::PeriodEnded& event) {
   json["held"] = decision.held;
   json["reason"] = SimMatch::onBallReasonName(decision.reason);
   json["target"] = decision.target ? vec2Json(*decision.target) : Json(nullptr);
-  // An index into the pass candidates; the frames do not list shots yet.
+  // An index into the pass candidates for a pass, into the shots for a shot.
   const bool passed = decision.outcome == SimMatch::DecisionOutcome::kPassed;
+  const bool shot = decision.outcome == SimMatch::DecisionOutcome::kShot;
   json["chosen"] = decision.chosen && passed ? Json(*decision.chosen) : Json(nullptr);
+  json["chosenShot"] = decision.chosen && shot ? Json(*decision.chosen) : Json(nullptr);
+  // Every zone of the goal he weighed (docs/on-ball.md#the-aiming-grid).
+  json["shots"] = Json::array();
+  for (const SimMatch::ShotCandidate& candidate : decision.shots) {
+    json["shots"].push_back({{"target", vec2Json(candidate.target)},
+                             {"height", rounded(candidate.height)},
+                             {"type", SimMatch::shotTypeName(candidate.type)},
+                             {"goalChance", rounded(candidate.goalChance)},
+                             {"utility", rounded(candidate.utility)},
+                             {"rejection", SimMatch::shotRejectionName(candidate.rejection)}});
+  }
   json["candidates"] = Json::array();
   for (const SimMatch::PassCandidate& candidate : decision.candidates) {
     json["candidates"].push_back(candidateJson(candidate));
@@ -559,6 +574,53 @@ void addEventFields(Json& json, const SimMatch::PeriodEnded& event) {
           {"home", std::move(home)}};
 }
 
+// The set piece being set up (docs/set-pieces.md): its kind, side, taker and
+// spot, and where everyone with a place in it goes.
+[[nodiscard]] Json setPieceJson(const MatchState& state, const SimMatch::MatchConfig& config) {
+  const auto& setPiece = state.setPiece();
+  if (!setPiece) {
+    return nullptr;
+  }
+  Json json;
+  json["kind"] = SimTactics::setPieceKindName(setPiece->kind);
+  json["side"] = SimMatch::teamSideName(setPiece->side);
+  json["taker"] = setPiece->taker.value();
+  json["spot"] = vec2Json(setPiece->spot);
+  json["indirect"] = setPiece->indirect;
+  json["places"] = Json::array();
+  const auto targets = SimMatch::setPieceTargets(state, *setPiece, config.setPieces, config.ball);
+  for (std::size_t index = 0; index < targets.size(); ++index) {
+    if (const auto& target = targets[index]) {
+      json["places"].push_back(
+          {{"player", state.players()[index].playerId.value()}, {"target", vec2Json(*target)}});
+    }
+  }
+  return json;
+}
+
+// Each keeper's place on the bisector of the angle his posts make from the
+// ball (docs/goalkeeper.md#where-he-stands): where the bisector meets his goal
+// line, and where on it he wants to be.
+[[nodiscard]] Json keepersJson(const MatchState& state, const SimMatch::MatchConfig& config) {
+  Json json = Json::array();
+  const Vec2 ball = state.ball().position;
+  for (std::size_t index = 0; index < state.players().size(); ++index) {
+    const SimMatch::PlayerMatchState& player = state.players()[index];
+    const auto& phase = state.phase(player.side);
+    if (!SimMatch::isOnPitch(player) || !phase ||
+        !SimMatch::guardsGoal(state.players(), state.tactics(), index)) {
+      continue;
+    }
+    const Vec2 onLine = SimMatch::goalBisector(player.side, ball, state.pitch()).foot;
+    json.push_back({{"player", player.playerId.value()},
+                    {"onLine", vec2Json(onLine)},
+                    {"target", vec2Json(SimMatch::goalkeeperTarget(
+                                   state, index, phase->phase, config.goalkeeper,
+                                   config.decisions.shooting.maxShotDistance))}});
+  }
+  return json;
+}
+
 [[nodiscard]] Json frameJson(const DebugFrame& frame, const SimMatch::MatchConfig& config) {
   Json json;
   json["tick"] = frame.tick.value();
@@ -571,6 +633,8 @@ void addEventFields(Json& json, const SimMatch::PeriodEnded& event) {
   json["ball"] = ballJson(frame.state.ball());
   json["score"] = {{"home", frame.state.score().home}, {"away", frame.state.score().away}};
   json["pendingPass"] = pendingPassJson(frame.state.pendingPass());
+  json["setPiece"] = setPieceJson(frame.state, config);
+  json["keepers"] = keepersJson(frame.state, config);
   json["teams"] = teamsJson(frame.state);
   json["pitchControl"] = pitchControlJson(frame);
   json["players"] = Json::array();
@@ -617,6 +681,26 @@ void DebugFrameRecorder::recordStep(const SimMatch::MatchSimulation& simulation)
 }
 
 namespace {
+
+// The markings the viewer draws: at each end the goal -- its line, posts and
+// crossbar --, the penalty and goal areas and the penalty spot, and the
+// centre circle's radius (docs/match-engine.md#markings).
+[[nodiscard]] Json geometryJson(const SimMatch::Pitch& pitch) {
+  const auto rect = [](const SimMatch::PitchRect& area) {
+    return Json{{"min", vec2Json(area.min)}, {"max", vec2Json(area.max)}};
+  };
+  Json ends = Json::array();
+  for (const SimMatch::GoalEnd end : {SimMatch::GoalEnd::kMinX, SimMatch::GoalEnd::kMaxX}) {
+    const SimMatch::Goal goal = pitch.goal(end);
+    ends.push_back({{"goalLineX", pitch.goalLineX(end)},
+                    {"posts", {vec2Json(goal.postAtMinY()), vec2Json(goal.postAtMaxY())}},
+                    {"crossbar", goal.heightMeters},
+                    {"penaltyArea", rect(pitch.penaltyArea(end))},
+                    {"goalArea", rect(pitch.goalArea(end))},
+                    {"penaltySpot", vec2Json(pitch.penaltySpot(end))}});
+  }
+  return {{"ends", ends}, {"centerCircleRadius", pitch.markings().centerCircleRadiusMeters}};
+}
 
 // Where the lanes and thirds of docs/team-tactics.md#zones-and-team-shape meet:
 // pitch y between lanes, pitch x between thirds. The same for both sides.
@@ -678,6 +762,7 @@ std::string toDebugFramesJson(const DebugRecording& recording) {
     json["pitch"] = {{"length", state.pitch().lengthMeters()},
                      {"width", state.pitch().widthMeters()}};
     json["zones"] = zonesJson(state.pitch());
+    json["geometry"] = geometryJson(state.pitch());
   }
   std::set<SimCore::PlayerId::ValueType> listed;
   for (const DebugFrame& frame : recording.frames) {

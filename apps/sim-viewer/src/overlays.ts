@@ -2,6 +2,7 @@ import {
   depthToX,
   latestActionDecision,
   latestPitchControl,
+  sideOf,
   type Frame,
   type Recording,
   type TeamFrame,
@@ -18,6 +19,8 @@ export interface Overlays {
   readonly regions: boolean;
   readonly shape: boolean;
   readonly press: boolean;
+  readonly setPiece: boolean;
+  readonly keepers: boolean;
 }
 
 export const NO_OVERLAYS: Overlays = {
@@ -26,6 +29,8 @@ export const NO_OVERLAYS: Overlays = {
   regions: false,
   shape: false,
   press: false,
+  setPiece: false,
+  keepers: false,
 };
 
 const TEAM_RGB: Readonly<Record<TeamSide, string>> = {
@@ -269,6 +274,70 @@ export function drawActionCandidates(
 }
 
 // The overlays drawn under the players.
+// A line from where a player stands to where he goes, and its side.
+export interface Assignment {
+  readonly side: TeamSide | undefined;
+  readonly from: Vec2;
+  readonly to: Vec2;
+}
+
+// The set piece's places (docs/set-pieces.md#positions): every player with
+// one, from where he stands to it; empty without a set piece.
+export function setPieceAssignments(recording: Recording, frame: Frame): Assignment[] {
+  const setPiece = frame.setPiece;
+  if (setPiece === null) {
+    return [];
+  }
+  return setPiece.places.flatMap((place) => {
+    const player = frame.players.find((entry) => entry.id === place.player);
+    return player === undefined
+      ? []
+      : [{ side: sideOf(recording, place.player), from: player.position, to: place.target }];
+  });
+}
+
+// The keepers' bisectors, from the goal line to where each wants to stand.
+export function keeperAssignments(recording: Recording, frame: Frame): Assignment[] {
+  return frame.keepers.map((keeper) => ({
+    side: sideOf(recording, keeper.player),
+    from: keeper.onLine,
+    to: keeper.target,
+  }));
+}
+
+function drawAssignments(
+  context: CanvasRenderingContext2D,
+  viewport: Viewport,
+  assignments: readonly Assignment[],
+): void {
+  context.lineWidth = 1.5;
+  context.setLineDash([5, 3]);
+  for (const assignment of assignments) {
+    context.strokeStyle = teamColor(assignment.side ?? "home", 0.9);
+    segment(context, viewport, assignment.from, assignment.to);
+    ring(context, viewport, assignment.to, 4);
+    context.stroke();
+  }
+  context.setLineDash([]);
+}
+
+function drawSetPiece(
+  context: CanvasRenderingContext2D,
+  viewport: Viewport,
+  recording: Recording,
+  frame: Frame,
+): void {
+  const setPiece = frame.setPiece;
+  if (setPiece === null) {
+    return;
+  }
+  drawAssignments(context, viewport, setPieceAssignments(recording, frame));
+  context.strokeStyle = "#ffd33d";
+  context.lineWidth = 2;
+  ring(context, viewport, setPiece.spot, 7);
+  context.stroke();
+}
+
 export function drawOverlays(
   context: CanvasRenderingContext2D,
   viewport: Viewport,
@@ -298,6 +367,12 @@ export function drawOverlays(
     for (const team of frame.teams) {
       drawPress(context, viewport, frame, team);
     }
+  }
+  if (overlays.setPiece) {
+    drawSetPiece(context, viewport, recording, frame);
+  }
+  if (overlays.keepers) {
+    drawAssignments(context, viewport, keeperAssignments(recording, frame));
   }
   drawPhases(context, viewport, recording, frame);
 }

@@ -188,6 +188,8 @@ LungeResult resolveLunge(const DuelGeometry& geometry, const Vec2 foot, const do
 namespace {
 
 constexpr std::array kCarrierMoves{DuelMove::kShield, DuelMove::kTurnAway, DuelMove::kAccelerate};
+// In the order of defenderUtilities().
+constexpr std::array kDefenderMoves{DuelMove::kJockey, DuelMove::kCommit};
 constexpr auto kDecisions = SimCore::RandomNumberGeneratorDomain::kAi;
 
 // What the duel system works with.
@@ -271,8 +273,10 @@ class DuelStep {
       const DuelGeometry geometry = geometryOf(current(), *carrierIndex, defenderIndex);
       const std::vector<double> utilities =
           defenderUtilities(geometry, stepped.defenderBalance, config);
-      if (chooseByUtility(utilities, config.decisionTemperature, context().random(kDecisions)) ==
-          1) {
+      const auto chosen =
+          chooseByUtility(utilities, config.decisionTemperature, context().random(kDecisions));
+      diagnoseDuel(defenderIndex, duel.carrier, false, kDefenderMoves, utilities, chosen);
+      if (chosen == 1) {
         stepped.defenderMove = DuelMove::kCommit;
         const Lunge landed = lunge(geometry, stepped, carrier.attributes.ballControl, config);
         stepped.defenderBalance = std::max(0.0, stepped.defenderBalance - config.commitCost);
@@ -342,6 +346,29 @@ class DuelStep {
   }
 
  private:
+  // The moves a player in the duel weighed and the one he drew, if his
+  // diagnostics are collected (DuelDiagnostic).
+  template <std::size_t Count>
+  void diagnoseDuel(const std::size_t playerIndex, const SimCore::PlayerId opponent,
+                    const bool carrier, const std::array<DuelMove, Count>& moves,
+                    const std::span<const double> utilities,
+                    const std::optional<std::size_t> chosen) const {
+    const SimCore::PlayerId player = current().players()[playerIndex].playerId;
+    if (!context().collectsDiagnostics(player)) {
+      return;
+    }
+    DuelDiagnostic diagnostic{.tick = context().tick(),
+                              .player = player,
+                              .opponent = opponent,
+                              .carrier = carrier,
+                              .options = {},
+                              .chosen = chosen};
+    for (std::size_t index = 0; index < moves.size() && index < utilities.size(); ++index) {
+      diagnostic.options.push_back({.move = moves.at(index), .utility = utilities[index]});
+    }
+    context().diagnose(std::move(diagnostic));
+  }
+
   void stumble(const std::size_t index, const DuelConfig& config) const {
     next().tactical(index).stumbledUntil = stumbleEnd(context().time(), config.stumbleSeconds);
   }
@@ -407,9 +434,11 @@ class DuelStep {
         seen.defenderBalance = 0.0;
       }
       const auto utilities = carrierUtilities(geometry, seen, config);
-      duel.carrierMove = kCarrierMoves.at(
-          chooseByUtility(utilities, config.decisionTemperature, context().random(kDecisions))
-              .value_or(0));
+      const auto chosen =
+          chooseByUtility(utilities, config.decisionTemperature, context().random(kDecisions));
+      diagnoseDuel(carrierIndex, current().players()[defenderIndex].playerId, true, kCarrierMoves,
+                   utilities, chosen);
+      duel.carrierMove = kCarrierMoves.at(chosen.value_or(0));
       const PlayerMatchState& carrier = current().players()[carrierIndex];
       const Vec2 direction = moveDirection(duel.carrierMove, geometry);
       duel.carrierBalance =

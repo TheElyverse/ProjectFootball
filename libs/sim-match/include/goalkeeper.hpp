@@ -49,6 +49,17 @@ struct GoalkeeperConfig {
 // and the margins are finite.
 void validate(const GoalkeeperConfig& config);
 
+// The bisector of the angle the posts of the side's goal make as seen from the
+// ball (docs/goalkeeper.md#where-he-stands): where it meets the goal line --
+// dividing the goal in the ratio of the ball's distances to the posts -- and
+// the way it runs into the pitch.
+struct Bisector {
+  SimCore::Vec2 foot;
+  SimCore::Vec2 direction;
+};
+
+[[nodiscard]] Bisector goalBisector(TeamSide side, SimCore::Vec2 ball, const Pitch& pitch);
+
 // Where the goalkeeper at this index wants to stand in the phase: on the
 // bisector of the angle the posts of his goal make as seen from the ball,
 // this far along it from where it meets the goal line. Far from the ball he

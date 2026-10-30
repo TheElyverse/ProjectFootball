@@ -3,7 +3,12 @@ import { test } from "node:test";
 
 import { parseRecording } from "../dist/frames.js";
 import { Viewport } from "../dist/geometry.js";
-import { controlColor, drawActionCandidates } from "../dist/overlays.js";
+import {
+  controlColor,
+  drawActionCandidates,
+  keeperAssignments,
+  setPieceAssignments,
+} from "../dist/overlays.js";
 import { fixture } from "./fixture.mjs";
 
 test("controlColor shows who controls a cell and how clearly", () => {
@@ -48,4 +53,20 @@ test("drawActionCandidates starts the candidate lines where the player decided",
 
   assert.equal(context.starts.length, 1);
   assert.deepEqual(viewport.toPitch(context.starts[0]), [40, 20]);
+});
+
+test("setPieceAssignments joins every player with a place to it, by side", () => {
+  const recording = parseRecording(JSON.stringify(fixture()));
+  assert.deepEqual(setPieceAssignments(recording, recording.frames[0]), []);
+  assert.deepEqual(setPieceAssignments(recording, recording.frames[2]), [
+    { side: "home", from: [20, 20], to: [59.5, 0.5] },
+    { side: "away", from: [40, 20], to: [55, 20] },
+  ]);
+});
+
+test("keeperAssignments runs from the goal line to where the keeper wants to be", () => {
+  const recording = parseRecording(JSON.stringify(fixture()));
+  assert.deepEqual(keeperAssignments(recording, recording.frames[2]), [
+    { side: "away", from: [60, 19], to: [58.5, 19.5] },
+  ]);
 });

@@ -485,3 +485,64 @@ TEST_CASE("The tracer follows a cross to whoever wins it in the air", "[decision
   REQUIRE(first.outcome.result == PassResult::kIntercepted);
   REQUIRE(first.outcome.by == PlayerId(8));
 }
+
+TEST_CASE("Duel moves and dives are traced with what was weighed", "[decisionTrace]") {
+  using ElyverseFootball::SimMatch::DiveCall;
+  using ElyverseFootball::SimMatch::DiveDiagnostic;
+  using ElyverseFootball::SimMatch::DuelDiagnostic;
+  using ElyverseFootball::SimMatch::DuelMove;
+  using ElyverseFootball::SimReplay::DiveDecisionTrace;
+  using ElyverseFootball::SimReplay::DuelDecisionTrace;
+  const std::vector<TraceEntry> entries{
+      DuelDecisionTrace{
+          .decision = DuelDiagnostic{.tick = SimTick(5),
+                                     .player = PlayerId(9),
+                                     .opponent = PlayerId(4),
+                                     .carrier = true,
+                                     .options = {{.move = DuelMove::kShield, .utility = 0.7},
+                                                 {.move = DuelMove::kTurnAway, .utility = 0.4}},
+                                     .chosen = 1}},
+      DiveDecisionTrace{.decision = DiveDiagnostic{.tick = SimTick(9),
+                                                   .player = PlayerId(1),
+                                                   .shooter = PlayerId(9),
+                                                   .readAcross = -1.5,
+                                                   .readUp = 0.8,
+                                                   .runs = {{.feet = 0.0, .gap = 0.6},
+                                                            {.feet = -0.75, .gap = 0.1}},
+                                                   .chosen = 1,
+                                                   .tryMargin = 1.0,
+                                                   .call = DiveCall::kDive}},
+      DiveDecisionTrace{.decision = DiveDiagnostic{.tick = SimTick(12),
+                                                   .player = PlayerId(1),
+                                                   .shooter = PlayerId(9),
+                                                   .readAcross = 3.0,
+                                                   .readUp = 0.2,
+                                                   .runs = {{.feet = 0.0, .gap = 2.1}},
+                                                   .chosen = std::nullopt,
+                                                   .tryMargin = 1.0,
+                                                   .call = DiveCall::kLeaveOutOfReach}}};
+  REQUIRE(formatTrace(entries) ==
+          "t=5 #9 turnAway in the duel against #4 (utility 0.40: shield 0.70 turnAway 0.40; 2 "
+          "options) because drawn\n"
+          "t=9 #1 dives at #9's shot after a run of -0.75 m (gap 0.10 m, within 1.00 m; read "
+          "-1.50 m across, 0.80 m up; 2 runs) because dive\n"
+          "t=12 #1 leaves #9's shot (closest 2.10 m, beyond 1.00 m; read +3.00 m across, 0.20 m "
+          "up; 1 runs) because leaveOutOfReach\n");
+}
+
+TEST_CASE("A duel and a keeper's dive in a match are traced", "[decisionTrace]") {
+  using ElyverseFootball::SimReplay::DiveDecisionTrace;
+  using ElyverseFootball::SimReplay::DuelDecisionTrace;
+  const DiagnosticsFilter everyone{.players = {}, .from = std::nullopt, .to = std::nullopt};
+  const auto count = [](const std::vector<TraceEntry>& entries, const auto& isKind) {
+    return std::ranges::count_if(entries, isKind);
+  };
+  const auto duels = traceOf("duel-ball-kept", everyone, 150);
+  REQUIRE(count(duels, [](const TraceEntry& entry) {
+            return std::holds_alternative<DuelDecisionTrace>(entry);
+          }) > 0);
+  const auto dives = traceOf("clear-chance", everyone, 150);
+  REQUIRE(count(dives, [](const TraceEntry& entry) {
+            return std::holds_alternative<DiveDecisionTrace>(entry);
+          }) > 0);
+}

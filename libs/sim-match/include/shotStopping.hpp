@@ -137,12 +137,14 @@ inline constexpr std::string_view kShotStoppingSystemName = "shot stopping";
 // He leaves a ball he reads farther than tryMargin() from what he gets to,
 // or crossing his goal line farther than wideMargin beside or above the
 // frame. Always two draws from random. Empty, without a draw, for a ball
-// that has passed his plane or stops short of it.
+// that has passed his plane or stops short of it. With `diagnostic`, fills it
+// with what he read, weighed and called (DiveDiagnostic), whenever he decides.
 [[nodiscard]] std::optional<KeeperDive> decideDive(const MatchState& state, std::size_t keeperIndex,
                                                    SimCore::SimTick now,
                                                    const ShotStoppingConfig& config,
                                                    const BallPhysics& physics,
-                                                   SimCore::RandomNumberGenerator& random);
+                                                   SimCore::RandomNumberGenerator& random,
+                                                   DiveDiagnostic* diagnostic = nullptr);
 
 // A keeper standing set where he is now against this ball's flight: his
 // plane through his position, square to the ball's way, and his hands kept
