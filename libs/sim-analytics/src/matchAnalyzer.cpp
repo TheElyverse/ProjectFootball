@@ -81,15 +81,20 @@ void MatchAnalyzer::observeStep(const std::span<const SimMatch::MatchEvent> even
   // keeps a step with more than one ownership change from assigning one
   // event's position to another's regain.
   std::optional<SimCore::Vec2> wonAt;
+  std::optional<SimCore::PlayerId> penaltyTaker;
   for (const SimMatch::MatchEvent& event : events) {
     if (const auto* pass = std::get_if<SimMatch::PassAttempted>(&event)) {
       onPass(*pass);
     } else if (const auto* reception = std::get_if<SimMatch::PassReceived>(&event)) {
       onReception(*reception);
     } else if (const auto* shot = std::get_if<SimMatch::ShotAttempted>(&event)) {
-      if (const auto side = sideOf(shot->shooter)) {
-        ++tally(*side).shots;
-      }
+      onShot(*shot, penaltyTaker);
+    } else if (const auto* resolved = std::get_if<SimMatch::ShotResolved>(&event)) {
+      onShotResolved(*resolved);
+    } else if (const auto* duel = std::get_if<SimMatch::DuelEnded>(&event)) {
+      onDuel(*duel);
+    } else if (const auto* aerial = std::get_if<SimMatch::AerialContest>(&event)) {
+      onAerial(*aerial);
     } else if (const auto* goal = std::get_if<SimMatch::GoalScored>(&event)) {
       ++tally(goal->side).goals;
     } else if (const auto* offside = std::get_if<SimMatch::OffsideCalled>(&event)) {
@@ -98,6 +103,9 @@ void MatchAnalyzer::observeStep(const std::span<const SimMatch::MatchEvent> even
       onFoul(*foul);
     } else if (const auto* setPiece = std::get_if<SimMatch::SetPieceTaken>(&event)) {
       onSetPiece(*setPiece);
+      if (setPiece->kind == SimTactics::SetPieceKind::kPenalty) {
+        penaltyTaker = setPiece->taker;
+      }
     } else if (const auto* substitution = std::get_if<SimMatch::SubstitutionMade>(&event)) {
       // The newcomer plays for the side from now on.
       context_.sides[substitution->on] = substitution->side;
@@ -198,7 +206,14 @@ TeamStats MatchAnalyzer::statsOf(const TeamSide side, const std::int64_t possess
       .progressivePasses = counts.progressivePasses,
       .completedProgressivePasses = counts.completedProgressivePasses,
       .shots = counts.shots,
+      .shotsOnTarget = counts.shotsOnTarget,
       .goals = counts.goals,
+      .saves = counts.saves,
+      .chanceQuality = counts.chanceQuality,
+      .duelsWon = counts.duelsWon,
+      .duelsLost = counts.duelsLost,
+      .aerialDuels = counts.aerialDuels,
+      .aerialDuelsWon = counts.aerialDuelsWon,
       .offsides = counts.offsides,
       .fouls = counts.fouls,
       .yellowCards = counts.yellowCards,
@@ -206,6 +221,8 @@ TeamStats MatchAnalyzer::statsOf(const TeamSide side, const std::int64_t possess
       .corners = counts.corners,
       .throwIns = counts.throwIns,
       .goalKicks = counts.goalKicks,
+      .freeKicks = counts.freeKicks,
+      .penalties = counts.penalties,
       .points = finished_ ? std::optional(pointsOf(counts.goals, opponent.goals)) : std::nullopt,
       .turnovers = counts.turnovers,
       .regains = counts.regains,
@@ -224,6 +241,66 @@ void MatchAnalyzer::onSetPiece(const SimMatch::SetPieceTaken& setPiece) {
   counts.corners += setPiece.kind == SetPieceKind::kCorner ? 1 : 0;
   counts.throwIns += setPiece.kind == SetPieceKind::kThrowIn ? 1 : 0;
   counts.goalKicks += setPiece.kind == SetPieceKind::kGoalKick ? 1 : 0;
+  counts.freeKicks += setPiece.kind == SetPieceKind::kFreeKick ? 1 : 0;
+  counts.penalties += setPiece.kind == SetPieceKind::kPenalty ? 1 : 0;
+}
+
+void MatchAnalyzer::onShot(const SimMatch::ShotAttempted& shot,
+                           const std::optional<SimCore::PlayerId>& penaltyTaker) {
+  const auto side = sideOf(shot.shooter);
+  if (!side) {
+    return;
+  }
+  SideTally& counts = tally(*side);
+  ++counts.shots;
+  counts.chanceQuality += penaltyTaker == shot.shooter
+                              ? config_.chances.penaltyChance
+                              : chanceQuality(shot.distance, shot.opening, config_.chances);
+}
+
+void MatchAnalyzer::onShotResolved(const SimMatch::ShotResolved& resolved) {
+  using SimMatch::ShotOutcome;
+  const auto side = sideOf(resolved.shooter);
+  if (!side) {
+    return;
+  }
+  if (resolved.outcome == ShotOutcome::kGoal || resolved.outcome == ShotOutcome::kSaved) {
+    ++tally(*side).shotsOnTarget;
+  }
+  if (resolved.outcome == ShotOutcome::kSaved) {
+    ++tally(opponentOf(*side)).saves;
+  }
+}
+
+void MatchAnalyzer::onDuel(const SimMatch::DuelEnded& duel) {
+  using SimMatch::DuelOutcome;
+  const auto carrier = sideOf(duel.carrier);
+  const auto defender = sideOf(duel.defender);
+  if (!carrier || !defender ||
+      (duel.outcome != DuelOutcome::kKept && duel.outcome != DuelOutcome::kWon)) {
+    return;
+  }
+  const bool carrierWon = duel.outcome == DuelOutcome::kKept;
+  ++tally(carrierWon ? *carrier : *defender).duelsWon;
+  ++tally(carrierWon ? *defender : *carrier).duelsLost;
+}
+
+void MatchAnalyzer::onAerial(const SimMatch::AerialContest& contest) {
+  std::array<bool, 2> upFor{};
+  for (const SimMatch::AerialContestant& contestant : contest.contestants) {
+    if (const auto side = sideOf(contestant.player)) {
+      upFor.at(indexOf(*side)) = true;
+    }
+  }
+  // A duel only between both sides.
+  if (!upFor[0] || !upFor[1]) {
+    return;
+  }
+  ++sides_[0].aerialDuels;
+  ++sides_[1].aerialDuels;
+  if (const auto winner = contest.winner ? sideOf(*contest.winner) : std::nullopt) {
+    ++tally(*winner).aerialDuelsWon;
+  }
 }
 
 void MatchAnalyzer::onFoul(const SimMatch::FoulCalled& foul) {

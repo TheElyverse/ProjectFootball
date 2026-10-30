@@ -53,7 +53,9 @@ TEST_CASE("Statistics are written in a fixed order with nulls for empty values",
   const auto json = nlohmann::ordered_json::parse(text);
 
   REQUIRE(json["format"] == "elyverse-match-stats");
-  REQUIRE(json["version"] == 2);
+  REQUIRE(json["version"] == 3);
+  REQUIRE(json["home"]["chanceQuality"] == 0.0);
+  REQUIRE(json["home"]["penalties"] == 0);
   REQUIRE(json["finished"] == false);
   REQUIRE(json["score"]["home"] == 0);
   REQUIRE(json["home"]["points"].is_null());
@@ -97,6 +99,18 @@ TEST_CASE("The same match gives byte-identical statistics", "[statsJson]") {
   REQUIRE(first.home.possessionShare + first.away.possessionShare == Catch::Approx(1.0));
   REQUIRE(first.home.turnovers == first.away.regains);
   REQUIRE(first.away.turnovers == first.home.regains);
+  // One side's duels won are the other's lost; an aerial duel is both sides'.
+  REQUIRE(first.home.duelsWon == first.away.duelsLost);
+  REQUIRE(first.away.duelsWon == first.home.duelsLost);
+  REQUIRE(first.home.aerialDuels == first.away.aerialDuels);
+  REQUIRE(first.home.aerialDuelsWon + first.away.aerialDuelsWon <= first.home.aerialDuels);
+  for (const auto* side : {&first.home, &first.away}) {
+    REQUIRE(side->shotsOnTarget <= side->shots);
+    REQUIRE(side->chanceQuality >= 0.0);
+    REQUIRE(side->chanceQuality <= static_cast<double>(side->shots));
+  }
+  REQUIRE(first.home.saves <= first.away.shotsOnTarget);
+  REQUIRE(first.away.saves <= first.home.shotsOnTarget);
   REQUIRE(first.home.passes > 0);
   REQUIRE(first.home.pitchControlShare.has_value());
 }

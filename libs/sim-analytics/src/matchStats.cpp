@@ -1,5 +1,6 @@
 #include "matchStats.hpp"
 
+#include <cmath>
 #include <cstddef>
 
 namespace ElyverseFootball::SimAnalytics {
@@ -14,6 +15,12 @@ namespace {
 }
 
 }  // namespace
+
+double chanceQuality(const double distance, const double opening,
+                     const ChanceQualityModel& model) noexcept {
+  const double logit = model.intercept + (model.perMeter * distance) + (model.perOpening * opening);
+  return 1.0 / (1.0 + std::exp(-logit));
+}
 
 std::vector<Metric> metricsOf(const TeamStats& stats) {
   return {
@@ -35,7 +42,14 @@ std::vector<Metric> metricsOf(const TeamStats& stats) {
       {.name = "pitchControlShare", .value = stats.pitchControlShare},
       {.name = "attackingThirdShare", .value = stats.attackingThirdShare},
       {.name = "shots", .value = count(stats.shots)},
+      {.name = "shotsOnTarget", .value = count(stats.shotsOnTarget)},
       {.name = "goals", .value = count(stats.goals)},
+      {.name = "saves", .value = count(stats.saves)},
+      {.name = "chanceQuality", .value = stats.chanceQuality},
+      {.name = "duelsWon", .value = count(stats.duelsWon)},
+      {.name = "duelsLost", .value = count(stats.duelsLost)},
+      {.name = "aerialDuels", .value = count(stats.aerialDuels)},
+      {.name = "aerialDuelsWon", .value = count(stats.aerialDuelsWon)},
       {.name = "offsides", .value = count(stats.offsides)},
       {.name = "fouls", .value = count(stats.fouls)},
       {.name = "yellowCards", .value = count(stats.yellowCards)},
@@ -43,6 +57,8 @@ std::vector<Metric> metricsOf(const TeamStats& stats) {
       {.name = "corners", .value = count(stats.corners)},
       {.name = "throwIns", .value = count(stats.throwIns)},
       {.name = "goalKicks", .value = count(stats.goalKicks)},
+      {.name = "freeKicks", .value = count(stats.freeKicks)},
+      {.name = "penalties", .value = count(stats.penalties)},
       {.name = "points", .value = stats.points ? count(*stats.points) : std::optional<double>()},
       {.name = "longestOwnershipSeconds", .value = stats.longestOwnershipSeconds}};
 }

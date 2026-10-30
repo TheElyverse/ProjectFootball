@@ -70,7 +70,7 @@ TEST_CASE("The results do not depend on how many matches run at once", "[benchma
 
   const auto document = nlohmann::json::parse(json);
   REQUIRE(document.at("format") == "elyverse-benchmark");
-  REQUIRE(document.at("version") == 2);
+  REQUIRE(document.at("version") == 3);
   REQUIRE(document.at("minutes") == 1.0 / 3.0);
   REQUIRE(document.at("home").at("name") == "press");
   REQUIRE(document.at("baseSeed") == "11");

@@ -256,7 +256,7 @@ std::expected<std::vector<MatchResult>, BenchmarkFailure> runBenchmark(const Ben
 std::string toBenchmarkJson(const BenchmarkSpec& spec, const std::span<const MatchResult> results) {
   Json json;
   json["format"] = "elyverse-benchmark";
-  json["version"] = 2;
+  json["version"] = 3;
   json["coreVersion"] = std::string(SimCore::coreVersion());
   json["home"] = tacticJson(spec.home);
   json["away"] = tacticJson(spec.away);
@@ -330,7 +330,7 @@ std::string toRoundRobinJson(const RoundRobinSpec& spec,
                              const std::span<const PairingResult> pairings) {
   Json json;
   json["format"] = "elyverse-style-benchmark";
-  json["version"] = 2;
+  json["version"] = 3;
   json["coreVersion"] = std::string(SimCore::coreVersion());
   json["styles"] = Json::array();
   for (const SimTactics::Tactic& style : spec.styles) {

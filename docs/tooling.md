@@ -751,11 +751,16 @@ frame: from its own goal line toward the one it attacks.
 | `passes`, `completedPasses`, `passCompletion` | `PassAttempted`, `PassReceived` | attempts, receptions by a teammate, and their ratio |
 | `meanPassMeters` | `PassAttempted` | mean distance from `from` to `target` |
 | `progressivePasses`, `completedProgressivePasses` | `PassAttempted`, `PassReceived` | passes whose target is at least `progressiveMeters` (10 m) deeper than their origin, and those received |
-| `shots` | `ShotAttempted` | shots taken ([shot decisions](on-ball.md#shot-decisions)); what became of them is in the [shooting](on-ball.md#shooting) events, which the statistics do not read yet |
+| `shots` | `ShotAttempted` | shots taken ([shot decisions](on-ball.md#shot-decisions)), headers and penalties included |
+| `shotsOnTarget` | `ShotResolved` | the side's shots that ended as a `goal` or `saved` ([shooting](on-ball.md#shooting)) |
 | `goals` | `GoalScored` | goals scored, own goals of the opponent included: the side's score |
+| `saves` | `ShotResolved` | the opponent's shots that ended `saved` by the side's keeper ([shot stopping](goalkeeper.md#shot-stopping)) |
+| `chanceQuality` | `ShotAttempted`, `SetPieceTaken` | the goals the side's shots were worth, the sum of each shot's [chance quality](#chance-quality) |
+| `duelsWon`, `duelsLost` | `DuelEnded` | duels on the ball the side's players won and lost: the carrier wins one he `kept`, the defender one he `won`; a ball knocked `loose` or a `foul` counts for neither ([duels](duels.md#duels-on-the-ball)) |
+| `aerialDuels`, `aerialDuelsWon` | `AerialContest` | contests in the air with players of both sides that the side took part in, and those one of its players won ([aerial duels](duels.md#aerial-duels-and-headers)); a ball nobody reached is won by neither |
 | `offsides` | `OffsideCalled` | offsides the side's players were caught in ([offside](match-engine.md#offside)) |
 | `fouls`, `yellowCards`, `redCards` | `FoulCalled` | fouls the side's players committed and the cards they were shown, a second yellow counted as red ([fouls](fouls.md)) |
-| `corners`, `throwIns`, `goalKicks` | `SetPieceTaken` | the set pieces the side took ([set pieces](set-pieces.md)) |
+| `corners`, `throwIns`, `goalKicks`, `freeKicks`, `penalties` | `SetPieceTaken` | the set pieces the side took ([set pieces](set-pieces.md)) |
 | `points` | `GoalScored`, `PeriodEnded` | 3 for a win, 1 for a draw, 0 for a defeat once the second half has ended ([full time](match-clock.md#full-time)); empty before |
 | `turnovers`, `regains` | `PossessionChanged` | the ball's owner changes from one side to the other; the first owner of the match is neither |
 | `regainsByThird` | `PassIntercepted`, `BallWon`, `LooseBallRecovered` | regains by the third of their position; a regain without such an event in its step, a command giving the ball away for instance, is counted in `regains` only |
@@ -769,18 +774,40 @@ Rates and means are empty (`null` in JSON) where their denominator is zero:
 sums `possessionShare` home + away and `turnovers` of one side = `regains` of
 the other hold for every match.
 
-`AnalyticsConfig` holds `progressiveMeters` and `ppdaZone`; the analyzer
-rejects a negative or non-finite distance and a zone outside `(0, 1]`.
+`AnalyticsConfig` holds `progressiveMeters`, `ppdaZone` and the chance-quality
+model `chances`; the analyzer rejects a negative or non-finite distance and a
+zone outside `(0, 1]`.
+
+### Chance quality
+
+How good a chance was is read from the geometry the shot event records, not
+from a second simulation: `ShotAttempted::distance`, from where it was taken to
+the goal's centre, and `opening`, how wide the goal looked from there
+([`goalOpening()`](on-ball.md#where-he-can-shoot-from)). `chanceQuality()` is a
+logistic model of the two:
+
+    chanceQuality = 1 / (1 + e^-(−2.8 − 0.05 · distance + 2.8 · opening))
+
+A penalty — the taker's shot in the step his penalty is taken — is worth
+`penaltyChance` (0.76) instead. The coefficients (`ChanceQualityModel`) are
+fitted by hand to rough real-football values of open-play chances, not to this
+simulation's shots: about 0.46 from 6 m in front of goal, 0.17 from the penalty
+spot, 0.08 from the edge of the area, 0.04 from 25 m, and 0.04 from a narrow
+angle 12 m wide of the posts. The sum over a side's shots says how many goals
+its chances were worth whoever took them; against `goals` it shows finishing and
+goalkeeping. The model knows nothing of defenders in the way, the shot type, a
+header or the keeper's position.
 
 ### JSON
 
-`toStatsJson()` writes format `elyverse-match-stats`, version 2 — version 1 had
-no `finished`, `score`, `goals` or `points`:
+`toStatsJson()` writes format `elyverse-match-stats`, version 3 — version 2 had
+none of `shotsOnTarget`, `saves`, `chanceQuality`, the duels, `freeKicks` or
+`penalties`, version 1 no `finished`, `score`, `goals` or `points`:
 
 ```json
 {
   "format": "elyverse-match-stats",
-  "version": 2,
+  "version": 3,
   "ticks": 1800,
   "seconds": 60.0,
   "finished": false,
@@ -846,8 +873,9 @@ play unrelated matches.
   --matches 20 --minutes 90 --seed 1 --jobs 2 --verify-replays 1 --out styles.json
 ```
 
-The results file, format `elyverse-style-benchmark`, version 2 — version 1 had a
-fixed number of `ticks` per match instead of `minutes`, and no `outcomes` —
+The results file, format `elyverse-style-benchmark`, version 3 — version 2 had
+the metrics of stats version 2, version 1 a fixed number of `ticks` per match
+instead of `minutes`, and no `outcomes` —
 holds the
 styles, each style's `styleSummary` over all its matches — home and away —
 the `separations`, and every pairing's summaries and matches. A **separation**
@@ -879,8 +907,9 @@ with the most added time: a bound no match that plays on gets near.
 
 ### Results
 
-The results file is JSON, format `elyverse-benchmark`, version 2 — version 1
-had `ticks` instead of `minutes`, no `outcomes`, and stats of version 1 —: the
+The results file is JSON, format `elyverse-benchmark`, version 3 — version 2
+had stats of version 2, version 1 `ticks` instead of `minutes`, no `outcomes`,
+and stats of version 1 —: the
 core version, both tactics by name and content hash, the series (`matches`,
 `baseSeed`, `minutes`, `restarts`, `offside`, `fouls`), the `outcomes` — `homeWins`, `draws` and
 `awayWins` —, a
