@@ -404,6 +404,87 @@ other's size. The replay records the tactics, so it
 plays back without the files. See
 [tactical identities](tactics.md#tactical-identities) for the presets.
 
+### P3 acceptance
+
+Milestone P3 — the eleven-a-side baseline — is accepted on whole matches: the
+three [tactical identities](tactics.md#tactical-identities) on the standard
+pitch with every rule on — [restarts and set pieces](set-pieces.md),
+[offside](match-engine.md#offside), [fouls and cards](fouls.md) — from the
+kickoff to [full time](match-clock.md#full-time), half time and added time
+included. It sits beside the [M0](#the-m0-acceptance-scenario) and P1
+scenarios above and the [P2 style benchmark](tooling.md#p2-acceptance).
+
+**In the suite** (`tests/acceptance/p3AcceptanceTests.cpp`, Debug):
+
+- pressing against counter, possession against pressing and counter against
+  possession, seeds 1 and 2, six-minute matches: every step valid, no
+  non-finite value, full time reached within `maxMatchTicks()`, and the test
+  fails at the first stretch of 30 s without the ball changing owner or of 25 s
+  with the ball dead for a set piece (11.2 s and 8 s at most when measured).
+  Over the six matches every kind of set piece is taken — kickoffs, throw-ins,
+  corners, goal kicks and free kicks — and offside is called; fouls are rare in
+  matches this short, and the Release run checks them;
+- pressing against counter, seed 3, two minutes: its replay plays back with
+  every checkpoint verified, and its final state and event hashes are pinned.
+
+**In CI** (`tests/benchmark/p3Acceptance.cmake`, Release, the `style-benchmark`
+job's `ctest -L benchmark`): the round robin of the three identities, one whole
+90-minute match per pairing with seed 1, every rule on, one sampled replay per
+pairing. It must finish within 45 s per match and 300 s for the nine together —
+the sum of their times —, every match must reach full time without a player
+owning the ball longer than 20 s at a time (9 to 12 s measured), every sampled
+replay must reproduce, each style's mean per match over its six sides must
+fall inside the bands below — every side with a value —, and pressing must
+commit at least 1.5 fouls and catch at least 2 offsides a match, so that a rule
+that stops being called fails although the other styles' bands start at 0. At
+the time of writing the nine matches took 14.5 s each on average, 15.9 s at
+most and 130 s together; the test took 386 s, most of it the nine replays,
+each recorded and played back one after the other.
+
+**The full run** for local use plays twenty matches per pairing and five seeds,
+900 matches — about half an hour with eight jobs —; compare each style's
+`styleSummary` means with the bands below:
+
+```sh
+for seed in 1 2 3 4 5; do
+  ./build/release/apps/sim-benchmark/sim-benchmark --style data/tactics/possession.json \
+    --style data/tactics/counter.json --style data/tactics/pressing.json \
+    --matches 20 --minutes 90 --seed $seed --jobs 8 --out p3-$seed.json
+done
+```
+
+**The guardrails.** The bands guard the measured baseline: they fail a change
+that stops the shooting, the passing or a rule, or that floods the match with
+them, not one that only shifts the balance. They are set from the reduced run
+over seeds 1 to 5 — each style's mean per match over its six sides —, with room
+of about half the measured value below and above, since six sides are few.
+Real football's values per side and match are given for comparison: the
+baseline is not calibrated to them yet, and where it is far off the band says
+so rather than hiding it.
+
+| Metric | Band | Measured, seeds 1–5 | Real football | Reasoning |
+|---|---|---|---|---|
+| `goals` | 5 – 55 | 11.2 – 36.3 | about 1.4 | far too many: keepers and defenders do not stop enough of the chances, which `chanceQuality` puts at a third to a half of the goals scored; the band only keeps scoring from vanishing or exploding |
+| `shots` | 14 – 125 | 28.5 – 82.0 | about 12 | too many for the same reason; pressing shoots most, as its identity promises |
+| `passCompletion` | 0.60 – 0.80 | 0.67 – 0.73 | about 0.80 | close; the narrow band holds the passing game where it is |
+| `possessionShare` | 0.35 – 0.65 | 0.44 – 0.55 | 0.3 – 0.7 | plausible; possession has the most, counter the least. It guards little: shares sum to 1 per match, and the mirror pairing holds two of a style's six sides at 0.5 |
+| `fouls` | 0 – 15, pressing at least 1.5 | 0.0 – 8.2 | about 11 | too few: fouls come from lunges only ([fouls](fouls.md#where-fouls-come-from)); counter's deep block commits almost none, so only pressing's floor shows the rule is called |
+| `offsides` | 0 – 15, pressing at least 2 | 0.3 – 9.7 | about 2 | pressing's high line catches many; plausible for the others |
+| `corners` | 0.5 – 9 | 1.3 – 5.5 | about 5 | plausible |
+| `throwIns` | 0.5 – 8 | 1.8 – 4.8 | about 20 | far too few: the ball rarely leaves the pitch over the touchline |
+| `goalKicks` | 1.5 – 16 | 3.3 – 10.3 | about 7 | plausible |
+| `freeKicks` | 0.5 – 16 | 1.3 – 10.5 | about 12 | the fouls' and offsides' free kicks; too few with the fouls |
+| `penalties` | 0 – 1 | 0.0 – 0.2 | about 0.15 | plausible |
+
+The longest a player owns the ball is guarded by the
+[P2 style benchmark](tooling.md#p2-acceptance) (under 20 s; 9 to 12 s in whole
+matches). Calibrating the baseline to real football is work beyond P3: the
+bands are to be tightened as it moves.
+
+**The performance budget** of a whole match with every rule is the
+[eleven-a-side budget](match-engine.md#performance): a 90-minute match took
+14.5 to 17 s on one core when measured, some 300 to 370 times real time.
+
 ### Scenarios are versioned
 
 A scenario is a fixture: changing its layout, configuration or commands changes

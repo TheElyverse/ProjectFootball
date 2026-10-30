@@ -15,6 +15,7 @@ add_executable(sim-acceptance-tests
         matchClockTests.cpp
         setPieceScenarioTests.cpp
         freeKickScenarioTests.cpp
+        p3AcceptanceTests.cpp
         matchResultTests.cpp
         offsideTests.cpp
 )
