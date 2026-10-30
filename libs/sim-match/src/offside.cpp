@@ -145,7 +145,7 @@ MatchSystem makeOffsideSystem(const OffsideRules& rules) {
                                         {.kind = RestartKind::kIndirectFreeKick,
                                          .side = opponentOf(watch->side),
                                          .spot = position},
-                                        rules.physics, rules.clock);
+                                        rules.clock);
                     return;
                   }
                   const bool teammate = index && current.players()[*index].side == watch->side;

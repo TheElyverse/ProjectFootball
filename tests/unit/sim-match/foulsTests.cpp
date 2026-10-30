@@ -155,7 +155,11 @@ TEST_CASE("A foul in midfield is a free kick without a card", "[fouls]") {
   REQUIRE(result.restarts.size() == 1);
   REQUIRE(result.restarts.front().kind == RestartKind::kDirectFreeKick);
   REQUIRE(result.restarts.front().position == state.ball().position);
-  REQUIRE(result.after.ball().owner == kVictim);
+  // Set up as a set piece: the ball dead at the spot, the victim to take it.
+  REQUIRE_FALSE(result.after.ball().owner.has_value());
+  REQUIRE(result.after.setPiece().has_value());
+  REQUIRE(result.after.setPiece().value_or(ElyverseFootball::SimMatch::SetPiece{}).taker ==
+          kVictim);
 }
 
 TEST_CASE("A foul in the attacking third with the ball kept is advantage", "[fouls]") {

@@ -220,6 +220,15 @@ TEST_CASE("Set piece plans load from their optional block", "[tacticJson][setPie
     REQUIRE(error.message ==
             R"(test.json: setPieces.corner.delivery: unknown delivery "toTheMoon")");
   }
+  SECTION("each kind optional: a missing one keeps its default plan") {
+    document["setPieces"].erase("freeKick");
+    document["setPieces"].erase("penalty");
+    document["setPieces"]["corner"]["delivery"] = "short";
+    const auto parsed = parseTacticJson(document.dump(), "partial.json");
+    REQUIRE(parsed.has_value());
+    REQUIRE(parsed->setPieces().corner.delivery == SetPieceDelivery::kShort);
+    REQUIRE(parsed->setPieces().freeKick == SetPiecePlans{}.freeKick);
+  }
   SECTION("unknown kind") {
     document["setPieces"]["penaltyKick"] = document["setPieces"]["corner"];
     const auto error = errorOf(document);

@@ -67,7 +67,7 @@ apps/
   sim-replay, world-editor                                                     [planned]
 data/            schemas, tactics, competitions, fixtures (JSON/YAML, schema-validated) [exists: tactics]
 tests/unit/      Catch2 tests, mirrors libs/ by subdirectory                   [exists: sim-core, sim-tactics, sim-match, sim-replay, sim-analytics, sim-benchmark]
-tests/acceptance/ whole-match scenarios: stability, determinism, pinned hashes [exists: M0, P1, P2, shots, goalkeeper, distribution, carrying, duels, crosses, eleven-a-side, clock, result, offside, set pieces]
+tests/acceptance/ whole-match scenarios: stability, determinism, pinned hashes [exists: M0, P1, P2, shots, goalkeeper, distribution, carrying, duels, crosses, eleven-a-side, clock, result, offside, set pieces, free kicks]
 tests/benchmark/ sim-benchmark smoke test and the Release-only P2 style benchmark [exists]
 ```
 

@@ -26,12 +26,12 @@ directory); `--play` plays one back. The file is written before the terminal
 interface opens, so a run rejected by argument or terminal validation leaves no
 file.
 
-### Schema version 22
+### Schema version 23
 
 ```json
 {
-  "schemaVersion": 22,
-  "coreVersion": "0.38.0",
+  "schemaVersion": 23,
+  "coreVersion": "0.39.0",
   "createdAt": "2026-09-24T10:00:00Z",
   "seed": "18446744073709551615",
   "gameTime": 300,
@@ -117,7 +117,7 @@ file.
     "score": { "home": 0, "away": 0 },
     "tactics": {
       "home": {
-        "contentHash": "7f38318a0aff9255",
+        "contentHash": "8ebf9708c91041e5",
         "tactic": { "format": "elyverse-tactic", "version": 4, "name": "reference" }
       },
       "away": null
@@ -321,6 +321,7 @@ record the scenario again with the same seed.
 | 20      | The configuration gains its `offside` block and the clock its `freeKickLostSeconds` ([offside](match-engine.md#offside)). |
 | 21      | Players gain `yellowCards` and `sentOff`, the configuration its `fouls` block and the clock `penaltyLostSeconds` and `cardLostSeconds` ([fouls](fouls.md)). |
 | 22      | The configuration gains its `setPieces` block, restarts are on by default, and tactics carry their set-piece plans in `setPieces` ([set pieces](set-pieces.md)). |
+| 23      | The `setPieces` block gains `freeKickSeconds`, `penaltySeconds`, `freeKickRange`, `wallPlayers` and `wallSpacing`, and tactics may plan a `freeKick` and a `penalty` ([free kicks](set-pieces.md#free-kicks), [penalties](set-pieces.md#penalties)). |
 
 ## Decision trace
 

@@ -411,7 +411,12 @@ struct OnBallOptions {
   }
   options.passes =
       passOptions(context, current, carrier, rules.config.distribution, options.rules.passes);
-  options.shots = generateShotCandidates(current, carrier, context.time(), options.rules.shots);
+  // The taker of an indirect free kick cannot score with it
+  // (docs/set-pieces.md#free-kicks): no shot until someone else touched it.
+  const auto& indirect = current.indirectKick();
+  if (!indirect || indirect->playerId != current.players()[carrier].playerId) {
+    options.shots = generateShotCandidates(current, carrier, context.time(), options.rules.shots);
+  }
   options.carries =
       generateCarryCandidates(current, carrier, context.time(), options.rules.carries);
   if (!current.ball().held) {

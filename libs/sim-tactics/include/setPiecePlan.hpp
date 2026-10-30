@@ -15,12 +15,14 @@ enum class SetPieceKind : std::uint8_t {
   kThrowIn,
   kCorner,
   kGoalKick,
+  kFreeKick,
+  kPenalty,
 };
 
-inline constexpr std::size_t kSetPieceKindCount = 4;
+inline constexpr std::size_t kSetPieceKindCount = 6;
 
-// "kickoff", "throwIn", "corner", "goalKick"; "unknown" outside the
-// enumerators.
+// "kickoff", "throwIn", "corner", "goalKick", "freeKick", "penalty"; "unknown"
+// outside the enumerators.
 [[nodiscard]] std::string_view setPieceKindName(SetPieceKind kind) noexcept;
 
 // What a set piece's delivery aims at: a teammate close by, the near post, the
@@ -42,7 +44,8 @@ enum class SetPieceDelivery : std::uint8_t {
 [[nodiscard]] std::optional<SetPieceDelivery> parseSetPieceDelivery(std::string_view name) noexcept;
 
 // Whether a set piece of this kind can aim at this delivery: a corner at the
-// short option or one of its areas, the others short or long.
+// short option or one of its areas, the others short or long. A free kick's
+// and a penalty's taker decides for himself; their delivery is never read.
 [[nodiscard]] bool deliveryFits(SetPieceKind kind, SetPieceDelivery delivery) noexcept;
 
 // One set piece as the side plans it (docs/set-pieces.md#plans): who takes
@@ -66,6 +69,8 @@ struct SetPiecePlans {
   SetPiecePlan corner{
       .taker = std::nullopt, .delivery = SetPieceDelivery::kFarPost, .runners = {}, .markers = {}};
   SetPiecePlan goalKick;
+  SetPiecePlan freeKick;
+  SetPiecePlan penalty;
 
   [[nodiscard]] const SetPiecePlan& of(SetPieceKind kind) const noexcept;
   [[nodiscard]] SetPiecePlan& of(SetPieceKind kind) noexcept;
@@ -74,6 +79,7 @@ struct SetPiecePlans {
 };
 
 inline constexpr std::array<SetPieceKind, kSetPieceKindCount> kAllSetPieceKinds{
-    SetPieceKind::kKickoff, SetPieceKind::kThrowIn, SetPieceKind::kCorner, SetPieceKind::kGoalKick};
+    SetPieceKind::kKickoff,  SetPieceKind::kThrowIn,  SetPieceKind::kCorner,
+    SetPieceKind::kGoalKick, SetPieceKind::kFreeKick, SetPieceKind::kPenalty};
 
 }  // namespace ElyverseFootball::SimTactics

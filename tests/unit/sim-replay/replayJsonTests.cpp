@@ -66,20 +66,20 @@ TEST_CASE("Documents that are not JSON objects are rejected", "[replayJson]") {
 }
 
 TEST_CASE("Other schema versions are rejected with the version found", "[replayJson]") {
-  requireRejected(validJsonWith("\"schemaVersion\": 22", "\"schemaVersion\": 1"),
+  requireRejected(validJsonWith("\"schemaVersion\": 23", "\"schemaVersion\": 1"),
                   ReplayErrorCode::kUnsupportedSchemaVersion,
                   "schema version 1 holds replay metadata only");
   // Older playable versions name the way to a current file.
-  for (const char* version : {"2",  "3",  "4",  "5",  "6",  "7",  "8",  "9",  "10", "11",
-                              "12", "13", "14", "15", "16", "17", "18", "19", "20", "21"}) {
+  for (const char* version : {"2",  "3",  "4",  "5",  "6",  "7",  "8",  "9",  "10", "11", "12",
+                              "13", "14", "15", "16", "17", "18", "19", "20", "21", "22"}) {
     requireRejected(
-        validJsonWith("\"schemaVersion\": 22", std::string("\"schemaVersion\": ") + version),
+        validJsonWith("\"schemaVersion\": 23", std::string("\"schemaVersion\": ") + version),
         ReplayErrorCode::kUnsupportedSchemaVersion,
         std::string("schema version ") + version +
-            " is no longer supported, expected 22; record the scenario again");
+            " is no longer supported, expected 23; record the scenario again");
   }
-  requireRejected(validJsonWith("\"schemaVersion\": 22", "\"schemaVersion\": 23"),
-                  ReplayErrorCode::kUnsupportedSchemaVersion, "unsupported schema version 23");
+  requireRejected(validJsonWith("\"schemaVersion\": 23", "\"schemaVersion\": 24"),
+                  ReplayErrorCode::kUnsupportedSchemaVersion, "unsupported schema version 24");
 }
 
 TEST_CASE("A replay from another core version is rejected", "[replayJson]") {
@@ -344,6 +344,9 @@ TEST_CASE("The clock and fitness are read from the initial state and the config"
       parseReplayJson(validJsonWith("\"throwInDistance\": 2.0", "\"throwInDistance\": 3.0"));
   REQUIRE(thrown.has_value());
   REQUIRE(thrown->setup.config.setPieces.throwInDistance == 3.0);
+  const auto walled = parseReplayJson(validJsonWith("\"wallPlayers\": 4", "\"wallPlayers\": 5"));
+  REQUIRE(walled.has_value());
+  REQUIRE(walled->setup.config.setPieces.wallPlayers == 5);
 }
 
 TEST_CASE("How players decide is read from the initial state and the config", "[replayJson]") {
@@ -432,7 +435,7 @@ TEST_CASE("A tactic whose content does not match its hash is rejected", "[replay
   REQUIRE(replay.has_value());
   const std::string json = toReplayJson(*replay);
   // The reference tactic's pinned content hash (tacticHashTests.cpp).
-  REQUIRE(json.contains(R"("contentHash": "7f38318a0aff9255")"));
+  REQUIRE(json.contains(R"("contentHash": "8ebf9708c91041e5")"));
 
   // An edited tactic no longer matches the hash recorded with it.
   std::string edited = json;
