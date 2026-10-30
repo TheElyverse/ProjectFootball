@@ -190,8 +190,9 @@ half a second, before the wall or the keeper has moved far.
 - **`goal-kickoff`**: the clear chance with a
   [kickoff](match-engine.md#the-kickoff) after it. Both sides play the reference
   tactic — home's with its slots in the order its players stand, so player 1 is
-  the striker and player 7 the keeper — and restarts are on. With seeds 1 and
-  7, for example, player 1 scores within the first second; in the next step both sides
+  the striker and player 7 the keeper — and restarts are on. With seeds 1, 7
+  and 8, for example, player 1 scores within the first second and a half,
+  after his `minHoldSeconds`; in the next step both sides
   stand in their formations in their own halves, and away's striker, player 14,
   has the ball on the centre spot:
 
@@ -453,7 +454,7 @@ for seed in 1 2 3 4 5; do
 done
 ```
 
-**The g**The guardrails.** The bands guard the calibrated baseline: they fail a
+**The guardrails.** The bands guard the calibrated baseline: they fail a
 change that stops the shooting, the passing or a rule, or that floods the match
 with them, not one that only shifts the balance. They are set from the reduced
 run over seeds 1 to 5 — each style's mean per match over its six sides —, with
@@ -516,7 +517,7 @@ football's passes; and too few corners and throw-ins. The P2 identities hold
 defenders' pick-up near their goal off, where it would blur what they measure:
 the coordinated press and the free kick's wall.
 
-gest a player owns the ball is guarded by the
+The longest a player owns the ball is guarded by the
 [P2 style benchmark](tooling.md#p2-acceptance) (under 20 s; 9 to 12 s in whole
 matches).
 

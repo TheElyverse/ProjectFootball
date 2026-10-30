@@ -76,13 +76,16 @@ TEST_CASE("Match result: a whole match ends with a final score", "[acceptance][r
     auto setup = makeTacticMatch({.home = *reference, .away = *reference}, seed);
     REQUIRE(setup.has_value());
     setup->config.restarts.enabled = true;
+    // Long enough for goals at real football's rate (docs/scenarios.md#p3-acceptance).
     setup->config.clock.durationMinutes = 20.0;
     MatchSimulation simulation = startMatch(*setup);
+    const std::int64_t bound = ElyverseFootball::SimMatch::maxMatchTicks(
+        setup->config.clock, setup->config.ticksPerSecond);
     MatchAnalyzer analyzer(contextOf(setup->initialState, setup->config.ticksPerSecond));
     Score counted;
     // The side that conceded the last goal, until its kickoff.
     std::optional<TeamSide> kickoffDue;
-    while (!matchResult(simulation.state()) && simulation.tick() < SimTick(40000)) {
+    while (!matchResult(simulation.state()) && simulation.tick().value() < bound) {
       REQUIRE(simulation.step().has_value());
       analyzer.observeStep(simulation.events());
       for (const MatchEvent& event : simulation.events()) {

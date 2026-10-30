@@ -427,8 +427,10 @@ standard pitch:
 - he decides his dive after his reaction and before the ball arrives, moves
   tick by tick, is down once it has passed him and up again after;
 - a central shot is saved over twenty seeds, a shot into the top corner is out
-  of reach and a goal, and the same shot into the bottom corner that beats him
-  from 16 m he reaches from 30 m after a run;
+  of reach and a goal, and the same shot into the bottom corner that beats a
+  keeper with the weaker reach of before the calibration (`readError` 0.8 m,
+  `readyHeight` 1.4 m, `diveSpeed` 6 m/s, `bodyReach` 0.5 m) from 16 m he
+  reaches from 30 m after a run;
 - a save keeps possession with the ball where he met it, a parried shot
   rebounds into play and stays saved, he gathers his own parry once he is up,
   a shot parried at full stretch goes behind for a corner, and a slow ball
@@ -480,8 +482,8 @@ a caught shot, a high ball he holds in the air) **holds** it: the ball's
   pass, see no one and keep the ball for good;
 - nobody takes him on for it in a [duel](duels.md#duels-on-the-ball);
 - he keeps it at least `holdSeconds` (2 s) from the moment he took it, for
-  his side to get into shape, against the half second (`minHoldSeconds`)
-  anyone else keeps a ball he has just taken;
+  his side to get into shape, against the second (`minHoldSeconds`) anyone
+  else keeps a ball he has just taken;
 - he may not keep it longer than eight seconds (Law 12): with
   [restarts](match-engine.md#holding-the-ball-too-long) enabled, the other side
   then gets a corner. Still without a valid option after `clearSeconds`

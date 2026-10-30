@@ -133,7 +133,10 @@ spot — by `placeRadius` and half a metre more, so that one near enough to his
 place to count as in it is out —, level with where he stood; the keeper on his
 line between the posts. The taker shoots: the [shot candidates](on-ball.md#shot-decisions)
 from the spot, chosen by their utility at the decision temperature from the
-`kAi` stream, as any shot decision is. The shot is an ordinary shot: the keeper
+`kAi` stream, as any shot decision is. The shot is **placed**
+(`ShotIntent::placed`): struck from a still ball in his own time, it errs
+`placedErrorShare` (0.5) of what the same strike in open play would
+([the strike](on-ball.md#the-strike)). Otherwise it is an ordinary shot: the keeper
 [saves](goalkeeper.md#shot-stopping) it or not, and a parry into play is live —
 whoever gets to it first plays the rebound.
 
@@ -159,7 +162,8 @@ in the eleven-a-side reference at tick 0. Over thirty seeds a direct free kick
 22 m out faces a wall of at least three at the distance, and the wall blocks
 some of the taker's shots while others clear it; over forty seeds a penalty is
 taken with only the taker and the keeper in the area, between half and nine in
-ten are scored — about three in four at the time of writing —, and at least one
+ten are scored — 28 of the 40, seven in ten, at the time of writing; real
+football scores about three in four —, and at least one
 is parried into play and played again. An indirect free kick struck straight in
 gives a goal kick, the same ball without the indirect kick a goal.
 

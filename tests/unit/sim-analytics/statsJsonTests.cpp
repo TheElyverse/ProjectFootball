@@ -166,6 +166,7 @@ TEST_CASE("Duels and shots add up over a longer eleven-a-side match", "[statsJso
   ElyverseFootball::SimMatch::MatchSimulation simulation =
       ElyverseFootball::SimMatch::startMatch(*setup);
   MatchAnalyzer analyzer(contextOf(setup->initialState, setup->config.ticksPerSecond));
+  // Fifteen minutes: long enough for shots at real football's rate.
   while (simulation.tick() < SimTick(std::int64_t{30} * 900)) {
     REQUIRE(simulation.step().has_value());
     analyzer.observeStep(simulation.events());

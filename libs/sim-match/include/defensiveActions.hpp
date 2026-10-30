@@ -68,8 +68,9 @@ struct DefensiveConfig {
 };
 
 // Throws std::invalid_argument for a radius, distance, speed or temperature
-// that is not positive and finite, a negative lead or idle time, a hold responsibility
-// outside [0, 1] or a negative or non-finite weight.
+// that is not positive and finite, a negative lead or idle time, a hold
+// responsibility, danger share or danger region relief outside [0, 1] or a
+// negative or non-finite weight.
 void validate(const DefensiveConfig& config);
 
 // What defensive decisions need to know besides the state and the player.

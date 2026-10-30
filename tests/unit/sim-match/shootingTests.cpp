@@ -248,7 +248,6 @@ TEST_CASE("A shot aimed at the ball itself leaves along the shooter's facing", "
 TEST_CASE("Execution error stays within its spread and uses six draws", "[shooting]") {
   const ShotConfig config;
   const ShotIntent intent = shotAt({.x = 60.0, .y = 20.0});
-  // Twelve meters out: 0.2 + 0.04 * 12.
   // Twelve metres from an average shooter: the configured spread there.
   const double kSpread = ShotConfig{}.spreadAtZero + (ShotConfig{}.spreadPerMeter * 12.0);
   double widest = 0.0;

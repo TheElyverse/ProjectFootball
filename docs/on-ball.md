@@ -583,9 +583,9 @@ instead. As for passes, every half meter along it the shooter compares when
 the ball gets there with when a player can ([pass candidates](#pass-candidates)):
 
 - **A blocker** — every remembered opponent but the keeper — gets a body part to
-  the ball where it is no higher than `blockReach` (1.8 m). Standing within the
-  control radius of the ball's path he needs no time at all; farther away, the
-  run until he is.
+  the ball where it is no higher than `blockReach` (1.8 m). Standing within
+  `blockRadius` (0.5 m) of the ball's path — the strike's own — he needs no time
+  at all; farther away, the run until he is.
 - **The keeper** reaches the ball within an ellipse: `keeperDiveReach` (2 m) to
   either side at his feet, `keeperJumpReach` (2.6 m) straight up, narrower in
   between. Within it he needs `keeperDiveSeconds` (0.5 s) times the share of his

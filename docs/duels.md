@@ -84,7 +84,7 @@ centre of the goal the carrier attacks.
   the defender to the ball passes the carrier, less `bodyRadius` (0.3 m), over
   `bodyRadius`, between 0 and 1. 0 means the way goes through him: the ball is
   shielded. In front of a carrier who faces the defender the way is clear by
-  0.43, beside him by less, behind him not at all.
+  0.67, beside him by less, behind him not at all.
 - **The threat** (`threat()`): how close the defender is, from 1 at
   `contactDistance` (1.2 m) to 0 at `breakRadius`, times how squarely he stands
   between the carrier and the goal -- 1 goal-side, ½ level, 0 behind him --

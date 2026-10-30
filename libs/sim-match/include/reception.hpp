@@ -74,7 +74,8 @@ struct BallClaim {
 // `ball` is the free ball at the start of the tick, `moved` the step
 // stepFreeBallTimed() makes of it. Every player of `state` competes, moving as
 // the movement system moves him in this tick, except the ball's last touch
-// within reclaimDelaySeconds of it. The earliest contact wins; equal contact
+// within reclaimDelaySeconds of it and, for a ball a goalkeeper let go from his
+// hands, his opponents as long (Law 12). The earliest contact wins; equal contact
 // times go to the player who comes closer, and then to the lower id. A contact
 // above controlHeight does not count: the ball flies over the player. A
 // goalkeeper who stands in his own penalty area, with the ball in it, at the
@@ -108,7 +109,8 @@ struct BallClaim {
 
 // Whether the player at this index competes for the free ball in the step of
 // `time` at all: he is not `excluded`, not busy with a dive (isDiving()),
-// and not the ball's last touch within reclaimDelaySeconds of it.
+// not the ball's last touch within reclaimDelaySeconds of it, and not an
+// opponent of a goalkeeper who let it go from his hands that recently.
 [[nodiscard]] bool mayCompete(const MatchState& state, const BallState& ball,
                               std::size_t playerIndex, SimCore::StepTime time,
                               const ReceptionConfig& config, std::span<const std::size_t> excluded);

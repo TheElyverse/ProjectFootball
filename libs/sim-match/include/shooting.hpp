@@ -16,8 +16,9 @@ namespace ElyverseFootball::SimMatch {
 struct ShotConfig {
   // How far from his aim a shot may go at the goal line, to either side and up
   // or down: the half-width of a triangular spread, at zero distance and per
-  // meter to his target, for a player of average accuracy and technique --
-  // what the shot decision assumes of him (ShotScoringConfig).
+  // meter to his target, for a player of average accuracy and technique in
+  // open play -- wider than the shot decision judges it (ShotScoringConfig):
+  // a shooter believes himself a little better than he is.
   double spreadAtZero = 0.2;     // m
   double spreadPerMeter = 0.11;  // m per m
   // The strike is up to this fraction harder or softer than intended, for a
@@ -84,8 +85,9 @@ struct ShotConfig {
 
 // Throws std::invalid_argument unless every value is finite and not negative,
 // the launch slope, the unsettled time and speed and the block radius are
-// positive, and the deflected speeds and the blocked share lie in [0, 1] with
-// the lowest speed not above the highest.
+// positive, and the deflected speeds, the blocked share and the placed and
+// cross error shares lie in [0, 1] with the lowest speed not above the
+// highest.
 void validate(const ShotConfig& config);
 
 // How much wider than an average player's an error is for a skill in [0, 1]:

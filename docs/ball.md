@@ -337,7 +337,9 @@ player against the ball:
   `findContact()` computes the first such moment.
 - **Leaving him.** A ball that starts the tick within his reach and moves away
   from him — relative to him, so one he runs after faster than it goes still
-  comes to him — is no contact: kicked on from beside him, it is gone. Before,
+  comes to him — is no contact: kicked on from beside him, it is gone. The test
+  is along the ground: a ball in the air that passed over his reach and drops
+  only behind him is gone too. Before,
   a presser standing a metre from the carrier took every pass and touch off his
   foot the moment it was played, even standing behind him; half the passes
   under close pressure went that way.

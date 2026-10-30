@@ -300,7 +300,9 @@ TEST_CASE("An accurate shooter aims closer to the post and scores more", "[shotC
   const double pinpointOff = zone(pinpoint, 0, 2).target.y - post;
   const double averageOff = zone(average, 0, 2).target.y - post;
   CAPTURE(pinpointOff, averageOff);
-  // Never closer than the frame margin, and closer the more accurate he is.
+  // Never closer than the frame margin -- at the frame margin no longer, now
+  // that even a pinpoint finisher's judged spread exceeds it here -- and
+  // closer the more accurate he is.
   REQUIRE(pinpointOff >= ShotScoringConfig{}.frameMargin - 1e-12);
   REQUIRE(averageOff > pinpointOff);
   REQUIRE(pinpoint.front().spread < average.front().spread);
