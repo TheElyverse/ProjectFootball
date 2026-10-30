@@ -1028,6 +1028,12 @@ The test is registered for Release builds only; in Debug it would take minutes.
 Its results at the time of writing (core 0.34.0, eleven a side) are in
 [tactical identities](tactics.md#over-whole-matches).
 
+### P3 acceptance
+
+The same `style-benchmark` job runs the [P3 acceptance](scenarios.md#p3-acceptance)
+(`tests/benchmark/p3Acceptance.cmake`): one whole 90-minute match per pairing
+with every rule on, its guardrail bands and time budget.
+
 ### P2 performance budget
 
 Since the P2 tactics play eleven a side, a 90-minute match has the budget of
