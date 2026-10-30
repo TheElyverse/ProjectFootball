@@ -279,6 +279,18 @@ TEST_CASE("A match with a substitution replays identically", "[replay]") {
                                     .off = unchanged->initialState.players()[6].playerId,
                                     .on = ElyverseFootball::SimCore::PlayerId(100),
                                     .attributes = {.maxSpeed = 9.0}}});
+  // Commands for the substitute: the replay schedules them before the first
+  // step, before he has come on.
+  changed.commands.push_back({.tick = SimTick(1200),
+                              .command = ElyverseFootball::SimMatch::MovePlayerCommand{
+                                  .playerId = ElyverseFootball::SimCore::PlayerId(100),
+                                  .target = {.x = 30.0, .y = 20.0}}});
+  changed.commands.push_back(
+      {.tick = SimTick(1300),
+       .command = SubstituteCommand{.side = TeamSide::kHome,
+                                    .off = ElyverseFootball::SimCore::PlayerId(100),
+                                    .on = ElyverseFootball::SimCore::PlayerId(101),
+                                    .attributes = {}}});
 
   const Replay replay = recorded(changed, 1800);
   const auto parsed = parseReplayJson(toReplayJson(replay));

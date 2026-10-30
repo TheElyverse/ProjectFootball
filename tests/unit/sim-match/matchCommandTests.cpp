@@ -273,6 +273,13 @@ TEST_CASE("The delay runs in real time, whatever the tick rate or the match's du
   // Rounded up: never early.
   REQUIRE(instructionDelayTicks({.instructionDelaySeconds = 0.05}, 30) == 2);
   REQUIRE_THROWS_AS(
+      ElyverseFootball::SimMatch::validate(CoachingConfig{.instructionDelaySeconds = 601.0}),
+      std::invalid_argument);
+  REQUIRE_THROWS_AS(ElyverseFootball::SimMatch::validate(CoachingConfig{.maxSubstitutions = 12}),
+                    std::invalid_argument);
+  // Whole milliseconds: 8.3 s at 30 Hz is exactly 249 ticks.
+  REQUIRE(instructionDelayTicks({.instructionDelaySeconds = 8.3}, 30) == 249);
+  REQUIRE_THROWS_AS(
       ElyverseFootball::SimMatch::validate(CoachingConfig{.instructionDelaySeconds = -1.0}),
       std::invalid_argument);
 }

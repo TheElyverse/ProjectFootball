@@ -159,3 +159,24 @@ TEST_CASE("A substitution is checked when it is scheduled", "[coaching]") {
   REQUIRE(simulation.schedule({.tick = SimTick(0), .command = substitution(setup, kFirstOn)})
               .has_value());
 }
+
+TEST_CASE("Two substitutions in one stoppage, the keeper's among them", "[coaching]") {
+  MatchSetup setup = setupOf("tactic-match-eleven", 3);
+  const PlayerId keeper = setup.initialState.players()[0].playerId;
+  setup.commands.push_back({.tick = SimTick(30), .command = substitution(setup, kFirstOn)});
+  setup.commands.push_back(
+      {.tick = SimTick(30),
+       .command = SubstituteCommand{
+           .side = TeamSide::kHome, .off = keeper, .on = kSecondOn, .attributes = {}}});
+  MatchSimulation simulation = startMatch(setup);
+
+  const Stoppage stoppage = firstStoppage(simulation);
+  REQUIRE(stoppage.made.size() == 2);
+  REQUIRE(stoppage.made.front().tick == stoppage.made.back().tick);
+  const auto& state = simulation.state();
+  // The new keeper keeps the goal: the slot makes the keeper.
+  REQUIRE(findPlayerIndex(state, kSecondOn) == 0);
+  REQUIRE(ElyverseFootball::SimMatch::guardsGoal(state.players(), state.tactics(), 0));
+  REQUIRE(state.substitutionsMade(TeamSide::kHome) == 2);
+  ElyverseFootball::TestSupport::stepTimes(simulation, 300);
+}

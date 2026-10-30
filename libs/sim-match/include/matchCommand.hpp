@@ -49,8 +49,9 @@ struct PassCommand {
 // Gives a side another tactic: the same command for a human coach, a script
 // and an AI, so every tactic change goes through the ordered command log and a
 // replay reproduces it (docs/match-engine.md#match-loop). It reaches the
-// players after the coaching delay (docs/match-engine.md#instructions); a
-// later one on its way replaces it. The tactic is already valid by
+// players after the coaching delay (docs/match-engine.md#instructions), passed
+// on by the coaching system -- without it in the systems, never --; a later
+// one on its way replaces it. The tactic is already valid by
 // construction; the command is rejected if it does not fit the squad. Phase,
 // press and the players' tactical state are kept and follow the new tactic at
 // the systems' next update.

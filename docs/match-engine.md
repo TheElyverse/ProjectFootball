@@ -552,8 +552,11 @@ tick; a command for `tick()` itself applies in the next step. Commands of one
 tick apply in scheduling order, the explicit order a replay needs. `schedule()`
 rejects a tick before `tick()`, an unknown player, a non-finite target, a
 tactic that does not fit the squad and a substitution that cannot be made, and
-leaves the queue unchanged. It checks against the state when it is called; a
-command for a player who has come off by the time it applies does nothing. Commands
+leaves the queue unchanged. It checks against the state when it is called and
+the players substitutions queued or waiting will bring on, so a replay, which
+schedules every command before the first step, accepts a command for a
+substitute; a command for a player who is not on the pitch when it applies does
+nothing. Commands
 known before kickoff go into `MatchSimulationSpec::commands`; the constructor
 schedules them in order and throws `std::invalid_argument` for an invalid one.
 
@@ -592,9 +595,10 @@ instance — it reads the writer instead of `current`.
 
 **Write only what a match changes.** `MatchStateWriter` sets what systems change
 — positions, velocities, targets, facings, perception, the ball, pending
-actions, tactical state, phases, presses, records and the score. Squad, ids,
-sides, attributes, player order and the pitch have no setter, so no system can
-break those invariants. Players are addressed by their index in
+actions, tactical state, phases, presses, records and the score. Sides, player
+order and the pitch have no setter; ids and attributes change only by a
+[substitution](#substitutions), which checks them, so no system can break those
+invariants. Players are addressed by their index in
 `MatchState::players()`.
 
 **Keep no state of your own.** Everything that must survive a tick belongs in
@@ -716,8 +720,9 @@ part of `MatchConfig` and of every replay.
 ### Instructions
 
 A tactic given at a tick waits in `MatchState::pendingTactic(side)` and reaches
-the players `instructionDelaySeconds` (5 s) later — `instructionDelayTicks()`,
-rounded up so it is never early. The delay runs in real seconds of play: a ten-
+the players `instructionDelaySeconds` (5 s, at most 600 s) later —
+`instructionDelayTicks()`, of the delay in whole milliseconds, rounded up so it
+is never early. The delay runs in real seconds of play: a ten-
 or ninety-minute match, a replay or a viewer at any speed, the same command at
 the same tick takes effect at the same tick. A later tactic given while one is
 on its way replaces it. The coaching system records **`InstructionGiven`** — the
@@ -737,10 +742,11 @@ on the pitch, came off before, or invalid attributes. It waits in
 with a [set piece](set-pieces.md) being set up, a restart's or a kickoff's. Then
 the coaching system makes every substitution waiting, in order:
 
-- **Refused** — `SubstitutionRefused` with the reason — if the side has made
-  `maxSubstitutions` (5) already (`limitReached`), the player coming off is no
-  longer on the pitch, sent off or substituted (`playerOff`), or the one coming
-  on is on the pitch or came off (`playerUsed`).
+- **Refused** — `SubstitutionRefused` with the first reason that applies — if
+  the player coming off is no longer on the pitch, sent off or substituted
+  (`playerOff`), the one coming on is in the match or came off (`playerUsed`),
+  or the side has made `maxSubstitutions` (5, at most 11) already
+  (`limitReached`).
 - **Made** otherwise — `SubstitutionMade` with the tick it was ordered. The
   newcomer takes the place of the player who comes off: his slot, position and
   facing, at rest, fresh, without cards, a target, a pending action, a memory
@@ -774,8 +780,9 @@ tactic change or a substitution replay identically.
   no added time. The newcomer comes on where the other went off, not at the
   halfway line.
 - Every instruction is a whole tactic; there are no instructions to single
-  players. Commands cannot be scheduled before the match for a player who comes
-  on during it.
+  players. One replaced on its way leaves its `InstructionGiven` naming a tick
+  at which nothing happens; of two given in the same tick only the last is
+  recorded.
 
 ## Match events and decision diagnostics
 

@@ -775,10 +775,12 @@ class MatchState {
 // height, vertical velocity and spin, who owns and
 // last touched the ball, the players' pending actions, the last pass and shot and reception, the
 // score, the match clock, the offside watch, team possession and phases, the
-// pitch-control grid, the chasers, presses and players' tactical states,
-// nothing else. Squad, ids, sides,
-// attributes, player order and the pitch have no setter, so a system cannot break those invariants
-// and nothing has to re-check them every tick. Players are addressed by their index in
+// pitch-control grid, the chasers, presses and players' tactical states, the
+// set piece and the coaching state -- substitutions waiting and tactics on
+// their way --, nothing else. Sides, player order and the pitch have no
+// setter; ids and attributes change only by substitute(), which checks them, so
+// a system cannot break those invariants and nothing has to re-check them every
+// tick. Players are addressed by their index in
 // MatchState::players(); an index past the end throws std::out_of_range.
 //
 // Only MatchSimulation hands out writers, and a writer only lives for one step.

@@ -77,9 +77,31 @@ static_assert(static_cast<std::size_t>(RandomNumberGeneratorDomain::kCognition) 
           .message = "no player with id " + std::to_string(playerId.value())};
 }
 
-[[nodiscard]] std::optional<MatchCommandError> validate(const MatchState& state,
+// The squad a command is checked against: the players in the state, and those
+// substitutions queued or waiting will bring on, for their side
+// (docs/match-engine.md#substitutions) -- a replay schedules every command
+// before the first step, a command for a substitute included.
+struct Squad {
+  const MatchState* state;
+  std::vector<std::pair<SimCore::PlayerId, TeamSide>> comingOn;
+
+  [[nodiscard]] bool knows(const SimCore::PlayerId playerId) const {
+    return findPlayerIndex(*state, playerId) ||
+           std::ranges::any_of(
+               comingOn, [playerId](const auto& arrival) { return arrival.first == playerId; });
+  }
+  // Whether the player is on the pitch for the side, or will come on for it.
+  [[nodiscard]] bool plays(const SimCore::PlayerId playerId, const TeamSide side) const {
+    if (const auto index = findPlayerIndex(*state, playerId)) {
+      return state->players()[*index].side == side && isOnPitch(state->players()[*index]);
+    }
+    return std::ranges::find(comingOn, std::pair{playerId, side}) != comingOn.end();
+  }
+};
+
+[[nodiscard]] std::optional<MatchCommandError> validate(const Squad& squad,
                                                         const MovePlayerCommand& command) {
-  if (!findPlayerIndex(state, command.playerId)) {
+  if (!squad.knows(command.playerId)) {
     return unknownPlayer(command.playerId);
   }
   if (!command.target.isFinite()) {
@@ -91,20 +113,20 @@ static_assert(static_cast<std::size_t>(RandomNumberGeneratorDomain::kCognition) 
   return std::nullopt;
 }
 
-[[nodiscard]] std::optional<MatchCommandError> validate(const MatchState& state,
+[[nodiscard]] std::optional<MatchCommandError> validate(const Squad& squad,
                                                         const GiveBallCommand& command) {
-  if (!findPlayerIndex(state, command.playerId)) {
+  if (!squad.knows(command.playerId)) {
     return unknownPlayer(command.playerId);
   }
   return std::nullopt;
 }
 
-[[nodiscard]] std::optional<MatchCommandError> validate(const MatchState& state,
+[[nodiscard]] std::optional<MatchCommandError> validate(const Squad& squad,
                                                         const PassCommand& command) {
-  if (!findPlayerIndex(state, command.playerId)) {
+  if (!squad.knows(command.playerId)) {
     return unknownPlayer(command.playerId);
   }
-  if (command.receiver && !findPlayerIndex(state, *command.receiver)) {
+  if (command.receiver && !squad.knows(*command.receiver)) {
     return unknownPlayer(*command.receiver);
   }
   if (!command.target.isFinite()) {
@@ -125,8 +147,9 @@ static_assert(static_cast<std::size_t>(RandomNumberGeneratorDomain::kCognition) 
   return std::nullopt;
 }
 
-[[nodiscard]] std::optional<MatchCommandError> validate(const MatchState& state,
+[[nodiscard]] std::optional<MatchCommandError> validate(const Squad& squad,
                                                         const ChangeTacticCommand& command) {
+  const MatchState& state = *squad.state;
   if (std::cmp_not_equal(command.tactic.slots().size(), state.playersPerSide())) {
     return MatchCommandError{
         .code = MatchCommandErrorCode::kTacticDoesNotFitSquad,
@@ -137,10 +160,10 @@ static_assert(static_cast<std::size_t>(RandomNumberGeneratorDomain::kCognition) 
   return std::nullopt;
 }
 
-[[nodiscard]] std::optional<MatchCommandError> validate(const MatchState& state,
+[[nodiscard]] std::optional<MatchCommandError> validate(const Squad& squad,
                                                         const SubstituteCommand& command) {
-  const auto off = findPlayerIndex(state, command.off);
-  if (!off || state.players()[*off].side != command.side || !isOnPitch(state.players()[*off])) {
+  const MatchState& state = *squad.state;
+  if (!squad.plays(command.off, command.side)) {
     return MatchCommandError{
         .code = MatchCommandErrorCode::kInvalidSubstitution,
         .message = std::format("player {} is not on the pitch for {} to come off",
@@ -162,16 +185,17 @@ static_assert(static_cast<std::size_t>(RandomNumberGeneratorDomain::kCognition) 
   return std::nullopt;
 }
 
-// Validated against the state when scheduled. A substitution may change the
-// squad before a command is applied: a command for a player no longer on the
-// pitch then does nothing.
-[[nodiscard]] std::optional<MatchCommandError> validate(const MatchState& state,
+// Validated against the squad when scheduled. A substitution may change it
+// before a command is applied: a command for a player not on the pitch then
+// does nothing, and a substitution the stoppage rules out is refused there.
+[[nodiscard]] std::optional<MatchCommandError> validate(const Squad& squad,
                                                         const MatchCommand& command) {
-  return std::visit([&state](const auto& alternative) { return validate(state, alternative); },
+  return std::visit([&squad](const auto& alternative) { return validate(squad, alternative); },
                     command);
 }
 
-// Commands were validated when scheduled, so the player exists.
+// A player who has come off since the command was scheduled is no longer
+// there: nothing to do.
 void apply(const MovePlayerCommand& command, const MatchState& state,
            const SimCore::SimTick /*tick*/, MatchStateWriter& writer,
            std::vector<MatchEvent>& /*events*/) {
@@ -285,7 +309,19 @@ std::expected<void, MatchCommandError> MatchSimulation::schedule(const Scheduled
                           .message = "command for tick " + std::to_string(command.tick.value()) +
                                      " arrives at tick " + std::to_string(clock_.tick().value())});
   }
-  if (auto error = validate(current_, command.command)) {
+  Squad squad{.state = &current_, .comingOn = {}};
+  const auto arrive = [&squad](const TeamSide side, const SimCore::PlayerId newcomer) {
+    squad.comingOn.emplace_back(newcomer, side);
+  };
+  for (const Substitution& waiting : current_.pendingSubstitutions()) {
+    arrive(waiting.side, waiting.on);
+  }
+  for (std::size_t index = appliedCount_; index < commands_.size(); ++index) {
+    if (const auto* queued = std::get_if<SubstituteCommand>(&commands_[index].command)) {
+      arrive(queued->side, queued->on);
+    }
+  }
+  if (auto error = validate(squad, command.command)) {
     return std::unexpected(*std::move(error));
   }
   // After every queued command of the same tick: scheduling order is

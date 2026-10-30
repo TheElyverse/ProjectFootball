@@ -981,7 +981,7 @@ void fieldsOf(Visitor& visit, SimMatch::FoulConfig& fouls) {
 template <typename Visitor>
 void fieldsOf(Visitor& visit, SimMatch::CoachingConfig& coaching) {
   visit.number("instructionDelaySeconds", coaching.instructionDelaySeconds);
-  visit.integer("maxSubstitutions", coaching.maxSubstitutions, 0, 11);
+  visit.integer("maxSubstitutions", coaching.maxSubstitutions, 0, SimMatch::kMaxSubstitutions);
 }
 
 template <typename Visitor>

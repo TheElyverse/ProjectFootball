@@ -608,8 +608,10 @@ values:
 
 - The header holds what never changes during a match: the run's identity (core
   version, scenario, seed as a decimal string like in a replay), the tick rate,
-  the perception and reception parameters the viewer draws, the pitch, and the
-  squad with each player's side.
+  the perception and reception parameters the viewer draws, the pitch, and
+  every player who plays in the recording — a substitute too
+  ([substitutions](match-engine.md#substitutions)) — with his side, in the
+  order they first appear.
 - `frames` has one entry per tick from 0, the initial state, to the last
   simulated tick. A frame is the state after the step that reached its tick,
   plus the events and decision diagnostics that step recorded; frame 0 has

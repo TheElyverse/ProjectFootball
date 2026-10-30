@@ -54,9 +54,6 @@ void passOnTactic(const MatchStepContext& context, const MatchState& current,
 [[nodiscard]] std::optional<SubstitutionRefusal> refusalOf(
     const Substitution& substitution, std::span<const PlayerMatchState> players, const int made,
     const int limit) {
-  if (made >= limit) {
-    return SubstitutionRefusal::kLimitReached;
-  }
   const auto playing = [players](const SimCore::PlayerId playerId) {
     return std::ranges::find(players, playerId, &PlayerMatchState::playerId);
   };
@@ -66,6 +63,9 @@ void passOnTactic(const MatchStepContext& context, const MatchState& current,
   }
   if (playing(substitution.on) != players.end()) {
     return SubstitutionRefusal::kPlayerUsed;
+  }
+  if (made >= limit) {
+    return SubstitutionRefusal::kLimitReached;
   }
   return std::nullopt;
 }
@@ -110,13 +110,17 @@ void substitute(const MatchStepContext& context, const MatchState& current, Matc
 }  // namespace
 
 void validate(const CoachingConfig& config) {
-  if (!isFiniteNonNegative(config.instructionDelaySeconds) || config.maxSubstitutions < 0) {
+  if (!isFiniteNonNegative(config.instructionDelaySeconds) ||
+      config.instructionDelaySeconds > kMaxInstructionDelaySeconds || config.maxSubstitutions < 0 ||
+      config.maxSubstitutions > kMaxSubstitutions) {
     throw std::invalid_argument("coaching: invalid configuration");
   }
 }
 
 std::int64_t instructionDelayTicks(const CoachingConfig& config, const int ticksPerSecond) {
-  return static_cast<std::int64_t>(std::ceil(config.instructionDelaySeconds * ticksPerSecond));
+  // In whole milliseconds, so 8.3 s at 30 Hz is 249 ticks, not 250.
+  const auto milliseconds = std::llround(config.instructionDelaySeconds * 1000.0);
+  return ((milliseconds * ticksPerSecond) + 999) / 1000;
 }
 
 MatchSystem makeCoachingSystem(const CoachingRules& rules) {

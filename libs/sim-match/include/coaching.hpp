@@ -19,12 +19,16 @@ struct CoachingConfig {
   friend bool operator==(const CoachingConfig&, const CoachingConfig&) = default;
 };
 
-// Throws std::invalid_argument for a negative or non-finite delay or a
-// negative number of substitutions.
+inline constexpr double kMaxInstructionDelaySeconds = 600.0;
+inline constexpr int kMaxSubstitutions = 11;
+
+// Throws std::invalid_argument for a negative or non-finite delay or one over
+// kMaxInstructionDelaySeconds, or a number of substitutions outside
+// [0, kMaxSubstitutions].
 void validate(const CoachingConfig& config);
 
-// The delay in ticks at this rate, rounded up: an instruction never arrives
-// early.
+// The delay in ticks at this rate, of the delay in whole milliseconds, rounded
+// up: an instruction never arrives early.
 [[nodiscard]] std::int64_t instructionDelayTicks(const CoachingConfig& config, int ticksPerSecond);
 
 inline constexpr std::string_view kCoachingSystemName = "coaching";
