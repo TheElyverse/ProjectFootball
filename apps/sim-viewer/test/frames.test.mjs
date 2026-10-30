@@ -7,9 +7,11 @@ import {
   describeOutcome,
   frameSeconds,
   isLoggedEvent,
+  isMoment,
   latestActionDecision,
   latestDecision,
   latestPitchControl,
+  nextMoment,
   parseRecording,
   sideOf,
 } from "../dist/frames.js";
@@ -195,4 +197,14 @@ test("describeEvent names the players involved", () => {
 test("the event log leaves out pitch control samples", () => {
   assert.equal(isLoggedEvent({ tick: 0, type: "pitchControlSampled", homeShare: 0.5, ball: [0, 0] }), false);
   assert.equal(isLoggedEvent({ tick: 0, type: "ballWon", winner: 1, loser: 2, position: [0, 0] }), true);
+});
+
+test("nextMoment steps to the next and previous shot, save, goal or set piece", () => {
+  const recording = parseRecording(JSON.stringify(fixture()));
+  assert.equal(isMoment(recording.frames[2]), true);
+  assert.equal(isMoment(recording.frames[0]), false);
+  assert.equal(nextMoment(recording, 0, 1), 2);
+  // Nothing beyond: it stays.
+  assert.equal(nextMoment(recording, 2, 1), 2);
+  assert.equal(nextMoment(recording, 2, -1), 2);
 });
