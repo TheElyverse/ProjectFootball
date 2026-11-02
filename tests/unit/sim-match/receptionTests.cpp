@@ -271,8 +271,8 @@ TEST_CASE("An opponent standing in the lane intercepts the pass", "[reception]")
 
 TEST_CASE("An opponent only deflects a pass he stretches for or one too fast to take",
           "[reception]") {
-  // Player 3 stands 0.9 m off the line from 1 to 2, three meters out: a hard
-  // pass reaches him before he can step in, at the edge of his reach.
+  // Player 3 stands `off` meters off the line from 1 to 2, three meters out:
+  // a hard pass reaches him before he can step in.
   const auto played = [](const double off, const double speed) {
     const MatchState state = twoASide({{.x = 10.0, .y = 20.0},
                                        {.x = 30.0, .y = 20.0},

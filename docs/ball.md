@@ -352,7 +352,7 @@ player against the ball:
   `findBallClaim()` takes the whole step from `stepFreeBallTimed()`. A ball
   above `controlHeight` that a player reaches first is contested in the air
   ([aerial duels](duels.md#aerial-duels-and-headers)).
-- **At full stretch.** An outfield opponent of the passer who gets to a pass
+- **At full stretch, or too fast.** An outfield opponent of the passer who gets to a pass
   only farther than `cleanRadius` (0.7 m) from the ball's way — the last 30 cm
   of his reach — while it is still at least `deflectSpeed` (8 m/s) fast, or one
   in the way of a pass at least `blockSpeed` (13 m/s) fast however square he

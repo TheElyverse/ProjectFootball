@@ -63,7 +63,6 @@ void validate(const GoalkeeperConfig& config) {
 
 Vec2 goalkeeperTarget(const MatchState& state, const std::size_t playerIndex,
                       const SimTactics::TacticalPhase phase, const GoalkeeperConfig& config) {
-  const double shotRange = config.threatRange;
   const TeamSide side = state.players()[playerIndex].side;
   const Pitch& pitch = state.pitch();
   const Goal goal = pitch.goal(ownGoalEnd(side));
@@ -80,17 +79,18 @@ Vec2 goalkeeperTarget(const MatchState& state, const std::size_t playerIndex,
                            : config.highDepthShare;
   const double highDepth =
       std::max(config.lineDepth, std::min(share * line, area.max.x - area.min.x));
-  // On his line against a ball someone has within shot range -- an opponent
+  // On his line against a ball someone has within threatRange -- an opponent
   // shoots, a teammate's pass there may be lost and shot before he gets
   // back --, up to the high depth at twice that range or his line, whichever
   // is farther. A loose ball, a cross or a clearance in the air, leaves him
   // higher by its distance alone, ready to come for it.
   const double fromGoal = (ball - goal.center).length();
-  const double far = std::max(line, 2.0 * shotRange);
-  const double rise =
-      state.ball().owner ? (fromGoal - shotRange) / (far - shotRange) : fromGoal / far;
-  double depth =
-      stableLerp(config.lineDepth, highDepth, far > shotRange ? std::clamp(rise, 0.0, 1.0) : 1.0);
+  const double far = std::max(line, 2.0 * config.threatRange);
+  const double rise = state.ball().owner
+                          ? (fromGoal - config.threatRange) / (far - config.threatRange)
+                          : fromGoal / far;
+  double depth = stableLerp(config.lineDepth, highDepth,
+                            far > config.threatRange ? std::clamp(rise, 0.0, 1.0) : 1.0);
   depth = std::min(depth, (ball - foot).length());
 
   // Never wider than his posts by more than he stands off his line: out wide

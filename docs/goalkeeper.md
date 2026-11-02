@@ -59,7 +59,7 @@ distance he could be beaten from. It is his own, not the shot decision's
 on his line need fear. The far distance is his line's depth or twice
 `threatRange`, whichever is farther.
 
-He is on his line against a ball someone has within shot range, his own side
+He is on his line against a ball someone has within his threat range, his own side
 too: a pass there may be lost and shot before he gets back. Standing high
 whenever his side had the ball, he conceded long shots straight after a
 turnover, 10 m and more off his line. A loose ball within range — a cross, a
