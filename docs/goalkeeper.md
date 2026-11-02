@@ -484,7 +484,7 @@ a caught shot, a high ball he holds in the air) **holds** it: the ball's
   pass, see no one and keep the ball for good;
 - nobody takes him on for it in a [duel](duels.md#duels-on-the-ball);
 - he keeps it at least `holdSeconds` (2 s) from the moment he took it, for
-  his side to get into shape, against the second (`minHoldSeconds`) anyone
+  his side to get into shape, against the 1.2 s (`minHoldSeconds`) anyone
   else keeps a ball he has just taken;
 - he may not keep it longer than eight seconds (Law 12): with
   [restarts](match-engine.md#holding-the-ball-too-long) enabled, the other side

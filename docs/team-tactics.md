@@ -684,7 +684,8 @@ press wins the ball in a larger share of its presses, at least a point more:
 the lone presser leaves lanes open, and close teammates spoil the passes the
 carrier does play. At the time of writing the coordinated press regains the
 ball in 0.271 of its presses, the lone presser in 0.256 — about one standard
-error apart. The calibration's duels (docs/scenarios.md#p3-acceptance) narrowed
-the gap: a lone presser now wins more of his own, where it was 0.38 against
-0.32 before. The defenders' pick-up near their goal, the clearances and shots
+error apart. The [calibration](scenarios.md#p3-acceptance) lowered both and
+narrowed the gap, from 0.38 against 0.32: a carrier keeps more balls a lone
+or a coordinated press goes for, and coordination now barely pays. The bar
+guards against it turning round, not that it pays much. The defenders' pick-up near their goal, the clearances and shots
 from beyond 25 m are off for it: each ends a press however many press.

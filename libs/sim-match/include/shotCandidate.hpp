@@ -81,8 +81,9 @@ struct ShotScoringConfig {
   double minGoalChance = 0.02;
   // Utility = goal·w_g + secondBall·w_s − loss·w_k, where loss is the chance
   // the team loses the ball: neither a goal nor a second ball. Keeping the
-  // ball is worth 0, so a shot is only offered at a positive utility; w_k
-  // matches a completed pass's worth (PassScoringConfig::completionWeight).
+  // ball is worth 0, so a shot is only offered at a positive utility; w_k is
+  // less than a completed pass's worth (PassScoringConfig::completionWeight):
+  // real shooters try their luck rather than keep the ball.
   double goalWeight = 2.5;
   double secondBallWeight = 0.5;
   double lossWeight = 0.6;

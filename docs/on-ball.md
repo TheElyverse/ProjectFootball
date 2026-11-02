@@ -456,7 +456,7 @@ In the next step it runs, the ball system plays the pending pass:
 3. **Kick.** `executePass()` gives the ball its velocity: from where the ball is
    toward the target, at the intended speed, off by a random execution error:
    - direction: up to `directionError` (0.04) meters off line per meter along
-     it, uniformly distributed — about ±1.7°;
+     it, uniformly distributed — about ±2.3°;
    - speed: up to `speedError` (5 %) harder or softer, uniformly distributed;
    - both grown by pressure: with opponents within `pressureRadius` (3 m) of the
      passer, the errors are multiplied by `1 + pressureErrorFactor × pressure`.
@@ -658,8 +658,9 @@ ball, again from the judged goal chance. `shotContributions(candidate, scoring)`
 [decision trace](tooling.md#decision-trace) gives.
 
 **Keeping the ball** is worth 0, so a shot is only offered at a positive
-utility. `w_k` (1.0) matches what a completed pass is worth
-(`completionWeight`): losing the ball costs as much as keeping it is worth.
+utility. `w_k` (0.6) is less than what a completed pass is worth
+(`completionWeight`, 1.0): real shooters try their luck rather than keep the
+ball, and losing it costs a shooter less than keeping it is worth.
 Holding the ball is also an explicit option ([ball carrying](#ball-carrying)).
 
 ### Valid candidates

@@ -245,7 +245,7 @@ a tactic. They show the
 
 - **`keeper-arc`**: home player 1 starts on the touchline 27 m in front of
   away's goal with the ball and carries it to the other touchline, beyond the
-  25 m a shot is considered from. So that only the ball moves the keeper, the
+  keeper's `threatRange` (25 m). So that only the ball moves the keeper, the
   carrier holds the ball for a minute (`decisions.minHoldSeconds`), and away's
   outfield players neither press, mark nor track (`defensive.pressRadius`,
   `markRadius` and `trackRadius` of 0.1 m).
@@ -336,7 +336,7 @@ likely to be cut out. Neither side has a tactic; everyone else stands still.
 `carry-into-space` his first decision is a carry, he touches the ball on at
 least three times, never loses it, and has it at least ten meters up the pitch
 after four seconds. Over twenty seeds, in `dribble-past-defender` he dribbles at
-player 8 in at least ten, every dribble ends, and at least half of his attempts
+player 8 in at least seven, every dribble ends, and at least half of his attempts
 beat him, with the ball beyond the defender. Both run alike every time.
 
 ### The duel scenarios
@@ -434,13 +434,13 @@ job's `ctest -L benchmark`): the round robin of the three identities, one whole
 90-minute match per pairing with seed 1, every rule on, one sampled replay per
 pairing. It must finish within 45 s per match and 300 s for the nine together —
 the sum of their times —, every match must reach full time without a player
-owning the ball longer than 20 s at a time (9 to 12 s measured), every sampled
+owning the ball longer than 20 s at a time (8 to 12 s measured), every sampled
 replay must reproduce, each style's mean per match over its six sides must
 fall inside the bands below — every side with a value —, and pressing must
 commit at least 8 fouls and catch at least 1 offside a match, so that a rule
 that stops being called fails although the offsides band starts at 0. At
 the time of writing the nine matches took 11.6 s each on average, 12.6 s at
-most and 104 s together; the test took 336 s, most of it the nine replays,
+most and 104 s together; the test took 324 s, most of it the nine replays,
 each recorded and played back one after the other.
 
 **The full run** for local use plays twenty matches per pairing and five seeds,
@@ -521,15 +521,16 @@ and a defender lunges more readily and knocks the ball loose harder
 ([duels](duels.md#duels-on-the-ball)). Set pieces take real football's time to
 set up ([the delivery](set-pieces.md#the-delivery)), so the ball is dead about
 a third of the match; with the livelier duels, clearances and long balls the
-match is as eventful per minute of play as real football in fouls and
-throw-ins. The goalkeeper's `threatRange` stays at 25 m while shooters try
+match has real football's fouls per minute of play and about five in six of
+its throw-ins. The goalkeeper's `threatRange` stays at 25 m while shooters try
 from 28 m: tied to the shot range, a keeper on his line from 28 m blunted the
 pressing side's high regains.
 
 Still off: too few shots and corners — per minute of play about two thirds and
 half of real football's — and about a quarter too many passes. Coordinated
-pressing still pays, by less than before: a lone presser wins more of his own
-duels ([coordination pays](team-tactics.md#coordination-pays)). The P2 identities hold
+pressing now barely pays over a lone presser: about one standard error, from
+three before ([coordination pays](team-tactics.md#coordination-pays)) — the P2
+guard against it turning round, no longer evidence that it pays. The P2 identities hold
 ([P2 acceptance](tooling.md#p2-acceptance)); two isolated tests switch the
 defenders' pick-up near their goal off, where it would blur what they measure:
 the coordinated press and the free kick's wall; the press also switches the
@@ -541,7 +542,8 @@ matches).
 
 **The performance budget** of a whole match with every rule is the
 [eleven-a-side budget](match-engine.md#performance): a 90-minute match took
-11.6 to 12.6 s on one core when measured, some 430 to 470 times real time.
+11.6 s on average and 12.6 s at most on one core when measured, some 430 to
+470 times real time.
 
 ### Scenarios are versioned
 

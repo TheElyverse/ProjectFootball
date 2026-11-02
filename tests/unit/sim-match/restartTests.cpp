@@ -232,7 +232,7 @@ TEST_CASE("The restart system awards a set piece once the ball is out", "[restar
                                                                  .receiver = std::nullopt}}}});
     std::vector<RestartTaken> restarts;
     int taken = 0;
-    // Long enough for the throw-in's throwInSeconds (8 s) and the taker's walk.
+    // Long enough for the throw-in's throwInSeconds (15 s) and the taker's walk.
     for (int step = 0; step < 600; ++step) {
       REQUIRE(simulation.step().has_value());
       for (const MatchEvent& event : simulation.events()) {

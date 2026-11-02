@@ -317,6 +317,7 @@ TEST_CASE("Goalkeeper configurations are validated", "[goalkeeper]") {
   const double nan = std::numeric_limits<double>::quiet_NaN();
   for (const auto& broken :
        std::vector<GoalkeeperConfig>{{.lineDepth = -1.0},
+                                     {.threatRange = 0.0},
                                      {.highDepthShare = 1.5},
                                      {.possessionDepthShare = -0.1},
                                      {.positionErrorAlong = nan},

@@ -41,7 +41,7 @@ endif()
 
 # Every match plays to full time, and nobody stands on the ball or carries it
 # about for good over the 90 minutes: no player owns it longer than 20 s at a
-# time (9 to 12 s measured), as in the P2 style benchmark.
+# time (8 to 12 s measured), as in the P2 style benchmark.
 set(maxOwnershipSeconds 20)
 math(EXPR lastPairing "${pairings} - 1")
 foreach(index RANGE ${lastPairing})
