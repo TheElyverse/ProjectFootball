@@ -354,7 +354,9 @@ player against the ball:
   ([aerial duels](duels.md#aerial-duels-and-headers)).
 - **At full stretch.** An outfield opponent of the passer who gets to a pass
   only farther than `cleanRadius` (0.7 m) from the ball's way — the last 30 cm
-  of his reach — while it is still at least `deflectSpeed` (8 m/s) fast does not
+  of his reach — while it is still at least `deflectSpeed` (8 m/s) fast, or one
+  in the way of a pass at least `blockSpeed` (13 m/s) fast however square he
+  stands to it — a cross or a driven ball, blocked rather than taken —, does not
   control it: it comes off him as a shot does off a body (`deflectShot()`, its
   three `kExecution` draws), and is loose with him as its last touch. The pass
   remembers him (`PassRecord::deflection`): a deflection is no deliberate play,
@@ -451,6 +453,7 @@ Both are part of `MatchConfig` and of every replay:
 |---------------------------------|---------|-------------------------------------------------|
 | `reception.controlRadius`       | 1 m     | how close a free ball must come to be controlled |
 | `reception.cleanRadius`, `reception.deflectSpeed` | 0.7 m, 8 m/s | an opponent of the passer farther than this from a pass this fast only deflects it |
+| `reception.blockSpeed` | 13 m/s | a pass this fast comes off an opponent however he stands |
 | `reception.reclaimDelaySeconds` | 0.3 s   | how long the last touch cannot take the ball back |
 | `reception.controlHeight`       | 1 m     | how high the ball may be and still be taken at the feet |
 | `pursuit.intervalTicks`         | 3       | ticks between chase decisions                   |

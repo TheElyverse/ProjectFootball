@@ -70,14 +70,14 @@ struct Bisector {
 // penalty area), against a shot at lineDepth, and between the two by the
 // ball's distance from his goal relative to his defensive line's. With his
 // own side on the ball that high depth shrinks by possessionDepthShare; anyone
-// on the ball within shotRange of his goal puts him at lineDepth, and a loose
+// on the ball within threatRange of his goal puts him at lineDepth, and a loose
 // ball leaves him higher by its distance alone. He
 // never stands beyond the ball, off the pitch, or wider than his posts by
 // more than he stands off his goal line. No
 // trigonometry. Throws std::invalid_argument for a player of a scripted side.
 [[nodiscard]] SimCore::Vec2 goalkeeperTarget(const MatchState& state, std::size_t playerIndex,
                                              SimTactics::TacticalPhase phase,
-                                             const GoalkeeperConfig& config, double shotRange);
+                                             const GoalkeeperConfig& config);
 
 // The goalkeeper's desired region: goalkeeperTarget() as its tactical target
 // and, as its centre, where he takes up his place -- the target off by a
@@ -86,7 +86,7 @@ struct Bisector {
 // draw, four in all, whatever his skill.
 [[nodiscard]] DesiredRegion goalkeeperRegion(const MatchState& state, std::size_t playerIndex,
                                              SimTactics::TacticalPhase phase,
-                                             const GoalkeeperConfig& config, double shotRange,
+                                             const GoalkeeperConfig& config,
                                              SimCore::RandomNumberGenerator& random);
 
 // The head start the keeper needs to come for a ball: cautiousMargin at

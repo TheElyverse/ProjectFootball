@@ -62,8 +62,8 @@ void validate(const GoalkeeperConfig& config) {
 }
 
 Vec2 goalkeeperTarget(const MatchState& state, const std::size_t playerIndex,
-                      const SimTactics::TacticalPhase phase, const GoalkeeperConfig& config,
-                      const double shotRange) {
+                      const SimTactics::TacticalPhase phase, const GoalkeeperConfig& config) {
+  const double shotRange = config.threatRange;
   const TeamSide side = state.players()[playerIndex].side;
   const Pitch& pitch = state.pitch();
   const Goal goal = pitch.goal(ownGoalEnd(side));
@@ -103,11 +103,11 @@ Vec2 goalkeeperTarget(const MatchState& state, const std::size_t playerIndex,
 
 DesiredRegion goalkeeperRegion(const MatchState& state, const std::size_t playerIndex,
                                const SimTactics::TacticalPhase phase,
-                               const GoalkeeperConfig& config, const double shotRange,
+                               const GoalkeeperConfig& config,
                                SimCore::RandomNumberGenerator& random) {
   const PlayerMatchState& keeper = state.players()[playerIndex];
   const Pitch& pitch = state.pitch();
-  const Vec2 target = goalkeeperTarget(state, playerIndex, phase, config, shotRange);
+  const Vec2 target = goalkeeperTarget(state, playerIndex, phase, config);
   const Vec2 along = goalBisector(keeper.side, state.ball().position, pitch).direction;
   const Vec2 across{.x = -along.y, .y = along.x};
   const double spoil = 1.0 - keeper.attributes.keeperPositioning;

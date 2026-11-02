@@ -28,7 +28,7 @@ come for            → his head start        teammate does
 
 ### Where he stands
 
-`goalkeeperTarget(state, playerIndex, phase, config, shotRange)` is where he
+`goalkeeperTarget(state, playerIndex, phase, config)` is where he
 wants to be. It reads the true ball, like the outfield players' tactical
 targets.
 
@@ -46,18 +46,18 @@ every platform.
 |--------------------------------------------------------|--------------------------|
 | the ball far up the pitch                              | `highDepthShare` (0.4) of his defensive line's depth, at most the depth of his penalty area |
 | his own side on the ball                               | that high depth times `possessionDepthShare` (0.4): behind his defenders, never level with them |
-| anyone on the ball within `shotRange` of his goal      | `lineDepth` (1.5 m)      |
-| someone on the ball between `shotRange` and the far distance | from `lineDepth` to the high depth, by how far between the two the ball is |
+| anyone on the ball within `threatRange` of his goal      | `lineDepth` (1.5 m)      |
+| someone on the ball between `threatRange` and the far distance | from `lineDepth` to the high depth, by how far between the two the ball is |
 | a loose ball                                           | from `lineDepth` to the high depth, by the ball's distance from his goal over the far distance |
 
 His defensive line is the outfield block's (`defensiveLineDepth()`, the same
 line [desired regions](team-tactics.md#desired-region) scale the block into): the phase's
 `lineHeight`, shifted with the ball by its `ballShift`. So a high line takes
-him up, a deep block keeps him near his goal. `shotRange` is his
-`threatRange` (25 m): the distance he could be beaten from. It is his own, not
-the shot decision's `maxShotDistance` (28 m): shooters try their luck from
-farther than a keeper set on his line need fear. The far distance is his line's depth or twice `shotRange`, whichever
-is farther.
+him up, a deep block keeps him near his goal. `threatRange` (25 m) is the
+distance he could be beaten from. It is his own, not the shot decision's
+`maxShotDistance` (28 m): shooters try their luck from farther than a keeper set
+on his line need fear. The far distance is his line's depth or twice
+`threatRange`, whichever is farther.
 
 He is on his line against a ball someone has within shot range, his own side
 too: a pass there may be lost and shot before he gets back. Standing high

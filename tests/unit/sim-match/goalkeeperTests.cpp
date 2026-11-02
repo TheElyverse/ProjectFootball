@@ -56,7 +56,8 @@ using ElyverseFootball::SimTactics::TacticalPhase;
 namespace {
 
 constexpr TacticalPhase kPhase = TacticalPhase::kDefensiveBlock;
-constexpr double kShotRange = 25.0;
+// The keeper's threatRange.
+constexpr double kShotRange = GoalkeeperConfig{}.threatRange;
 constexpr double kSecondsPerTick = 1.0 / 30.0;
 // Home's keeper is player 1 at index 0 and defends the goal at x = 0.
 constexpr std::size_t kKeeper = 0;
@@ -85,7 +86,7 @@ constexpr std::size_t kKeeper = 0;
 }
 
 [[nodiscard]] Vec2 target(const MatchState& state, const GoalkeeperConfig& config = {}) {
-  return goalkeeperTarget(state, kKeeper, kPhase, config, kShotRange);
+  return goalkeeperTarget(state, kKeeper, kPhase, config);
 }
 
 // How far a point lies from the line through `start` and `end`.
@@ -178,8 +179,8 @@ TEST_CASE("A keeper takes up his place as exactly as his positioning allows", "[
   const GoalkeeperConfig config;
   SECTION("a perfect keeper stands on his target") {
     RandomNumberGenerator random(7);
-    const auto region = goalkeeperRegion(scene(ball, std::nullopt, {}, 1.0), kKeeper, kPhase,
-                                         config, kShotRange, random);
+    const auto region =
+        goalkeeperRegion(scene(ball, std::nullopt, {}, 1.0), kKeeper, kPhase, config, random);
     REQUIRE(region.center == region.tacticalTarget);
   }
   SECTION("a poor one is off it, never by more than the spreads") {
@@ -187,7 +188,7 @@ TEST_CASE("A keeper takes up his place as exactly as his positioning allows", "[
     for (std::uint64_t seed = 1; seed <= 50; ++seed) {
       RandomNumberGenerator random(seed);
       const MatchState state = scene(ball, std::nullopt, {}, 0.0);
-      const auto region = goalkeeperRegion(state, kKeeper, kPhase, config, kShotRange, random);
+      const auto region = goalkeeperRegion(state, kKeeper, kPhase, config, random);
       const double miss = (region.center - region.tacticalTarget).length();
       REQUIRE(miss <= std::hypot(config.positionErrorAlong, config.positionErrorAcross) + 1e-9);
       off = off || miss > 0.1;
@@ -201,8 +202,8 @@ TEST_CASE("A keeper takes up his place as exactly as his positioning allows", "[
     RandomNumberGenerator first(3);
     RandomNumberGenerator second(3);
     const MatchState state = scene(ball, std::nullopt, {}, 0.3);
-    REQUIRE(goalkeeperRegion(state, kKeeper, kPhase, config, kShotRange, first) ==
-            goalkeeperRegion(state, kKeeper, kPhase, config, kShotRange, second));
+    REQUIRE(goalkeeperRegion(state, kKeeper, kPhase, config, first) ==
+            goalkeeperRegion(state, kKeeper, kPhase, config, second));
   }
 }
 

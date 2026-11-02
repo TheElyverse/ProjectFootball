@@ -17,7 +17,6 @@ std::vector<MatchSystem> makeMatchSystems(const MatchConfig& config) {
                                                 .defensive = config.defensive,
                                                 .perception = config.perception,
                                                 .goalkeeper = config.goalkeeper,
-                                                .shotRange = config.goalkeeper.threatRange,
                                                 .offside = config.offside}));
   // Only with the systems that award them: restarts, offside and fouls.
   if (config.restarts.enabled || config.offside.enabled || config.fouls.enabled) {

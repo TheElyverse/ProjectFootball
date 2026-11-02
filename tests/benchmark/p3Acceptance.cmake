@@ -41,7 +41,7 @@ endif()
 
 # Every match plays to full time, and nobody stands on the ball or carries it
 # about for good over the 90 minutes: no player owns it longer than 20 s at a
-# time (8 to 12 s measured), as in the P2 style benchmark.
+# time (8 to 13 s measured), as in the P2 style benchmark.
 set(maxOwnershipSeconds 20)
 math(EXPR lastPairing "${pairings} - 1")
 foreach(index RANGE ${lastPairing})
@@ -71,17 +71,17 @@ endforeach()
 #
 #   metric          low   high   measured over seeds 1 to 5, all three styles
 set(bands
-        "goals          0.2   6"     # 0.5 to 3.7
-        "shots          2     21"    # 4.5 to 13.8
-        "passCompletion 0.68  0.88"  # 0.74 to 0.81
-        "possessionShare 0.30 0.70"  # 0.38 to 0.57
-        "fouls          1     24"    # 2.2 to 16.5
-        "offsides       0     5"     # 0.3 to 2.8
-        "corners        0.6   7"     # 1.3 to 4.7
-        "throwIns       6     30"    # 12.3 to 20.7
-        "goalKicks      1.8   13"    # 3.8 to 8.8
-        "freeKicks      2     22"    # 4.3 to 14.8
-        "penalties      0     1")    # 0.0 to 0.3
+        "goals          0.2   6"     # 0.5 to 3.8
+        "shots          2     21"    # 3.3 to 13.3
+        "passCompletion 0.68  0.88"  # 0.75 to 0.80
+        "possessionShare 0.30 0.70"  # 0.39 to 0.57
+        "fouls          1     24"    # 2.3 to 19.2
+        "offsides       0     5"     # 0.3 to 4.0
+        "corners        0.6   7"     # 1.2 to 4.0
+        "throwIns       6     30"    # 12.8 to 23.8
+        "goalKicks      1.8   13"    # 4.7 to 9.5
+        "freeKicks      2     22"    # 4.0 to 16.0
+        "penalties      0     1")    # 0.0 to 0.2
 foreach(style IN ITEMS possession counter pressing)
     foreach(band IN LISTS bands)
         string(REGEX REPLACE " +" ";" fields "${band}")
@@ -102,8 +102,8 @@ foreach(style IN ITEMS possession counter pressing)
 endforeach()
 
 # The rules fire: pressing, which takes carriers on most and keeps the highest
-# line, commits fouls and catches opponents offside in every whole match (13.7
-# to 16.5 fouls and 2.3 to 2.8 offsides per match measured over seeds 1 to 5),
+# line, commits fouls and catches opponents offside in every whole match (13.5
+# to 19.2 fouls and 1.5 to 4.0 offsides per match measured over seeds 1 to 5),
 # so a rule that stops being called fails here although the offsides band
 # starts at 0. Penalties are too rare in nine matches to need one.
 foreach(floor IN ITEMS "fouls 8" "offsides 1")

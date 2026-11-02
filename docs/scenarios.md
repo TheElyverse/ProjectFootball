@@ -434,13 +434,13 @@ job's `ctest -L benchmark`): the round robin of the three identities, one whole
 90-minute match per pairing with seed 1, every rule on, one sampled replay per
 pairing. It must finish within 45 s per match and 300 s for the nine together —
 the sum of their times —, every match must reach full time without a player
-owning the ball longer than 20 s at a time (8 to 12 s measured), every sampled
+owning the ball longer than 20 s at a time (8 to 13 s measured), every sampled
 replay must reproduce, each style's mean per match over its six sides must
 fall inside the bands below — every side with a value —, and pressing must
 commit at least 8 fouls and catch at least 1 offside a match, so that a rule
 that stops being called fails although the offsides band starts at 0. At
-the time of writing the nine matches took 11.6 s each on average, 12.6 s at
-most and 104 s together; the test took 324 s, most of it the nine replays,
+the time of writing the nine matches took 11.4 s each on average, 12.0 s at
+most and 103 s together; the test took 317 s, most of it the nine replays,
 each recorded and played back one after the other.
 
 **The full run** for local use plays twenty matches per pairing and five seeds,
@@ -464,17 +464,17 @@ few. Real football's values per side and match are given for comparison.
 
 | Metric | Band | Measured, seeds 1–5 | Real football | Reasoning |
 |---|---|---|---|---|
-| `goals` | 0.2 – 6 | 0.5 – 3.7 | about 1.4 | 1.9 over all styles; most of them pressing's (2.7 a match against counter's 1.0) |
-| `shots` | 2 – 21 | 4.5 – 13.8 | about 12 | 9.2 over all styles, too few; pressing shoots most, as its identity promises, counter least |
-| `passCompletion` | 0.68 – 0.88 | 0.74 – 0.81 | about 0.80 | real |
-| `possessionShare` | 0.30 – 0.70 | 0.38 – 0.57 | 0.3 – 0.7 | plausible; possession and pressing have the most, counter the least. It guards little: shares sum to 1 per match, and the mirror pairing holds two of a style's six sides at 0.5 |
-| `fouls` | 1 – 24, pressing at least 8 | 2.2 – 16.5 | about 11 | 9.6 over all styles; pressing's lunges commit the most, counter's deep block few |
-| `offsides` | 0 – 5, pressing at least 1 | 0.3 – 2.8 | about 2 | pressing's high line catches the most |
-| `corners` | 0.6 – 7 | 1.3 – 4.7 | about 5 | 2.7 over all styles, too few: shots and crosses are rarely turned behind |
-| `throwIns` | 6 – 30 | 12.3 – 20.7 | about 20 | 17.3 over all styles |
-| `goalKicks` | 1.8 – 13 | 3.8 – 8.8 | about 7 | 6.1 over all styles |
-| `freeKicks` | 2 – 22 | 4.3 – 14.8 | about 12 | the fouls' and offsides' free kicks |
-| `penalties` | 0 – 1 | 0.0 – 0.3 | about 0.15 | plausible |
+| `goals` | 0.2 – 6 | 0.5 – 3.8 | about 1.4 | 2.1 over all styles; possession and pressing score most (2.9 and 2.6 a match), counter least (0.9) |
+| `shots` | 2 – 21 | 3.3 – 13.3 | about 12 | 8.5 over all styles, too few; pressing shoots most, as its identity promises, counter least |
+| `passCompletion` | 0.68 – 0.88 | 0.75 – 0.80 | about 0.80 | real |
+| `possessionShare` | 0.30 – 0.70 | 0.39 – 0.57 | 0.3 – 0.7 | plausible; possession and pressing have the most, counter the least. It guards little: shares sum to 1 per match, and the mirror pairing holds two of a style's six sides at 0.5 |
+| `fouls` | 1 – 24, pressing at least 8 | 2.3 – 19.2 | about 11 | 10.2 over all styles; pressing's lunges commit the most, counter's deep block few |
+| `offsides` | 0 – 5, pressing at least 1 | 0.3 – 4.0 | about 2 | pressing's high line catches the most |
+| `corners` | 0.6 – 7 | 1.2 – 4.0 | about 5 | 2.4 over all styles, too few: few crosses, and shots are rarely turned behind |
+| `throwIns` | 6 – 30 | 12.8 – 23.8 | about 20 | 17.8 over all styles |
+| `goalKicks` | 1.8 – 13 | 4.7 – 9.5 | about 7 | 6.2 over all styles |
+| `freeKicks` | 2 – 22 | 4.0 – 16.0 | about 12 | the fouls' and offsides' free kicks |
+| `penalties` | 0 – 1 | 0.0 – 0.2 | about 0.15 | plausible |
 
 **The calibration** (#232) brought the baseline there from 22 goals, 47 shots,
 2.4 fouls and 2.5 throw-ins a side — measured over 27 matches, three seeds of
@@ -483,11 +483,11 @@ the round robin, per side and match:
 | Metric | Before | After | Real football |
 |---|---|---|---|
 | goals | 22 | 1.8 | 1.4 |
-| shots, on target | 47, – | 9.0, 4.9 | 12, 4.5 |
-| saves | – | 3.3 | 3 |
-| passes, completion | 1300, 0.69 | 600, 0.78 | about 480, 0.80 |
-| fouls, offsides, free kicks | 2.4, –, – | 10.7, 1.9, 11.6 | 11, 2, 12 |
-| corners, throw-ins, goal kicks | –, 2.5, – | 2.5, 16.6, 5.9 | 5, 20, 7 |
+| shots, on target | 47, – | 8.8, 4.6 | 12, 4.5 |
+| saves | – | 2.9 | 3 |
+| passes, completion | 1300, 0.69 | 590, 0.77 | about 480, 0.80 |
+| fouls, offsides, free kicks | 2.4, –, – | 10.6, 2.1, 11.7 | 11, 2, 12 |
+| corners, throw-ins, goal kicks | –, 2.5, – | 2.7, 18.4, 6.0 | 5, 20, 7 |
 
 Most of it came from flaws, not from turning numbers:
 
@@ -510,8 +510,9 @@ Most of it came from flaws, not from turning numbers:
   [clear](on-ball.md#clearances) it, outfield players kick
   [long](on-ball.md#long-balls) from their own half, a pass an opponent only
   stretches for comes off him
-  ([reception](ball.md#reception-interceptions-and-loose-balls)), and a mistimed
-  header glances a cross on ([the header](duels.md#the-header)).
+  ([reception](ball.md#reception-interceptions-and-loose-balls)), as does one too
+  fast to take, and a mistimed header glances a cross on
+  ([the header](duels.md#the-header)).
 
 The rest is set to real football's rates: the strike strays more in open play
 than the shooter judges, a penalty is placed, a cross errs less than a shot
@@ -520,14 +521,19 @@ than the shooter judges, a penalty is placed, a cross errs less than a shot
 and a defender lunges more readily and knocks the ball loose harder
 ([duels](duels.md#duels-on-the-ball)). Set pieces take real football's time to
 set up ([the delivery](set-pieces.md#the-delivery)), so the ball is dead about
-a third of the match; with the livelier duels, clearances and long balls the
-match has real football's fouls per minute of play and about five in six of
-its throw-ins. The goalkeeper's `threatRange` stays at 25 m while shooters try
+a third of the match; with the livelier duels, clearances, long balls and
+blocks the match has real football's fouls per minute of play and about nine
+in ten of its throw-ins. The goalkeeper's `threatRange` stays at 25 m while shooters try
 from 28 m: tied to the shot range, a keeper on his line from 28 m blunted the
 pressing side's high regains.
 
-Still off: too few shots and corners — per minute of play about two thirds and
-half of real football's — and about a quarter too many passes. Coordinated
+Still off: too few shots and corners — per minute of play about three
+quarters and half of real football's — and about a fifth too many passes.
+Both come from wing play: carriers cross a quarter as often as in real
+football, because nobody is in the box when they could — a runner sent there
+arrives after the winger has decided — and crosses are what headers, blocked
+crosses and many corners come of. More willingness to shoot or cross does not
+change it. Coordinated
 pressing now barely pays over a lone presser: about one standard error, from
 three before ([coordination pays](team-tactics.md#coordination-pays)) — the P2
 guard against it turning round, no longer evidence that it pays. The P2 identities hold
@@ -542,7 +548,7 @@ matches).
 
 **The performance budget** of a whole match with every rule is the
 [eleven-a-side budget](match-engine.md#performance): a 90-minute match took
-11.6 s on average and 12.6 s at most on one core when measured, some 430 to
+11.4 s on average and 12.0 s at most on one core when measured, some 450 to
 470 times real time.
 
 ### Scenarios are versioned

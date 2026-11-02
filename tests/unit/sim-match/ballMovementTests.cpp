@@ -230,7 +230,9 @@ TEST_CASE("An interception's position interpolates the contact, not the tick's s
                                                       .tick = SimTick(0),
                                                       .receiver = std::nullopt});
                         }},
-                   makeBallMovementSystem()},
+                   // A ball this fast would come off him (blockSpeed): the
+                   // contact, not the block, is what is checked here.
+                   makeBallMovementSystem({.reception = {.blockSpeed = 100.0}})},
        .commands = {}});
   REQUIRE(simulation.step().has_value());
   const auto events = simulation.events();

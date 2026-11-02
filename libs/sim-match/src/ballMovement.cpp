@@ -567,7 +567,8 @@ class BallTick {
 
   // Whether the claim is an outfield opponent of the passer at full stretch
   // for a pass still fast -- standing farther than cleanRadius off the ball's
-  // way --: he only gets a touch on it (touchedOff()).
+  // way -- or in the way of one at least blockSpeed fast: he only gets a touch
+  // on it (touchedOff()).
   [[nodiscard]] bool stretchesFor(const BallState& ball, const BallClaim& claim) const {
     const ReceptionConfig& reception = rules().reception;
     const auto passer = passerOf(ball, next().lastPass());
@@ -578,7 +579,8 @@ class BallTick {
     const PlayerMatchState& claimant = current().players()[claim.playerIndex];
     const Vec2 way = ball.velocity * (1.0 / speed);
     const Vec2 offset = claimant.position - ball.position;
-    if (std::abs((way.x * offset.y) - (way.y * offset.x)) <= reception.cleanRadius) {
+    if (speed < reception.blockSpeed &&
+        std::abs((way.x * offset.y) - (way.y * offset.x)) <= reception.cleanRadius) {
       return false;
     }
     const auto passerIndex = findPlayerIndex(current(), *passer);

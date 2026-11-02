@@ -26,6 +26,9 @@ struct ReceptionConfig {
   // does off a body (docs/ball.md#reception-interceptions-and-loose-balls).
   double cleanRadius = 0.7;   // m
   double deflectSpeed = 8.0;  // m/s
+  // Nor does he control a pass at least blockSpeed fast however square he
+  // stands to it -- a cross or a driven ball blocked rather than taken.
+  double blockSpeed = 13.0;  // m/s
   // The last player to touch the ball cannot take it back for this long, so
   // a pass does not stick to the passer's foot.
   double reclaimDelaySeconds = 0.3;

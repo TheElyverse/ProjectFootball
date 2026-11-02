@@ -541,6 +541,7 @@ void fieldsOf(Visitor& visit, SimMatch::ReceptionConfig& reception) {
   visit.number("controlRadius", reception.controlRadius);
   visit.number("cleanRadius", reception.cleanRadius);
   visit.number("deflectSpeed", reception.deflectSpeed);
+  visit.number("blockSpeed", reception.blockSpeed);
   visit.number("reclaimDelaySeconds", reception.reclaimDelaySeconds);
   visit.number("controlHeight", reception.controlHeight);
   visit.number("handsRadius", reception.handsRadius);

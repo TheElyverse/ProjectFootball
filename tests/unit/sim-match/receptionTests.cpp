@@ -269,7 +269,8 @@ TEST_CASE("An opponent standing in the lane intercepts the pass", "[reception]")
   REQUIRE(simulation.state().ball().owner == PlayerId(3));
 }
 
-TEST_CASE("An opponent at full stretch for a fast pass only deflects it", "[reception]") {
+TEST_CASE("An opponent only deflects a pass he stretches for or one too fast to take",
+          "[reception]") {
   // Player 3 stands 0.9 m off the line from 1 to 2, three meters out: a hard
   // pass reaches him before he can step in, at the edge of his reach.
   const auto played = [](const double off, const double speed) {
@@ -293,8 +294,12 @@ TEST_CASE("An opponent at full stretch for a fast pass only deflects it", "[rece
   REQUIRE(stretched.ball().lastTouch.value_or(BallTouch{}).playerId == PlayerId(3));
   REQUIRE_FALSE(stretched.ball().owner.has_value());
   REQUIRE(stretched.lastPass().value_or(PassRecord{}).deflection == stretched.ball().lastTouch);
-  // Closer to its way, or slower than deflectSpeed, he controls it.
-  REQUIRE(played(0.5, 18.0).ball().owner == PlayerId(3));
+  // Square to it, he blocks one at least blockSpeed fast too; one slower
+  // he controls, as he does one slower than deflectSpeed at full stretch.
+  const MatchState blocked = played(0.3, ReceptionConfig{}.blockSpeed + 2.0);
+  REQUIRE(blocked.ball().lastTouch.value_or(BallTouch{}).playerId == PlayerId(3));
+  REQUIRE_FALSE(blocked.ball().owner.has_value());
+  REQUIRE(played(0.3, ReceptionConfig{}.blockSpeed - 2.0).ball().owner == PlayerId(3));
   REQUIRE(played(0.9, ReceptionConfig{}.deflectSpeed - 1.0).ball().owner == PlayerId(3));
 }
 
