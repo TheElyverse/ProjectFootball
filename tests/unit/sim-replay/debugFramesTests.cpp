@@ -172,7 +172,7 @@ TEST_CASE("Frames show what became of a shot and the score", "[debugFrames]") {
   for (std::uint64_t seed = 1; seed <= 20; ++seed) {
     const auto matchSetup = scenario->make(seed);
     REQUIRE(matchSetup.has_value());
-    const auto json = nlohmann::json::parse(toDebugFramesJson(record(*matchSetup, 45)));
+    const auto json = nlohmann::json::parse(toDebugFramesJson(record(*matchSetup, 90)));
     CHECK(json.at("frames").at(0).at("score") == nlohmann::json{{"home", 0}, {"away", 0}});
     for (const auto& frame : json.at("frames")) {
       for (const auto& event : frame.at("events")) {

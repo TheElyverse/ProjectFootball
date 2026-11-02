@@ -22,7 +22,7 @@ struct DecisionConfig {
   // 6 ticks at 30 Hz: a player on the ball decides five times a second.
   int intervalTicks = 6;
   // A player keeps a ball he has just taken at least this long.
-  double minHoldSeconds = 1.0;
+  double minHoldSeconds = 1.2;
   // Softmax temperature over utility for an average decider: lower picks the
   // best option more often, higher spreads the choice.
   double temperature = 0.15;
@@ -41,7 +41,7 @@ struct DecisionConfig {
   // keeper's long balls, as readily as their phase's passingRisk says, each
   // worth longBallCost less (docs/on-ball.md#long-balls).
   bool longBalls = true;
-  double longBallCost = 0.9;
+  double longBallCost = 1.1;
   // A carrier without a valid option looks around for one this long, then
   // plays the best pass he rejected (docs/on-ball.md#pass-decisions).
   double stuckSeconds = 3.0;
@@ -53,7 +53,7 @@ struct DecisionConfig {
   // Pressed in his own third -- an opponent within this distance -- an
   // outfield player who would not play the ball clears it the same way
   // (docs/on-ball.md#clearances); 0 never.
-  double clearPressureRadius = 3.0;  // m
+  double clearPressureRadius = 4.0;  // m
   // How he weighs holding, turning, carrying and dribbling
   // (docs/on-ball.md#ball-carrying).
   CarryScoringConfig carrying;

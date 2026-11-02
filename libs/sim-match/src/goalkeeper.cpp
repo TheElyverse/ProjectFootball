@@ -17,6 +17,7 @@ namespace {
 
 using ConfigChecks::isFinite;
 using ConfigChecks::isFiniteNonNegative;
+using ConfigChecks::isPositiveFinite;
 using RandomDraws::symmetricTriangular;
 using SimCore::stableLerp;
 using SimCore::Vec2;
@@ -48,9 +49,10 @@ Bisector goalBisector(const TeamSide side, const Vec2 ball, const Pitch& pitch) 
 
 void validate(const GoalkeeperConfig& config) {
   const bool valid =
-      isFiniteNonNegative(config.lineDepth) && config.highDepthShare >= 0.0 &&
-      config.highDepthShare <= 1.0 && config.possessionDepthShare >= 0.0 &&
-      config.possessionDepthShare <= 1.0 && isFiniteNonNegative(config.positionErrorAlong) &&
+      isFiniteNonNegative(config.lineDepth) && isPositiveFinite(config.threatRange) &&
+      config.highDepthShare >= 0.0 && config.highDepthShare <= 1.0 &&
+      config.possessionDepthShare >= 0.0 && config.possessionDepthShare <= 1.0 &&
+      isFiniteNonNegative(config.positionErrorAlong) &&
       isFiniteNonNegative(config.positionErrorAcross) && isFinite(config.cautiousMargin) &&
       isFinite(config.boldMargin) && isFiniteNonNegative(config.sweepHysteresis) &&
       isFiniteNonNegative(config.misjudgement);

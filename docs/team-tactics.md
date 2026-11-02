@@ -676,14 +676,15 @@ press in progress is part of the state, `MatchState::press(side)`.
 
 #### Coordination pays
 
-`tests/acceptance/p2AcceptanceTests.cpp` plays a hundred one-minute matches
+`tests/acceptance/p2AcceptanceTests.cpp` plays two hundred one-minute matches
 against the reference tactic, restarts off so a ball out stays on the line,
 home pressing high on four triggers: once at
 intensity 0.25 (a lone presser), once at 1.0 (four players). The coordinated
-press wins the ball in a larger share of its presses, at least three points
-more: the lone presser leaves lanes open, and close teammates spoil the passes
-the carrier does play. At the time of writing the coordinated press regains the
-ball in 0.38 of its presses, the lone presser in 0.32. Ten matches were too few:
-the two shares differ by about three standard errors over a hundred, and a
-change as small as players tiring over the match
-([fitness](players.md#fitness)) turned ten seeds round.
+press wins the ball in a larger share of its presses, at least a point more:
+the lone presser leaves lanes open, and close teammates spoil the passes the
+carrier does play. At the time of writing the coordinated press regains the
+ball in 0.271 of its presses, the lone presser in 0.256 — about one standard
+error apart. The calibration's duels (docs/scenarios.md#p3-acceptance) narrowed
+the gap: a lone presser now wins more of his own, where it was 0.38 against
+0.32 before. The defenders' pick-up near their goal, the clearances and shots
+from beyond 25 m are off for it: each ends a press however many press.

@@ -115,7 +115,7 @@ turns him toward the ball as the duel left it, and moving faster than
 | Move     | Target                                       | Utility                                         |
 |----------|----------------------------------------------|-------------------------------------------------|
 | `jockey` | `jockeyDistance` (1 m) goal-side of the carrier | `jockeyWeight` (0.3)                         |
-| `commit` | a lunge at the ball                          | `commitWeight` (1) · way clearance · his balance |
+| `commit` | a lunge at the ball                          | `commitWeight` (1.6) · way clearance · his balance |
 
 He commits only to a ball within `tackleReach` (1.8 m) whose way passes the
 carrier at all, clearance above 0: nobody lunges through a man on purpose.
@@ -134,11 +134,11 @@ going straight from him to where it lands:
    after it is none.
 2. **Met**: it lands within `footRadius` (0.3 m) of the ball, the better the
    nearer -- 1 at the ball's centre, 0 at `footRadius`. The carrier's **hold**
-   is his balance times a share from `minHold` (0.3) at a `ballControl` of 0 to
-   `maxHold` (0.9) at 1.
+   is his balance times a share from `minHold` (0.4) at a `ballControl` of 0 to
+   `maxHold` (0.95) at 1.
    - better than the hold: **won** cleanly;
    - better than half the hold: knocked **loose** -- it leaves the foot at
-     `looseSpeed` (12 m/s) away from where the foot met it;
+     `looseSpeed` (18 m/s) away from where the foot met it;
    - worse: the carrier keeps it, and the lunge **missed**.
 3. **Missed**: anything else.
 
@@ -268,14 +268,14 @@ checked in `duelScenarioTests.cpp`, fouls included.
 | `footRadius`         | 0.3 m   | a foot this close to the ball meets it                       |
 | `bodyRadius`         | 0.3 m   | how wide the carrier's body is                               |
 | `footError`          | 0.3 m   | how far off the ball a balanced foot lands at most           |
-| `minHold`, `maxHold` | 0.3, 0.9 | the carrier's hold at a `ballControl` of 0 and of 1         |
-| `looseSpeed`         | 12 m/s  | how fast a ball knocked loose leaves                         |
+| `minHold`, `maxHold` | 0.4, 0.95 | the carrier's hold at a `ballControl` of 0 and of 1         |
+| `looseSpeed`         | 18 m/s  | how fast a ball knocked loose leaves                         |
 | `contactDistance`    | 1.2 m   | bodies this close push each other                            |
 | `shovePerSecond`     | 1       | the most balance pushing takes a second                      |
 | `commitCost`, `turnCost` | 0.3, 0.2 | the balance a lunge and a turn right round cost        |
 | `recoveryPerSecond`  | 0.5     | the balance everyone regains a second                        |
 | `stumbleSeconds`     | 0.5 s   | how long a player who stumbles is off his feet               |
-| `shieldWeight` ... `commitWeight` | 0.8, 0.4, 0.6, 0.3, 1 | the moves' weights               |
+| `shieldWeight` ... `commitWeight` | 0.8, 0.4, 0.6, 0.3, 1.6 | the moves' weights               |
 | `decisionTemperature` | 0.2    | the temperature they are chosen at                           |
 
 With them, the players' `strength` and `ballControl` in `PlayerAttributes`, and
@@ -455,7 +455,7 @@ the ground and up alike, and a header never leaves faster than
 facing. Both errors are scaled by `headerErrorFactor()`: `skillErrorFactor()` of his
 heading, times `1 + mistimedErrorFactor · mistiming` — a fully mistimed header
 is three times as wide. A mistimed header only glances the ball, too: it keeps
-`glanceShare · mistiming` (0.6 at worst) of its own way along the ground on top
+`glanceShare · mistiming` (all of it at worst) of its own way along the ground on top
 of where his head sends it — still no faster than `maxHeaderSpeed` in all —, so
 a cross glanced on goes on behind the goal or into touch; a keeper's punch is
 his fist's and does not glance. `PassAttempted` and `ShotAttempted` carry the
@@ -524,7 +524,7 @@ events of the play follow it.
 | `directionError`      | 0.06    | how far an average header strays per meter to his aim           |
 | `speedError`          | 0.1     | how much harder or softer                                       |
 | `mistimedErrorFactor` | 2       | how much a fully mistimed jump widens both                      |
-| `glanceShare`         | 0.6     | how much of its own way a fully mistimed header leaves the ball |
+| `glanceShare`         | 1       | how much of its own way a fully mistimed header leaves the ball |
 
 `validate()` rejects values outside their rules; see `aerialDuels.hpp`. The
 players' side is `PlayerAttributes` ([match state](match-engine.md#match-state)):

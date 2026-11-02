@@ -262,7 +262,10 @@ TEST_CASE("The moves take the ball away, aside and past, the defender goal-side"
 }
 
 TEST_CASE("Where the foot lands decides what a lunge does", "[duel]") {
-  const DuelConfig config;
+  // The hold of before the calibration, so the shares below read simply.
+  DuelConfig config;
+  config.minHold = 0.3;
+  config.maxHold = 0.9;
   const DuelGeometry exposed = geometry(kInFront);
   // On the ball: won cleanly against an average carrier's hold of 0.6.
   REQUIRE(resolveLunge(exposed, kInFront, 1.0, 0.5, config) == LungeResult::kWon);
@@ -332,7 +335,9 @@ TEST_CASE("Duels replay identically", "[duel]") {
 }
 
 TEST_CASE("Only a presser within reach takes the carrier on", "[duel]") {
-  REQUIRE_FALSE(play(oneOnOne({.x = 31.6, .y = 20.0}), 1).started.has_value());
+  // Just beyond the engage radius from the carrier at (30, 20).
+  REQUIRE_FALSE(
+      play(oneOnOne({.x = 30.1 + DuelConfig{}.engageRadius, .y = 20.0}), 1).started.has_value());
   REQUIRE_FALSE(
       play(oneOnOne({.x = 31.5, .y = 20.0}), 1, {}, ActionType::kMarkOpponent).started.has_value());
 }
@@ -513,7 +518,7 @@ TEST_CASE("The duel system rejects an invalid configuration", "[duel]") {
   config.engageRadius = 4.0;
   REQUIRE_THROWS_AS(validate(config), std::invalid_argument);
   config = {};
-  config.minHold = 0.95;
+  config.maxHold = config.minHold - 0.05;
   REQUIRE_THROWS_AS(validate(config), std::invalid_argument);
   config = {};
   config.decisionTemperature = 0.0;

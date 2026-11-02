@@ -53,9 +53,10 @@ every platform.
 His defensive line is the outfield block's (`defensiveLineDepth()`, the same
 line [desired regions](team-tactics.md#desired-region) scale the block into): the phase's
 `lineHeight`, shifted with the ball by its `ballShift`. So a high line takes
-him up, a deep block keeps him near his goal. `shotRange` is the shot decision's
-`maxShotDistance` (25 m): the keeper treats as a threat what a shooter
-considers. The far distance is his line's depth or twice `shotRange`, whichever
+him up, a deep block keeps him near his goal. `shotRange` is his
+`threatRange` (25 m): the distance he could be beaten from. It is his own, not
+the shot decision's `maxShotDistance` (28 m): shooters try their luck from
+farther than a keeper set on his line need fear. The far distance is his line's depth or twice `shotRange`, whichever
 is farther.
 
 He is on his line against a ball someone has within shot range, his own side
@@ -161,6 +162,7 @@ part of `ReceptionConfig`.
 | Field                  | Default | Meaning |
 |------------------------|---------|---------|
 | `lineDepth`            | 1.5 m   | how far off his line he stands against a shot |
+| `threatRange`          | 25 m    | anyone on the ball this close to his goal puts him on his line |
 | `highDepthShare`       | 0.4     | his depth far from the ball, as a share of his defensive line's |
 | `possessionDepthShare` | 0.4     | the share of that depth he keeps with his own side on the ball |
 | `positionErrorAlong`   | 1.5 m   | how far off his target a keeper of positioning 0 may stand along his bisector |

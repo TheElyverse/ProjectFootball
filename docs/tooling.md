@@ -67,7 +67,7 @@ file.
     "fitness": { "sprintSpeedShare": 0.85, "...": "..." },
     "offside": { "enabled": false, "levelMeters": 0.1 },
     "fouls": { "enabled": false, "fromBehindDot": -0.5, "...": "..." },
-    "setPieces": { "throwInSeconds": 8.0, "cornerSeconds": 20.0, "...": "..." },
+    "setPieces": { "throwInSeconds": 15.0, "cornerSeconds": 35.0, "...": "..." },
     "coaching": { "instructionDelaySeconds": 5.0, "maxSubstitutions": 5 }
   },
   "initialState": {
@@ -325,7 +325,7 @@ record the scenario again with the same seed.
 | 22      | The configuration gains its `setPieces` block, restarts are on by default, and tactics carry their set-piece plans in `setPieces` ([set pieces](set-pieces.md)). |
 | 23      | The `setPieces` block gains `freeKickSeconds`, `penaltySeconds`, `freeKickRange`, `wallPlayers` and `wallSpacing`, and tactics may plan a `freeKick` and a `penalty` ([free kicks](set-pieces.md#free-kicks), [penalties](set-pieces.md#penalties)). |
 | 24      | The configuration gains its `coaching` block, commands a `substitute` type (`side`, `off`, `on`, `attributes`), and a tactic change reaches the players after the coaching delay ([coaching](match-engine.md#coaching)). |
-| 25      | The configuration gains the defenders' `dangerShare`, `dangerUrgency` and `dangerRegionRelief`, the shot scoring's `blockRadius`, the strike's `placedErrorShare` and `crossErrorShare`, the decisions' `longBalls`, `longBallCost` and `clearPressureRadius`, the reception's `cleanRadius` and `deflectSpeed` and the aerial `glanceShare` ([calibration](scenarios.md#p3-acceptance)). |
+| 25      | The configuration gains the defenders' `dangerShare`, `dangerUrgency` and `dangerRegionRelief`, the shot scoring's `blockRadius`, the strike's `placedErrorShare` and `crossErrorShare`, the decisions' `longBalls`, `longBallCost` and `clearPressureRadius`, the reception's `cleanRadius` and `deflectSpeed`, the aerial `glanceShare` and the goalkeeper's `threatRange` ([calibration](scenarios.md#p3-acceptance)). |
 
 ## Decision trace
 
@@ -350,7 +350,7 @@ usual.
 decision of the match is traced. A trace line reads
 
 ```text
-t=30 #1 passes to #2 (utility 0.44: completion +0.37 progression +0.26 pressure +0.00 risk -0.19; estimated risk 0.63; 1 options, 9 observed; no shot: too far) because completion -> intercepted by #8 at t=84: decision
+t=36 #1 passes to #2 (utility 0.44: completion +0.37 progression +0.26 pressure +0.00 risk -0.19; estimated risk 0.63; 1 options, 9 observed; no shot: too far) because completion -> intercepted by #8 at t=90: decision
 t=40 #7 shoots at (60.0, 21.2) 0.43 m high (utility 1.62: goal +1.60 secondBall +0.04 possession -0.02; goal chance 0.64, save 0.21, block 0.03; 3 options, 11 observed) because goal
 t=66 #4 pressCarrier #14 (utility 0.97: responsibility +0.60 region -0.47 space +0.19 lane +0.00 urgency +0.68 effort -0.03; 5 options) because urgency
 t=81 #5 blockLane #12 (assigned by the team press)

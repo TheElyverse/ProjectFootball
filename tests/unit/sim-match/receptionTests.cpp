@@ -227,8 +227,9 @@ TEST_CASE("A receiver misses a pass he cannot reach", "[reception]") {
   REQUIRE(reachedTheLine);
   REQUIRE(simulation.state().ball().lastTouch.value_or(BallTouch{}).playerId == PlayerId(1));
 
-  // The loose ball is recovered afterwards.
-  stepUntilTaken(simulation, 300);
+  // The loose ball is recovered afterwards -- once the throw-in's
+  // throwInSeconds (15 s) are up, if it is one.
+  stepUntilTaken(simulation, 900);
   REQUIRE(simulation.state().ball().owner.has_value());
 }
 

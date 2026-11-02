@@ -15,7 +15,7 @@ struct ShotScoringConfig {
   // Opponents remembered with less confidence are ignored.
   double minConfidence = 0.3;
   // Shots from farther from the goal's center are not considered.
-  double maxShotDistance = 25.0;  // m
+  double maxShotDistance = 28.0;  // m
   // Shots at a goal that looks narrower than this are not considered: the
   // distance between the directions to the two posts as unit vectors,
   // 2·sin(angle / 2), about the angle in radians for a narrow one.
@@ -85,7 +85,7 @@ struct ShotScoringConfig {
   // matches a completed pass's worth (PassScoringConfig::completionWeight).
   double goalWeight = 2.5;
   double secondBallWeight = 0.5;
-  double lossWeight = 1.0;
+  double lossWeight = 0.6;
 
   friend bool operator==(const ShotScoringConfig&, const ShotScoringConfig&) = default;
 };

@@ -163,7 +163,7 @@ after a carrier got his touched ball back
 
 1. **Is there a decision to make?** Not while the ball is free, rolls ahead of
    its owner after a touch, or its owner already has an action pending.
-2. **Hold.** A player keeps a ball he took less than `minHoldSeconds` (1 s) ago,
+2. **Hold.** A player keeps a ball he took less than `minHoldSeconds` (1.2 s) ago,
    measured from his last touch — a goalkeeper one he holds in his hands less
    than the distribution's `holdSeconds` (2 s). A player who owns the ball from
    the start of a state may pass at once, and so may one whose last touch was
@@ -249,7 +249,7 @@ Should he stand on the ball anyway, an opponent nearby
 ### Clearances
 
 Pressed near his goal a defender does not dwell on the ball. An outfield
-player in his own third with an opponent within `clearPressureRadius` (3 m) of
+player in his own third with an opponent within `clearPressureRadius` (4 m) of
 him — by the true positions, as a press is felt rather than remembered — who
 would neither play the ball nor gain ground with it — he chose to hold, or to
 turn, carry or dribble without getting anywhere ([ball carrying](#ball-carrying)),
@@ -266,7 +266,7 @@ lofted passes of at least the distribution's `minLongDistance` (25 m) to where
 a teammate stands, contested where they come down. They join the ground passes
 in one list. Their lofted bias is the phase's `passingRisk` through the
 distribution's dial — `directnessWeight · (2 · passingRisk − 1)` — less
-`longBallCost` (0.9): a direct side, counter's 0.6 to 0.9, kicks long far more
+`longBallCost` (1.1): a direct side, counter's 0.6 to 0.9, kicks long far more
 than possession's 0.2 to 0.35, and nobody as readily as a keeper. Without the
 cost, every other pass went long and only a third of them arrived. Farther up
 the pitch they are not offered: a ball over the top from midfield made a
@@ -367,7 +367,7 @@ twice:
 | Field            | Default | Meaning                                         |
 |------------------|---------|-------------------------------------------------|
 | `intervalTicks`  | 6       | ticks between decisions                         |
-| `minHoldSeconds` | 1 s     | a new owner keeps the ball at least this long   |
+| `minHoldSeconds` | 1.2 s   | a new owner keeps the ball at least this long   |
 | `temperature`    | 0.15    | softmax temperature over utility for an average decider |
 | `skillTemperatureSpread`, `maxMisjudgement` | 0.75, 0.3 | how [decision-making](#decision-making) shifts the temperature and how far a poor decider misjudges |
 | `scoring`        |         | the pass candidates' scoring configuration      |
@@ -376,8 +376,8 @@ twice:
 | `stuckSeconds`   | 3 s     | a carrier without a valid option looks for one this long |
 | `clearTouchlineMargin` | 0 m | his long kick without any pass lands this far inside a touchline |
 | `clearGoalLineMargin`  | 10 m | and no closer than this to the opponent's goal line |
-| `clearPressureRadius`  | 3 m | an opponent this close in his own third makes him [clear](#clearances); 0 never |
-| `longBalls`, `longBallCost` | on, 0.9 | whether outfield players [kick long](#long-balls), and how much less such a ball is worth |
+| `clearPressureRadius`  | 4 m | an opponent this close in his own third makes him [clear](#clearances); 0 never |
+| `longBalls`, `longBallCost` | on, 1.1 | whether outfield players [kick long](#long-balls), and how much less such a ball is worth |
 | `carrying`       |         | how he weighs holding, turning, carrying and dribbling ([ball carrying](#configuration-5)) |
 
 The system rejects an interval below one tick, a negative or non-finite hold,
@@ -455,7 +455,7 @@ In the next step it runs, the ball system plays the pending pass:
    with the current tick.
 3. **Kick.** `executePass()` gives the ball its velocity: from where the ball is
    toward the target, at the intended speed, off by a random execution error:
-   - direction: up to `directionError` (0.03) meters off line per meter along
+   - direction: up to `directionError` (0.04) meters off line per meter along
      it, uniformly distributed — about ±1.7°;
    - speed: up to `speedError` (5 %) harder or softer, uniformly distributed;
    - both grown by pressure: with opponents within `pressureRadius` (3 m) of the
@@ -488,7 +488,7 @@ errors to zero to predict a pass exactly.
 |------------------|----------|------------------------------------------------------|
 | `arrivalSpeed`   | 4 m/s    | the speed a planned pass keeps at its target         |
 | `maxSpeed`       | 22 m/s   | the hardest ground pass                              |
-| `directionError` | 0.03     | largest sideways deviation per meter along the line  |
+| `directionError` | 0.04     | largest sideways deviation per meter along the line  |
 | `speedError`     | 0.05     | largest relative deviation of the speed              |
 | `pressureRadius` | 3 m      | an opponent this close puts the passer under pressure |
 | `pressureErrorFactor` | 1.0 | how much full pressure grows both errors             |
@@ -559,7 +559,7 @@ Three things rule out every shot at once, before anything is scored:
 
 | Rejection    | When                                                                   |
 |--------------|------------------------------------------------------------------------|
-| `kTooFar`    | the ball is farther than `maxShotDistance` (25 m) from the goal's center; a [chip](#shot-types) alone is too far beyond what it can reach no steeper than `maxLaunchSlope` |
+| `kTooFar`    | the ball is farther than `maxShotDistance` (28 m) from the goal's center; a [chip](#shot-types) alone is too far beyond what it can reach no steeper than `maxLaunchSlope` |
 | `kGoalUnseen`| the goal's center is outside his field of view: he looks away -- along his facing, or his look over his shoulder ([pass decisions](#without-a-valid-option)) |
 | `kTooNarrow` | the goal looks narrower than `minOpening` (0.1)                        |
 
@@ -772,7 +772,7 @@ from 8 m, 0.41 from 12 m, 0.09 from 18 m and 0.06 from 22 m.
 | Field                | Default | Meaning                                                  |
 |----------------------|---------|----------------------------------------------------------|
 | `minConfidence`      | 0.3     | observations below are ignored                           |
-| `maxShotDistance`    | 25 m    | farther from the goal's center, no shot                  |
+| `maxShotDistance`    | 28 m    | farther from the goal's center, no shot                  |
 | `minOpening`         | 0.1     | a narrower goal offers no shot                           |
 | `zoneColumns`        | 7       | the aiming grid across the goal, at least 2              |
 | `zoneRows`           | 5       | the aiming grid up the goal, at least 1                  |
@@ -798,7 +798,7 @@ from 8 m, 0.41 from 12 m, 0.09 from 18 m and 0.06 from 22 m.
 | `minGoalChance`      | 0.02    | less likely to go in, not offered: real finishers try their luck from the edge of the area |
 | `goalWeight`         | 2.5     | `w_g`                                                    |
 | `secondBallWeight`   | 0.5     | `w_s`                                                    |
-| `lossWeight`         | 1.0     | `w_k`                                                    |
+| `lossWeight`         | 0.6     | `w_k`                                                    |
 
 `validate(ShotScoringConfig)` rejects values outside these rules; see
 `shotCandidates.hpp`.
@@ -1070,10 +1070,10 @@ a keeper standing set, a wide shot, a shot that stops short, and that every
 shot has exactly one outcome.
 
 The `clear-chance` [scenario](scenarios.md#scenario-catalogue) checks the whole of it over 100
-seeds: the first shot is a goal more than 50 and at most 90 times — real
-football turns about half of such big chances into goals. At the time of
-writing an average finisher scores 54 of them, puts 71 on target and hits the
-woodwork with 18: the decision that sends him toward a post counts every ball
+seeds: the first shot is a goal 40 to 90 times — real football turns about
+half of such big chances into goals. At the time of writing an average
+finisher scores 44 of them, puts 81 on target and hits the woodwork with 18:
+the decision that sends him toward a post counts every ball
 inside the frame as on target, while a ball within 17 cm of a post's axis hits
 it.
 

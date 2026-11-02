@@ -135,8 +135,10 @@ TEST_CASE("Carry: he dribbles past a covering defender", "[acceptance][carry]") 
     }
   }
   CAPTURE(attempted, beaten);
-  // At the time of writing 11 attempts out of twenty, ten beating him.
-  REQUIRE(attempted >= 10);
+  // At the time of writing 8 attempts out of twenty, seven beating him -- 11
+  // and ten before a new owner kept the ball 1.2 s and the duels were
+  // calibrated (docs/scenarios.md#p3-acceptance).
+  REQUIRE(attempted >= 7);
   REQUIRE(beaten * 2 >= attempted);
 }
 

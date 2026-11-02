@@ -870,6 +870,7 @@ void fieldsOf(Visitor& visit, SimMatch::WoodworkConfig& woodwork) {
 template <typename Visitor>
 void fieldsOf(Visitor& visit, SimMatch::GoalkeeperConfig& goalkeeper) {
   visit.number("lineDepth", goalkeeper.lineDepth);
+  visit.number("threatRange", goalkeeper.threatRange);
   visit.number("highDepthShare", goalkeeper.highDepthShare);
   visit.number("possessionDepthShare", goalkeeper.possessionDepthShare);
   visit.number("positionErrorAlong", goalkeeper.positionErrorAlong);

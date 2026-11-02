@@ -210,8 +210,9 @@ TEST_CASE("The tracer attributes the risky pass of intercepted-pass to the decis
 
   const std::string text = formatTrace(std::vector<TraceEntry>{first});
   CAPTURE(text);
-  // He decides once he has held the ball minHoldSeconds (1 s).
-  REQUIRE(text.starts_with("t=30 #1 passes to #2 (utility "));
+  // He decides at the first decision once he has held the ball
+  // minHoldSeconds (1.2 s).
+  REQUIRE(text.starts_with("t=36 #1 passes to #2 (utility "));
   REQUIRE(text.contains("because "));
   REQUIRE(text.contains("-> intercepted by #8 at t="));
   REQUIRE(text.ends_with(": decision\n"));

@@ -56,7 +56,8 @@ struct Taken {
   std::optional<Taken> result;
   std::optional<SetPiece> setPiece;
   bool touchedDead = false;
-  while (!result && simulation.tick() < SimTick(900)) {
+  // Long enough for the longest setup time, a corner's 35 s, and the wait.
+  while (!result && simulation.tick() < SimTick(1800)) {
     const MatchState before = simulation.state();
     REQUIRE(simulation.step().has_value());
     if (!setPiece && simulation.state().setPiece()) {

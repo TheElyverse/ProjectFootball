@@ -71,17 +71,17 @@ endforeach()
 #
 #   metric          low   high   measured over seeds 1 to 5, all three styles
 set(bands
-        "goals          0.4   7"     # 0.8 to 4.7
-        "shots          3     24"    # 5.8 to 15.8
-        "passCompletion 0.68  0.86"  # 0.74 to 0.79
-        "possessionShare 0.30 0.70"  # 0.36 to 0.57
-        "fouls          1     24"    # 1.8 to 15.5
-        "offsides       0     8"     # 0.3 to 4.5
-        "corners        0.4   6"     # 0.8 to 3.5
-        "throwIns       4     30"    # 7.7 to 19.5
-        "goalKicks      1.5   9"     # 3.5 to 6.0
-        "freeKicks      1.5   27"    # 2.8 to 18.0
-        "penalties      0     1")    # 0.0 to 0.7
+        "goals          0.2   6"     # 0.5 to 3.7
+        "shots          2     21"    # 4.5 to 13.8
+        "passCompletion 0.68  0.88"  # 0.74 to 0.81
+        "possessionShare 0.30 0.70"  # 0.38 to 0.57
+        "fouls          1     24"    # 2.2 to 16.5
+        "offsides       0     5"     # 0.3 to 2.8
+        "corners        0.6   7"     # 1.3 to 4.7
+        "throwIns       6     30"    # 12.3 to 20.7
+        "goalKicks      1.8   13"    # 3.8 to 8.8
+        "freeKicks      2     22"    # 4.3 to 14.8
+        "penalties      0     1")    # 0.0 to 0.3
 foreach(style IN ITEMS possession counter pressing)
     foreach(band IN LISTS bands)
         string(REGEX REPLACE " +" ";" fields "${band}")
@@ -103,10 +103,10 @@ endforeach()
 
 # The rules fire: pressing, which takes carriers on most and keeps the highest
 # line, commits fouls and catches opponents offside in every whole match (13.7
-# to 15.5 fouls and 4.0 to 4.5 offsides per match measured over seeds 1 to 5),
+# to 16.5 fouls and 2.3 to 2.8 offsides per match measured over seeds 1 to 5),
 # so a rule that stops being called fails here although the offsides band
 # starts at 0. Penalties are too rare in nine matches to need one.
-foreach(floor IN ITEMS "fouls 8" "offsides 2")
+foreach(floor IN ITEMS "fouls 8" "offsides 1")
     string(REGEX REPLACE " +" ";" fields "${floor}")
     list(GET fields 0 metric)
     list(GET fields 1 low)

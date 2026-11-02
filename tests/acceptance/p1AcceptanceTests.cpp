@@ -207,11 +207,24 @@ TEST_CASE("P1: the pass chain keeps the ball in the home side", "[acceptance][p1
   // At least three passes in a row, every one decided by the player on the
   // ball, played, and received by a home teammate.
   REQUIRE(leadingReceptions(run.events) >= 3);
+  // A header on from the air and a set piece's planned delivery -- the
+  // kickoff after a goal -- are no decisions on the ball
+  // (docs/duels.md#the-header, docs/set-pieces.md#the-delivery).
   std::size_t passes = 0;
+  std::optional<ElyverseFootball::SimMatch::AerialContest> contest;
+  std::optional<ElyverseFootball::SimMatch::SetPieceTaken> setPiece;
   for (const MatchEvent& event : run.events) {
-    if (const auto* attempted = std::get_if<PassAttempted>(&event)) {
-      ++passes;
+    if (const auto* aerial = std::get_if<ElyverseFootball::SimMatch::AerialContest>(&event)) {
+      contest = *aerial;
+    } else if (const auto* taken = std::get_if<ElyverseFootball::SimMatch::SetPieceTaken>(&event)) {
+      setPiece = *taken;
+    } else if (const auto* attempted = std::get_if<PassAttempted>(&event)) {
       REQUIRE(attempted->intendedReceiver.has_value());
+      const bool headed =
+          contest && contest->tick == attempted->tick && contest->winner == attempted->passer;
+      const bool delivered = setPiece && setPiece->taker == attempted->passer &&
+                             attempted->tick.value() - setPiece->tick.value() <= 1;
+      passes += headed || delivered ? 0 : 1;
     }
   }
   REQUIRE(passes >= 3);
@@ -342,14 +355,14 @@ TEST_CASE("P1: the final hashes are pinned", "[acceptance][p1]") {
   };
   const std::array<Pinned, 3> pinned{{
       {.name = "pass-chain",
-       .stateHash = 0xecba4ca4830f6a6bULL,
-       .eventHash = 0xd580b725d7da7f0aULL},
+       .stateHash = 0x6938818dcfa0600bULL,
+       .eventHash = 0xaad0896dd58f61c9ULL},
       {.name = "intercepted-pass",
-       .stateHash = 0x4e97690c094b0f41ULL,
-       .eventHash = 0x7041b96f7b0161faULL},
+       .stateHash = 0x87f154c80983d806ULL,
+       .eventHash = 0x04f4518d07a24d52ULL},
       {.name = "no-passing-option",
-       .stateHash = 0x9af1ef362eab5f97ULL,
-       .eventHash = 0xa9971f20f2456bdbULL},
+       .stateHash = 0x0f6e9709cb2a7b60ULL,
+       .eventHash = 0x0da95b8936f533a4ULL},
   }};
   for (const Pinned& expected : pinned) {
     CAPTURE(expected.name);

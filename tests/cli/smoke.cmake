@@ -220,7 +220,7 @@ if(NOT result STREQUAL "0" OR NOT output MATCHES "checkpoints: +6 verified"
     message(FATAL_ERROR "Trace failed: ${result}: ${output}${error}")
 endif()
 file(READ "${trace}" traceText)
-if(NOT traceText MATCHES "^t=30 #1 passes to #2 .* -> intercepted by #8 at t=84: decision\n$")
+if(NOT traceText MATCHES "^t=36 #1 passes to #2 .* -> intercepted by #8 at t=90: decision\n$")
     message(FATAL_ERROR "Unexpected trace: ${traceText}")
 endif()
 expect_failure("only apply to --play" --scenario kickoff --trace "${trace}")

@@ -219,7 +219,9 @@ TEST_CASE("A set piece is its side's ball while it is set up", "[setPieces]") {
 
 TEST_CASE("A kickoff ends a set piece being set up; the second half's is one itself",
           "[setPieces]") {
-  auto setup = setupOf("tactic-match-eleven", 1);
+  // A seed whose first half ends with no shot on its way, which would hold
+  // the half open past a set piece awarded here.
+  auto setup = setupOf("tactic-match-eleven", 2);
   setup.config.clock.durationMinutes = 1.0;
   setup.config.restarts.enabled = true;
   // When the first half ends without interference.

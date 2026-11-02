@@ -19,8 +19,8 @@ struct TacticalMovementRules {
   DefensiveConfig defensive;
   PerceptionConfig perception;
   GoalkeeperConfig goalkeeper;
-  // How far from the goal a shot is still considered: the shot decision's
-  // maxShotDistance, which the goalkeeper judges a threat by.
+  // How far from his goal the goalkeeper judges a ball a threat: his
+  // GoalkeeperConfig::threatRange.
   double shotRange = 0.0;  // m
   OffsideConfig offside = {};
 };

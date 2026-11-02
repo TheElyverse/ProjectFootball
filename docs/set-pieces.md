@@ -62,15 +62,15 @@ the [match phase](team-tactics.md#match-phases) that follows from it.
 
 ## The delivery
 
-The taker plays once the kind's setup time has passed — `throwInSeconds` (8 s),
-`cornerSeconds` (20 s), `goalKickSeconds` (15 s), `kickoffSeconds` (0 s) — he
+The taker plays once the kind's setup time has passed — `throwInSeconds` (15 s),
+`cornerSeconds` (35 s), `goalKickSeconds` (28 s), `kickoffSeconds` (0 s) — he
 stands within `readyRadius` (0.75 m) of his place behind the ball, and everyone
 else with a place stands within `placeRadius` (2 m) of it, or `waitSeconds`
 (10 s) more have passed. The ball lies dead until then: no player receives,
 chases or wins it, and no restart is taken. The setup times are real
 football's, give or take — fetching the ball, lining up, the referee's
-whistle —: with them the ball is dead a fifth of the match rather than a
-twentieth.
+whistle —: with them the ball is dead about a third of the match, some 30
+minutes, as in real football, rather than a twentieth.
 
 `plannedDelivery()` is the pass:
 
@@ -101,7 +101,7 @@ a set piece being set up.
 A direct free kick follows a foul outside the offender's penalty area, an
 indirect one an offside ([fouls](fouls.md#the-decision),
 [offside](match-engine.md#the-free-kick)). Both are set up for
-`freeKickSeconds` (20 s). One no farther than `freeKickRange` (32 m) from the
+`freeKickSeconds` (35 s). One no farther than `freeKickRange` (32 m) from the
 centre of the goal it attacks goes for goal:
 
 - **The wall.** The defending side's outfield players whose slots stand highest
