@@ -121,14 +121,16 @@ struct PhaseChanged {
   friend bool operator==(const PhaseChanged&, const PhaseChanged&) = default;
 };
 
-// A side switched to another tactic by a ChangeTacticCommand: its name and
-// content hash (tacticHash.hpp), so a log names the tactic and an analysis
-// can tell two versions of a name apart.
+// A side's players switched to another tactic a ChangeTacticCommand gave them
+// at `given` (docs/match-engine.md#instructions): its name and content hash
+// (tacticHash.hpp), so a log names the tactic and an analysis can tell two
+// versions of a name apart.
 struct TacticChanged {
   SimCore::SimTick tick;
   TeamSide side = TeamSide::kHome;
   std::string tactic;
   std::uint64_t contentHash = 0;
+  SimCore::SimTick given;
 
   friend bool operator==(const TacticChanged&, const TacticChanged&) = default;
 };
@@ -558,6 +560,57 @@ struct CrossAttempted {
   friend bool operator==(const CrossAttempted&, const CrossAttempted&) = default;
 };
 
+// A coach gave his side a tactic by a ChangeTacticCommand: its name and content
+// hash, and the tick it reaches the players (docs/match-engine.md#instructions).
+struct InstructionGiven {
+  SimCore::SimTick tick;
+  TeamSide side = TeamSide::kHome;
+  std::string tactic;
+  std::uint64_t contentHash = 0;
+  SimCore::SimTick effective;
+
+  friend bool operator==(const InstructionGiven&, const InstructionGiven&) = default;
+};
+
+// A substitution was made at a stoppage (docs/match-engine.md#substitutions):
+// the side, who came off and who came on, and when it was ordered.
+struct SubstitutionMade {
+  SimCore::SimTick tick;
+  TeamSide side = TeamSide::kHome;
+  SimCore::PlayerId off;
+  SimCore::PlayerId on;
+  SimCore::SimTick ordered;
+
+  friend bool operator==(const SubstitutionMade&, const SubstitutionMade&) = default;
+};
+
+// Why an ordered substitution was not made.
+enum class SubstitutionRefusal : std::uint8_t {
+  // The side has made as many as a match allows.
+  kLimitReached,
+  // The player to come off is no longer on the pitch: sent off or substituted.
+  kPlayerOff,
+  // The player to come on is on the pitch or came off before.
+  kPlayerUsed,
+};
+
+// "limitReached", "playerOff", "playerUsed"; "unknown" outside the
+// enumerators.
+[[nodiscard]] std::string_view substitutionRefusalName(SubstitutionRefusal refusal) noexcept;
+
+// An ordered substitution the match did not make, and why; recorded at the
+// stoppage it was due.
+struct SubstitutionRefused {
+  SimCore::SimTick tick;
+  TeamSide side = TeamSide::kHome;
+  SimCore::PlayerId off;
+  SimCore::PlayerId on;
+  SimCore::SimTick ordered;
+  SubstitutionRefusal reason = SubstitutionRefusal::kLimitReached;
+
+  friend bool operator==(const SubstitutionRefused&, const SubstitutionRefused&) = default;
+};
+
 // New alternatives go last: an event's index is part of its hash.
 using MatchEvent =
     std::variant<PassAttempted, PassReceived, PassIntercepted, LooseBallRecovered,
@@ -565,7 +618,8 @@ using MatchEvent =
                  TacticChanged, PitchControlSampled, RestartTaken, ShotAttempted, ShotDeflected,
                  ShotHitWoodwork, ShotResolved, GoalScored, SaveAttempted, AerialContest,
                  DribbleAttempted, DribbleEnded, DuelStarted, DuelEnded, TackleAttempted,
-                 CrossAttempted, PeriodEnded, OffsideCalled, FoulCalled, SetPieceTaken>;
+                 CrossAttempted, PeriodEnded, OffsideCalled, FoulCalled, SetPieceTaken,
+                 InstructionGiven, SubstitutionMade, SubstitutionRefused>;
 
 // "pass attempted", "pass received", ... for logs and diagnostics.
 [[nodiscard]] std::string_view eventName(const MatchEvent& event);

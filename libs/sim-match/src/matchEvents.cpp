@@ -142,6 +142,29 @@ void addFields(StableHasher& hasher, const TacticChanged& event) noexcept {
   hasher.addU64(static_cast<std::uint64_t>(event.side));
   hasher.addString(event.tactic);
   hasher.addU64(event.contentHash);
+  hasher.addI64(event.given.value());
+}
+
+void addFields(StableHasher& hasher, const InstructionGiven& event) noexcept {
+  hasher.addU64(static_cast<std::uint64_t>(event.side));
+  hasher.addString(event.tactic);
+  hasher.addU64(event.contentHash);
+  hasher.addI64(event.effective.value());
+}
+
+void addFields(StableHasher& hasher, const SubstitutionMade& event) noexcept {
+  hasher.addU64(static_cast<std::uint64_t>(event.side));
+  hasher.addU64(event.off.value());
+  hasher.addU64(event.on.value());
+  hasher.addI64(event.ordered.value());
+}
+
+void addFields(StableHasher& hasher, const SubstitutionRefused& event) noexcept {
+  hasher.addU64(static_cast<std::uint64_t>(event.side));
+  hasher.addU64(event.off.value());
+  hasher.addU64(event.on.value());
+  hasher.addI64(event.ordered.value());
+  hasher.addByte(static_cast<std::uint8_t>(event.reason));
 }
 
 void addFields(StableHasher& hasher, const RestartTaken& event) noexcept {
@@ -443,6 +466,18 @@ std::string_view cardName(const Card card) noexcept {
   return "unknown";
 }
 
+std::string_view substitutionRefusalName(const SubstitutionRefusal refusal) noexcept {
+  switch (refusal) {
+    case SubstitutionRefusal::kLimitReached:
+      return "limitReached";
+    case SubstitutionRefusal::kPlayerOff:
+      return "playerOff";
+    case SubstitutionRefusal::kPlayerUsed:
+      return "playerUsed";
+  }
+  return "unknown";
+}
+
 std::string_view eventName(const MatchEvent& event) {
   struct Names {
     std::string_view operator()(const PassAttempted& /*event*/) const noexcept {
@@ -527,6 +562,15 @@ std::string_view eventName(const MatchEvent& event) {
     }
     std::string_view operator()(const SetPieceTaken& /*event*/) const noexcept {
       return "set piece taken";
+    }
+    std::string_view operator()(const InstructionGiven& /*event*/) const noexcept {
+      return "instruction given";
+    }
+    std::string_view operator()(const SubstitutionMade& /*event*/) const noexcept {
+      return "substitution made";
+    }
+    std::string_view operator()(const SubstitutionRefused& /*event*/) const noexcept {
+      return "substitution refused";
     }
   };
   return std::visit(Names{}, event);

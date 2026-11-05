@@ -27,27 +27,31 @@ void addOptionalVec2(StableHasher& hasher, const std::optional<Vec2>& vector) no
   }
 }
 
+void addAttributes(StableHasher& hasher, const PlayerAttributes& attributes) noexcept {
+  hasher.addDouble(attributes.maxSpeed);
+  hasher.addDouble(attributes.acceleration);
+  hasher.addDouble(attributes.shotAccuracy);
+  hasher.addDouble(attributes.shotTechnique);
+  hasher.addU64(static_cast<std::uint64_t>(attributes.strongFoot));
+  hasher.addDouble(attributes.weakFootAccuracy);
+  hasher.addDouble(attributes.keeperPositioning);
+  hasher.addDouble(attributes.keeperAnticipation);
+  hasher.addDouble(attributes.keeperReflexes);
+  hasher.addDouble(attributes.keeperHandling);
+  hasher.addDouble(attributes.jumping);
+  hasher.addDouble(attributes.heading);
+  hasher.addDouble(attributes.strength);
+  hasher.addDouble(attributes.ballControl);
+  hasher.addDouble(attributes.dribbling);
+  hasher.addDouble(attributes.decisionMaking);
+}
+
 void addPlayer(StableHasher& hasher, const PlayerMatchState& player) noexcept {
   hasher.addU64(player.playerId.value());
   hasher.addU64(static_cast<std::uint64_t>(player.side));
   addVec2(hasher, player.position);
   addVec2(hasher, player.velocity);
-  hasher.addDouble(player.attributes.maxSpeed);
-  hasher.addDouble(player.attributes.acceleration);
-  hasher.addDouble(player.attributes.shotAccuracy);
-  hasher.addDouble(player.attributes.shotTechnique);
-  hasher.addU64(static_cast<std::uint64_t>(player.attributes.strongFoot));
-  hasher.addDouble(player.attributes.weakFootAccuracy);
-  hasher.addDouble(player.attributes.keeperPositioning);
-  hasher.addDouble(player.attributes.keeperAnticipation);
-  hasher.addDouble(player.attributes.keeperReflexes);
-  hasher.addDouble(player.attributes.keeperHandling);
-  hasher.addDouble(player.attributes.jumping);
-  hasher.addDouble(player.attributes.heading);
-  hasher.addDouble(player.attributes.strength);
-  hasher.addDouble(player.attributes.ballControl);
-  hasher.addDouble(player.attributes.dribbling);
-  hasher.addDouble(player.attributes.decisionMaking);
+  addAttributes(hasher, player.attributes);
   addOptionalVec2(hasher, player.target);
   addVec2(hasher, player.facing);
   hasher.addDouble(player.fitness.sprintReserve);
@@ -239,6 +243,30 @@ void addPendingAction(StableHasher& hasher, const PendingAction& action) noexcep
 
 namespace {
 
+// Substitutions ordered or made (docs/match-engine.md#substitutions).
+void addSubstitutions(StableHasher& hasher, const std::span<const Substitution> substitutions) {
+  hasher.addU64(substitutions.size());
+  for (const Substitution& substitution : substitutions) {
+    hasher.addU64(static_cast<std::uint64_t>(substitution.side));
+    hasher.addU64(substitution.off.value());
+    hasher.addU64(substitution.on.value());
+    addAttributes(hasher, substitution.attributes);
+    hasher.addI64(substitution.ordered.value());
+  }
+}
+
+// The tactics on their way to the players (docs/match-engine.md#instructions).
+void addPendingTactics(StableHasher& hasher, const MatchState& state) {
+  for (const TeamSide side : {TeamSide::kHome, TeamSide::kAway}) {
+    const auto& pending = state.pendingTactic(side);
+    hasher.addBool(pending.has_value());
+    if (pending) {
+      hasher.addU64(SimTactics::contentHash(pending->tactic));
+      hasher.addI64(pending->given.value());
+    }
+  }
+}
+
 // The touch of an indirect free kick nobody else has touched yet, if any.
 void addIndirectKick(StableHasher& hasher, const std::optional<BallTouch>& kick) noexcept {
   hasher.addBool(kick.has_value());
@@ -369,6 +397,9 @@ std::uint64_t hashMatchState(const MatchState& state) noexcept {
   addOffside(hasher, state);
   addSetPiece(hasher, state.setPiece());
   addIndirectKick(hasher, state.indirectKick());
+  addSubstitutions(hasher, state.pendingSubstitutions());
+  addSubstitutions(hasher, state.substitutions());
+  addPendingTactics(hasher, state);
   const auto& foul = state.lastFoul();
   hasher.addBool(foul.has_value());
   if (foul) {

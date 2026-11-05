@@ -111,6 +111,31 @@ TEST_CASE("toDebugFramesJson writes the documented format", "[debugFrames]") {
   CHECK(second.at("events").at(0).at("tick") == 0);
 }
 
+TEST_CASE("The header lists a substitute who comes on during the recording", "[debugFrames]") {
+  DebugRecording recording = record(setup(), 2);
+  // The last frame as if away's player 9 had been substituted by player 30.
+  const auto& last = recording.frames.back().state;
+  std::vector<ElyverseFootball::SimMatch::PlayerMatchState> players(last.players().begin(),
+                                                                    last.players().end());
+  players.at(8).playerId = PlayerId(30);
+  auto substituted =
+      ElyverseFootball::SimMatch::MatchState::create({.pitch = last.pitch(),
+                                                      .players = std::move(players),
+                                                      .ball = last.ball(),
+                                                      .playersPerSide = last.playersPerSide()},
+                                                     last.tactics());
+  REQUIRE(substituted.has_value());
+  recording.frames.push_back({.state = *std::move(substituted),
+                              .tick = SimTick(3),
+                              .events = {},
+                              .decisions = {},
+                              .actions = {}});
+  const auto json = nlohmann::json::parse(toDebugFramesJson(recording));
+  REQUIRE(json.at("players").size() == 15);
+  CHECK(json.at("players").at(14).at("id") == 30);
+  CHECK(json.at("players").at(14).at("side") == "away");
+}
+
 TEST_CASE("toDebugFramesJson rounds to three decimals and lists decision candidates",
           "[debugFrames]") {
   const auto json = nlohmann::json::parse(toDebugFramesJson(record(setup(), 60)));

@@ -51,28 +51,32 @@ using SimMatch::TeamSide;
   return {{"x", vector.x}, {"y", vector.y}};
 }
 
+[[nodiscard]] Json attributesJson(const SimMatch::PlayerAttributes& attributes) {
+  return {{"maxSpeed", attributes.maxSpeed},
+          {"acceleration", attributes.acceleration},
+          {"shotAccuracy", attributes.shotAccuracy},
+          {"shotTechnique", attributes.shotTechnique},
+          {"strongFoot", SimMatch::footName(attributes.strongFoot)},
+          {"weakFootAccuracy", attributes.weakFootAccuracy},
+          {"keeperPositioning", attributes.keeperPositioning},
+          {"keeperAnticipation", attributes.keeperAnticipation},
+          {"keeperReflexes", attributes.keeperReflexes},
+          {"keeperHandling", attributes.keeperHandling},
+          {"jumping", attributes.jumping},
+          {"heading", attributes.heading},
+          {"strength", attributes.strength},
+          {"ballControl", attributes.ballControl},
+          {"dribbling", attributes.dribbling},
+          {"decisionMaking", attributes.decisionMaking}};
+}
+
 [[nodiscard]] Json playerJson(const PlayerMatchState& player) {
   Json json;
   json["id"] = player.playerId.value();
   json["side"] = SimMatch::teamSideName(player.side);
   json["position"] = vec2Json(player.position);
   json["velocity"] = vec2Json(player.velocity);
-  json["attributes"] = {{"maxSpeed", player.attributes.maxSpeed},
-                        {"acceleration", player.attributes.acceleration},
-                        {"shotAccuracy", player.attributes.shotAccuracy},
-                        {"shotTechnique", player.attributes.shotTechnique},
-                        {"strongFoot", SimMatch::footName(player.attributes.strongFoot)},
-                        {"weakFootAccuracy", player.attributes.weakFootAccuracy},
-                        {"keeperPositioning", player.attributes.keeperPositioning},
-                        {"keeperAnticipation", player.attributes.keeperAnticipation},
-                        {"keeperReflexes", player.attributes.keeperReflexes},
-                        {"keeperHandling", player.attributes.keeperHandling},
-                        {"jumping", player.attributes.jumping},
-                        {"heading", player.attributes.heading},
-                        {"strength", player.attributes.strength},
-                        {"ballControl", player.attributes.ballControl},
-                        {"dribbling", player.attributes.dribbling},
-                        {"decisionMaking", player.attributes.decisionMaking}};
+  json["attributes"] = attributesJson(player.attributes);
   json["target"] = player.target ? vec2Json(*player.target) : Json(nullptr);
   json["facing"] = vec2Json(player.facing);
   json["fitness"] = {{"sprintReserve", player.fitness.sprintReserve},
@@ -165,6 +169,14 @@ void addCommandFields(Json& json, const SimMatch::ChangeTacticCommand& command) 
   json["type"] = "changeTactic";
   json["side"] = SimMatch::teamSideName(command.side);
   json["tactic"] = tacticJson(command.tactic);
+}
+
+void addCommandFields(Json& json, const SimMatch::SubstituteCommand& command) {
+  json["type"] = "substitute";
+  json["side"] = SimMatch::teamSideName(command.side);
+  json["off"] = command.off.value();
+  json["on"] = command.on.value();
+  json["attributes"] = attributesJson(command.attributes);
 }
 
 // Commands in execution order, each with its position within its tick.
@@ -348,30 +360,33 @@ constexpr std::int64_t kMaxGoals = 1'000'000;
   field.fail(std::format(R"(expected "left" or "right", got "{}")", foot));
 }
 
+[[nodiscard]] SimMatch::PlayerAttributes readAttributes(const Field& attributes) {
+  return {.maxSpeed = attributes.member("maxSpeed").number(),
+          .acceleration = attributes.member("acceleration").number(),
+          .shotAccuracy = attributes.member("shotAccuracy").number(),
+          .shotTechnique = attributes.member("shotTechnique").number(),
+          .strongFoot = readFoot(attributes.member("strongFoot")),
+          .weakFootAccuracy = attributes.member("weakFootAccuracy").number(),
+          .keeperPositioning = attributes.member("keeperPositioning").number(),
+          .keeperAnticipation = attributes.member("keeperAnticipation").number(),
+          .keeperReflexes = attributes.member("keeperReflexes").number(),
+          .keeperHandling = attributes.member("keeperHandling").number(),
+          .jumping = attributes.member("jumping").number(),
+          .heading = attributes.member("heading").number(),
+          .strength = attributes.member("strength").number(),
+          .ballControl = attributes.member("ballControl").number(),
+          .dribbling = attributes.member("dribbling").number(),
+          .decisionMaking = attributes.member("decisionMaking").number()};
+}
+
 [[nodiscard]] PlayerMatchState readPlayer(const Field& field) {
-  const Field attributes = field.member("attributes");
   const Field target = field.member("target");
   const Field fitness = field.member("fitness");
   return {.playerId = readPlayerId(field.member("id")),
           .side = readSide(field.member("side")),
           .position = readVec2(field.member("position")),
           .velocity = readVec2(field.member("velocity")),
-          .attributes = {.maxSpeed = attributes.member("maxSpeed").number(),
-                         .acceleration = attributes.member("acceleration").number(),
-                         .shotAccuracy = attributes.member("shotAccuracy").number(),
-                         .shotTechnique = attributes.member("shotTechnique").number(),
-                         .strongFoot = readFoot(attributes.member("strongFoot")),
-                         .weakFootAccuracy = attributes.member("weakFootAccuracy").number(),
-                         .keeperPositioning = attributes.member("keeperPositioning").number(),
-                         .keeperAnticipation = attributes.member("keeperAnticipation").number(),
-                         .keeperReflexes = attributes.member("keeperReflexes").number(),
-                         .keeperHandling = attributes.member("keeperHandling").number(),
-                         .jumping = attributes.member("jumping").number(),
-                         .heading = attributes.member("heading").number(),
-                         .strength = attributes.member("strength").number(),
-                         .ballControl = attributes.member("ballControl").number(),
-                         .dribbling = attributes.member("dribbling").number(),
-                         .decisionMaking = attributes.member("decisionMaking").number()},
+          .attributes = readAttributes(field.member("attributes")),
           .target = target.isNull() ? std::nullopt : std::optional(readVec2(target)),
           .facing = readVec2(field.member("facing")),
           .fitness = {.sprintReserve = fitness.member("sprintReserve").number(),
@@ -964,6 +979,12 @@ void fieldsOf(Visitor& visit, SimMatch::FoulConfig& fouls) {
 }
 
 template <typename Visitor>
+void fieldsOf(Visitor& visit, SimMatch::CoachingConfig& coaching) {
+  visit.number("instructionDelaySeconds", coaching.instructionDelaySeconds);
+  visit.integer("maxSubstitutions", coaching.maxSubstitutions, 0, SimMatch::kMaxSubstitutions);
+}
+
+template <typename Visitor>
 void fieldsOf(Visitor& visit, SimMatch::OffsideConfig& offside) {
   visit.boolean("enabled", offside.enabled);
   visit.number("levelMeters", offside.levelMeters);
@@ -996,6 +1017,7 @@ void fieldsOf(Visitor& visit, MatchConfig& config) {
   visit.object("offside", config.offside);
   visit.object("fouls", config.fouls);
   visit.object("setPieces", config.setPieces);
+  visit.object("coaching", config.coaching);
 }
 
 // Writes the fields it visits into a JSON object.
@@ -1086,6 +1108,12 @@ class ConfigReader {
       field.member("tactic").fail("a tactic change needs a tactic");
     }
     return SimMatch::ChangeTacticCommand{.side = side, .tactic = *std::move(tactic)};
+  }
+  if (type == "substitute") {
+    return SimMatch::SubstituteCommand{.side = readSide(field.member("side")),
+                                       .off = readPlayerId(field.member("off")),
+                                       .on = readPlayerId(field.member("on")),
+                                       .attributes = readAttributes(field.member("attributes"))};
   }
   field.member("type").fail(std::format("unknown command type \"{}\"", type));
 }

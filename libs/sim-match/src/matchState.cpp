@@ -474,6 +474,122 @@ void MatchStateWriter::addYellowCard(const std::size_t playerIndex) {
   ++state_->players_.at(playerIndex).yellowCards;
 }
 
+namespace {
+
+// Nobody remembers the player any more.
+void forget(std::vector<PlayerPerception>& perceptions, const SimCore::PlayerId playerId) {
+  const ObservedEntity entity = ObservedEntity::player(playerId);
+  for (PlayerPerception& perception : perceptions) {
+    std::erase_if(perception.observations, [entity](const Observation& observation) {
+      return observation.entity == entity;
+    });
+  }
+}
+
+// A touch by the player leaving becomes one by the newcomer.
+// NOLINTBEGIN(bugprone-easily-swappable-parameters) -- who leaves, then who comes.
+void passTouch(std::optional<BallTouch>& touch, const SimCore::PlayerId leaving,
+               const SimCore::PlayerId newcomer) noexcept {
+  if (touch && touch->playerId == leaving) {
+    touch->playerId = newcomer;
+  }
+}
+// NOLINTEND(bugprone-easily-swappable-parameters)
+
+// What other players were doing about him ends with his leaving.
+void endAbout(PlayerTacticalState& tactical, const SimCore::PlayerId playerId) noexcept {
+  if (tactical.action && tactical.action->subject == playerId) {
+    tactical.action.reset();
+  }
+  if (tactical.carry && tactical.carry->subject == playerId) {
+    tactical.carry.reset();
+  }
+  if (tactical.duel && tactical.duel->carrier == playerId) {
+    tactical.duel.reset();
+  }
+}
+
+[[nodiscard]] bool pressesWith(const TeamPress& press, const SimCore::PlayerId playerId) noexcept {
+  return press.carrier == playerId ||
+         std::ranges::any_of(press.assignments, [playerId](const PressAssignment& assignment) {
+           return assignment.player == playerId || assignment.subject == playerId;
+         });
+}
+
+}  // namespace
+
+int MatchState::substitutionsMade(const TeamSide side) const noexcept {
+  return static_cast<int>(std::ranges::count_if(
+      substitutions_, [side](const Substitution& made) { return made.side == side; }));
+}
+
+bool MatchState::cameOff(const SimCore::PlayerId playerId) const noexcept {
+  return std::ranges::any_of(substitutions_,
+                             [playerId](const Substitution& made) { return made.off == playerId; });
+}
+
+bool areValid(const PlayerAttributes& attributes) {
+  std::vector<MatchStateError> errors;
+  PlayerMatchState player;
+  player.attributes = attributes;
+  appendAttributeErrors(0, player, errors);
+  return errors.empty();
+}
+
+void MatchStateWriter::substitute(const Substitution& substitution) {
+  const auto index = findPlayerIndex(*state_, substitution.off);
+  if (!index || state_->players_[*index].side != substitution.side ||
+      !isOnPitch(state_->players_[*index])) {
+    throw std::invalid_argument(
+        std::format("MatchStateWriter: player {} is not on the pitch for {} to come off",
+                    substitution.off.value(), teamSideName(substitution.side)));
+  }
+  if (!substitution.on.isValid() || findPlayerIndex(*state_, substitution.on) ||
+      state_->cameOff(substitution.on) || !areValid(substitution.attributes)) {
+    throw std::invalid_argument(std::format(
+        "MatchStateWriter: player {} cannot come on: his id is invalid or used, he came off "
+        "before, or his attributes are invalid",
+        substitution.on.value()));
+  }
+  PlayerMatchState& player = state_->players_[*index];
+  const SimCore::PlayerId off = player.playerId;
+  const SimCore::PlayerId newcomer = substitution.on;
+  player.playerId = newcomer;
+  player.attributes = substitution.attributes;
+  player.velocity = {};
+  player.target.reset();
+  player.fitness = {};
+  player.yellowCards = 0;
+  state_->pendingActions_[*index].reset();
+  state_->perceptions_[*index] = {};
+  state_->tactical_[*index] = {};
+  forget(state_->perceptions_, off);
+  for (PlayerTacticalState& tactical : state_->tactical_) {
+    endAbout(tactical, off);
+  }
+  BallState& ball = state_->ball_;
+  if (ball.owner == off) {
+    ball.owner = newcomer;
+  }
+  passTouch(ball.lastTouch, off, newcomer);
+  passTouch(state_->indirectKick_, off, newcomer);
+  passTouch(state_->offsideExemption_, off, newcomer);
+  if (state_->setPiece_ && state_->setPiece_->taker == off) {
+    state_->setPiece_->taker = newcomer;
+  }
+  for (auto& chaser : state_->chasers_) {
+    if (chaser == off) {
+      chaser.reset();
+    }
+  }
+  for (auto& press : state_->presses_) {
+    if (press && pressesWith(*press, off)) {
+      press.reset();
+    }
+  }
+  state_->substitutions_.push_back(substitution);
+}
+
 void MatchStateWriter::sendOff(const std::size_t playerIndex, const SimCore::Vec2 position) {
   PlayerMatchState& player = state_->players_.at(playerIndex);
   // He leaves the ball where it is.
@@ -489,12 +605,7 @@ void MatchStateWriter::sendOff(const std::size_t playerIndex, const SimCore::Vec
   state_->pendingActions_.at(playerIndex).reset();
   state_->perceptions_.at(playerIndex) = {};
   state_->tactical_.at(playerIndex) = {};
-  const ObservedEntity entity = ObservedEntity::player(player.playerId);
-  for (PlayerPerception& perception : state_->perceptions_) {
-    std::erase_if(perception.observations, [entity](const Observation& observation) {
-      return observation.entity == entity;
-    });
-  }
+  forget(state_->perceptions_, player.playerId);
 }
 
 void MatchStateWriter::setPlayerFitness(const std::size_t playerIndex,

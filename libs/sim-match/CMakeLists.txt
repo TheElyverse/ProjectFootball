@@ -7,6 +7,7 @@ add_library(sim-match STATIC
         src/fitness.cpp
         src/matchClock.cpp
         src/matchClockSystem.cpp
+        src/coaching.cpp
         src/ballPhysics.cpp
         src/ballMovement.cpp
         src/matchStateHash.cpp

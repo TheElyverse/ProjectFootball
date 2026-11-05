@@ -150,8 +150,36 @@ test("describeEvent names the players involved", () => {
       side: "away",
       tactic: "pressing",
       contentHash: "0123456789abcdef",
+      given: 0,
     }),
     "away switches to pressing",
+  );
+  assert.equal(
+    describeEvent({
+      tick: 0,
+      type: "instructionGiven",
+      side: "away",
+      tactic: "pressing",
+      contentHash: "0123456789abcdef",
+      effective: 150,
+    }),
+    "away coach: pressing, on the players at tick 150",
+  );
+  assert.equal(
+    describeEvent({ tick: 0, type: "substitutionMade", side: "home", off: 9, on: 23, ordered: 0 }),
+    "home substitution: #23 for #9",
+  );
+  assert.equal(
+    describeEvent({
+      tick: 0,
+      type: "substitutionRefused",
+      side: "home",
+      off: 9,
+      on: 24,
+      ordered: 0,
+      reason: "limitReached",
+    }),
+    "home substitution #24 for #9 refused: limitReached",
   );
       assert.equal(describeEvent({ tick: 0, type: "somethingNew" }), "somethingNew");
   assert.equal(

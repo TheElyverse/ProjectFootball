@@ -26,12 +26,12 @@ directory); `--play` plays one back. The file is written before the terminal
 interface opens, so a run rejected by argument or terminal validation leaves no
 file.
 
-### Schema version 23
+### Schema version 24
 
 ```json
 {
-  "schemaVersion": 23,
-  "coreVersion": "0.39.0",
+  "schemaVersion": 24,
+  "coreVersion": "0.40.0",
   "createdAt": "2026-09-24T10:00:00Z",
   "seed": "18446744073709551615",
   "gameTime": 300,
@@ -67,7 +67,8 @@ file.
     "fitness": { "sprintSpeedShare": 0.85, "...": "..." },
     "offside": { "enabled": false, "levelMeters": 0.1 },
     "fouls": { "enabled": false, "fromBehindDot": -0.5, "...": "..." },
-    "setPieces": { "throwInSeconds": 3.0, "cornerSeconds": 8.0, "...": "..." }
+    "setPieces": { "throwInSeconds": 3.0, "cornerSeconds": 8.0, "...": "..." },
+    "coaching": { "instructionDelaySeconds": 5.0, "maxSubstitutions": 5 }
   },
   "initialState": {
     "pitch": { "length": 60.0, "width": 40.0 },
@@ -192,6 +193,7 @@ match. Commands of one tick execute in the order they were scheduled
 | `giveBall`   | `playerId`             | `GiveBallCommand`   |
 | `pass`       | `playerId`, `target`, `speed`, `receiver` (or `null`) | `PassCommand` |
 | `changeTactic` | `side`, `tactic` (`contentHash` and `tactic` as in `initialState.tactics`) | `ChangeTacticCommand` |
+| `substitute`   | `side`, `off`, `on` (player ids), `attributes` (as a player's) | `SubstituteCommand` |
 
 A replay holds the commands the simulation applied: one scheduled during the run
 is included, one for a tick the match never reached is not.
@@ -322,6 +324,7 @@ record the scenario again with the same seed.
 | 21      | Players gain `yellowCards` and `sentOff`, the configuration its `fouls` block and the clock `penaltyLostSeconds` and `cardLostSeconds` ([fouls](fouls.md)). |
 | 22      | The configuration gains its `setPieces` block, restarts are on by default, and tactics carry their set-piece plans in `setPieces` ([set pieces](set-pieces.md)). |
 | 23      | The `setPieces` block gains `freeKickSeconds`, `penaltySeconds`, `freeKickRange`, `wallPlayers` and `wallSpacing`, and tactics may plan a `freeKick` and a `penalty` ([free kicks](set-pieces.md#free-kicks), [penalties](set-pieces.md#penalties)). |
+| 24      | The configuration gains its `coaching` block, commands a `substitute` type (`side`, `off`, `on`, `attributes`), and a tactic change reaches the players after the coaching delay ([coaching](match-engine.md#coaching)). |
 
 ## Decision trace
 
@@ -605,8 +608,10 @@ values:
 
 - The header holds what never changes during a match: the run's identity (core
   version, scenario, seed as a decimal string like in a replay), the tick rate,
-  the perception and reception parameters the viewer draws, the pitch, and the
-  squad with each player's side.
+  the perception and reception parameters the viewer draws, the pitch, and
+  every player who plays in the recording — a substitute too
+  ([substitutions](match-engine.md#substitutions)) — with his side, in the
+  order they first appear.
 - `frames` has one entry per tick from 0, the initial state, to the last
   simulated tick. A frame is the state after the step that reached its tick,
   plus the events and decision diagnostics that step recorded; frame 0 has

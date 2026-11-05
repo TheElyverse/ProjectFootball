@@ -220,6 +220,29 @@ export type MatchEvent = { readonly tick: number } & (
       readonly side: TeamSide;
       readonly tactic: string;
       readonly contentHash: string;
+      readonly given: number;
+    }
+  | {
+      readonly type: "instructionGiven";
+      readonly side: TeamSide;
+      readonly tactic: string;
+      readonly contentHash: string;
+      readonly effective: number;
+    }
+  | {
+      readonly type: "substitutionMade";
+      readonly side: TeamSide;
+      readonly off: number;
+      readonly on: number;
+      readonly ordered: number;
+    }
+  | {
+      readonly type: "substitutionRefused";
+      readonly side: TeamSide;
+      readonly off: number;
+      readonly on: number;
+      readonly ordered: number;
+      readonly reason: string;
     }
   | {
       readonly type: "phaseChanged";
@@ -523,6 +546,12 @@ export function describeEvent(event: MatchEvent): string {
       return `#${event.offender} fouls #${event.victim}: ${event.restart}${event.card === "none" ? "" : `, ${event.card} card`}`;
     case "offsideCalled":
       return `#${event.player} offside from #${event.passer}'s pass`;
+    case "instructionGiven":
+      return `${event.side} coach: ${event.tactic}, on the players at tick ${event.effective}`;
+    case "substitutionMade":
+      return `${event.side} substitution: #${event.on} for #${event.off}`;
+    case "substitutionRefused":
+      return `${event.side} substitution #${event.on} for #${event.off} refused: ${event.reason}`;
     default:
       // A newer core may record events this viewer does not know yet.
       return (event as { readonly type: string }).type;

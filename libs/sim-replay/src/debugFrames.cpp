@@ -304,6 +304,32 @@ void addEventFields(Json& json, const SimMatch::TacticChanged& event) {
   json["side"] = SimMatch::teamSideName(event.side);
   json["tactic"] = event.tactic;
   json["contentHash"] = std::format("{:016x}", event.contentHash);
+  json["given"] = event.given.value();
+}
+
+void addEventFields(Json& json, const SimMatch::InstructionGiven& event) {
+  json["type"] = "instructionGiven";
+  json["side"] = SimMatch::teamSideName(event.side);
+  json["tactic"] = event.tactic;
+  json["contentHash"] = std::format("{:016x}", event.contentHash);
+  json["effective"] = event.effective.value();
+}
+
+void addEventFields(Json& json, const SimMatch::SubstitutionMade& event) {
+  json["type"] = "substitutionMade";
+  json["side"] = SimMatch::teamSideName(event.side);
+  json["off"] = event.off.value();
+  json["on"] = event.on.value();
+  json["ordered"] = event.ordered.value();
+}
+
+void addEventFields(Json& json, const SimMatch::SubstitutionRefused& event) {
+  json["type"] = "substitutionRefused";
+  json["side"] = SimMatch::teamSideName(event.side);
+  json["off"] = event.off.value();
+  json["on"] = event.on.value();
+  json["ordered"] = event.ordered.value();
+  json["reason"] = SimMatch::substitutionRefusalName(event.reason);
 }
 
 void addEventFields(Json& json, const SimMatch::PitchControlSampled& event) {
@@ -642,7 +668,9 @@ std::string toDebugFramesJson(const DebugRecording& recording) {
                         {"awarenessRadius", config.perception.awarenessRadius}};
   json["reception"] = {{"controlRadius", config.reception.controlRadius}};
 
-  // The pitch and the squad never change during a match: written once.
+  // The pitch never changes during a match: written once. Every player who
+  // plays in it, substitutes included (docs/match-engine.md#substitutions),
+  // in the order they first appear.
   json["pitch"] = Json::object();
   json["players"] = Json::array();
   if (!recording.frames.empty()) {
@@ -650,9 +678,14 @@ std::string toDebugFramesJson(const DebugRecording& recording) {
     json["pitch"] = {{"length", state.pitch().lengthMeters()},
                      {"width", state.pitch().widthMeters()}};
     json["zones"] = zonesJson(state.pitch());
-    for (const SimMatch::PlayerMatchState& player : state.players()) {
-      json["players"].push_back(
-          {{"id", player.playerId.value()}, {"side", SimMatch::teamSideName(player.side)}});
+  }
+  std::set<SimCore::PlayerId::ValueType> listed;
+  for (const DebugFrame& frame : recording.frames) {
+    for (const SimMatch::PlayerMatchState& player : frame.state.players()) {
+      if (listed.insert(player.playerId.value()).second) {
+        json["players"].push_back(
+            {{"id", player.playerId.value()}, {"side", SimMatch::teamSideName(player.side)}});
+      }
     }
   }
   json["frames"] = Json::array();

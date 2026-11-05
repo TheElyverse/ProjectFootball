@@ -72,6 +72,8 @@ std::vector<MatchSystem> makeMatchSystems(const MatchConfig& config) {
                                           .physics = config.ball,
                                           .ticksPerSecond = config.ticksPerSecond,
                                           .setPieces = config.restarts.enabled}));
+  systems.push_back(
+      makeCoachingSystem({.coaching = config.coaching, .ticksPerSecond = config.ticksPerSecond}));
   return systems;
 }
 

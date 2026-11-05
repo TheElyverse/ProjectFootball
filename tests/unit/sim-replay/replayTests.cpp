@@ -262,6 +262,47 @@ TEST_CASE("A match with a tactic change replays identically", "[replay]") {
           replay.checkpoints.back().stateHash);
 }
 
+TEST_CASE("A match with a substitution replays identically", "[replay]") {
+  using ElyverseFootball::SimMatch::SubstituteCommand;
+  using ElyverseFootball::SimMatch::TeamSide;
+  using ElyverseFootball::SimTactics::referenceTacticSpec;
+  using ElyverseFootball::SimTactics::Tactic;
+  const auto reference = Tactic::create(referenceTacticSpec());
+  REQUIRE(reference.has_value());
+  const auto unchanged =
+      ElyverseFootball::SimMatch::makeTacticMatch({.home = *reference, .away = *reference}, 11);
+  REQUIRE(unchanged.has_value());
+  MatchSetup changed = *unchanged;
+  changed.commands.push_back(
+      {.tick = SimTick(30),
+       .command = SubstituteCommand{.side = TeamSide::kHome,
+                                    .off = unchanged->initialState.players()[6].playerId,
+                                    .on = ElyverseFootball::SimCore::PlayerId(100),
+                                    .attributes = {.maxSpeed = 9.0}}});
+  // Commands for the substitute: the replay schedules them before the first
+  // step, before he has come on.
+  changed.commands.push_back({.tick = SimTick(1200),
+                              .command = ElyverseFootball::SimMatch::MovePlayerCommand{
+                                  .playerId = ElyverseFootball::SimCore::PlayerId(100),
+                                  .target = {.x = 30.0, .y = 20.0}}});
+  changed.commands.push_back(
+      {.tick = SimTick(1300),
+       .command = SubstituteCommand{.side = TeamSide::kHome,
+                                    .off = ElyverseFootball::SimCore::PlayerId(100),
+                                    .on = ElyverseFootball::SimCore::PlayerId(101),
+                                    .attributes = {}}});
+
+  const Replay replay = recorded(changed, 1800);
+  const auto parsed = parseReplayJson(toReplayJson(replay));
+  REQUIRE(parsed.has_value());
+  REQUIRE(*parsed == replay);
+  const auto playback = playReplay(*parsed);
+  REQUIRE(playback.has_value());
+  REQUIRE(playback->finalStateHash == replay.checkpoints.back().stateHash);
+  REQUIRE(recorded(*unchanged, 1800).checkpoints.back().stateHash !=
+          replay.checkpoints.back().stateHash);
+}
+
 TEST_CASE("The seed is written as a decimal string", "[replay]") {
   const std::string json =
       toReplayJson(recorded(setup(std::numeric_limits<std::uint64_t>::max()), 1));

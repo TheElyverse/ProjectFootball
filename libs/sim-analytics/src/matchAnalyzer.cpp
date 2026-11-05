@@ -98,6 +98,9 @@ void MatchAnalyzer::observeStep(const std::span<const SimMatch::MatchEvent> even
       onFoul(*foul);
     } else if (const auto* setPiece = std::get_if<SimMatch::SetPieceTaken>(&event)) {
       onSetPiece(*setPiece);
+    } else if (const auto* substitution = std::get_if<SimMatch::SubstitutionMade>(&event)) {
+      // The newcomer plays for the side from now on.
+      context_.sides[substitution->on] = substitution->side;
     } else if (const auto* ended = std::get_if<SimMatch::PeriodEnded>(&event)) {
       finished_ = finished_ || ended->period == SimMatch::MatchPeriod::kSecondHalf;
     } else if (const auto* intercepted = std::get_if<SimMatch::PassIntercepted>(&event)) {

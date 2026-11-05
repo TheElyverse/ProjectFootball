@@ -424,3 +424,24 @@ TEST_CASE("Corners, throw-ins and goal kicks count for the side taking them", "[
   REQUIRE(stats.away.throwIns == 1);
   REQUIRE(stats.away.goalKicks == 1);
 }
+
+TEST_CASE("A substitute counts for his side from his substitution on", "[analytics]") {
+  using ElyverseFootball::SimMatch::SubstitutionMade;
+  const MatchEvent substitution = SubstitutionMade{.tick = SimTick(1),
+                                                   .side = TeamSide::kAway,
+                                                   .off = PlayerId(3),
+                                                   .on = PlayerId(30),
+                                                   .ordered = SimTick(0)};
+  const MatchEvent shot = ShotAttempted{.tick = SimTick(2),
+                                        .shooter = PlayerId(30),
+                                        .from = {.x = 20.0, .y = 20.0},
+                                        .target = {.x = 0.0, .y = 20.0},
+                                        .height = 0.5,
+                                        .struckAt = {.x = 0.0, .y = 20.2},
+                                        .struckHeight = 0.6,
+                                        .speed = 20.0,
+                                        .distance = 20.0,
+                                        .opening = 0.4};
+  REQUIRE(analyze({{shot}}).away.shots == 0);
+  REQUIRE(analyze({{substitution}, {shot}}).away.shots == 1);
+}
