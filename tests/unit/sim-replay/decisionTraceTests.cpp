@@ -118,14 +118,13 @@ struct Interception {
 
 // The trace of a scenario's first seconds, through a watched playback.
 [[nodiscard]] std::vector<TraceEntry> traceOf(const std::string& scenario,
-                                              const DiagnosticsFilter& filter,
-                                              const std::int64_t ticks,
+                                              const DiagnosticsFilter& filter, const SimTick ticks,
                                               const std::uint64_t seed = 7) {
   const auto* definition = ElyverseFootball::SimMatch::findScenario(scenario);
   REQUIRE(definition != nullptr);
   const auto setup = definition->make(seed);
   REQUIRE(setup.has_value());
-  const auto replay = recordMatch(*setup, SimTick(ticks), 30, "2026-09-25T12:00:00Z");
+  const auto replay = recordMatch(*setup, ticks, 30, "2026-09-25T12:00:00Z");
   REQUIRE(replay.has_value());
   DecisionTracer tracer(setup->config);
   const auto playback = playReplay(
@@ -187,8 +186,9 @@ TEST_CASE("A pass judged safe with the interceptor in view is an execution failu
 }
 
 TEST_CASE("The tracer follows a completed pass to its receiver", "[decisionTrace]") {
-  const auto passes = passesOf(traceOf(
-      "pass-chain", {.players = {PlayerId(1)}, .from = std::nullopt, .to = std::nullopt}, 150));
+  const auto passes = passesOf(
+      traceOf("pass-chain", {.players = {PlayerId(1)}, .from = std::nullopt, .to = std::nullopt},
+              SimTick(150)));
   REQUIRE_FALSE(passes.empty());
   const PassDecisionTrace& first = passes.front();
   REQUIRE(first.decision.player == PlayerId(1));
@@ -199,9 +199,9 @@ TEST_CASE("The tracer follows a completed pass to its receiver", "[decisionTrace
 
 TEST_CASE("The tracer attributes the risky pass of intercepted-pass to the decision",
           "[decisionTrace]") {
-  const auto passes =
-      passesOf(traceOf("intercepted-pass",
-                       {.players = {PlayerId(1)}, .from = std::nullopt, .to = std::nullopt}, 150));
+  const auto passes = passesOf(
+      traceOf("intercepted-pass",
+              {.players = {PlayerId(1)}, .from = std::nullopt, .to = std::nullopt}, SimTick(150)));
   REQUIRE_FALSE(passes.empty());
   const PassDecisionTrace& first = passes.front();
   REQUIRE(first.outcome.result == PassResult::kIntercepted);
@@ -324,7 +324,7 @@ TEST_CASE("A goalkeeper's call to come for a ball is traced with both arrivals",
           "[decisionTrace]") {
   const auto entries =
       traceOf("keeper-sweep-claim",
-              {.players = {PlayerId(8)}, .from = std::nullopt, .to = std::nullopt}, 60);
+              {.players = {PlayerId(8)}, .from = std::nullopt, .to = std::nullopt}, SimTick(60));
   std::vector<TraceEntry> sweeps;
   for (const TraceEntry& entry : entries) {
     if (std::holds_alternative<SweepDecisionTrace>(entry)) {
@@ -432,8 +432,9 @@ TEST_CASE("A pass lost in a duel the step it is decided is traced as not played"
 }
 
 TEST_CASE("The tracer keeps to the filtered players and ticks", "[decisionTrace]") {
-  const auto entries = traceOf(
-      "tactic-match", {.players = {PlayerId(4)}, .from = SimTick(30), .to = SimTick(90)}, 150);
+  const auto entries =
+      traceOf("tactic-match", {.players = {PlayerId(4)}, .from = SimTick(30), .to = SimTick(90)},
+              SimTick(150));
   REQUIRE_FALSE(entries.empty());
   for (const TraceEntry& entry : entries) {
     std::visit(
@@ -479,8 +480,9 @@ TEST_CASE("A cross is traced with its area, its runner and its reason", "[decisi
 }
 
 TEST_CASE("The tracer follows a cross to whoever wins it in the air", "[decisionTrace]") {
-  const auto passes = passesOf(traceOf(
-      "early-cross", {.players = {PlayerId(1)}, .from = std::nullopt, .to = std::nullopt}, 150, 1));
+  const auto passes = passesOf(
+      traceOf("early-cross", {.players = {PlayerId(1)}, .from = std::nullopt, .to = std::nullopt},
+              SimTick(150), 1));
   REQUIRE_FALSE(passes.empty());
   const PassDecisionTrace& first = passes.front();
   REQUIRE(first.decision.outcome == DecisionOutcome::kCrossed);
@@ -540,11 +542,11 @@ TEST_CASE("A duel and a keeper's dive in a match are traced", "[decisionTrace]")
   const auto count = [](const std::vector<TraceEntry>& entries, const auto& isKind) {
     return std::ranges::count_if(entries, isKind);
   };
-  const auto duels = traceOf("duel-ball-kept", everyone, 150);
+  const auto duels = traceOf("duel-ball-kept", everyone, SimTick(150));
   REQUIRE(count(duels, [](const TraceEntry& entry) {
             return std::holds_alternative<DuelDecisionTrace>(entry);
           }) > 0);
-  const auto dives = traceOf("clear-chance", everyone, 150);
+  const auto dives = traceOf("clear-chance", everyone, SimTick(150));
   REQUIRE(count(dives, [](const TraceEntry& entry) {
             return std::holds_alternative<DiveDecisionTrace>(entry);
           }) > 0);

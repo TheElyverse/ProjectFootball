@@ -1109,6 +1109,16 @@ class BallTick {
         return;
       }
     }
+    playOn(ball, free, contact, deflects);
+  }
+
+  // The ball on its way once neither the keeper nor a header stopped it: the
+  // first player to reach it stretches it off, takes it, or deflects a fast
+  // shot, and a ball nobody reaches comes off the goal frame or rolls on.
+  void playOn(const BallState& ball, FreeBall& free, const std::optional<BallClaim>& contact,
+              const bool deflects) const {
+    const Pitch& pitch = current().pitch();
+    const double secondsPerTick = context().secondsPerTick();
     if (contact && !deflects && stretchesFor(ball, *contact)) {
       const double moment = contact->contact.contactFraction * free.step.seconds;
       const BallState from = touchedOff(*contact, free);
