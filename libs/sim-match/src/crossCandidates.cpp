@@ -294,10 +294,10 @@ CrossContributions crossContributions(const CrossCandidate& candidate,
 std::string_view dominantCrossContribution(const CrossContributions& parts) noexcept {
   const std::array<std::pair<std::string_view, double>, 3> named{
       {{"win", parts.win}, {"threat", parts.threat}, {"loss", parts.loss}}};
-  const auto* largest = std::ranges::max_element(named, [](const auto& left, const auto& right) {
+  const auto& largest = *std::ranges::max_element(named, [](const auto& left, const auto& right) {
     return std::abs(left.second) < std::abs(right.second);
   });
-  return largest->first;
+  return largest.first;
 }
 
 CrossScoringConfig crossScoringForRisk(const CrossScoringConfig& scoring,
