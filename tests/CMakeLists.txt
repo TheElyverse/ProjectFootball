@@ -57,4 +57,12 @@ if(CMAKE_BUILD_TYPE STREQUAL "Release")
             -P ${CMAKE_CURRENT_SOURCE_DIR}/benchmark/elevenASideBudget.cmake
     )
     set_tests_properties(eleven-a-side-budget PROPERTIES LABELS benchmark)
+    add_test(NAME p3-acceptance
+            COMMAND ${CMAKE_COMMAND}
+            -DSIM_BENCHMARK=$<TARGET_FILE:sim-benchmark>
+            -DDATA_DIR=${PROJECT_SOURCE_DIR}/data
+            -DTEST_OUTPUT_DIR=${CMAKE_CURRENT_BINARY_DIR}/p3-acceptance
+            -P ${CMAKE_CURRENT_SOURCE_DIR}/benchmark/p3Acceptance.cmake
+    )
+    set_tests_properties(p3-acceptance PROPERTIES LABELS benchmark)
 endif()

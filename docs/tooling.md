@@ -1037,3 +1037,9 @@ of the seven-a-side presets took about 5.8 s (2-core cloud container, GCC 13).
 
 Debug builds are around ten times slower; the smoke test therefore plays two
 one-minute matches only.
+
+### P3 acceptance
+
+The same `style-benchmark` job runs the [P3 acceptance](scenarios.md#p3-acceptance)
+(`tests/benchmark/p3Acceptance.cmake`): one whole 90-minute match per pairing
+with every rule on, its guardrail bands and time budget.
