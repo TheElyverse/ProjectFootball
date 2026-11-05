@@ -24,14 +24,13 @@ struct MatchClockRules {
 // with stepFitness(), at the speed he ran in the tick before. Then the clock.
 // Once a half's regulation time -- halfTicks() since it started -- is up, the
 // added time is announced: addedMinutes() of its lost time, which no stoppage
-// after that changes. Once the added time is up too and no shot is on its way,
-// the half ends with PeriodEnded. After the first half the second starts in
-// the same tick with away's kickoff -- home kicks off the first, as every
-// fixture has it: both sides lined up as lineUpForKickoff() and
-// takeKickoffLineUp() have them, the ball at rest at the taker's feet,
-// PossessionChanged if it was someone else's. A restart taken in that tick is
-// overwritten. After the second it is full time. Throws std::invalid_argument for
-// an invalid configuration.
+// after that changes. Once the added time is up too, no shot is on its way and
+// no foul was committed in the step, the half ends with PeriodEnded. After the first half the
+// second starts in the same tick with away's kickoff -- home kicks off the first, as every fixture
+// has it: both sides lined up as lineUpForKickoff() and takeKickoffLineUp() have them, the ball at
+// rest at the taker's feet, PossessionChanged if it was someone else's. A restart taken in that
+// tick is overwritten. After the second it is full time. Throws std::invalid_argument for an
+// invalid configuration.
 [[nodiscard]] MatchSystem makeMatchClockSystem(const MatchClockRules& rules = {});
 
 }  // namespace ElyverseFootball::SimMatch

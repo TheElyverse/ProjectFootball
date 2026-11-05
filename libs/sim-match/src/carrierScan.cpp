@@ -61,7 +61,7 @@ std::vector<LookTarget> lookTargets(const MatchState& state, const std::size_t c
   std::array<int, 2> counts{};
   for (std::size_t index = 0; index < state.players().size(); ++index) {
     const PlayerMatchState& mate = state.players()[index];
-    if (index == carrierIndex || mate.side != carrier.side) {
+    if (index == carrierIndex || mate.side != carrier.side || !isOnPitch(mate)) {
       continue;
     }
     const Vec2 spot = mate.target.value_or(mate.position);

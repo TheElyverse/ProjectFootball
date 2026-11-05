@@ -8,6 +8,7 @@
 #include "desiredRegion.hpp"
 #include "duel.hpp"
 #include "fitness.hpp"
+#include "fouls.hpp"
 #include "goalFrame.hpp"
 #include "goalkeeper.hpp"
 #include "matchClock.hpp"
@@ -59,6 +60,7 @@ struct MatchConfig {
   MatchClockConfig clock;
   FitnessConfig fitness;
   OffsideConfig offside;
+  FoulConfig fouls;
 
   friend bool operator==(const MatchConfig&, const MatchConfig&) = default;
 };
@@ -91,8 +93,9 @@ struct MatchSetup {
 //  10. player movement  every tick
 //  11. ball movement    every tick
 //  12. offside          every tick, if offside.enabled
-//  13. restart          every tick, if restarts.enabled
-//  14. match clock      every tick
+//  13. fouls            every tick, if fouls.enabled
+//  14. restart          every tick, if restarts.enabled
+//  15. match clock      every tick
 //
 // Tactical movement runs before pursuit, so in a step where both write the
 // same player's target -- a new chaser -- pursuit's wins.

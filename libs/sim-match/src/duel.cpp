@@ -294,6 +294,13 @@ class DuelStep {
           case LungeResult::kFoul:
             endDuel(defenderIndex, duel, DuelOutcome::kFoul);
             stumble(defenderIndex, config);
+            // His pass or shot goes with the foul; the foul rules judge it
+            // (docs/fouls.md).
+            next().setPendingAction(*carrierIndex, std::nullopt);
+            next().setLastFoul(FoulRecord{.offender = current().players()[defenderIndex].playerId,
+                                          .victim = duel.carrier,
+                                          .tick = context().tick(),
+                                          .position = current().ball().position});
             return;
           case LungeResult::kMissed:
           case LungeResult::kBlocked:

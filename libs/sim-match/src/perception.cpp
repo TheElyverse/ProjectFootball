@@ -112,7 +112,8 @@ void perceive(const MatchState& state, const std::size_t observerIndex,
 
   observe(ObservedEntity::ball(), state.ball().position, state.ball().velocity);
   for (const PlayerMatchState& other : state.players()) {
-    if (other.playerId != observer.playerId) {
+    // Nobody sees a player sent off.
+    if (other.playerId != observer.playerId && isOnPitch(other)) {
       observe(ObservedEntity::player(other.playerId), other.position, other.velocity);
     }
   }
@@ -151,7 +152,9 @@ MatchSystem makePerceptionSystem(const PerceptionConfig& config) {
               [config](const MatchStepContext& context, const MatchState& current,
                        MatchStateWriter& next) {
                 for (std::size_t index = 0; index < current.players().size(); ++index) {
-                  perceive(current, index, context.time(), config, next.perception(index));
+                  if (isOnPitch(current.players()[index])) {
+                    perceive(current, index, context.time(), config, next.perception(index));
+                  }
                 }
               },
           .intervalTicks = config.intervalTicks,

@@ -53,6 +53,8 @@ void addPlayer(StableHasher& hasher, const PlayerMatchState& player) noexcept {
   hasher.addDouble(player.fitness.sprintReserve);
   hasher.addI64(player.fitness.playedTicks);
   hasher.addDouble(player.fitness.topSpeedShare);
+  hasher.addI64(player.yellowCards);
+  hasher.addBool(player.sentOff);
 }
 
 void addShot(StableHasher& hasher, const ShotRecord& shot) noexcept {
@@ -343,6 +345,14 @@ std::uint64_t hashMatchState(const MatchState& state) noexcept {
   hasher.addBool(clock.addedMinutes.has_value());
   hasher.addI64(clock.addedMinutes.value_or(0));
   addOffside(hasher, state);
+  const auto& foul = state.lastFoul();
+  hasher.addBool(foul.has_value());
+  if (foul) {
+    hasher.addU64(foul->offender.value());
+    hasher.addU64(foul->victim.value());
+    hasher.addI64(foul->tick.value());
+    addVec2(hasher, foul->position);
+  }
   for (const TeamSide side : {TeamSide::kHome, TeamSide::kAway}) {
     const auto& tactic = state.tactics().of(side);
     hasher.addBool(tactic.has_value());

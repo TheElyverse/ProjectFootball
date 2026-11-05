@@ -74,16 +74,24 @@ struct KickoffLineUp {
 // The unit vector a side faces at a kickoff: toward the goal it attacks.
 [[nodiscard]] SimCore::Vec2 kickoffFacing(TeamSide side) noexcept;
 
-// An indirect free kick for `side` at `spot` (docs/match-engine.md#offside):
-// its player nearest the spot, ties to the lower index, stands behind the ball
-// at rest, facing the goal he attacks, the ball at his feet. Records
-// RestartTaken and, if the ball was someone else's, PossessionChanged, and
-// resolves a shot still open as kBlocked with ShotResolved; adds its
-// lostSeconds() to the clock and clears every pending action. False, and
-// nothing changed, if the side has no player.
+// A free kick or a penalty: its kind, the side it is for and where the ball
+// stands.
+struct FreeKick {
+  RestartKind kind = RestartKind::kIndirectFreeKick;
+  TeamSide side = TeamSide::kHome;
+  SimCore::Vec2 spot;
+};
+
+// A free kick or penalty for its side at its spot (docs/match-engine.md#offside,
+// docs/fouls.md): the side's player on the pitch nearest the spot, ties to the
+// lower index, stands behind the ball at rest, facing the goal he attacks, the
+// ball at his feet. Records RestartTaken of its kind and, if the ball was
+// someone else's, PossessionChanged, and resolves a shot still open as kBlocked
+// with ShotResolved; adds its lostSeconds() to the clock and clears every
+// pending action. False, and nothing changed, if the side has no player.
 bool awardFreeKick(const MatchStepContext& context, const MatchState& current,
-                   MatchStateWriter& next, TeamSide side, SimCore::Vec2 spot,
-                   const BallPhysics& physics, const MatchClockConfig& clock);
+                   MatchStateWriter& next, const FreeKick& kick, const BallPhysics& physics,
+                   const MatchClockConfig& clock);
 
 // Puts both sides into the line-up, at rest and facing the goal they attack,
 // the ball on the centre spot, and starts them as at the beginning of a match:

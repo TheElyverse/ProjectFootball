@@ -192,9 +192,9 @@ beaten defender stands while the carrier accelerates away.
 | `loose` | a lunge met it, but not that well, or the carrier turned himself off his feet | `TackleAttempted` for a lunge, `DuelEnded`, `PossessionChanged` to nobody |
 | `foul`  | a lunge went through the man                                 | `TackleAttempted`, `DuelEnded`                               |
 
-A foul is only recorded for now: play goes on, the carrier on the ball, the
-defender off his feet. Whistle, free kick and cards come with the P3 rules
-baseline. A won or loose ball drops the carrier's pending pass, shot or touch,
+A foul leaves the carrier on the ball and the defender off his feet; with the
+[foul rules](fouls.md) on, the referee then gives the free kick, the penalty or
+advantage, and the card. A won or loose ball drops the carrier's pending pass, shot or touch,
 which the ball system would discard anyway
 ([ball movement](ball.md#ball-movement)). `DuelStarted` and `DuelEnded`
 name the carrier and the defender and where the ball was -- for a carrier who
@@ -245,8 +245,8 @@ shooter for a block --, whether it was a `block`, what it did (`won`, `loose`,
 `missed`, `foul` or `blocked`) and where the ball was. A tackle's comes before
 the `DuelEnded` it ends the duel with, a block's before its `ShotDeflected`.
 The [match events](match-engine.md#match-events-and-decision-diagnostics) carry a
-foul to the rules: the lunge that went through the man is where the foul
-system will give a free kick. The tackle tests are in `duelTests.cpp` -- where
+foul to the rules: the lunge that went through the man is where the
+[foul system](fouls.md) gives the free kick. The tackle tests are in `duelTests.cpp` -- where
 the foot lands decides a clean tackle, one through the player and a miss, and
 nobody commits to a shielded ball -- and every lunge of the duel scenarios is
 checked in `duelScenarioTests.cpp`, fouls included.
@@ -298,7 +298,7 @@ for others to chase.
   a [cross](on-ball.md#crossing) is not blocked.
 - No feint, and no dribble inside a duel: a carrier who touches the ball on
   leaves the duel and [dribbles](on-ball.md#dribble).
-- A foul has no consequence but the defender's stumble: no free kick, card or
+- Without the [foul rules](fouls.md) a foul has no consequence but the defender's stumble: no free kick, card or
   advantage.
 - Bodies block only the way of a foot, not runs; players turn at once.
 - Duels for a ball in the air are [aerial duels](#aerial-duels-and-headers).

@@ -125,7 +125,7 @@ std::optional<std::size_t> facingKeeper(const MatchState& state, const BallState
   const TeamSide shooterSide = state.players()[*shooter].side;
   for (std::size_t index = 0; index < state.players().size(); ++index) {
     const PlayerMatchState& player = state.players()[index];
-    if (player.side != shooterSide && isGoalkeeper(state, index)) {
+    if (player.side != shooterSide && isOnPitch(player) && isGoalkeeper(state, index)) {
       const bool onItsWay =
           predictGoalLineCrossing(ball, physics, state.pitch(), ownGoalEnd(player.side))
               .has_value();

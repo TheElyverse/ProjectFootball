@@ -119,6 +119,10 @@ void leaveToOwner(const MatchState& current,
   interceptions.reserve(current.players().size());
   for (std::size_t index = 0; index < current.players().size(); ++index) {
     const PlayerMatchState& player = current.players()[index];
+    if (!isOnPitch(player)) {
+      interceptions.emplace_back(std::nullopt);
+      continue;
+    }
     const bool owns = ball.owner == player.playerId;
     const bool justPassed =
         moving && ball.lastTouch && ball.lastTouch->playerId == player.playerId && !owns;

@@ -44,7 +44,7 @@ inline constexpr std::size_t kMaxWatchedPlayers = 64;
   const TeamSide side = current.players()[passer].side;
   std::vector<SimCore::Vec2> opponents;
   for (const PlayerMatchState& player : current.players()) {
-    if (player.side != side) {
+    if (player.side != side && isOnPitch(player)) {
       opponents.push_back(player.position);
     }
   }
@@ -141,7 +141,10 @@ MatchSystem makeOffsideSystem(const OffsideRules& rules) {
                                       .position = position});
                     next.setOffside(std::nullopt);
                     next.setOffsideExemption(std::nullopt);
-                    (void)awardFreeKick(context, current, next, opponentOf(watch->side), position,
+                    (void)awardFreeKick(context, current, next,
+                                        {.kind = RestartKind::kIndirectFreeKick,
+                                         .side = opponentOf(watch->side),
+                                         .spot = position},
                                         rules.physics, rules.clock);
                     return;
                   }

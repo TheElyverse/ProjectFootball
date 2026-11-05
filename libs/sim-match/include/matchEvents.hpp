@@ -309,6 +309,45 @@ struct OffsideCalled {
   friend bool operator==(const OffsideCalled&, const OffsideCalled&) = default;
 };
 
+// What the referee made of a foul (docs/fouls.md): a direct free kick, a
+// penalty, or advantage -- play goes on.
+enum class FoulRestart : std::uint8_t {
+  kFreeKick,
+  kPenalty,
+  kAdvantage,
+};
+
+// The card a foul earned: none, a yellow, a second yellow -- a sending-off --,
+// or a straight red.
+enum class Card : std::uint8_t {
+  kNone,
+  kYellow,
+  kSecondYellow,
+  kRed,
+};
+
+// "freeKick", "penalty", "advantage"; "none", "yellow", "secondYellow", "red";
+// "unknown" outside the enumerators.
+[[nodiscard]] std::string_view foulRestartName(FoulRestart restart) noexcept;
+[[nodiscard]] std::string_view cardName(Card card) noexcept;
+
+// A foul (docs/fouls.md): `offender` of `side` on `victim` where the ball was,
+// what the referee gave, the card, and the criteria behind it -- the tackle
+// came from behind, it denied an obvious goal-scoring opportunity.
+struct FoulCalled {
+  SimCore::SimTick tick;
+  TeamSide side = TeamSide::kHome;
+  SimCore::PlayerId offender;
+  SimCore::PlayerId victim;
+  SimCore::Vec2 position;
+  FoulRestart restart = FoulRestart::kFreeKick;
+  Card card = Card::kNone;
+  bool fromBehind = false;
+  bool denyingGoal = false;
+
+  friend bool operator==(const FoulCalled&, const FoulCalled&) = default;
+};
+
 // The referee ended a half (docs/match-clock.md): the period that ended, and
 // the added time he had announced for it.
 struct PeriodEnded {
@@ -511,7 +550,7 @@ using MatchEvent =
                  TacticChanged, PitchControlSampled, RestartTaken, ShotAttempted, ShotDeflected,
                  ShotHitWoodwork, ShotResolved, GoalScored, SaveAttempted, AerialContest,
                  DribbleAttempted, DribbleEnded, DuelStarted, DuelEnded, TackleAttempted,
-                 CrossAttempted, PeriodEnded, OffsideCalled>;
+                 CrossAttempted, PeriodEnded, OffsideCalled, FoulCalled>;
 
 // "pass attempted", "pass received", ... for logs and diagnostics.
 [[nodiscard]] std::string_view eventName(const MatchEvent& event);

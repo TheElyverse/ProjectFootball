@@ -78,6 +78,8 @@ using SimMatch::TeamSide;
   json["fitness"] = {{"sprintReserve", player.fitness.sprintReserve},
                      {"playedTicks", player.fitness.playedTicks},
                      {"topSpeedShare", player.fitness.topSpeedShare}};
+  json["yellowCards"] = player.yellowCards;
+  json["sentOff"] = player.sentOff;
   return json;
 }
 
@@ -350,34 +352,34 @@ constexpr std::int64_t kMaxGoals = 1'000'000;
   const Field attributes = field.member("attributes");
   const Field target = field.member("target");
   const Field fitness = field.member("fitness");
-  return {
-      .playerId = readPlayerId(field.member("id")),
-      .side = readSide(field.member("side")),
-      .position = readVec2(field.member("position")),
-      .velocity = readVec2(field.member("velocity")),
-      .attributes = {.maxSpeed = attributes.member("maxSpeed").number(),
-                     .acceleration = attributes.member("acceleration").number(),
-                     .shotAccuracy = attributes.member("shotAccuracy").number(),
-                     .shotTechnique = attributes.member("shotTechnique").number(),
-                     .strongFoot = readFoot(attributes.member("strongFoot")),
-                     .weakFootAccuracy = attributes.member("weakFootAccuracy").number(),
-                     .keeperPositioning = attributes.member("keeperPositioning").number(),
-                     .keeperAnticipation = attributes.member("keeperAnticipation").number(),
-                     .keeperReflexes = attributes.member("keeperReflexes").number(),
-                     .keeperHandling = attributes.member("keeperHandling").number(),
-                     .jumping = attributes.member("jumping").number(),
-                     .heading = attributes.member("heading").number(),
-                     .strength = attributes.member("strength").number(),
-                     .ballControl = attributes.member("ballControl").number(),
-                     .dribbling = attributes.member("dribbling").number(),
-                     .decisionMaking = attributes.member("decisionMaking").number()},
-      .target = target.isNull() ? std::nullopt : std::optional(readVec2(target)),
-      .facing = readVec2(field.member("facing")),
-      .fitness = {
-          .sprintReserve = fitness.member("sprintReserve").number(),
-          .playedTicks =
-              fitness.member("playedTicks").integerIn(0, std::numeric_limits<std::int64_t>::max()),
-          .topSpeedShare = fitness.member("topSpeedShare").number()}};
+  return {.playerId = readPlayerId(field.member("id")),
+          .side = readSide(field.member("side")),
+          .position = readVec2(field.member("position")),
+          .velocity = readVec2(field.member("velocity")),
+          .attributes = {.maxSpeed = attributes.member("maxSpeed").number(),
+                         .acceleration = attributes.member("acceleration").number(),
+                         .shotAccuracy = attributes.member("shotAccuracy").number(),
+                         .shotTechnique = attributes.member("shotTechnique").number(),
+                         .strongFoot = readFoot(attributes.member("strongFoot")),
+                         .weakFootAccuracy = attributes.member("weakFootAccuracy").number(),
+                         .keeperPositioning = attributes.member("keeperPositioning").number(),
+                         .keeperAnticipation = attributes.member("keeperAnticipation").number(),
+                         .keeperReflexes = attributes.member("keeperReflexes").number(),
+                         .keeperHandling = attributes.member("keeperHandling").number(),
+                         .jumping = attributes.member("jumping").number(),
+                         .heading = attributes.member("heading").number(),
+                         .strength = attributes.member("strength").number(),
+                         .ballControl = attributes.member("ballControl").number(),
+                         .dribbling = attributes.member("dribbling").number(),
+                         .decisionMaking = attributes.member("decisionMaking").number()},
+          .target = target.isNull() ? std::nullopt : std::optional(readVec2(target)),
+          .facing = readVec2(field.member("facing")),
+          .fitness = {.sprintReserve = fitness.member("sprintReserve").number(),
+                      .playedTicks = fitness.member("playedTicks")
+                                         .integerIn(0, std::numeric_limits<std::int64_t>::max()),
+                      .topSpeedShare = fitness.member("topSpeedShare").number()},
+          .yellowCards = static_cast<int>(field.member("yellowCards").integerIn(0, 2)),
+          .sentOff = field.member("sentOff").boolean()};
 }
 
 [[nodiscard]] std::uint64_t readUnsigned(const Field& field, const int base,
@@ -920,6 +922,8 @@ void fieldsOf(Visitor& visit, SimMatch::MatchClockConfig& clock) {
   visit.number("cornerLostSeconds", clock.cornerLostSeconds);
   visit.number("kickoffLostSeconds", clock.kickoffLostSeconds);
   visit.number("freeKickLostSeconds", clock.freeKickLostSeconds);
+  visit.number("penaltyLostSeconds", clock.penaltyLostSeconds);
+  visit.number("cardLostSeconds", clock.cardLostSeconds);
 }
 
 template <typename Visitor>
@@ -928,6 +932,14 @@ void fieldsOf(Visitor& visit, SimMatch::FitnessConfig& fitness) {
   visit.number("sprintSeconds", fitness.sprintSeconds);
   visit.number("recoverySeconds", fitness.recoverySeconds);
   visit.number("fullMatchSpeedLoss", fitness.fullMatchSpeedLoss);
+}
+
+template <typename Visitor>
+void fieldsOf(Visitor& visit, SimMatch::FoulConfig& fouls) {
+  visit.boolean("enabled", fouls.enabled);
+  visit.number("fromBehindDot", fouls.fromBehindDot);
+  visit.number("denyingDistance", fouls.denyingDistance);
+  visit.number("advantageDepth", fouls.advantageDepth);
 }
 
 template <typename Visitor>
@@ -961,6 +973,7 @@ void fieldsOf(Visitor& visit, MatchConfig& config) {
   visit.object("clock", config.clock);
   visit.object("fitness", config.fitness);
   visit.object("offside", config.offside);
+  visit.object("fouls", config.fouls);
 }
 
 // Writes the fields it visits into a JSON object.

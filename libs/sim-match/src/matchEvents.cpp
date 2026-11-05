@@ -201,6 +201,18 @@ void addFields(StableHasher& hasher, const GoalScored& event) noexcept {
   hasher.addI64(event.score.away);
 }
 
+void addFields(StableHasher& hasher, const FoulCalled& event) noexcept {
+  hasher.addU64(static_cast<std::uint64_t>(event.side));
+  hasher.addU64(event.offender.value());
+  hasher.addU64(event.victim.value());
+  hasher.addDouble(event.position.x);
+  hasher.addDouble(event.position.y);
+  hasher.addU64(static_cast<std::uint64_t>(event.restart));
+  hasher.addU64(static_cast<std::uint64_t>(event.card));
+  hasher.addBool(event.fromBehind);
+  hasher.addBool(event.denyingGoal);
+}
+
 void addFields(StableHasher& hasher, const OffsideCalled& event) noexcept {
   hasher.addU64(static_cast<std::uint64_t>(event.side));
   hasher.addU64(event.player.value());
@@ -395,6 +407,32 @@ bool isTouch(const DecisionOutcome outcome) noexcept {
          outcome == DecisionOutcome::kDribbled;
 }
 
+std::string_view foulRestartName(const FoulRestart restart) noexcept {
+  switch (restart) {
+    case FoulRestart::kFreeKick:
+      return "freeKick";
+    case FoulRestart::kPenalty:
+      return "penalty";
+    case FoulRestart::kAdvantage:
+      return "advantage";
+  }
+  return "unknown";
+}
+
+std::string_view cardName(const Card card) noexcept {
+  switch (card) {
+    case Card::kNone:
+      return "none";
+    case Card::kYellow:
+      return "yellow";
+    case Card::kSecondYellow:
+      return "secondYellow";
+    case Card::kRed:
+      return "red";
+  }
+  return "unknown";
+}
+
 std::string_view eventName(const MatchEvent& event) {
   struct Names {
     std::string_view operator()(const PassAttempted& /*event*/) const noexcept {
@@ -473,6 +511,9 @@ std::string_view eventName(const MatchEvent& event) {
     }
     std::string_view operator()(const OffsideCalled& /*event*/) const noexcept {
       return "offside called";
+    }
+    std::string_view operator()(const FoulCalled& /*event*/) const noexcept {
+      return "foul called";
     }
   };
   return std::visit(Names{}, event);

@@ -35,7 +35,8 @@ using SimCore::Vec2;
 [[nodiscard]] std::optional<std::size_t> opposingKeeper(const MatchState& state,
                                                         const TeamSide side) {
   for (std::size_t index = 0; index < state.players().size(); ++index) {
-    if (state.players()[index].side != side && keepsGoal(state, index)) {
+    if (state.players()[index].side != side && isOnPitch(state.players()[index]) &&
+        keepsGoal(state, index)) {
       return index;
     }
   }
@@ -48,7 +49,7 @@ using SimCore::Vec2;
   const PlayerMatchState& player = state.players()[playerIndex];
   double nearest = std::numeric_limits<double>::infinity();
   for (const PlayerMatchState& other : state.players()) {
-    if (other.side != player.side) {
+    if (other.side != player.side && isOnPitch(other)) {
       nearest = std::min(nearest, SimCore::distance(other.position, player.position));
     }
   }
@@ -293,7 +294,7 @@ std::vector<HeaderOption> headerOptions(const MatchState& state, const std::size
 
   for (std::size_t index = 0; index < state.players().size(); ++index) {
     const PlayerMatchState& teammate = state.players()[index];
-    if (index == playerIndex || teammate.side != player.side) {
+    if (index == playerIndex || teammate.side != player.side || !isOnPitch(teammate)) {
       continue;
     }
     const double distance = SimCore::distance(ball.position, teammate.position);

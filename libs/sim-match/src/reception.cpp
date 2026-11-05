@@ -32,7 +32,7 @@ bool mayCompete(const MatchState& state, const BallState& ball, const std::size_
                 const SimCore::StepTime time, const ReceptionConfig& config,
                 const std::span<const std::size_t> excluded) {
   if (std::ranges::find(excluded, playerIndex) != excluded.end() ||
-      isDiving(state.tactical(playerIndex), time)) {
+      !isOnPitch(state.players()[playerIndex]) || isDiving(state.tactical(playerIndex), time)) {
     return false;
   }
   // The last touch cannot take the ball back until reclaimDelaySeconds after

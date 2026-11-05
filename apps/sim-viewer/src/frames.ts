@@ -229,6 +229,17 @@ export type MatchEvent = { readonly tick: number } & (
     }
   | { readonly type: "periodEnded"; readonly period: string; readonly addedMinutes: number }
   | {
+      readonly type: "foulCalled";
+      readonly side: string;
+      readonly offender: number;
+      readonly victim: number;
+      readonly position: Vec2;
+      readonly restart: string;
+      readonly card: string;
+      readonly fromBehind: boolean;
+      readonly denyingGoal: boolean;
+    }
+  | {
       readonly type: "offsideCalled";
       readonly side: string;
       readonly player: number;
@@ -497,6 +508,8 @@ export function describeEvent(event: MatchEvent): string {
       return `home controls ${Math.round(event.homeShare * 100)}% of the pitch`;
     case "periodEnded":
       return `end of ${event.period} (+${event.addedMinutes})`;
+    case "foulCalled":
+      return `#${event.offender} fouls #${event.victim}: ${event.restart}${event.card === "none" ? "" : `, ${event.card} card`}`;
     case "offsideCalled":
       return `#${event.player} offside from #${event.passer}'s pass`;
     default:

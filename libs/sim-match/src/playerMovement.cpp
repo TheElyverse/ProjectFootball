@@ -166,6 +166,11 @@ MatchSystem makePlayerMovementSystem(const PlayerMovementRules& rules) {
           .update = [saves, physics](const MatchStepContext& context, const MatchState& current,
                                      MatchStateWriter& next) {
             for (std::size_t index = 0; const PlayerMatchState& player : current.players()) {
+              // A player sent off stays where he went.
+              if (!isOnPitch(player)) {
+                ++index;
+                continue;
+              }
               // A dive decided this very step counts.
               if (const auto& dive = next.tactical(index).dive) {
                 if (const auto dived = diveMove(player, *dive, context, saves)) {

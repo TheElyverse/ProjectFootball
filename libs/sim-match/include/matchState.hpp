@@ -168,9 +168,19 @@ struct PlayerMatchState {
   std::optional<SimCore::Vec2> target;
   SimCore::Vec2 facing{.x = 1.0, .y = 0.0};
   PlayerFitness fitness = {};
+  // The yellow cards he has been shown, and whether he has been sent off
+  // (docs/fouls.md#cards): a player sent off stands off the pitch and no
+  // system moves, sees or counts him.
+  int yellowCards = 0;
+  bool sentOff = false;
 
   friend bool operator==(const PlayerMatchState&, const PlayerMatchState&) = default;
 };
+
+// Whether the player still takes part: he has not been sent off.
+[[nodiscard]] constexpr bool isOnPitch(const PlayerMatchState& player) noexcept {
+  return !player.sentOff;
+}
 
 // Who last played the ball, and in which tick.
 struct BallTouch {
@@ -300,6 +310,17 @@ struct OffsideWatch {
   friend bool operator==(const OffsideWatch&, const OffsideWatch&) = default;
 };
 
+// The last foul a duel saw (docs/fouls.md): who committed it on whom, when,
+// and where the ball was. The foul system judges it in the step it happened.
+struct FoulRecord {
+  SimCore::PlayerId offender;
+  SimCore::PlayerId victim;
+  SimCore::SimTick tick;
+  SimCore::Vec2 position;
+
+  friend bool operator==(const FoulRecord&, const FoulRecord&) = default;
+};
+
 // The goals each side has scored.
 struct Score {
   int home = 0;
@@ -326,6 +347,7 @@ enum class MatchStateErrorCode : std::uint8_t {
   kNonFinitePlayerTarget,
   kInvalidPlayerFacing,
   kInvalidPlayerFitness,
+  kInvalidCards,
   kNonFiniteBallPosition,
   kBallOutsidePitch,
   kNonFiniteBallVelocity,
@@ -575,6 +597,7 @@ class MatchState {
   [[nodiscard]] const std::optional<BallTouch>& offsideExemption() const noexcept {
     return offsideExemption_;
   }
+  [[nodiscard]] const std::optional<FoulRecord>& lastFoul() const noexcept { return lastFoul_; }
 
   // The last pass kicked, the last shot taken and the last reception of a
   // free ball; empty in every state created from a spec, until the ball
@@ -666,6 +689,7 @@ class MatchState {
   MatchClock clock_;
   std::optional<OffsideWatch> offside_;
   std::optional<BallTouch> offsideExemption_;
+  std::optional<FoulRecord> lastFoul_;
   TeamPossession possession_;
   // Home, away.
   std::array<std::optional<TeamPhase>, 2> phases_;
@@ -766,6 +790,16 @@ class MatchStateWriter {
   void setOffsideExemption(const std::optional<BallTouch>& touch) noexcept {
     state_->offsideExemption_ = touch;
   }
+  void setLastFoul(const std::optional<FoulRecord>& foul) noexcept { state_->lastFoul_ = foul; }
+  [[nodiscard]] const std::optional<FoulRecord>& lastFoul() const noexcept {
+    return state_->lastFoul_;
+  }
+  // Shows the player at this index a yellow card.
+  void addYellowCard(std::size_t playerIndex);
+  // Sends the player at this index off: he stands at `position`, off the
+  // pitch, at rest and without a target, a pending action, a memory or a
+  // tactical state, nobody remembers him, and a ball he owned is free.
+  void sendOff(std::size_t playerIndex, SimCore::Vec2 position);
   // Counts a goal for the record's side and keeps the record as the last
   // goal; throws std::invalid_argument for a scorer not in the state.
   void addGoal(const GoalRecord& goal);
