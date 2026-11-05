@@ -4,6 +4,7 @@
 
 #include <algorithm>
 #include <catch2/catch_test_macros.hpp>
+#include <cmath>
 #include <cstddef>
 #include <cstdint>
 #include <optional>
@@ -283,4 +284,70 @@ TEST_CASE("Set piece configurations are checked", "[setPieces]") {
         SetPieceConfig{.throwInDistance = -2.0}}) {
     REQUIRE_THROWS_AS(validate(broken), std::invalid_argument);
   }
+}
+
+TEST_CASE("A free kick within range faces a wall at the legal distance", "[setPieces][freeKicks]") {
+  const MatchState state = matchWith(referenceElevenASideTacticSpec());
+  const double radius = state.pitch().markings().centerCircleRadiusMeters;
+  const auto wallOf = [&state, radius](const Vec2 spot) {
+    const auto targets =
+        setPieceTargets(state, setPieceOf(state, SetPieceKind::kFreeKick, spot), {}, {});
+    int wall = 0;
+    for (std::size_t index = 0; index < targets.size(); ++index) {
+      const auto& target = targets[index];
+      if (state.players()[index].side == TeamSide::kAway && target) {
+        const double away = distance(target.value_or(spot), spot);
+        REQUIRE(away >= radius - 1e-9);
+        // The wall stands across the way to the goal's centre, half a metre
+        // beyond the distance.
+        const Vec2 goal{.x = 105.0, .y = 34.0};
+        const Vec2 toGoal = ElyverseFootball::SimCore::unitOr(goal - spot, {});
+        const Vec2 offset = target.value_or(spot) - (spot + (toGoal * (radius + 0.5)));
+        const double along = (offset.x * toGoal.x) + (offset.y * toGoal.y);
+        wall += std::abs(along) < 0.05 && distance(offset, {}) < 1.5 ? 1 : 0;
+      }
+    }
+    return wall;
+  };
+  // Four within 22 m of the goal's centre, three within 27 m, none beyond range.
+  REQUIRE(wallOf({.x = 85.0, .y = 34.0}) == 4);
+  REQUIRE(wallOf({.x = 80.0, .y = 34.0}) == 3);
+  REQUIRE(wallOf({.x = 60.0, .y = 34.0}) == 0);
+}
+
+TEST_CASE("At a penalty only the taker and the keeper stay in the area", "[setPieces][freeKicks]") {
+  const MatchState state = matchWith(
+      referenceElevenASideTacticSpec(),
+      {{kAwayOutfield, {.x = 95.0, .y = 30.0}}, {kHomeOutfield + 1, {.x = 90.0, .y = 36.0}}});
+  const Vec2 spot = state.pitch().penaltySpot(ElyverseFootball::SimMatch::GoalEnd::kMaxX);
+  const auto area = state.pitch().penaltyArea(ElyverseFootball::SimMatch::GoalEnd::kMaxX);
+  const double radius = state.pitch().markings().centerCircleRadiusMeters;
+  const auto targets =
+      setPieceTargets(state, setPieceOf(state, SetPieceKind::kPenalty, spot), {}, {});
+  for (std::size_t index = 0; index < targets.size(); ++index) {
+    CAPTURE(index);
+    if (index == kHomeOutfield) {
+      continue;
+    }
+    // Where he will stand: his place, or where he is without one.
+    const Vec2 place = targets[index].value_or(state.players()[index].position);
+    if (index == 11) {
+      REQUIRE(place.x > 104.0);
+      continue;
+    }
+    REQUIRE_FALSE(area.contains(place));
+    REQUIRE(distance(place, spot) >= radius);
+  }
+}
+
+TEST_CASE("A free kick's and a penalty's taker decides for himself", "[setPieces][freeKicks]") {
+  const MatchState state = matchWith(referenceElevenASideTacticSpec());
+  REQUIRE_FALSE(plannedDelivery(state,
+                                setPieceOf(state, SetPieceKind::kFreeKick, {.x = 70.0, .y = 34.0}),
+                                {}, {}, {})
+                    .has_value());
+  REQUIRE_FALSE(plannedDelivery(state,
+                                setPieceOf(state, SetPieceKind::kPenalty, {.x = 94.0, .y = 34.0}),
+                                {}, {}, {})
+                    .has_value());
 }

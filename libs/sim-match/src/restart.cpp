@@ -118,20 +118,6 @@ namespace {
   return std::pair{RestartPlan{.kind = RestartKind::kCorner, .playerIndex = *taker}, corner};
 }
 
-// Puts the taker on `position` at rest, facing `facing`, the ball at his
-// feet.
-void placeTaker(MatchStateWriter& next, const std::size_t index, PlayerMatchState taker,
-                const SimCore::Vec2 position, const SimCore::Vec2 facing, const BallPhysics& ball,
-                const Pitch& pitch) {
-  taker.position = position;
-  taker.facing = facing;
-  next.setPlayerPosition(index, taker.position);
-  next.setPlayerVelocity(index, {});
-  next.setPlayerTarget(index, std::nullopt);
-  next.setPlayerFacing(index, taker.facing);
-  next.setBallPosition(carriedBallPosition(taker, ball, pitch));
-}
-
 }  // namespace
 
 SimCore::Vec2 goalKickSpot(const Pitch& pitch, const SimCore::Vec2 out) noexcept {
@@ -254,6 +240,11 @@ void awardSetPiece(const MatchStepContext& context, const MatchState& current,
     kind = SetPieceKind::kCorner;
   } else if (award.kind == RestartKind::kGoalKick) {
     kind = SetPieceKind::kGoalKick;
+  } else if (award.kind == RestartKind::kIndirectFreeKick ||
+             award.kind == RestartKind::kDirectFreeKick) {
+    kind = SetPieceKind::kFreeKick;
+  } else if (award.kind == RestartKind::kPenalty) {
+    kind = SetPieceKind::kPenalty;
   }
   const std::size_t taker = plannedTaker(current, award.side, kind, award.fallback);
   const SimCore::PlayerId takerId = current.players()[taker].playerId;
@@ -269,6 +260,7 @@ void awardSetPiece(const MatchStepContext& context, const MatchState& current,
   next.addLostSeconds(lostSeconds(award.kind, clock));
   next.setOffside(std::nullopt);
   next.setOffsideExemption(std::nullopt);
+  next.setIndirectKick(std::nullopt);
   // Play has stopped: nobody plays on what he meant to, nor chases the ball.
   for (std::size_t index = 0; index < current.players().size(); ++index) {
     next.setPendingAction(index, std::nullopt);
@@ -284,30 +276,22 @@ void awardSetPiece(const MatchStepContext& context, const MatchState& current,
   next.setBallSideSpin(0.0);
   next.tactical(taker).handsReleased.reset();
   next.tactical(taker).stumbledUntil.reset();
+  next.tactical(taker).dive.reset();
+  next.tactical(taker).carry.reset();
   next.setSetPiece(SetPiece{.kind = kind,
                             .side = award.side,
                             .taker = takerId,
                             .spot = award.spot,
-                            .awarded = context.tick()});
+                            .awarded = context.tick(),
+                            .indirect = award.kind == RestartKind::kIndirectFreeKick});
 }
 
 bool awardFreeKick(const MatchStepContext& context, const MatchState& current,
-                   MatchStateWriter& next, const FreeKick& kick, const BallPhysics& physics,
-                   const MatchClockConfig& clock) {
-  const TeamSide side = kick.side;
-  const SimCore::Vec2 spot = kick.spot;
-  const auto taker = takerOf(current, side, false, spot);
+                   MatchStateWriter& next, const FreeKick& kick, const MatchClockConfig& clock) {
+  const auto taker = takerOf(current, kick.side, false, kick.spot);
   if (!taker) {
     return false;
   }
-  const PlayerMatchState& player = current.players()[*taker];
-  context.record(RestartTaken{
-      .tick = context.tick(), .kind = kick.kind, .player = player.playerId, .position = spot});
-  if (next.ball().owner != player.playerId) {
-    context.record(PossessionChanged{
-        .tick = context.tick(), .previousOwner = next.ball().owner, .newOwner = player.playerId});
-  }
-  next.addLostSeconds(lostSeconds(kick.kind, clock));
   // A shot still open was stopped by the whistle.
   if (const auto& shot = next.lastShot(); shot && !shot->resolved) {
     ShotRecord resolved = *shot;
@@ -318,26 +302,9 @@ bool awardFreeKick(const MatchStepContext& context, const MatchState& current,
                                 .shotTick = shot->tick,
                                 .outcome = ShotOutcome::kBlocked});
   }
-  // Play has stopped: nobody plays on what he meant to.
-  for (std::size_t index = 0; index < current.players().size(); ++index) {
-    next.setPendingAction(index, std::nullopt);
-  }
-  next.setBallOwner(player.playerId);
-  next.setBallHeld(false);
-  next.setBallTouch(std::nullopt);
-  next.setBallLastTouch(BallTouch{.playerId = player.playerId, .tick = context.tick()});
-  next.setBallVelocity({});
-  next.setBallHeight(0.0);
-  next.setBallVerticalVelocity(0.0);
-  next.setBallSpin(0.0);
-  next.setBallSideSpin(0.0);
-  next.tactical(*taker).handsReleased.reset();
-  next.tactical(*taker).stumbledUntil.reset();
-  next.tactical(*taker).dive.reset();
-  next.tactical(*taker).carry.reset();
-  const SimCore::Vec2 facing = kickoffFacing(side);
-  placeTaker(next, *taker, player, current.pitch().clamp(spot - (facing * physics.carryDistance)),
-             facing, physics, current.pitch());
+  awardSetPiece(context, current, next,
+                {.kind = kick.kind, .side = kick.side, .fallback = *taker, .spot = kick.spot},
+                clock);
   return true;
 }
 
@@ -384,7 +351,9 @@ void takeKickoffLineUp(const MatchState& current, const KickoffLineUp& lineUp,
   next.setPitchControl(std::nullopt);
   next.setOffside(std::nullopt);
   next.setOffsideExemption(std::nullopt);
-  // A set piece still being set up ends with the kickoff.
+  // A set piece being set up or an indirect free kick played ends with the
+  // kickoff too.
+  next.setIndirectKick(std::nullopt);
   next.setSetPiece(std::nullopt);
   for (const TeamSide side : {TeamSide::kHome, TeamSide::kAway}) {
     next.setPress(side, std::nullopt);

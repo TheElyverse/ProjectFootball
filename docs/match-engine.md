@@ -631,7 +631,7 @@ them in their fixed order. Each system's factory takes its configuration, or a
 | 3     | pitch control   | 3 Hz       | the pitch-control grid         |
 | 4     | team pressing   | 5 Hz       | presses of sides with a tactic |
 | 5     | tactical movement | 5 Hz     | movement targets, desired regions and actions -- off-ball and defensive -- of players of sides with a tactic, the goalkeepers' places ([goalkeeper](goalkeeper.md#positioning-and-sweeping)) |
-| 6     | set pieces      | every tick | while a set piece is set up: every movement target it sets; once all are in place, the taker on the ball with his pass pending; only with `restarts.enabled` ([set pieces](set-pieces.md)) |
+| 6     | set pieces      | every tick | while a set piece is set up: every movement target it sets; once all are in place, the taker on the ball with his pass pending; only with `restarts`, `offside` or `fouls` enabled ([set pieces](set-pieces.md)) |
 | 7     | ball pursuit    | 10 Hz      | movement targets of the chasers, the chasers, the goalkeepers' judgements of a ball they could come for |
 | 8     | pass decision   | 5 Hz       | the carrier's pending pass or shot ([shot decisions](on-ball.md#shot-decisions)) |
 | 9     | duel            | 10 Hz      | the duel on the ball, in the defender's tactical state, and who is off his feet; the carrier's and the defender's movement targets, the ball's position as the carrier rolls it round him, its owner, velocity and last touch once it is won or loose; clears the loser's pending pass or shot ([duels](duels.md#duels-on-the-ball)) |
@@ -994,12 +994,13 @@ always gives the same call.
 
 An offence stops play at once with `OffsideCalled` — the offender, the passer,
 his side, the line in pitch `x` and where he became involved — and
-`awardFreeKick()` gives the other side an indirect free kick there: its player
-nearest the spot stands behind the ball at rest, facing the goal he attacks,
-every pending action is cleared, and the restart records `RestartTaken` of kind
+`awardFreeKick()` gives the other side an indirect
+[free kick](set-pieces.md#free-kicks) there, a set piece like any other: the
+ball lies dead at the spot, its player nearest the spot or the one its plan
+names takes it, and the restart records `RestartTaken` of kind
 `indirectFreeKick` and costs its `freeKickLostSeconds` (10 s) of
-[added time](match-clock.md#added-time). Indirect means the taker plays it like
-any carrier; opponents are not held off the ball yet.
+[added time](match-clock.md#added-time). Indirect means no goal comes of it
+until another player has touched the ball.
 
 ### The line in play
 

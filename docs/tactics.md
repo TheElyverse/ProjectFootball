@@ -263,7 +263,7 @@ each of the seven phases.
 | `slots[].responsibilities` | array | `{ "responsibility", "weight" }` entries          |
 | `principles`       | object | `pressingLine`, `pressingTriggers`, `positioning` weights, `goalkeeper.sweeping` and `goalkeeper.directness` |
 | `phases`           | object | one instruction per phase, keyed by phase name               |
-| `setPieces`        | object | optional; a plan per set piece, `kickoff`, `throwIn`, `corner`, `goalKick`: `taker` (a slot or `null`), `delivery`, `runners` and `markers` (slots) — see [set pieces](set-pieces.md#plans); without it, the default plans |
+| `setPieces`        | object | optional; a plan per set piece, each optional, `kickoff`, `throwIn`, `corner`, `goalKick`, `freeKick`, `penalty`: `taker` (a slot or `null`), `delivery`, `runners` and `markers` (slots) — see [set pieces](set-pieces.md#plans); without it, the default plans |
 
 Every field except `description` and `setPieces` is required. A slot has `role` or
 `responsibilities`, not both: a preset plus extra duties would hide what the slot

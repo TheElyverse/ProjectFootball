@@ -49,17 +49,19 @@ for a red. Each card shown costs `cardLostSeconds` (15 s) of
 
 **The restart.**
 
-- Inside the offender's penalty area: a **penalty**. The victim's side's player
-  nearest the penalty spot stands behind the ball on it.
+- Inside the offender's penalty area: a **[penalty](set-pieces.md#penalties)**
+  from the penalty spot.
 - Otherwise, if the victim's side still has the ball after the step — the foul
   takes the victim's pending pass or shot with it, so he keeps it unless a
   teammate's touch took it on —, at least `advantageDepth` (two thirds) up the
   pitch, and nobody is sent off: **advantage**.
   Play goes on; the card is shown at once all the same, and the decision is
   final — the referee does not come back to it.
-- Otherwise a **direct free kick** where the foul was: the victim's side's
-  player nearest the spot stands behind the ball, as for an
-  [offside](match-engine.md#the-free-kick).
+- Otherwise a **[direct free kick](set-pieces.md#free-kicks)** where the foul
+  was.
+
+Either is a set piece: the ball lies dead at the spot, and the victim's side's
+player nearest it, or the one its plan names, takes it.
 
 A stopped foul ends the play the offside rule watched, and costs
 `freeKickLostSeconds` (10 s) or `penaltyLostSeconds` (45 s). The system records
@@ -100,9 +102,7 @@ At the time of writing the style benchmark sees about 0.2 to 7 fouls a side over
 
 - No fouls in the air, at blocks, by holding or pushing, and no simulation.
 - No caution for persistent fouling, dissent or stopping a promising attack.
-- Advantage is never called back, and the free kick keeps no distance: opponents
-  may stand next to the ball. How free kicks and penalties are taken is for
-  their own system.
+- Advantage is never called back.
 - A side down to ten does not reorganise its shape. Goalkeepers do not press,
   so no duel sends one off; one sent off in a scenario leaves his side without
   a keeper.

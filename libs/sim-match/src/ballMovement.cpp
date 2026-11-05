@@ -605,9 +605,14 @@ class BallTick {
     next().setBallSideSpin(moved.sideSpin);
 
     const bool left = isOutOfPlay(moved, pitch) && !isOutOfPlay(from, pitch);
+    // An indirect free kick nobody else touched scores no goal
+    // (docs/set-pieces.md#free-kicks): it is out over the goal line.
+    const auto& indirect = current().indirectKick();
+    const bool direct =
+        indirect && from.lastTouch && from.lastTouch->playerId == indirect->playerId;
     bool goal = false;
     for (const GoalEnd end : {GoalEnd::kMinX, GoalEnd::kMaxX}) {
-      if (left && moved.position.x == pitch.goalLineX(end) &&
+      if (left && !direct && moved.position.x == pitch.goalLineX(end) &&
           pitch.goal(end).framesPoint(moved.position.y,
                                       ballHeightAfter(from, rules().physics, free.step.seconds))) {
         scoreGoal(current(), end, from, free.shot);

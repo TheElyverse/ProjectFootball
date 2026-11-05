@@ -943,6 +943,11 @@ void fieldsOf(Visitor& visit, SimMatch::SetPieceConfig& setPieces) {
   visit.number("placeRadius", setPieces.placeRadius);
   visit.number("waitSeconds", setPieces.waitSeconds);
   visit.number("throwInDistance", setPieces.throwInDistance);
+  visit.number("freeKickSeconds", setPieces.freeKickSeconds);
+  visit.number("penaltySeconds", setPieces.penaltySeconds);
+  visit.number("freeKickRange", setPieces.freeKickRange);
+  visit.integer("wallPlayers", setPieces.wallPlayers, 0, 10);
+  visit.number("wallSpacing", setPieces.wallSpacing);
   visit.number("readyRadius", setPieces.readyRadius);
   visit.number("flightSeconds", setPieces.flightSeconds);
   visit.number("markDistance", setPieces.markDistance);

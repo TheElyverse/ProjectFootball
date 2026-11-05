@@ -10,6 +10,7 @@
 #include "matchState.hpp"
 #include "passing.hpp"
 #include "setPiecePlan.hpp"
+#include "shotCandidates.hpp"
 #include "vec2.hpp"
 
 namespace ElyverseFootball::SimMatch {
@@ -23,6 +24,16 @@ struct SetPieceConfig {
   double cornerSeconds = 8.0;    // s
   double goalKickSeconds = 6.0;  // s
   double kickoffSeconds = 0.0;   // s
+  double freeKickSeconds = 8.0;  // s
+  double penaltySeconds = 10.0;  // s
+  // A free kick no farther than this from the goal it attacks goes for goal:
+  // the defenders build a wall and the attackers go into the box.
+  double freeKickRange = 32.0;  // m
+  // How many players the wall has, at the free kick's distance from goal:
+  // wallPlayers within 22 m, one fewer within 27 m, two fewer beyond.
+  int wallPlayers = 4;
+  // How far apart the wall's players stand.
+  double wallSpacing = 0.6;  // m
   // How near his place behind the ball the taker must stand to play it, and
   // how near their places everyone else with one, unless they still are not
   // there after the setup time and waitSeconds more.
@@ -75,7 +86,8 @@ void validate(const SetPieceConfig& config);
 // The pass the plan asks for (docs/set-pieces.md#the-delivery): at a corner
 // lofted to the runner of the planned area or short to the short option, at a
 // throw-in, goal kick or kickoff short to a near teammate or long and lofted
-// to the side's most advanced player. Empty if the side has nobody to play to.
+// to the side's most advanced player. Empty if the side has nobody to play to,
+// and for a free kick or penalty, whose taker decides for himself.
 [[nodiscard]] std::optional<PassIntent> plannedDelivery(const MatchState& state,
                                                         const SetPiece& setPiece,
                                                         const SetPieceConfig& config,
@@ -88,6 +100,9 @@ struct SetPieceRules {
   SetPieceConfig setPieces{};
   BallPhysics physics{};
   PassConfig passing{};
+  // How a penalty taker weighs his shots (docs/set-pieces.md#penalties).
+  ShotCandidateRules shots{};
+  double temperature = 0.15;
 };
 
 // Every tick while a set piece is set up (docs/set-pieces.md): every player
@@ -97,8 +112,14 @@ struct SetPieceRules {
 // placeRadius of it -- or waitSeconds more have passed --, the taker plays
 // plannedDelivery(): the
 // ball is his, at his feet, with the pass pending, the set piece is over, and
-// SetPieceTaken and PossessionChanged are recorded; but for a kickoff, his touch
-// is free of offside. Throws std::invalid_argument for an invalid configuration.
+// SetPieceTaken and PossessionChanged are recorded; at a throw-in, a corner or
+// a goal kick his touch is free of offside. A free kick's taker gets the ball with nothing pending
+// and decides like any carrier; an indirect one's touch is held as
+// MatchState::indirectKick() until another player's touch, which this system
+// notices the step after. A penalty's taker shoots: generateShotCandidates()
+// chosen by utility at `temperature` from the kAi stream
+// (docs/set-pieces.md#penalties). Throws std::invalid_argument for an invalid
+// configuration.
 [[nodiscard]] MatchSystem makeSetPieceSystem(const SetPieceRules& rules = {});
 
 }  // namespace ElyverseFootball::SimMatch

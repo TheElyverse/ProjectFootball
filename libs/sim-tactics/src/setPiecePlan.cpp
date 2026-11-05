@@ -12,6 +12,10 @@ std::string_view setPieceKindName(const SetPieceKind kind) noexcept {
       return "corner";
     case SetPieceKind::kGoalKick:
       return "goalKick";
+    case SetPieceKind::kFreeKick:
+      return "freeKick";
+    case SetPieceKind::kPenalty:
+      return "penalty";
   }
   return "unknown";
 }
@@ -47,6 +51,9 @@ bool deliveryFits(const SetPieceKind kind, const SetPieceDelivery delivery) noex
   if (kind == SetPieceKind::kCorner) {
     return delivery != SetPieceDelivery::kLong;
   }
+  if (kind == SetPieceKind::kFreeKick || kind == SetPieceKind::kPenalty) {
+    return true;
+  }
   return delivery == SetPieceDelivery::kShort || delivery == SetPieceDelivery::kLong;
 }
 
@@ -60,6 +67,10 @@ const SetPiecePlan& SetPiecePlans::of(const SetPieceKind kind) const noexcept {
       return corner;
     case SetPieceKind::kGoalKick:
       return goalKick;
+    case SetPieceKind::kFreeKick:
+      return freeKick;
+    case SetPieceKind::kPenalty:
+      return penalty;
   }
   return kickoff;
 }
@@ -74,6 +85,10 @@ SetPiecePlan& SetPiecePlans::of(const SetPieceKind kind) noexcept {
       return corner;
     case SetPieceKind::kGoalKick:
       return goalKick;
+    case SetPieceKind::kFreeKick:
+      return freeKick;
+    case SetPieceKind::kPenalty:
+      return penalty;
   }
   return kickoff;
 }

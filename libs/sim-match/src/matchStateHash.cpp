@@ -239,6 +239,15 @@ void addPendingAction(StableHasher& hasher, const PendingAction& action) noexcep
 
 namespace {
 
+// The touch of an indirect free kick nobody else has touched yet, if any.
+void addIndirectKick(StableHasher& hasher, const std::optional<BallTouch>& kick) noexcept {
+  hasher.addBool(kick.has_value());
+  if (kick) {
+    hasher.addU64(kick->playerId.value());
+    hasher.addI64(kick->tick.value());
+  }
+}
+
 // A set piece being set up, if any.
 void addSetPiece(StableHasher& hasher, const std::optional<SetPiece>& setPiece) noexcept {
   hasher.addBool(setPiece.has_value());
@@ -248,6 +257,7 @@ void addSetPiece(StableHasher& hasher, const std::optional<SetPiece>& setPiece) 
     hasher.addU64(setPiece->taker.value());
     addVec2(hasher, setPiece->spot);
     hasher.addI64(setPiece->awarded.value());
+    hasher.addBool(setPiece->indirect);
   }
 }
 
@@ -358,6 +368,7 @@ std::uint64_t hashMatchState(const MatchState& state) noexcept {
   hasher.addI64(clock.addedMinutes.value_or(0));
   addOffside(hasher, state);
   addSetPiece(hasher, state.setPiece());
+  addIndirectKick(hasher, state.indirectKick());
   const auto& foul = state.lastFoul();
   hasher.addBool(foul.has_value());
   if (foul) {

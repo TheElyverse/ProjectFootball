@@ -27,7 +27,8 @@ exists in code, one area each.
   distribution.
 - [Duels](duels.md): duels on the ball, and aerial duels and headers.
 - [Set pieces](set-pieces.md): the tactic's set-piece plans, positions and
-  deliveries at throw-ins, corners, goal kicks and kickoffs.
+  deliveries at throw-ins, corners, goal kicks and kickoffs, and free kicks
+  with their wall and penalties.
 - [Fouls and cards](fouls.md): where fouls come from, free kicks, penalties,
   advantage, cards and sending-offs.
 - [Team tactics in the match](team-tactics.md): phases, pitch control, zones and

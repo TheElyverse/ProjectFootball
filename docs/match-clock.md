@@ -77,7 +77,8 @@ Once the half's regulation time is up, the added time is announced
 duration — in whole minutes, rounded up. They are played in real time again,
 `addedTicks()`: a shown minute is a 45th of `halfTicks()`. Stoppages in added
 time are not added again. The half ends at the first tick after that in which
-no shot is on its way, with `PeriodEnded` and the minutes that were added.
+no shot is on its way and no penalty waits to be taken (Law 7), with
+`PeriodEnded` and the minutes that were added.
 
 Worked examples:
 
@@ -122,7 +123,7 @@ part of the initial snapshot.
 ## What this is not
 
 No extra time or penalty shoot-out, no recovery at half time, and the referee
-waits for nothing but a shot on its way. Only restarts and cards cost time
+waits for nothing but a shot on its way and a penalty. Only restarts and cards cost time
 so far: injuries and substitutions will add theirs.
 
 ## From the command line
