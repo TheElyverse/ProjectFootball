@@ -107,7 +107,6 @@ struct Wing {
     }
   }
   FAIL("no cross at that area");
-  return {};
 }
 
 }  // namespace
