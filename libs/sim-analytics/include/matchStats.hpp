@@ -36,9 +36,24 @@ struct TeamStats {
   int progressivePasses = 0;
   int completedProgressivePasses = 0;
 
-  // Shots taken, and goals scored, own goals of the opponent included.
+  // Shots taken, those that went in or were saved, and goals scored, own goals
+  // of the opponent included; the opponent's shots the side's keeper saved.
   int shots = 0;
+  int shotsOnTarget = 0;
   int goals = 0;
+  int saves = 0;
+  // The goals the side's shots were worth by chanceQuality() of each
+  // (docs/tooling.md#chance-quality).
+  double chanceQuality = 0.0;
+  // Duels on the ball the side's players won and lost -- a carrier who kept
+  // the ball won his, a defender who took it his; a ball knocked loose or a
+  // foul counts for neither (docs/duels.md#duels-on-the-ball) --, and duels in
+  // the air with players of both sides that one of the side's players took
+  // part in and those he won (docs/duels.md#aerial-duels-and-headers).
+  int duelsWon = 0;
+  int duelsLost = 0;
+  int aerialDuels = 0;
+  int aerialDuelsWon = 0;
   // Offsides the side's players were caught in, the fouls they committed, and
   // the yellow and red cards they were shown -- a second yellow counts as a
   // red (docs/fouls.md).
@@ -50,6 +65,8 @@ struct TeamStats {
   int corners = 0;
   int throwIns = 0;
   int goalKicks = 0;
+  int freeKicks = 0;
+  int penalties = 0;
   // 3 for a win, 1 for a draw, 0 for a defeat; empty for a match that did not
   // reach full time.
   std::optional<int> points;
@@ -75,6 +92,22 @@ struct TeamStats {
 
   friend bool operator==(const TeamStats&, const TeamStats&) = default;
 };
+
+// What a chance is worth in goals (docs/tooling.md#chance-quality): from where
+// it was taken, the distance to the goal's centre and how wide the goal looked
+// (ShotAttempted::distance and opening), 1 / (1 + e^-(c + d·distance + o·opening)),
+// or penaltyChance for a penalty. In [0, 1].
+struct ChanceQualityModel {
+  double intercept = -2.8;
+  double perMeter = -0.05;
+  double perOpening = 2.8;
+  double penaltyChance = 0.76;
+
+  friend bool operator==(const ChanceQualityModel&, const ChanceQualityModel&) = default;
+};
+
+[[nodiscard]] double chanceQuality(double distance, double opening,
+                                   const ChanceQualityModel& model = {}) noexcept;
 
 // A metric of TeamStats by name, empty where the stats leave it empty.
 struct Metric {

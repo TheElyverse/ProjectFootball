@@ -47,7 +47,7 @@ TEST_CASE("Every metric of a side is named, in a fixed order", "[seriesSummary]"
   stats.regainsByThird = {1, 2, 3};
   stats.shots = 4;
   const auto metrics = metricsOf(stats);
-  REQUIRE(metrics.size() == 28);
+  REQUIRE(metrics.size() == 37);
   REQUIRE(metrics.at(0).name == "possessionShare");
   REQUIRE(metrics.at(1).value == 12.0);
   REQUIRE(metrics.at(3).name == "passCompletion");
@@ -56,14 +56,23 @@ TEST_CASE("Every metric of a side is named, in a fixed order", "[seriesSummary]"
   REQUIRE(metrics.at(11).value == 3.0);
   REQUIRE(metrics.at(17).name == "shots");
   REQUIRE(metrics.at(17).value == 4.0);
-  REQUIRE(metrics.at(18).name == "goals");
-  REQUIRE(metrics.at(19).name == "offsides");
-  REQUIRE(metrics.at(20).name == "fouls");
-  REQUIRE(metrics.at(22).name == "redCards");
-  REQUIRE(metrics.at(23).name == "corners");
-  REQUIRE(metrics.at(25).name == "goalKicks");
-  REQUIRE(metrics.at(26).name == "points");
+  REQUIRE(metrics.at(18).name == "shotsOnTarget");
+  REQUIRE(metrics.at(19).name == "goals");
+  REQUIRE(metrics.at(20).name == "saves");
+  REQUIRE(metrics.at(21).name == "chanceQuality");
+  REQUIRE(metrics.at(22).name == "duelsWon");
+  REQUIRE(metrics.at(23).name == "duelsLost");
+  REQUIRE(metrics.at(24).name == "aerialDuels");
+  REQUIRE(metrics.at(25).name == "aerialDuelsWon");
+  REQUIRE(metrics.at(26).name == "offsides");
+  REQUIRE(metrics.at(27).name == "fouls");
+  REQUIRE(metrics.at(29).name == "redCards");
+  REQUIRE(metrics.at(30).name == "corners");
+  REQUIRE(metrics.at(32).name == "goalKicks");
+  REQUIRE(metrics.at(33).name == "freeKicks");
+  REQUIRE(metrics.at(34).name == "penalties");
+  REQUIRE(metrics.at(35).name == "points");
   // Empty before full time.
-  REQUIRE_FALSE(metrics.at(26).value.has_value());
-  REQUIRE(metrics.at(27).name == "longestOwnershipSeconds");
+  REQUIRE_FALSE(metrics.at(35).value.has_value());
+  REQUIRE(metrics.at(36).name == "longestOwnershipSeconds");
 }

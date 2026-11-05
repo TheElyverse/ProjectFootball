@@ -39,6 +39,8 @@ struct AnalyticsConfig {
   // in, the part of the pitch this far from the opponent's goal line, as a
   // fraction of the length: the opponent's build-up zone.
   double ppdaZone = 0.6;
+  // What a shot is worth (docs/tooling.md#chance-quality).
+  ChanceQualityModel chances;
 
   friend bool operator==(const AnalyticsConfig&, const AnalyticsConfig&) = default;
 };
@@ -72,7 +74,14 @@ class MatchAnalyzer {
     std::int64_t longestOwnershipTicks = 0;
     int passes = 0;
     int shots = 0;
+    int shotsOnTarget = 0;
     int goals = 0;
+    int saves = 0;
+    double chanceQuality = 0.0;
+    int duelsWon = 0;
+    int duelsLost = 0;
+    int aerialDuels = 0;
+    int aerialDuelsWon = 0;
     int offsides = 0;
     int fouls = 0;
     int yellowCards = 0;
@@ -80,6 +89,8 @@ class MatchAnalyzer {
     int corners = 0;
     int throwIns = 0;
     int goalKicks = 0;
+    int freeKicks = 0;
+    int penalties = 0;
     int completedPasses = 0;
     double passMeters = 0.0;
     int progressivePasses = 0;
@@ -105,6 +116,12 @@ class MatchAnalyzer {
   [[nodiscard]] SideTally& tally(SimMatch::TeamSide side);
   void onFoul(const SimMatch::FoulCalled& foul);
   void onSetPiece(const SimMatch::SetPieceTaken& setPiece);
+  // A penalty's taker until his next shot, which is the penalty -- or until he
+  // passes or loses the ball, or another set piece is taken.
+  void onShot(const SimMatch::ShotAttempted& shot);
+  void onShotResolved(const SimMatch::ShotResolved& resolved);
+  void onDuel(const SimMatch::DuelEnded& duel);
+  void onAerial(const SimMatch::AerialContest& contest);
   [[nodiscard]] double depthOf(SimMatch::TeamSide side, SimCore::Vec2 position) const noexcept;
   [[nodiscard]] PitchThird thirdOf(SimMatch::TeamSide side, SimCore::Vec2 position) const noexcept;
   [[nodiscard]] TeamStats statsOf(SimMatch::TeamSide side, std::int64_t possessedTicks,
@@ -121,6 +138,8 @@ class MatchAnalyzer {
 
   MatchContext context_;
   AnalyticsConfig config_;
+  // The taker of a penalty taken and not yet shot (onShot()).
+  std::optional<SimCore::PlayerId> penaltyTaker_;
   std::array<SideTally, 2> sides_{};
   std::optional<SimMatch::TeamSide> possession_;
   SimCore::SimTick possessionSince_;
