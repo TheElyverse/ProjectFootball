@@ -8,6 +8,7 @@
 #include <variant>
 
 #include "actionCandidate.hpp"
+#include "crossCandidates.hpp"
 #include "observation.hpp"
 #include "passCandidates.hpp"
 #include "perception.hpp"
@@ -107,6 +108,25 @@ using SimMatch::MatchEvent;
                     SimMatch::dominantShotContribution(parts));
 }
 
+// A cross (docs/on-ball.md#crossing): the area, where and how high it is
+// meant to arrive, for whom, and the parts of its utility.
+[[nodiscard]] std::string crossLine(const PassDecisionTrace& trace, const std::string& line,
+                                    const std::string& context) {
+  const DecisionDiagnostic& decision = trace.decision;
+  const SimMatch::CrossCandidate& cross = decision.crosses.at(decision.chosen.value_or(0));
+  const SimMatch::CrossContributions parts =
+      SimMatch::crossContributions(cross, decision.crossScoring);
+  return line +
+         std::format(
+             "crosses to the {} ({:.1f}, {:.1f}) {:.2f} m high for {} (utility {:.2f}: "
+             "win {} threat {} loss {}; win chance {:.2f}, keeper {:.2f}; {}) because {}",
+             SimMatch::crossAreaName(cross.area), cross.target.x, cross.target.y, cross.height,
+             playerText(cross.runner), cross.utility, signedNumber(parts.win),
+             signedNumber(parts.threat), signedNumber(parts.loss), cross.winChance,
+             cross.keeperClaim, context, SimMatch::dominantCrossContribution(parts)) +
+         outcomeText(trace.outcome);
+}
+
 // What he does with the ball at his feet instead of passing or shooting
 // (docs/on-ball.md#ball-carrying), with the parts of its utility.
 [[nodiscard]] std::string carryLine(const DecisionDiagnostic& decision, const std::size_t chosen,
@@ -148,7 +168,9 @@ using SimMatch::MatchEvent;
   return std::ranges::any_of(decision.candidates,
                              [](const SimMatch::PassCandidate& pass) { return pass.isValid(); }) ||
          std::ranges::any_of(decision.shots,
-                             [](const SimMatch::ShotCandidate& shot) { return shot.isValid(); });
+                             [](const SimMatch::ShotCandidate& shot) { return shot.isValid(); }) ||
+         std::ranges::any_of(decision.crosses,
+                             [](const SimMatch::CrossCandidate& cross) { return cross.isValid(); });
 }
 
 // How the ball goes: a pass along the ground or a long kick, from the hands
@@ -168,6 +190,10 @@ using SimMatch::MatchEvent;
   if (decision.outcome == SimMatch::DecisionOutcome::kShot && decision.chosen &&
       *decision.chosen < decision.shots.size()) {
     return shotLine(decision, *decision.chosen, line, context);
+  }
+  if (decision.outcome == SimMatch::DecisionOutcome::kCrossed && decision.chosen &&
+      *decision.chosen < decision.crosses.size()) {
+    return crossLine(trace, line, context);
   }
   const SimMatch::OnBallReason reason = decision.reason;
   // Holding the ball while he looks for an option reads as keeping it.
@@ -309,7 +335,8 @@ void DecisionTracer::recordStep(const SimMatch::MatchSimulation& simulation) {
       openPass_.reset();
     }
     entries_.emplace_back(PassDecisionTrace{.decision = decision, .outcome = {}});
-    if (decision.outcome == SimMatch::DecisionOutcome::kPassed) {
+    if (decision.outcome == SimMatch::DecisionOutcome::kPassed ||
+        decision.outcome == SimMatch::DecisionOutcome::kCrossed) {
       openPass_ = entries_.size() - 1;
       openPassPlayed_ = false;
       openPassPositions_.clear();
@@ -319,11 +346,11 @@ void DecisionTracer::recordStep(const SimMatch::MatchSimulation& simulation) {
     }
   }
   for (const MatchEvent& event : simulation.events()) {
-    resolve(event);
+    resolve(event, simulation.state());
   }
 }
 
-void DecisionTracer::resolve(const MatchEvent& event) {
+void DecisionTracer::resolve(const MatchEvent& event, const SimMatch::MatchState& state) {
   if (!openPass_) {
     return;
   }
@@ -342,6 +369,23 @@ void DecisionTracer::resolve(const MatchEvent& event) {
              intercepted != nullptr && intercepted->passer == passer && openPassPlayed_) {
     close(attributeInterception(*intercepted, open.decision, openPassPositions_, matchConfig_,
                                 config_));
+  } else if (const auto* aerial = std::get_if<SimMatch::AerialContest>(&event);
+             aerial != nullptr && aerial->winner && openPassPlayed_ && state.ball().lastTouch &&
+             state.lastPass().value_or(SimMatch::PassRecord{}).passer == passer) {
+    // A cross or a long ball won in the air: by a teammate it reached him,
+    // by an opponent it was cut out where they went up for it.
+    const auto winner = SimMatch::findPlayerIndex(state, *aerial->winner);
+    const auto passerIndex = SimMatch::findPlayerIndex(state, passer);
+    if (winner && passerIndex &&
+        state.players()[*winner].side == state.players()[*passerIndex].side) {
+      close(settled(PassResult::kReceived, aerial->tick, aerial->winner));
+    } else {
+      close(attributeInterception(SimMatch::PassIntercepted{.tick = aerial->tick,
+                                                            .interceptor = *aerial->winner,
+                                                            .passer = passer,
+                                                            .position = aerial->position},
+                                  open.decision, openPassPositions_, matchConfig_, config_));
+    }
   } else if (const auto* recovered = std::get_if<SimMatch::LooseBallRecovered>(&event);
              recovered != nullptr && recovered->player == passer && openPassPlayed_) {
     close(settled(PassResult::kRecoveredByPasser, recovered->tick, passer));
@@ -386,6 +430,14 @@ PassOutcome attributeInterception(const SimMatch::PassIntercepted& event,
     }
   }
   const std::size_t chosen = decision.chosen.value_or(0);
+  if (decision.outcome == SimMatch::DecisionOutcome::kCrossed) {
+    // A cross he judged unlikely to reach his side first was his decision.
+    if (chosen < decision.crosses.size() &&
+        1.0 - decision.crosses.at(chosen).winChance >= config.riskyDecision) {
+      outcome.cause = FailureCause::kDecision;
+    }
+    return outcome;
+  }
   if (chosen < decision.candidates.size()) {
     const SimMatch::PassCandidate& pass = decision.candidates.at(chosen);
     if (pass.judgedInterceptionRisk >= config.riskyDecision) {

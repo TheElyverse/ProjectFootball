@@ -30,8 +30,8 @@ file.
 
 ```json
 {
-  "schemaVersion": 16,
-  "coreVersion": "0.32.0",
+  "schemaVersion": 17,
+  "coreVersion": "0.33.0",
   "createdAt": "2026-09-24T10:00:00Z",
   "seed": "18446744073709551615",
   "gameTime": 300,
@@ -137,7 +137,7 @@ complete file.
 
 | Field           | JSON type | Meaning                                                       |
 |-----------------|-----------|---------------------------------------------------------------|
-| `schemaVersion` | number    | Version of this format. Currently `16`.                       |
+| `schemaVersion` | number    | Version of this format. Currently `17`.                       |
 | `coreVersion`   | string    | The `sim-core` version that recorded the match.               |
 | `createdAt`     | string    | Creation time in UTC, `%Y-%m-%dT%H:%M:%SZ`. Metadata only.    |
 | `seed`          | string    | Unsigned 64-bit master seed, in decimal.                      |
@@ -235,7 +235,7 @@ path, for example `initialState.players[3].position.x: expected a number`.
 |-----------------------------|------------------------------------------------------------------------|
 | `kIoError`                  | the file cannot be read or written                                     |
 | `kMalformed`                | not JSON, a missing or mistyped field, commands out of order           |
-| `kUnsupportedSchemaVersion` | a `schemaVersion` other than 16                                        |
+| `kUnsupportedSchemaVersion` | a `schemaVersion` other than 17                                        |
 | `kIncompatibleCoreVersion`  | recorded with another `coreVersion`                                    |
 | `kInvalidSetup`             | an invalid initial state, command or checkpoint list                   |
 | `kSimulationFailed`         | a step of the playback failed                                          |
@@ -307,6 +307,7 @@ record the scenario again with the same seed.
 | 14      | Players gain `decisionMaking`, and the decisions `skillTemperatureSpread` and `maxMisjudgement` ([decision-making](on-ball.md#decision-making)). |
 | 15      | The ball gains `sideSpin`, the ball physics `magnusCurvature`, the shot scoring `curledSpeed`, `chippedSpeed`, `curlSpin`, `spinError`, `speedError` and `maxLaunchSlope`, and the shooting `chipBackspin` ([shot types](on-ball.md#shot-types)). |
 | 16      | The shooting gains `lungeRadius` and `lungeHeight` ([tackles and blocks](duels.md#tackles-and-blocks)). |
+| 17      | The decisions gain their `crossing` block ([crossing](on-ball.md#crossing)). |
 
 ## Decision trace
 
@@ -363,6 +364,12 @@ t=0 #1 kicks long to #5 (utility 1.24: completion +0.86 progression +0.42 pressu
   come for a ball (`sweeps`) or not (`stays home`) gives both arrivals, his
   misjudgement and the head start he needed instead
   ([goalkeeper](goalkeeper.md#positioning-and-sweeping)).
+- **Crosses** read `crosses to the <area> (x, y) h m high for #n`, with the
+  parts of `crossContributions()`, the win chance and the keeper's claim
+  ([crossing](on-ball.md#crossing)), and are followed to their outcome like
+  passes -- a `decision` failure if the win chance was at most
+  `1 − riskyDecision`. A pass or a cross won in the air, a long ball's too,
+  was received by a teammate who won it, intercepted by an opponent.
 - **Misjudged estimates**: a poor decider's judged interception risk, goal,
   save or block chance follows the estimate it differs from, as in
   `estimated risk 0.64, judged 0.31` ([decision-making](on-ball.md#decision-making)).
@@ -526,7 +533,7 @@ values:
 {
   "format": "elyverse-debug-frames",
   "version": 4,
-  "coreVersion": "0.32.0",
+  "coreVersion": "0.33.0",
   "scenario": "m0-acceptance",
   "seed": "42",
   "ticksPerSecond": 30,
@@ -618,8 +625,9 @@ values:
   `passAttempted`, `pressingStarted`, `pitchControlSampled`, ... -- with their
   fields; sides and phases are spelled `home`,
   `buildUp`, ... as in [tactics](tactics.md#tactic-model). The viewer shows an event type it
-  does not know by its name. A decision's `outcome` is `passed`, `shot` or
-  `noValidOption`, `chosen` indexes `candidates` (null for a shot), and `rejection` is `valid` or
+  does not know by its name. A decision's `outcome` is `passed`, `shot`, `held`,
+  `turned`, `carried`, `dribbled`, `crossed` or `noValidOption`, `chosen` indexes
+  `candidates` (null for a shot or a cross), and `rejection` is `valid` or
   the reason a candidate cannot be played. A candidate's `completion`, `utility` and
   `rejection` follow its `judgedInterceptionRisk`, which differs from its
   `interceptionRisk` only for a poor decider ([decision-making](on-ball.md#decision-making)).
@@ -644,8 +652,10 @@ decision's `reason` and `target`, and an action's `idlePress`
 ([pass decisions](on-ball.md#without-a-valid-option)); a pass candidate's
 `judgedInterceptionRisk` ([decision-making](on-ball.md#decision-making)); the
 ball's `sideSpin` and the `shotType` of `shotAttempted`
-([shot types](on-ball.md#shot-types)); the event `tackleAttempted`
-([tackles and blocks](duels.md#tackles-and-blocks)). Without a `look` the
+([shot types](on-ball.md#shot-types)); a pending pass's `cross`, `height` and
+`curvature`; the event `tackleAttempted`
+([tackles and blocks](duels.md#tackles-and-blocks)); the event `crossAttempted`
+([crossing](on-ball.md#crossing)). Without a `look` the
 viewer draws the vision cone along the facing.
 
 ### Development
@@ -883,8 +893,8 @@ Two guardrails also apply:
 
 - **Shots.** Every side of every pairing shoots between 0.5 and 40 times per
   six-minute match on average, so a change cannot stop the shooting or turn the
-  sandbox into a shooting gallery. At the time of writing the range is 3.7 to
-  14.1, possession against counter's deep block the fewest
+  sandbox into a shooting gallery. At the time of writing the range is 3.3 to
+  13.7, possession against counter's deep block the fewest
   ([shot decisions](on-ball.md#shot-decisions)).
 - **Ownership.** No player owns the ball longer than 15 s at a time
   (`longestOwnershipSeconds`, [match analytics](#match-analytics)). A carrier

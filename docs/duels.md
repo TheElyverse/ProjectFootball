@@ -295,7 +295,7 @@ for others to chase.
 
 - No tackle but the lunge: no slide, no shoulder-to-shoulder duel on the run.
   A block is the same lunge at a shot ([tackles and blocks](#tackles-and-blocks));
-  crosses do not exist yet to be blocked.
+  a [cross](on-ball.md#crossing) is not blocked.
 - No feint, and no dribble inside a duel: a carrier who touches the ball on
   leaves the duel and [dribbles](on-ball.md#dribble).
 - A foul has no consequence but the defender's stumble: no free kick, card or

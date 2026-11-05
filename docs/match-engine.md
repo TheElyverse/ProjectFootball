@@ -701,6 +701,7 @@ Every event carries the `tick` of its step and the players involved:
 | `DribbleEnded`       | `carrier`, `opponent`, `outcome`, `position`                 | the dribble is over: `beaten`, he has the ball back farther up the pitch than the opponent, `kept`, he has it back short of him, or `lost`, to an opponent or out of play |
 | `DuelStarted`        | `carrier`, `defender`, `position`                            | a presser takes on the carrier for the ball at his feet ([duels](duels.md#duels-on-the-ball)) |
 | `DuelEnded`          | `carrier`, `defender`, `outcome`, `position`                 | the duel is over: `kept` by the carrier, `won` by the defender -- `BallWon` and `PossessionChanged` follow --, the ball knocked `loose` -- `PossessionChanged` to nobody follows --, or a `foul` |
+| `CrossAttempted`     | `crosser`, `area`, `from`, `target`, `height`, `runner`, `speed` | a [cross](on-ball.md#crossing) leaves the crosser's foot for an area of the box -- `nearPost`, `penaltySpot`, `farPost`, `cutBack` or a `run` --, meant to arrive at `target` and `height` for `runner`; after its `PassAttempted` |
 | `TackleAttempted`    | `tackler`, `carrier`, `block`, `result`, `position`          | a defender lunges at the ball: a tackle in a duel, or a `block` of a shot -- `carrier` is then the shooter --, which `won`, knocked `loose`, `missed`, went through the man (`foul`) or `blocked` it ([tackles and blocks](duels.md#tackles-and-blocks)); a tackle's comes before its `DuelEnded`, a block's before its `ShotDeflected` |
 
 The shot events name their shot by its `shooter` and `shotTick`, the tick of its
@@ -739,10 +740,11 @@ A `DecisionDiagnostic` explains one decision of a player on the ball (see
 | `observations` | his perception memory at that moment                        |
 | `candidates`   | every pass with all score components and rejection reason   |
 | `shots`        | every zone of the goal he could aim at, the best first; only that one competed with the passes |
-| `outcome`      | `kPassed`, `kShot`, `kHeld`, `kTurned`, `kCarried`, `kDribbled` or `kNoValidOption` |
-| `chosen`       | index of the chosen pass in `candidates`, shot in `shots` or carry in `carries`, if he chose one |
+| `outcome`      | `kPassed`, `kShot`, `kHeld`, `kTurned`, `kCarried`, `kDribbled`, `kCrossed` or `kNoValidOption` |
+| `chosen`       | index of the chosen pass in `candidates`, shot in `shots`, carry in `carries` or cross in `crosses`, if he chose one |
 | `scoring`, `shotScoring` | the weights the passes and shots were scored with, after the tactic's passing risk and a goalkeeper's directness; `passContributions()` and `shotContributions()` with them explain every utility |
 | `carries`, `carryScoring` | his options with the ball at his feet -- holding, turning, carrying and dribbling -- with all score parts and rejection reason, and the weights they were scored with; `carryContributions()` with them explains every utility ([ball carrying](on-ball.md#ball-carrying)) |
+| `crosses`, `crossScoring` | his [crosses](on-ball.md#crossing), the best first, and the weights they were scored with; `chosen` indexes them for a cross |
 | `held` | whether he held the ball in his hands: his passes throws, his lofted passes punts ([goalkeeper distribution](goalkeeper.md#distribution)) |
 | `reason`, `target` | how he came to it -- `kChoice` among valid options, or looking for one `kScanFirstSide`, `kScanOtherSide`, `kForcedRejected` or `kForcedClear` -- and the point he looks at, clears the ball to or carries it to ([pass decisions](on-ball.md#without-a-valid-option)) |
 

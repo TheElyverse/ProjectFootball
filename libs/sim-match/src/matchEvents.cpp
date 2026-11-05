@@ -89,6 +89,19 @@ void addFields(StableHasher& hasher, const DuelEnded& event) noexcept {
   hasher.addDouble(event.position.y);
 }
 
+void addFields(StableHasher& hasher, const CrossAttempted& event) noexcept {
+  hasher.addU64(event.crosser.value());
+  hasher.addByte(static_cast<std::uint8_t>(event.area));
+  hasher.addDouble(event.from.x);
+  hasher.addDouble(event.from.y);
+  hasher.addDouble(event.target.x);
+  hasher.addDouble(event.target.y);
+  hasher.addDouble(event.height);
+  hasher.addBool(event.runner.has_value());
+  hasher.addU64(event.runner.value_or(SimCore::PlayerId::invalid()).value());
+  hasher.addDouble(event.speed);
+}
+
 void addFields(StableHasher& hasher, const TackleAttempted& event) noexcept {
   hasher.addU64(event.tackler.value());
   hasher.addU64(event.carrier.value());
@@ -357,6 +370,8 @@ std::string_view decisionOutcomeName(const DecisionOutcome outcome) noexcept {
       return "carried";
     case DecisionOutcome::kDribbled:
       return "dribbled";
+    case DecisionOutcome::kCrossed:
+      return "crossed";
   }
   return "unknown";
 }
@@ -435,6 +450,9 @@ std::string_view eventName(const MatchEvent& event) {
     std::string_view operator()(const DuelEnded& /*event*/) const noexcept { return "duel ended"; }
     std::string_view operator()(const TackleAttempted& /*event*/) const noexcept {
       return "tackle attempted";
+    }
+    std::string_view operator()(const CrossAttempted& /*event*/) const noexcept {
+      return "cross attempted";
     }
   };
   return std::visit(Names{}, event);

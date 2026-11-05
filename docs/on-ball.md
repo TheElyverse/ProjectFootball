@@ -2,14 +2,15 @@
 
 What the player on the ball does, each time decided apart from how well he
 executes it: the passes he sees, the choice among them, the pass itself, the
-shot he weighs and strikes, and the touches with which he carries the ball or
-dribbles.
+shot he weighs and strikes, the cross he delivers into the box, and the
+touches with which he carries the ball or dribbles.
 
 - [Pass candidates](#pass-candidates)
 - [Pass decisions](#pass-decisions)
 - [Passing](#passing)
 - [Shot decisions](#shot-decisions)
 - [Shooting](#shooting)
+- [Crossing](#crossing)
 - [Ball carrying](#ball-carrying)
 
 ## Pass candidates
@@ -130,10 +131,10 @@ always gives the same list.
 ## Pass decisions
 
 A player on the ball decides, several times a second, whether and where to pass
-or to shoot, or to hold, turn, carry or dribble. The decision reads only his own
+or to shoot, to cross, or to hold, turn, carry or dribble. The decision reads only his own
 [perception](players.md#perception), picks among his
-[pass candidates](#pass-candidates), his best [shot](#shot-decisions) and
-the best of each kind of his [carries](#ball-carrying) with a seeded softmax,
+[pass candidates](#pass-candidates), his best [shot](#shot-decisions), his best
+[cross](#crossing) and the best of each kind of his [carries](#ball-carrying) with a seeded softmax,
 and leaves the kick or the touch to execution ([passing](#passing),
 [ball carrying](#the-touch-the-ball-leaves-his-feet)). It lives
 in `sim-match` (`passDecision.hpp`) and runs as the system
@@ -146,6 +147,7 @@ perception → candidates and utilities → softmax choice → PassIntent  → e
  (memory)     generatePassCandidates()     chooseOnBall()   ShotIntent    ball system
               generateShotCandidates()                      CarryIntent
               generateCarryCandidates()                     pendingAction
+              generateCrossCandidates()
 ```
 
 Every `intervalTicks` ticks (6: five times a second at 30 Hz), and in the tick
@@ -159,14 +161,17 @@ after a carrier got his touched ball back
    than the distribution's `holdSeconds` (2 s). A player who owns the ball from
    the start of a state may pass at once, and so may one whose last touch was
    his own touch on in his active run.
-3. **Options.** `generatePassCandidates()`, `generateShotCandidates()` and
-   `generateCarryCandidates()` list and score his options from his memory. A
+3. **Options.** `generatePassCandidates()`, `generateShotCandidates()`,
+   `generateCarryCandidates()` and, wide in the final third with the ball at
+   his feet, `generateCrossCandidates()` list and score his options from his
+   memory. A
    goalkeeper adds his long balls, and from his hands throws no farther than
    `throwRange` ([goalkeeper distribution](goalkeeper.md#distribution)).
 4. **Choice.** A poor decider first misjudges his passes and shots
    (`misjudgeOptions()`, from the `kCognition` stream,
    [decision-making](#decision-making)). `chooseOnBall()` picks one of the
-   valid passes, the best valid shot or the best valid carry of each kind. Without a valid option -- only
+   valid passes, the best valid shot, the best valid cross or the best valid
+   carry of each kind. Without a valid option -- only
    with the ball in a goalkeeper's hands, since holding the ball at the feet is
    always valid -- he keeps the ball; a goalkeeper who has held it in his hands
    for `clearSeconds` (6 s) clears it
@@ -1033,6 +1038,151 @@ before he has reacted.
   ([aerial duels](duels.md#aerial-duels-and-headers)), struck from the head.
 - He curls or chips only as a shot; crosses come with their own action.
 - A goal counts and is kicked off, but no match ends with a result yet.
+
+## Crossing
+
+A wide player in the final third can deliver the ball into the box as an
+action of its own (GDD §8.5): not at a teammate's feet but at an area of the
+box or at a run into it, in the air on the ball's flight, or cut back along the
+ground. Candidate generation is a pure function in `sim-match`
+(`crossCandidates.hpp`), `generateCrossCandidates(state, carrierIndex, time,
+rules)`; the choice belongs to the [pass decision](#pass-decisions) system, the
+delivery to the ball system.
+
+```text
+perception → cross candidates        → one softmax with the passes → PassIntent with a cross → strike
+ (memory)     generateCrossCandidates()  chooseOnBall()                pendingAction            ball system
+```
+
+### Who crosses, and where to
+
+He has crosses only when crossing is `enabled` and the ball is **wide in the
+final third**: within `maxDepthShare` (0.3) of the pitch length of the goal
+line he attacks and outside the width of the penalty area. Then every area of
+the box is a candidate:
+
+| Area          | Where, from the goal's centre                                  | How     |
+|---------------|----------------------------------------------------------------|---------|
+| `nearPost`    | the goal area's depth in, half the goal's width to his side    | in the air |
+| `penaltySpot` | the penalty spot                                               | in the air |
+| `farPost`     | the goal area's depth in, half the goal's width to the far side | in the air |
+| `cutBack`     | the penalty spot's distance in, half the goal area's width to his side | along the ground |
+| `run`         | the movement target of a teammate whose target lies in the penalty area -- one per such teammate | in the air |
+
+A run is what his side sends a teammate to do, which a team knows; everything
+else he reads from his own [perception](players.md#perception), like a pass.
+
+Every area in the air is a candidate twice, **floated** -- leaving at
+`crossSpeed` (16 m/s) along the ground, arriving at `headerHeight` (1.6 m) --
+and **driven**, at `drivenSpeed` (24 m/s), arriving at `drivenHeight` (0.9 m),
+below the head. Which suits the situation follows from his chances: a driven
+cross beats a keeper and defenders to the ball, a floated one gives a runner
+time to arrive. Either bends toward the goal -- to the side of its line the
+goal's centre is on -- with `curlShare` (½) of the curl his `shotTechnique`
+gives a [curled shot](#shot-types), along `aimAlongArc()`, and his technique
+and conditions decide how cleanly it is struck ([the delivery](#the-choice-and-the-delivery)).
+A cut-back rolls at `cutBackSpeed` (12 m/s).
+
+### A cross's chances
+
+For each candidate he compares when the ball gets there -- its flight against
+the drag (`flightSeconds()`), or its roll -- with when his remembered players
+do, as for a [long ball](goalkeeper.md#distribution):
+
+- **The runner** is the teammate who gets there first, `runnerSeconds` -- for a
+  run the teammate making it.
+- **An opponent's margin** is how much later than the runner he gets there,
+  each counted from no earlier than the ball. The keeper reaches a cross in the
+  air in his penalty area with his hands (`handsRadius`), everyone else within
+  the control radius. Along a cut-back's way he can also cut it out, as a
+  pass's [interception risk](#scores): his risk is the larger of the two. It
+  falls smoothly from 1 at −`contestMarginSeconds` (0.5 s) through ½ at 0 to 0
+  at +0.5 s, weighted by how sure the crosser is of him; the keeper's is the
+  cross's `keeperClaim`.
+- **A late runner** misses it: the ball does not wait. A runner who arrives
+  after it misses by the same step, half the time at `contestMarginSeconds`
+  late, always at twice that.
+
+| Component    | How                                                                   |
+|--------------|-----------------------------------------------------------------------|
+| `winChance`  | `Π (1 − risk)` over his remembered opponents, times the chance the runner is there in time, times how sure he is of the runner; 0 for a cross that does not get there |
+| `threat`     | how wide the goal looks from the area over how wide it looks from the penalty spot, at most 1 (`goalOpening()`) |
+| `utility`    | `win·w_w + win·threat·w_t − (1 − win)·w_l`                            |
+
+`crossContributions()` splits the utility into `win`, `threat` and `loss`, whose
+sum it is bit for bit; `dominantCrossContribution()` names the largest, the
+reason code a [decision trace](tooling.md#decision-trace) gives. A tactic scales
+the scoring by the `passingRisk` of its current phase -- in the final third its
+final-third instruction -- as it does a pass's (`crossScoringForRisk()`): the
+threat `0.5 + r` times, losing the ball `1.5 − r` times, the win chance a cross
+needs `1.3 − 0.6 r` times.
+
+| Rejection     | When                                                           |
+|---------------|----------------------------------------------------------------|
+| `noRunner`    | no teammate he remembers gets there                            |
+| `outOfReach`  | the ball does not get there, or would have to leave faster than the passing's `maxLoftedSpeed` -- `maxSpeed` for a cut-back -- or steeper than the shot scoring's `maxLaunchSlope` |
+| `unlikely`    | `winChance` is below `minWinChance` (0.2)                      |
+
+Valid candidates come first by descending utility, then the rest; ties by area,
+runner, then speed. A poor decider does not
+[misjudge](#decision-making) his crosses; only his temperature applies.
+
+### The choice and the delivery
+
+`chooseOnBall()` offers the **best** valid cross -- one, not every area -- to
+the seeded softmax with the passes, the best shot and the carries, last in the
+list, so a decision without a cross draws as before. Chosen, it becomes a
+`PassIntent` with the cross's area, its height and curvature, meant for the
+runner: the ball system plays it as a pass, so the
+[reception](ball.md#reception-interceptions-and-loose-balls), the
+[duels](duels.md#duels-on-the-ball) and the
+[aerial duels](duels.md#aerial-duels-and-headers) contest it like any other
+ball, and the keeper claims it with his hands where he gets to it first.
+
+- **In the air** it is struck like a shot (`executeShot()`): the flight to its
+  height at its target along its arc, with the crosser's errors and conditions
+  of [shooting](#the-strike) -- accuracy scatters it across its way,
+  technique its lift, pace and spin -- in the six draws from `kExecution` a
+  shot makes, none of a pass's.
+- **A cut-back** is a ground pass ([passing](#passing)).
+
+The ball system records `PassAttempted` and then `CrossAttempted` with the
+area, the target, the height, the runner and the speed it left with
+([match events](match-engine.md#match-events-and-decision-diagnostics)). The
+diagnostics keep every cross with its area and the weights it was scored with
+(`crosses`, `crossScoring`), the outcome `crossed`.
+
+### Configuration
+
+`CrossScoringConfig` is the `crossing` part of `DecisionConfig`, part of
+`MatchConfig` and of every replay:
+
+| Field                  | Default | Meaning                                                |
+|------------------------|---------|--------------------------------------------------------|
+| `enabled`              | true    | whether he crosses at all                              |
+| `minConfidence`        | 0.3     | observations below are ignored                         |
+| `maxDepthShare`        | 0.3     | how far from the goal line, as a share of the length   |
+| `crossSpeed`, `headerHeight` | 16 m/s, 1.6 m | a floated cross                              |
+| `drivenSpeed`, `drivenHeight` | 24 m/s, 0.9 m | a driven cross                              |
+| `cutBackSpeed`         | 12 m/s  | a cut-back                                             |
+| `curlShare`            | 0.5     | the share of his shot's curl a cross bends with        |
+| `contestMarginSeconds` | 0.5 s   | width of an opponent's risk step                       |
+| `minWinChance`         | 0.2     | less likely to reach his side first, not offered       |
+| `winWeight`, `threatWeight`, `lossWeight` | 1, 1, 0.3 | `w_w`, `w_t`, `w_l`              |
+
+### Scenarios
+
+The [cross scenarios](scenarios.md#the-cross-scenarios) show an early cross
+for a run into the box, a cut-back from the goal line and a cross a keeper
+quicker than the crosser imagines claims.
+
+### What this is not
+
+- He crosses only when wide in the final third; a ball into the box from
+  elsewhere is a pass.
+- A cross is not blocked: the [block](duels.md#tackles-and-blocks) is for shots.
+- He does not wait for a run to be timed; he decides five times a second as
+  always, and a later decision sees the runner closer.
 
 ## Ball carrying
 

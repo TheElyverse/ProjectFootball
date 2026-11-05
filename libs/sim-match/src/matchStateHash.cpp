@@ -208,6 +208,10 @@ void addPendingAction(StableHasher& hasher, const PendingAction& action) noexcep
     hasher.addBool(pass->receiver.has_value());
     hasher.addU64(pass->receiver.value_or(SimCore::PlayerId::invalid()).value());
     hasher.addBool(pass->lofted);
+    hasher.addBool(pass->cross.has_value());
+    hasher.addByte(static_cast<std::uint8_t>(pass->cross.value_or(CrossArea::kRun)));
+    hasher.addDouble(pass->height);
+    hasher.addDouble(pass->curvature);
   }
   if (const auto* shot = std::get_if<ShotIntent>(&action)) {
     hasher.addU64(shot->shooter.value());

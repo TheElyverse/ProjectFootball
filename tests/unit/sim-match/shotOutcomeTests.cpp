@@ -3,6 +3,7 @@
 
 #include <algorithm>
 #include <catch2/catch_test_macros.hpp>
+#include <catch2/matchers/catch_matchers_floating_point.hpp>
 #include <cmath>
 #include <cstddef>
 #include <cstdint>
@@ -31,6 +32,7 @@
 #include "tacticalState.hpp"
 #include "vec2.hpp"
 
+using Catch::Matchers::WithinAbs;
 using ElyverseFootball::SimCore::PlayerId;
 using ElyverseFootball::SimCore::SimTick;
 using ElyverseFootball::SimCore::Vec2;
@@ -55,6 +57,7 @@ using ElyverseFootball::SimMatch::MatchStateWriter;
 using ElyverseFootball::SimMatch::MatchStepContext;
 using ElyverseFootball::SimMatch::MatchSystem;
 using ElyverseFootball::SimMatch::PassConfig;
+using ElyverseFootball::SimMatch::PassIntent;
 using ElyverseFootball::SimMatch::PassIntercepted;
 using ElyverseFootball::SimMatch::PassReceived;
 using ElyverseFootball::SimMatch::PassRecord;
@@ -534,6 +537,55 @@ TEST_CASE("A shot above a lunge's height passes a defender beside it", "[shotOut
   REQUIRE(eventsOf<TackleAttempted>(events).empty());
   REQUIRE(eventsOf<ShotDeflected>(events).empty());
   REQUIRE(outcomeOf(events) == ShotOutcome::kGoal);
+}
+
+TEST_CASE("A cross in the air is struck like a shot onto its target's height",
+          "[shotOutcome][cross]") {
+  Chance chance;
+  chance.shooter = {.x = 46.0, .y = 4.0};
+  const Vec2 target{.x = 53.7, .y = 20.0};
+  const PassIntent cross{.passer = PlayerId(1),
+                         .target = target,
+                         .speed = 18.0,
+                         .receiver = std::nullopt,
+                         .lofted = true,
+                         .cross = ElyverseFootball::SimMatch::CrossArea::kPenaltySpot,
+                         .height = 1.6,
+                         .curvature = 0.012};
+  std::vector<MatchSystem> systems{
+      {.name = "cross decision",
+       .update = [cross](const MatchStepContext& context, const MatchState& /*state*/,
+                         MatchStateWriter& next) {
+         if (context.tick() == SimTick(0)) {
+           next.setPendingAction(0, cross);
+         }
+       }}};
+  std::ranges::move(ballSystems(chance), std::back_inserter(systems));
+  MatchSimulation simulation(
+      {.initialState = chanceState(chance, {.position = chance.shooter + Vec2{.x = 0.5, .y = 0.0},
+                                            .velocity = {},
+                                            .owner = PlayerId(1),
+                                            .lastTouch = std::nullopt}),
+       .seed = 1,
+       .ticksPerSecond = 30,
+       .systems = std::move(systems),
+       .commands = {}});
+  const auto events = play(simulation, 2);
+  REQUIRE(eventsOf<ElyverseFootball::SimMatch::PassAttempted>(events).size() == 1);
+  const auto crosses = eventsOf<ElyverseFootball::SimMatch::CrossAttempted>(events);
+  REQUIRE(crosses.size() == 1);
+  REQUIRE(crosses.front().height == 1.6);
+  // With an exact strike it curls onto where it was aimed, at head height:
+  // through the plane square to its chord at the target.
+  const Vec2 chord = target - crosses.front().from;
+  const auto arrival = ElyverseFootball::SimMatch::predictPlanePassage(
+      simulation.state().ball(), BallPhysics{}, target, chord * (1.0 / chord.length()));
+  REQUIRE(arrival.has_value());
+  const BallState arrived = arrival.value_or(ElyverseFootball::SimMatch::BallPassage{}).ball;
+  REQUIRE_THAT(arrived.position.x, WithinAbs(target.x, 1e-6));
+  REQUIRE_THAT(arrived.position.y, WithinAbs(target.y, 1e-6));
+  REQUIRE_THAT(arrived.height, WithinAbs(1.6, 1e-6));
+  REQUIRE(simulation.state().ball().sideSpin > 0.0);
 }
 
 TEST_CASE("A slow shot is taken at the feet like any ball", "[shotOutcome]") {

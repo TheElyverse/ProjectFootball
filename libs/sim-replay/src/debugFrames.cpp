@@ -171,6 +171,9 @@ using SimMatch::MatchState;
   json["speed"] = rounded(intent->speed);
   json["receiver"] = idJson(intent->receiver);
   json["lofted"] = intent->lofted;
+  json["cross"] = intent->cross ? Json(SimMatch::crossAreaName(*intent->cross)) : Json(nullptr);
+  json["height"] = rounded(intent->height);
+  json["curvature"] = rounded(intent->curvature);
   return json;
 }
 
@@ -252,6 +255,17 @@ void addEventFields(Json& json, const SimMatch::DuelEnded& event) {
   json["defender"] = event.defender.value();
   json["outcome"] = SimMatch::duelOutcomeName(event.outcome);
   json["position"] = vec2Json(event.position);
+}
+
+void addEventFields(Json& json, const SimMatch::CrossAttempted& event) {
+  json["type"] = "crossAttempted";
+  json["crosser"] = event.crosser.value();
+  json["area"] = SimMatch::crossAreaName(event.area);
+  json["from"] = vec2Json(event.from);
+  json["target"] = vec2Json(event.target);
+  json["height"] = rounded(event.height);
+  json["runner"] = event.runner ? Json(event.runner->value()) : Json(nullptr);
+  json["speed"] = rounded(event.speed);
 }
 
 void addEventFields(Json& json, const SimMatch::TackleAttempted& event) {

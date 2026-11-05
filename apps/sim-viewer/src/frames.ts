@@ -255,7 +255,8 @@ export interface Decision {
     | "held"
     | "turned"
     | "carried"
-    | "dribbled";
+    | "dribbled"
+    | "crossed";
   // Index into candidates of the chosen pass; null for a shot.
   readonly chosen: number | null;
   // How he came to it: "choice", or without a valid option "scanFirstSide",
@@ -434,6 +435,8 @@ export function describeOutcome(outcome: Decision["outcome"]): string {
       return "carried the ball";
     case "dribbled":
       return "dribbled";
+    case "crossed":
+      return "crossed";
   }
 }
 

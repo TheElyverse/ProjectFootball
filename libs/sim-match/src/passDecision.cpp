@@ -43,6 +43,7 @@ void validate(const DecisionConfig& config) {
   validate(config.scoring);
   validate(config.shooting);
   validate(config.carrying);
+  validate(config.crossing);
   validate(config.distribution);
 }
 
@@ -186,7 +187,8 @@ struct ScanStep {
                                                     const ScanStep& step,
                                                     const std::span<const PassCandidate> passes,
                                                     const std::span<const ShotCandidate> shots,
-                                                    const std::span<const CarryCandidate> carries) {
+                                                    const std::span<const CarryCandidate> carries,
+                                                    const std::span<const CrossCandidate> crosses) {
   if (step.reason == OnBallReason::kForcedClear) {
     return PassIntent{.passer = carrier,
                       .target = step.target.value_or(SimCore::Vec2{}),
@@ -208,6 +210,17 @@ struct ScanStep {
   }
   if (chosen->outcome == DecisionOutcome::kHeld) {
     return std::nullopt;
+  }
+  if (chosen->outcome == DecisionOutcome::kCrossed) {
+    const CrossCandidate& cross = crosses[chosen->index];
+    return PassIntent{.passer = carrier,
+                      .target = cross.target,
+                      .speed = cross.speed,
+                      .receiver = cross.runner,
+                      .lofted = cross.height > 0.0,
+                      .cross = cross.area,
+                      .height = cross.height,
+                      .curvature = cross.curvature};
   }
   if (chosen->outcome != DecisionOutcome::kPassed) {
     const CarryCandidate& carry = carries[chosen->index];
@@ -346,6 +359,7 @@ struct OnBallRules {
   PassCandidateRules passes;
   ShotCandidateRules shots;
   CarryCandidateRules carries;
+  CrossCandidateRules crosses;
 };
 
 // Whether the carrier at this index decides in this step: with the ball at
@@ -375,11 +389,12 @@ struct OnBallOptions {
   std::vector<PassCandidate> passes;
   std::vector<ShotCandidate> shots;
   std::vector<CarryCandidate> carries;
+  std::vector<CrossCandidate> crosses;
 };
 
 [[nodiscard]] OnBallOptions optionsOf(const MatchStepContext& context, const MatchState& current,
                                       const std::size_t carrier, const OnBallRules& rules) {
-  OnBallOptions options{.rules = rules, .passes = {}, .shots = {}, .carries = {}};
+  OnBallOptions options{.rules = rules, .passes = {}, .shots = {}, .carries = {}, .crosses = {}};
   const TeamSide side = current.players()[carrier].side;
   const auto& tactic = current.tactics().of(side);
   const auto& phase = current.phase(side);
@@ -389,12 +404,17 @@ struct OnBallOptions {
     options.rules.shots.scoring = shotScoringForRisk(rules.shots.scoring, risk);
     options.rules.carries.scoring =
         carryScoringForRisk(carryScoringForPhase(rules.carries.scoring, phase->phase), risk);
+    options.rules.crosses.scoring = crossScoringForRisk(rules.crosses.scoring, risk);
   }
   options.passes =
       passOptions(context, current, carrier, rules.config.distribution, options.rules.passes);
   options.shots = generateShotCandidates(current, carrier, context.time(), options.rules.shots);
   options.carries =
       generateCarryCandidates(current, carrier, context.time(), options.rules.carries);
+  if (!current.ball().held) {
+    options.crosses =
+        generateCrossCandidates(current, carrier, context.time(), options.rules.crosses);
+  }
   return options;
 }
 
@@ -412,7 +432,8 @@ struct OnBallOptions {
   }
   const CarryCandidate* touch = touchOf(chosen, options.carries);
   const bool playing = chosen && (chosen->outcome == DecisionOutcome::kPassed ||
-                                  chosen->outcome == DecisionOutcome::kShot);
+                                  chosen->outcome == DecisionOutcome::kShot ||
+                                  chosen->outcome == DecisionOutcome::kCrossed);
   if (touch != nullptr && gains(*touch, current.pitch(), config.carrying)) {
     if (const CarrierScan* active = activeScan(current, carrier)) {
       step.scan = *active;
@@ -442,7 +463,7 @@ void decideOnBall(const MatchStepContext& context, const MatchState& current,
   misjudgeOptions(options.passes, options.shots, misjudgementWidth(rules.config, decisionMaking),
                   options.rules.passes.scoring, options.rules.shots.scoring,
                   context.random(SimCore::RandomNumberGeneratorDomain::kCognition));
-  auto chosen = chooseOnBall(options.passes, options.shots, options.carries,
+  auto chosen = chooseOnBall(options.passes, options.shots, options.carries, options.crosses,
                              choiceTemperature(rules.config, decisionMaking),
                              context.random(SimCore::RandomNumberGeneratorDomain::kAi));
   if (!chosen && ball.held &&
@@ -451,8 +472,8 @@ void decideOnBall(const MatchStepContext& context, const MatchState& current,
   }
   const ScanStep step = lookAround(context, current, carrier, options, chosen);
   next.tactical(carrier).scan = step.scan;
-  const std::optional<PendingAction> action =
-      actionOf(player, chosen, step, options.passes, options.shots, options.carries);
+  const std::optional<PendingAction> action = actionOf(
+      player, chosen, step, options.passes, options.shots, options.carries, options.crosses);
   std::optional<SimCore::Vec2> target = step.target;
   if (const CarryCandidate* touch = touchOf(chosen, options.carries)) {
     const CarryCandidate& carry = *touch;
@@ -481,7 +502,9 @@ void decideOnBall(const MatchStepContext& context, const MatchState& current,
                            .carryScoring = options.rules.carries.scoring,
                            .held = ball.held,
                            .reason = step.reason,
-                           .target = target});
+                           .target = target,
+                           .crosses = options.crosses,
+                           .crossScoring = options.rules.crosses.scoring});
   }
   if (action) {
     next.setPendingAction(carrier, action);
@@ -500,6 +523,15 @@ std::optional<OnBallChoice> chooseOnBall(const std::span<const PassCandidate> pa
 std::optional<OnBallChoice> chooseOnBall(const std::span<const PassCandidate> passes,
                                          const std::span<const ShotCandidate> shots,
                                          const std::span<const CarryCandidate> carries,
+                                         const double temperature,
+                                         SimCore::RandomNumberGenerator& random) {
+  return chooseOnBall(passes, shots, carries, {}, temperature, random);
+}
+
+std::optional<OnBallChoice> chooseOnBall(const std::span<const PassCandidate> passes,
+                                         const std::span<const ShotCandidate> shots,
+                                         const std::span<const CarryCandidate> carries,
+                                         const std::span<const CrossCandidate> crosses,
                                          const double temperature,
                                          SimCore::RandomNumberGenerator& random) {
   // Valid candidates come first, the best of them at the front.
@@ -527,9 +559,17 @@ std::optional<OnBallChoice> chooseOnBall(const std::span<const PassCandidate> pa
       utilities.push_back(carries[index].utility);
     }
   }
+  // The best valid cross last, so a list without one chooses as before.
+  const std::size_t crossAt = utilities.size();
+  if (!crosses.empty() && crosses.front().isValid()) {
+    utilities.push_back(crosses.front().utility);
+  }
   const auto chosen = chooseByUtility(utilities, temperature, random);
   if (!chosen) {
     return std::nullopt;
+  }
+  if (*chosen == crossAt) {
+    return OnBallChoice{.outcome = DecisionOutcome::kCrossed, .index = 0};
   }
   if (*chosen < passCount) {
     return OnBallChoice{.outcome = DecisionOutcome::kPassed, .index = *chosen};
@@ -618,6 +658,12 @@ MatchSystem makePassDecisionSystem(const DecisionConfig& config, const PassCandi
                                .perception = rules.perception,
                                .reception = rules.reception},
                      .carries = {.scoring = config.carrying,
+                                 .ball = rules.ball,
+                                 .passing = rules.passing,
+                                 .perception = rules.perception,
+                                 .reception = rules.reception},
+                     .crosses = {.scoring = config.crossing,
+                                 .shooting = config.shooting,
                                  .ball = rules.ball,
                                  .passing = rules.passing,
                                  .perception = rules.perception,
