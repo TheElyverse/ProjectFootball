@@ -75,14 +75,14 @@ function drawPitch(
   const { length, width } = recording.pitch;
   context.fillStyle = COLORS.surround;
   context.fillRect(0, 0, context.canvas.width, context.canvas.height);
-  const [left, top] = viewport.toCanvas([0, 0]);
+  const pitch = viewport.rectToCanvas([0, 0], [length, width]);
   context.fillStyle = COLORS.grass;
-  context.fillRect(left, top, viewport.pixels(length), viewport.pixels(width));
+  context.fillRect(pitch.left, pitch.top, pitch.width, pitch.height);
 
   context.strokeStyle = COLORS.lines;
   context.lineWidth = 2;
   context.setLineDash([]);
-  context.strokeRect(left, top, viewport.pixels(length), viewport.pixels(width));
+  context.strokeRect(pitch.left, pitch.top, pitch.width, pitch.height);
   line(context, viewport, [length / 2, 0], [length / 2, width]);
   // Decoration only: the simulation has no center circle rule yet.
   circle(context, viewport, [length / 2, width / 2], viewport.pixels(Math.min(width, length) / 8));

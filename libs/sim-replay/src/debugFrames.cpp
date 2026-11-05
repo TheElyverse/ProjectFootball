@@ -391,6 +391,12 @@ void addEventFields(Json& json, const SimMatch::GoalScored& event) {
   json["score"] = {{"home", event.score.home}, {"away", event.score.away}};
 }
 
+void addEventFields(Json& json, const SimMatch::PeriodEnded& event) {
+  json["type"] = "periodEnded";
+  json["period"] = SimMatch::matchPeriodName(event.period);
+  json["addedMinutes"] = event.addedMinutes;
+}
+
 [[nodiscard]] Json eventJson(const SimMatch::MatchEvent& event) {
   Json json;
   // The step's tick, one before the frame's: the event happened during the
@@ -494,10 +500,15 @@ void addEventFields(Json& json, const SimMatch::GoalScored& event) {
           {"home", std::move(home)}};
 }
 
-[[nodiscard]] Json frameJson(const DebugFrame& frame) {
+[[nodiscard]] Json frameJson(const DebugFrame& frame, const SimMatch::MatchConfig& config) {
   Json json;
   json["tick"] = frame.tick.value();
   json["stateHash"] = std::format("{:016x}", SimMatch::hashMatchState(frame.state));
+  const SimMatch::MatchClock& clock = frame.state.clock();
+  json["clock"] = SimMatch::formatClock(
+      SimMatch::readClock(clock, frame.tick, config.clock, config.ticksPerSecond));
+  json["period"] = SimMatch::matchPeriodName(clock.period);
+  json["endsChanged"] = SimMatch::endsChanged(clock.period);
   json["ball"] = ballJson(frame.state.ball());
   json["score"] = {{"home", frame.state.score().home}, {"away", frame.state.score().away}};
   json["pendingPass"] = pendingPassJson(frame.state.pendingPass());
@@ -613,7 +624,7 @@ std::string toDebugFramesJson(const DebugRecording& recording) {
   }
   json["frames"] = Json::array();
   for (const DebugFrame& frame : recording.frames) {
-    json["frames"].push_back(frameJson(frame));
+    json["frames"].push_back(frameJson(frame, recording.config));
   }
   return json.dump();
 }

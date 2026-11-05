@@ -8,7 +8,7 @@ This repository is in **early bootstrap stage**. The P0 foundation (`libs/sim-co
 tactic model (`libs/sim-tactics`), a match simulation of seven or eleven a side with its acceptance scenarios
 (`libs/sim-match`), replays, analytics, the benchmark, the debug viewer and the UI spike exist; almost
 everything else in the design/implementation docs below is still unbuilt. `docs/README.md` indexes the topic
-docs that describe what exists, one per area (match engine, players, ball, on the ball, goalkeeper, duels,
+docs that describe what exists, one per area (match engine, match clock, players, ball, on the ball, goalkeeper, duels,
 team tactics, tactics, scenarios, tooling, apps). Document a new system as a chapter of the topic doc it
 belongs to, and link to chapters by anchor (`docs/goalkeeper.md#shot-stopping`).
 When implementing a new system, check whether it belongs in an existing module (see layout below) before
@@ -67,7 +67,7 @@ apps/
   sim-replay, world-editor                                                     [planned]
 data/            schemas, tactics, competitions, fixtures (JSON/YAML, schema-validated) [exists: tactics]
 tests/unit/      Catch2 tests, mirrors libs/ by subdirectory                   [exists: sim-core, sim-tactics, sim-match, sim-replay, sim-analytics, sim-benchmark]
-tests/acceptance/ whole-match scenarios: stability, determinism, pinned hashes [exists: M0, P1, P2, shots, goalkeeper, distribution, carrying, duels, crosses, eleven-a-side]
+tests/acceptance/ whole-match scenarios: stability, determinism, pinned hashes [exists: M0, P1, P2, shots, goalkeeper, distribution, carrying, duels, crosses, eleven-a-side, clock]
 tests/benchmark/ sim-benchmark smoke test and the Release-only P2 style benchmark [exists]
 ```
 

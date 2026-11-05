@@ -15,8 +15,10 @@ exists in code, one area each.
 - [Match engine](match-engine.md): pitch geometry, the validated match state,
   the fixed-timestep loop with its commands and systems, events and decision
   diagnostics, and restarts.
-- [Players](players.md): player movement, perception, and the spatial queries
-  every decision asks.
+- [Match clock](match-clock.md): halves, the duration and its ninety-minute
+  clock, added time, and full time.
+- [Players](players.md): player movement, fitness, perception, and the spatial
+  queries every decision asks.
 - [Ball](ball.md): how the ball rolls, flies and bounces, possession, and
   reception, interceptions and loose balls.
 - [On the ball](on-ball.md): pass candidates and decisions, passing, shot

@@ -43,8 +43,13 @@ std::vector<MatchSystem> makeMatchSystems(const MatchConfig& config) {
                                             .duels = config.duels}));
   // Only when enabled, so matches without restarts keep their system list.
   if (config.restarts.enabled) {
-    systems.push_back(makeRestartSystem({.restarts = config.restarts, .physics = config.ball}));
+    systems.push_back(makeRestartSystem(
+        {.restarts = config.restarts, .physics = config.ball, .clock = config.clock}));
   }
+  systems.push_back(makeMatchClockSystem({.clock = config.clock,
+                                          .fitness = config.fitness,
+                                          .physics = config.ball,
+                                          .ticksPerSecond = config.ticksPerSecond}));
   return systems;
 }
 

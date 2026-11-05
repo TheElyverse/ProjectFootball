@@ -7,6 +7,7 @@
 #include <vector>
 
 #include "ballPhysics.hpp"
+#include "matchClock.hpp"
 #include "matchSimulation.hpp"
 #include "matchState.hpp"
 #include "pitch.hpp"
@@ -73,6 +74,13 @@ struct KickoffLineUp {
 // The unit vector a side faces at a kickoff: toward the goal it attacks.
 [[nodiscard]] SimCore::Vec2 kickoffFacing(TeamSide side) noexcept;
 
+// Puts both sides into the line-up, at rest and facing the goal they attack,
+// the ball on the centre spot, and starts them as at the beginning of a match:
+// without movement targets, pending actions, memories, tactical states,
+// presses, chasers or pitch control. Who owns the ball is the caller's.
+void takeKickoffLineUp(const MatchState& current, const KickoffLineUp& lineUp,
+                       MatchStateWriter& next);
+
 inline constexpr std::string_view kRestartSystemName = "restart";
 
 // What the restart system is configured with: the default configuration for
@@ -80,6 +88,7 @@ inline constexpr std::string_view kRestartSystemName = "restart";
 struct RestartRules {
   RestartConfig restarts{};
   BallPhysics physics{};
+  MatchClockConfig clock{};
 };
 
 // Every tick while enabled: if a goalkeeper has held the ball in his hands
@@ -91,14 +100,12 @@ struct RestartRules {
 // ball is out of play, gives it to the
 // player planRestart() names, at his feet, and records RestartTaken -- at the
 // centre spot for a kickoff, otherwise where the ball left the pitch -- and
-// PossessionChanged. For a throw-in and a corner nobody is moved: the restart
+// PossessionChanged. Either restart adds its lostSeconds() to the clock's lost
+// time. For a throw-in and a corner nobody is moved: the restart
 // only settles who plays on. For a goal kick the taker stands behind the
 // ball on goalKickSpot(), at rest and facing the goal he attacks, the ball at
 // his feet. For a kickoff both sides are
-// placed in lineUpForKickoff()'s positions, at rest and facing the goal they
-// attack, with the ball on the centre spot, and start as at the beginning of
-// a match: without movement targets, pending actions, memories, tactical
-// states, presses or chasers. Disabled, it does nothing. Throws
+// placed by takeKickoffLineUp(). Disabled, it does nothing. Throws
 // std::invalid_argument for a negative or non-finite maxHoldSeconds.
 // The ball physics place the ball at the taker's feet.
 [[nodiscard]] MatchSystem makeRestartSystem(const RestartRules& rules = {});

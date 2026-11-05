@@ -295,6 +295,16 @@ struct GoalScored {
   friend bool operator==(const GoalScored&, const GoalScored&) = default;
 };
 
+// The referee ended a half (docs/match-clock.md): the period that ended, and
+// the added time he had announced for it.
+struct PeriodEnded {
+  SimCore::SimTick tick;
+  MatchPeriod period = MatchPeriod::kFirstHalf;
+  int addedMinutes = 0;
+
+  friend bool operator==(const PeriodEnded&, const PeriodEnded&) = default;
+};
+
 // What a goalkeeper made of a shot that passed him: he caught it; he parried
 // it, back into play or -- by where it is heading -- behind his goal line;
 // or it was out of his reach.
@@ -487,7 +497,7 @@ using MatchEvent =
                  TacticChanged, PitchControlSampled, RestartTaken, ShotAttempted, ShotDeflected,
                  ShotHitWoodwork, ShotResolved, GoalScored, SaveAttempted, AerialContest,
                  DribbleAttempted, DribbleEnded, DuelStarted, DuelEnded, TackleAttempted,
-                 CrossAttempted>;
+                 CrossAttempted, PeriodEnded>;
 
 // "pass attempted", "pass received", ... for logs and diagnostics.
 [[nodiscard]] std::string_view eventName(const MatchEvent& event);

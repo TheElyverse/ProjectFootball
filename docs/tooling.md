@@ -26,12 +26,12 @@ directory); `--play` plays one back. The file is written before the terminal
 interface opens, so a run rejected by argument or terminal validation leaves no
 file.
 
-### Schema version 13
+### Schema version 19
 
 ```json
 {
-  "schemaVersion": 18,
-  "coreVersion": "0.34.0",
+  "schemaVersion": 19,
+  "coreVersion": "0.35.0",
   "createdAt": "2026-09-24T10:00:00Z",
   "seed": "18446744073709551615",
   "gameTime": 300,
@@ -62,7 +62,9 @@ file.
     "woodwork": { "radius": 0.06, "restitution": 0.5 },
     "goalkeeper": { "...": "..." },
     "shotStopping": { "...": "..." },
-    "aerial": { "...": "..." }
+    "aerial": { "...": "..." },
+    "clock": { "durationMinutes": 90.0, "throwInLostSeconds": 4.0, "...": "..." },
+    "fitness": { "sprintSpeedShare": 0.85, "...": "..." }
   },
   "initialState": {
     "pitch": { "length": 60.0, "width": 40.0 },
@@ -91,7 +93,8 @@ file.
           "dribbling": 0.5
         },
         "target": null,
-        "facing": { "x": 1.0, "y": 0.0 }
+        "facing": { "x": 1.0, "y": 0.0 },
+        "fitness": { "sprintReserve": 1.0, "playedTicks": 0, "topSpeedShare": 1.0 }
       }
     ],
     "ball": {
@@ -309,6 +312,7 @@ record the scenario again with the same seed.
 | 16      | The shooting gains `lungeRadius` and `lungeHeight` ([tackles and blocks](duels.md#tackles-and-blocks)). |
 | 17      | The decisions gain their `crossing` block ([crossing](on-ball.md#crossing)). |
 | 18      | Tactics are files of tactic format version 4, which may hold eleven slots ([tactics](tactics.md#tactic-file-format)). |
+| 19      | Players gain `fitness` (`sprintReserve`, `playedTicks`, `topSpeedShare`), and the configuration its `clock` and `fitness` blocks ([match clock](match-clock.md), [fitness](players.md#fitness)). |
 
 ## Decision trace
 
@@ -656,7 +660,10 @@ ball's `sideSpin` and the `shotType` of `shotAttempted`
 ([shot types](on-ball.md#shot-types)); a pending pass's `cross`, `height` and
 `curvature`; the event `tackleAttempted`
 ([tackles and blocks](duels.md#tackles-and-blocks)); the event `crossAttempted`
-([crossing](on-ball.md#crossing)). Without a `look` the
+([crossing](on-ball.md#crossing)); every frame's `clock` (as `formatClock()`
+shows it), `period` and `endsChanged`, and the event `periodEnded`
+([match clock](match-clock.md)). From the second half on the viewer turns the
+pitch round the centre spot, as the teams have changed ends. Without a `look` the
 viewer draws the vision cone along the facing.
 
 ### Development
@@ -793,7 +800,7 @@ fares against another. It is also the simulation's performance check.
 | `--home`, `--away`            |         | the two tactic files, required                       |
 | `--matches`                   | 10      | how many matches                                     |
 | `--seed`                      | 1       | the base seed of the series                          |
-| `--minutes`                   | 10      | match length in simulated minutes                    |
+| `--minutes`                   | 10      | minutes of play per match, as ticks; the [match clock](match-clock.md) lasts its default 90 minutes, so a run of 90 stops before full time |
 | `--jobs`                      | 1       | matches played at once                               |
 | `--out`                       |         | where to write the results file                      |
 | `--no-restarts`               |         | leave the ball on the line when it goes out          |

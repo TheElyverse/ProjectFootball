@@ -227,6 +227,7 @@ export type MatchEvent = { readonly tick: number } & (
       readonly previous: string | null;
       readonly phase: string;
     }
+  | { readonly type: "periodEnded"; readonly period: string; readonly addedMinutes: number }
 );
 
 export interface PassCandidate {
@@ -271,6 +272,13 @@ export interface Decision {
 export interface Frame {
   readonly tick: number;
   readonly stateHash: string;
+  // The match clock in the ninety-minute equivalent, "mm:ss" or "45+mm:ss";
+  // missing in files of a core before 0.35.0.
+  readonly clock?: string;
+  readonly period?: string;
+  // From the second half on the teams attack the other ends: the view turns
+  // the pitch round, the engine's coordinates stay.
+  readonly endsChanged?: boolean;
   readonly ball: BallFrame;
   readonly pendingPass: PendingPass | null;
   readonly players: readonly PlayerFrame[];
@@ -479,6 +487,8 @@ export function describeEvent(event: MatchEvent): string {
       return `${event.kind} to #${event.player}`;
     case "pitchControlSampled":
       return `home controls ${Math.round(event.homeShare * 100)}% of the pitch`;
+    case "periodEnded":
+      return `end of ${event.period} (+${event.addedMinutes})`;
     default:
       // A newer core may record events this viewer does not know yet.
       return (event as { readonly type: string }).type;

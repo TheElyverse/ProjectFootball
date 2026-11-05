@@ -25,6 +25,7 @@ using ElyverseFootball::SimMatch::GoalRecord;
 using ElyverseFootball::SimMatch::hashMatchState;
 using ElyverseFootball::SimMatch::KeeperDive;
 using ElyverseFootball::SimMatch::makeSevenASideKickoff;
+using ElyverseFootball::SimMatch::MatchPeriod;
 using ElyverseFootball::SimMatch::MatchSimulation;
 using ElyverseFootball::SimMatch::MatchState;
 using ElyverseFootball::SimMatch::MatchStateSpec;
@@ -69,7 +70,7 @@ TEST_CASE("Equal states hash equally", "[matchStateHash]") {
 TEST_CASE("The kickoff hash is pinned", "[matchStateHash]") {
   // Changes when the fixture, a state field or the hash encoding changes;
   // each of those invalidates recorded replays, so update it deliberately.
-  REQUIRE(hashOf(kickoffSpec()) == 0xbdd597bfb64642eaULL);
+  REQUIRE(hashOf(kickoffSpec()) == 0xee99e8d862ba53feULL);
 }
 
 // Guards against a field that is added to the state but forgotten here.
@@ -113,6 +114,9 @@ TEST_CASE("Every field of the state changes the hash", "[matchStateHash]") {
       {"score away", [](auto& spec) { spec.score.away = 1; }},
       {"target", [](auto& spec) { spec.players.at(9).target = Vec2{}; }},
       {"facing", [](auto& spec) { spec.players.at(4).facing = Vec2{.x = 0.0, .y = 1.0}; }},
+      {"sprint reserve", [](auto& spec) { spec.players.at(4).fitness.sprintReserve = 0.5; }},
+      {"played ticks", [](auto& spec) { spec.players.at(4).fitness.playedTicks = 7; }},
+      {"top speed share", [](auto& spec) { spec.players.at(4).fitness.topSpeedShare = 0.9; }},
       {"ball position", [](auto& spec) { spec.ball.position.y = 1.0; }},
       {"ball velocity", [](auto& spec) { spec.ball.velocity.x = -1.0; }},
       {"ball height", [](auto& spec) { spec.ball.height = 2.0; }},
@@ -347,6 +351,15 @@ TEST_CASE("Pending actions, the last shot and a keeper's dive are part of the ha
        hashAfter(goal(changed(aGoal, [](GoalRecord& record) { record.scorer.reset(); })))},
       {"goal tick",
        hashAfter(goal(changed(aGoal, [](GoalRecord& record) { record.tick = SimTick(10); })))},
+      {"clock period", hashAfter([](MatchStateWriter& next) {
+         next.setClock({.period = MatchPeriod::kSecondHalf});
+       })},
+      {"clock period start",
+       hashAfter([](MatchStateWriter& next) { next.setClock({.periodStart = SimTick(3)}); })},
+      {"clock lost time",
+       hashAfter([](MatchStateWriter& next) { next.setClock({.lostSeconds = 4.0}); })},
+      {"clock added minutes",
+       hashAfter([](MatchStateWriter& next) { next.setClock({.addedMinutes = 0}); })},
   };
   for (std::size_t first = 0; first < hashes.size(); ++first) {
     for (std::size_t second = 0; second < first; ++second) {

@@ -231,9 +231,30 @@ SimCore::Vec2 kickoffFacing(const TeamSide side) noexcept {
   return {.x = attackingDirection(side), .y = 0.0};
 }
 
+void takeKickoffLineUp(const MatchState& current, const KickoffLineUp& lineUp,
+                       MatchStateWriter& next) {
+  next.setBallPosition(current.pitch().center());
+  for (std::size_t index = 0; index < current.players().size(); ++index) {
+    next.setPlayerPosition(index, lineUp.positions[index]);
+    next.setPlayerVelocity(index, {});
+    next.setPlayerTarget(index, std::nullopt);
+    next.setPlayerFacing(index, kickoffFacing(current.players()[index].side));
+    next.setPendingAction(index, std::nullopt);
+    next.perception(index) = {};
+    next.tactical(index) = {};
+  }
+  // Pitch control from where they stood before would outlive them.
+  next.setPitchControl(std::nullopt);
+  for (const TeamSide side : {TeamSide::kHome, TeamSide::kAway}) {
+    next.setPress(side, std::nullopt);
+    next.setChaser(side, std::nullopt);
+  }
+}
+
 MatchSystem makeRestartSystem(const RestartRules& rules) {
   const RestartConfig& config = rules.restarts;
   const BallPhysics& ball = rules.physics;
+  const MatchClockConfig& clock = rules.clock;
   // False for NaN.
   const bool valid =
       config.maxHoldSeconds >= 0.0 && config.maxHoldSeconds <= std::numeric_limits<double>::max();
@@ -243,8 +264,8 @@ MatchSystem makeRestartSystem(const RestartRules& rules) {
   return {
       .name = std::string(kRestartSystemName),
       .update =
-          [config, ball](const MatchStepContext& context, const MatchState& current,
-                         MatchStateWriter& next) {
+          [config, ball, clock](const MatchStepContext& context, const MatchState& current,
+                                MatchStateWriter& next) {
             if (!config.enabled) {
               return;
             }
@@ -255,6 +276,7 @@ MatchSystem makeRestartSystem(const RestartRules& rules) {
                                           .kind = plan.kind,
                                           .player = taker.playerId,
                                           .position = spot});
+              next.addLostSeconds(lostSeconds(plan.kind, clock));
               context.record(PossessionChanged{.tick = context.tick(),
                                                .previousOwner = current.ball().owner,
                                                .newOwner = taker.playerId});
@@ -285,6 +307,7 @@ MatchSystem makeRestartSystem(const RestartRules& rules) {
                                         .position = plan->kind == RestartKind::kKickoff
                                                         ? current.pitch().center()
                                                         : current.ball().position});
+            next.addLostSeconds(lostSeconds(plan->kind, clock));
             context.record(PossessionChanged{
                 .tick = context.tick(), .previousOwner = std::nullopt, .newOwner = taker.playerId});
             next.setBallOwner(taker.playerId);
@@ -312,23 +335,7 @@ MatchSystem makeRestartSystem(const RestartRules& rules) {
               next.setBallPosition(carriedBallPosition(taker, ball, current.pitch()));
               return;
             }
-            // Both sides line up and start as at the beginning of a match.
-            next.setBallPosition(current.pitch().center());
-            for (std::size_t index = 0; index < current.players().size(); ++index) {
-              next.setPlayerPosition(index, lineUp->positions[index]);
-              next.setPlayerVelocity(index, {});
-              next.setPlayerTarget(index, std::nullopt);
-              next.setPlayerFacing(index, kickoffFacing(current.players()[index].side));
-              next.setPendingAction(index, std::nullopt);
-              next.perception(index) = {};
-              next.tactical(index) = {};
-            }
-            // Pitch control from where they stood before would outlive them.
-            next.setPitchControl(std::nullopt);
-            for (const TeamSide side : {TeamSide::kHome, TeamSide::kAway}) {
-              next.setPress(side, std::nullopt);
-              next.setChaser(side, std::nullopt);
-            }
+            takeKickoffLineUp(current, *lineUp, next);
           },
       .intervalTicks = 1,
       .phaseTicks = 0};

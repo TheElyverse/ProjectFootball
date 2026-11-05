@@ -585,6 +585,25 @@ TEST_CASE("MatchState::create rejects a facing that is not a unit vector", "[mat
   REQUIRE(mentions(state.error().front().message, "not a finite unit vector"));
 }
 
+TEST_CASE("MatchState::create rejects a fitness outside its ranges", "[matchState]") {
+  using ElyverseFootball::SimMatch::PlayerFitness;
+  for (const PlayerFitness& fitness :
+       {PlayerFitness{.sprintReserve = 1.5}, PlayerFitness{.sprintReserve = -0.1},
+        PlayerFitness{.sprintReserve = std::numeric_limits<double>::quiet_NaN()},
+        PlayerFitness{.playedTicks = -1}, PlayerFitness{.topSpeedShare = 0.0},
+        PlayerFitness{.topSpeedShare = 1.1}}) {
+    MatchStateSpec spec = validSpec();
+    spec.players.at(12).fitness = fitness;
+    const auto state = MatchState::create(spec);
+    REQUIRE_FALSE(state.has_value());
+    REQUIRE(codesOf(state.error()) == std::vector{MatchStateErrorCode::kInvalidPlayerFitness});
+    REQUIRE(mentions(state.error().front().message, "index 12"));
+  }
+  MatchStateSpec tired = validSpec();
+  tired.players.at(12).fitness = {.sprintReserve = 0.0, .playedTicks = 9000, .topSpeedShare = 0.5};
+  REQUIRE(MatchState::create(tired).has_value());
+}
+
 TEST_CASE("MatchState::create accepts any unit facing", "[matchState]") {
   MatchStateSpec spec = validSpec();
   spec.players.at(0).facing = {.x = 0.6, .y = -0.8};

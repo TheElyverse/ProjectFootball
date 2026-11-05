@@ -50,6 +50,9 @@ void addPlayer(StableHasher& hasher, const PlayerMatchState& player) noexcept {
   hasher.addDouble(player.attributes.decisionMaking);
   addOptionalVec2(hasher, player.target);
   addVec2(hasher, player.facing);
+  hasher.addDouble(player.fitness.sprintReserve);
+  hasher.addI64(player.fitness.playedTicks);
+  hasher.addDouble(player.fitness.topSpeedShare);
 }
 
 void addShot(StableHasher& hasher, const ShotRecord& shot) noexcept {
@@ -310,6 +313,12 @@ std::uint64_t hashMatchState(const MatchState& state) noexcept {
     hasher.addU64(lastGoal->scorer.value_or(SimCore::PlayerId::invalid()).value());
     hasher.addI64(lastGoal->tick.value());
   }
+  const MatchClock& clock = state.clock();
+  hasher.addU64(static_cast<std::uint64_t>(clock.period));
+  hasher.addI64(clock.periodStart.value());
+  hasher.addDouble(clock.lostSeconds);
+  hasher.addBool(clock.addedMinutes.has_value());
+  hasher.addI64(clock.addedMinutes.value_or(0));
   for (const TeamSide side : {TeamSide::kHome, TeamSide::kAway}) {
     const auto& tactic = state.tactics().of(side);
     hasher.addBool(tactic.has_value());

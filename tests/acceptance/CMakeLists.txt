@@ -12,6 +12,7 @@ add_executable(sim-acceptance-tests
         duelScenarioTests.cpp
         crossScenarioTests.cpp
         elevenASideTests.cpp
+        matchClockTests.cpp
 )
 target_link_libraries(sim-acceptance-tests PRIVATE
         ElyverseFootball::sim-replay

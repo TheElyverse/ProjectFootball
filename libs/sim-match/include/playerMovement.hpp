@@ -25,7 +25,8 @@ struct PlayerKinematics {
 [[nodiscard]] PlayerKinematics stepPlayerMovement(const PlayerMatchState& player,
                                                   double secondsPerTick) noexcept;
 
-// The fastest a player runs: his maxSpeed, and a share of it with the ball at
+// The fastest a player runs: the share of his maxSpeed his fitness leaves him
+// (docs/players.md#fitness), and a share of that with the ball at
 // his feet or rolling ahead of him -- minCarrySpeedFactor at no ball control,
 // maxCarrySpeedFactor at full control, linear in between
 // (docs/on-ball.md#ball-carrying). A goalkeeper holding the ball in his hands

@@ -18,6 +18,37 @@ test("Viewport fits the pitch with its margin and maps both ways", () => {
   close(pitchY, 7.25);
 });
 
+test("A mirrored viewport turns the pitch round its centre spot", () => {
+  const viewport = new Viewport(1000, 460, 60, 40);
+  const straight = viewport.toCanvas([0, 0]);
+  viewport.mirrored = true;
+  const [x, y] = viewport.toCanvas([60, 40]);
+  close(x, straight[0]);
+  close(y, straight[1]);
+  const [pitchX, pitchY] = viewport.toPitch(viewport.toCanvas([12.5, 7.25]));
+  close(pitchX, 12.5);
+  close(pitchY, 7.25);
+});
+
+test("A pitch rectangle stays on the pitch, mirrored or not", () => {
+  const viewport = new Viewport(1000, 460, 60, 40);
+  const straight = viewport.rectToCanvas([0, 0], [10, 5]);
+  close(straight.left, 200);
+  close(straight.top, 30);
+  close(straight.width, 100);
+  close(straight.height, 50);
+  viewport.mirrored = true;
+  // The same cell, turned round: its far corner is now top left.
+  const turned = viewport.rectToCanvas([0, 0], [10, 5]);
+  close(turned.left, 200 + 500);
+  close(turned.top, 30 + 350);
+  close(turned.width, 100);
+  close(turned.height, 50);
+  const pitch = viewport.rectToCanvas([0, 0], [60, 40]);
+  close(pitch.left, 200);
+  close(pitch.top, 30);
+});
+
 test("visionCone spans the field of view around the facing", () => {
   const cone = visionCone([10, 10], [1, 0], 5, 180, 2);
   assert.deepEqual(cone[0], [10, 10]);
