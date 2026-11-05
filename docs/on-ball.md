@@ -886,6 +886,8 @@ up to `deflectionLift` (3 m/s) — three draws from the `kExecution` stream. The
 player becomes the ball's last touch, so a ball he puts behind his own goal
 line is a corner. A ball that keeps less than `blockedBelow` (half) of its
 speed was *blocked*; the rest of the tick it flies on from where it was hit.
+An opponent a little farther off, the ball low enough, lunges at it and blocks
+it or misses ([tackles and blocks](duels.md#tackles-and-blocks)).
 A slower shot, and every other ball, is received as it always was
 ([reception](ball.md#reception-interceptions-and-loose-balls)).
 
@@ -986,6 +988,7 @@ never a pass received or intercepted.
 | `deflectionSpeed`      | 10 m/s   | a shot at least this fast comes off outfield players      |
 | `blockRadius`          | 0.5 m    | how far from the ball's way a body deflects it            |
 | `blockReach`           | 1.8 m    | and up to which height                                    |
+| `lungeRadius`, `lungeHeight` | 1 m, 0.9 m | how near and how low a shot an opponent lunges at to block it ([tackles and blocks](duels.md#tackles-and-blocks)) |
 | `minDeflectedSpeed`    | 0.1      | the least share of its speed a deflected ball keeps       |
 | `maxDeflectedSpeed`    | 0.9      | the most                                                  |
 | `blockedBelow`         | 0.5      | below this share the deflection was a block               |

@@ -795,6 +795,8 @@ void fieldsOf(Visitor& visit, SimMatch::ShotConfig& shooting) {
   visit.number("deflectionSpeed", shooting.deflectionSpeed);
   visit.number("blockRadius", shooting.blockRadius);
   visit.number("blockReach", shooting.blockReach);
+  visit.number("lungeRadius", shooting.lungeRadius);
+  visit.number("lungeHeight", shooting.lungeHeight);
   visit.number("minDeflectedSpeed", shooting.minDeflectedSpeed);
   visit.number("maxDeflectedSpeed", shooting.maxDeflectedSpeed);
   visit.number("blockedBelow", shooting.blockedBelow);

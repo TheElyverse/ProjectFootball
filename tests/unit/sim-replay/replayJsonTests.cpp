@@ -66,20 +66,20 @@ TEST_CASE("Documents that are not JSON objects are rejected", "[replayJson]") {
 }
 
 TEST_CASE("Other schema versions are rejected with the version found", "[replayJson]") {
-  requireRejected(validJsonWith("\"schemaVersion\": 15", "\"schemaVersion\": 1"),
+  requireRejected(validJsonWith("\"schemaVersion\": 16", "\"schemaVersion\": 1"),
                   ReplayErrorCode::kUnsupportedSchemaVersion,
                   "schema version 1 holds replay metadata only");
   // Older playable versions name the way to a current file.
   for (const char* version :
-       {"2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14"}) {
+       {"2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15"}) {
     requireRejected(
-        validJsonWith("\"schemaVersion\": 15", std::string("\"schemaVersion\": ") + version),
+        validJsonWith("\"schemaVersion\": 16", std::string("\"schemaVersion\": ") + version),
         ReplayErrorCode::kUnsupportedSchemaVersion,
         std::string("schema version ") + version +
-            " is no longer supported, expected 15; record the scenario again");
+            " is no longer supported, expected 16; record the scenario again");
   }
-  requireRejected(validJsonWith("\"schemaVersion\": 15", "\"schemaVersion\": 16"),
-                  ReplayErrorCode::kUnsupportedSchemaVersion, "unsupported schema version 16");
+  requireRejected(validJsonWith("\"schemaVersion\": 16", "\"schemaVersion\": 17"),
+                  ReplayErrorCode::kUnsupportedSchemaVersion, "unsupported schema version 17");
 }
 
 TEST_CASE("A replay from another core version is rejected", "[replayJson]") {

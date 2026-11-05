@@ -4,6 +4,7 @@
 
 #include "aerialDuels.hpp"
 #include "ballPhysics.hpp"
+#include "duel.hpp"
 #include "goalFrame.hpp"
 #include "matchSimulation.hpp"
 #include "matchState.hpp"
@@ -30,6 +31,8 @@ struct BallMovementRules {
   WoodworkConfig woodwork{};
   ShotStoppingConfig saves{};
   AerialConfig aerial{};
+  // The lunge a block is (docs/duels.md#tackles-and-blocks).
+  DuelConfig duels{};
 };
 
 // Moves the ball one tick, every tick:

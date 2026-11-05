@@ -39,7 +39,8 @@ std::vector<MatchSystem> makeMatchSystems(const MatchConfig& config) {
                                             .shooting = config.shooting,
                                             .woodwork = config.woodwork,
                                             .saves = config.shotStopping,
-                                            .aerial = config.aerial}));
+                                            .aerial = config.aerial,
+                                            .duels = config.duels}));
   // Only when enabled, so matches without restarts keep their system list.
   if (config.restarts.enabled) {
     systems.push_back(makeRestartSystem({.restarts = config.restarts, .physics = config.ball}));

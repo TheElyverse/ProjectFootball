@@ -6,6 +6,7 @@
 
 #include <catch2/catch_test_macros.hpp>
 #include <cstdint>
+#include <map>
 #include <optional>
 #include <string_view>
 #include <utility>
@@ -25,12 +26,16 @@ using ElyverseFootball::SimCore::PlayerId;
 using ElyverseFootball::SimCore::SimTick;
 using ElyverseFootball::SimMatch::DuelEnded;
 using ElyverseFootball::SimMatch::DuelOutcome;
+using ElyverseFootball::SimMatch::duelOutcomeName;
 using ElyverseFootball::SimMatch::DuelStarted;
 using ElyverseFootball::SimMatch::hashMatchState;
+using ElyverseFootball::SimMatch::LungeResult;
+using ElyverseFootball::SimMatch::lungeResultName;
 using ElyverseFootball::SimMatch::MatchEvent;
 using ElyverseFootball::SimMatch::MatchSimulation;
 using ElyverseFootball::SimMatch::PossessionChanged;
 using ElyverseFootball::SimMatch::startMatch;
+using ElyverseFootball::SimMatch::TackleAttempted;
 using ElyverseFootball::SimMatch::TeamSide;
 using ElyverseFootball::TestSupport::setupOf;
 
@@ -164,4 +169,62 @@ TEST_CASE("Duel: the scenarios run alike every time", "[acceptance][duel]") {
     };
     REQUIRE(run() == run());
   }
+}
+
+namespace {
+
+// Plays the scenario for twenty seconds and counts its tackles by what they
+// did: each a duel's lunge, by its defender on its carrier, and a duel won or
+// knocked loose by a lunge ends on it; only a lunge fouls, and without one the
+// carrier was pushed or turned off his feet.
+void countLunges(const std::string_view name, const std::uint64_t seed,
+                 std::map<LungeResult, int>& results) {
+  MatchSimulation simulation = startMatch(setupOf(name, seed));
+  std::optional<DuelStarted> started;
+  while (simulation.tick() < SimTick(600)) {
+    REQUIRE(simulation.step().has_value());
+    std::optional<TackleAttempted> lunge;
+    for (const MatchEvent& event : simulation.events()) {
+      if (const auto* duel = std::get_if<DuelStarted>(&event)) {
+        started = *duel;
+      }
+      if (const auto* tackle = std::get_if<TackleAttempted>(&event);
+          tackle != nullptr && !tackle->block) {
+        REQUIRE(started.has_value());
+        REQUIRE(tackle->tackler == started.value_or(DuelStarted{}).defender);
+        REQUIRE(tackle->carrier == started.value_or(DuelStarted{}).carrier);
+        lunge = *tackle;
+        ++results[tackle->result];
+      }
+      const auto* ended = std::get_if<DuelEnded>(&event);
+      if (ended == nullptr || ended->outcome == DuelOutcome::kKept) {
+        continue;
+      }
+      if (lunge && lunge->result != LungeResult::kMissed) {
+        REQUIRE(lungeResultName(lunge->result) == duelOutcomeName(ended->outcome));
+      } else {
+        REQUIRE(ended->outcome != DuelOutcome::kFoul);
+      }
+    }
+  }
+}
+
+}  // namespace
+
+TEST_CASE("Duel: every lunge records the tackler, the carrier and what it did",
+          "[acceptance][duel]") {
+  std::map<LungeResult, int> results;
+  for (const std::string_view name : {"duel-ball-won", "duel-ball-kept", "duel-loose-ball"}) {
+    for (std::uint64_t seed = 1; seed <= static_cast<std::uint64_t>(kSeeds); ++seed) {
+      CAPTURE(name, seed);
+      countLunges(name, seed, results);
+    }
+  }
+  CAPTURE(results[LungeResult::kWon], results[LungeResult::kLoose], results[LungeResult::kMissed],
+          results[LungeResult::kFoul]);
+  REQUIRE(results[LungeResult::kWon] > 0);
+  REQUIRE(results[LungeResult::kLoose] > 0);
+  REQUIRE(results[LungeResult::kMissed] > 0);
+  // A tackle through the man.
+  REQUIRE(results[LungeResult::kFoul] > 0);
 }

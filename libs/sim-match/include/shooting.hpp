@@ -56,6 +56,12 @@ struct ShotConfig {
   double deflectionSpeed = 10.0;  // m/s
   double blockRadius = 0.5;       // m
   double blockReach = 1.8;        // m
+  // An opponent of the shooter on his feet lunges at such a shot that comes
+  // within lungeRadius of him no higher than lungeHeight: the duel's lunge,
+  // which meets it or misses and leaves him off his feet
+  // (docs/duels.md#tackles-and-blocks).
+  double lungeRadius = 1.0;  // m
+  double lungeHeight = 0.9;  // m
   // A deflected ball keeps a share of its speed between these two, turns up
   // to deflectionSpread off its line -- meters to the side per meter along
   // it -- and is lifted by up to deflectionLift. A ball that keeps less than

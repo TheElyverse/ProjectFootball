@@ -89,6 +89,15 @@ void addFields(StableHasher& hasher, const DuelEnded& event) noexcept {
   hasher.addDouble(event.position.y);
 }
 
+void addFields(StableHasher& hasher, const TackleAttempted& event) noexcept {
+  hasher.addU64(event.tackler.value());
+  hasher.addU64(event.carrier.value());
+  hasher.addBool(event.block);
+  hasher.addU64(static_cast<std::uint64_t>(event.result));
+  hasher.addDouble(event.position.x);
+  hasher.addDouble(event.position.y);
+}
+
 void addFields(StableHasher& hasher, const PressingStarted& event) noexcept {
   hasher.addU64(static_cast<std::uint64_t>(event.side));
   hasher.addU64(event.carrier.value());
@@ -316,6 +325,22 @@ std::string_view duelOutcomeName(const DuelOutcome outcome) noexcept {
   return "unknown";
 }
 
+std::string_view lungeResultName(const LungeResult result) noexcept {
+  switch (result) {
+    case LungeResult::kMissed:
+      return "missed";
+    case LungeResult::kWon:
+      return "won";
+    case LungeResult::kLoose:
+      return "loose";
+    case LungeResult::kFoul:
+      return "foul";
+    case LungeResult::kBlocked:
+      return "blocked";
+  }
+  return "unknown";
+}
+
 std::string_view decisionOutcomeName(const DecisionOutcome outcome) noexcept {
   switch (outcome) {
     case DecisionOutcome::kPassed:
@@ -408,6 +433,9 @@ std::string_view eventName(const MatchEvent& event) {
       return "duel started";
     }
     std::string_view operator()(const DuelEnded& /*event*/) const noexcept { return "duel ended"; }
+    std::string_view operator()(const TackleAttempted& /*event*/) const noexcept {
+      return "tackle attempted";
+    }
   };
   return std::visit(Names{}, event);
 }

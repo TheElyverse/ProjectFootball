@@ -1,5 +1,7 @@
 #include "tacticalState.hpp"
 
+#include <cmath>
+
 namespace ElyverseFootball::SimMatch {
 
 std::string_view actionName(const ActionType type) noexcept {
@@ -62,6 +64,12 @@ std::string_view duelMoveName(const DuelMove move) noexcept {
 
 bool isStumbling(const PlayerTacticalState& tactical, const SimCore::SimTick now) noexcept {
   return tactical.stumbledUntil && now < *tactical.stumbledUntil;
+}
+
+SimCore::SimTick stumbleEnd(const SimCore::StepTime time, const double seconds) noexcept {
+  const auto ticks =
+      static_cast<SimCore::SimTick::ValueType>(std::ceil(seconds / time.secondsPerTick));
+  return SimCore::SimTick(time.tick.value() + ticks);
 }
 
 bool isBusy(const KeeperDive& dive, const double seconds) noexcept {

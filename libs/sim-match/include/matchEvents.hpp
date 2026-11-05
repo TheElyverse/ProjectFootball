@@ -434,13 +434,42 @@ struct DuelEnded {
   friend bool operator==(const DuelEnded&, const DuelEnded&) = default;
 };
 
+// What a lunge did once it landed (docs/duels.md#the-lunge): a tackle missed,
+// won the ball, knocked it loose or went through the man; a block met the
+// shot and blocked it, or missed.
+enum class LungeResult : std::uint8_t {
+  kMissed,
+  kWon,
+  kLoose,
+  kFoul,
+  kBlocked,
+};
+
+// "missed", "won", "loose", "foul", "blocked"; "unknown" outside the
+// enumerators.
+[[nodiscard]] std::string_view lungeResultName(LungeResult result) noexcept;
+
+// A defender lunged at the ball (docs/duels.md#tackles-and-blocks): a tackle
+// at a carrier's ball in a duel, or a block of a shot in flight -- `carrier`
+// is then the shooter. Where the ball was, and what the lunge did.
+struct TackleAttempted {
+  SimCore::SimTick tick;
+  SimCore::PlayerId tackler;
+  SimCore::PlayerId carrier;
+  bool block = false;
+  LungeResult result = LungeResult::kMissed;
+  SimCore::Vec2 position;
+
+  friend bool operator==(const TackleAttempted&, const TackleAttempted&) = default;
+};
+
 // New alternatives go last: an event's index is part of its hash.
 using MatchEvent =
     std::variant<PassAttempted, PassReceived, PassIntercepted, LooseBallRecovered,
                  PossessionChanged, PhaseChanged, BallWon, PressingStarted, PressingEnded,
                  TacticChanged, PitchControlSampled, RestartTaken, ShotAttempted, ShotDeflected,
                  ShotHitWoodwork, ShotResolved, GoalScored, SaveAttempted, AerialContest,
-                 DribbleAttempted, DribbleEnded, DuelStarted, DuelEnded>;
+                 DribbleAttempted, DribbleEnded, DuelStarted, DuelEnded, TackleAttempted>;
 
 // "pass attempted", "pass received", ... for logs and diagnostics.
 [[nodiscard]] std::string_view eventName(const MatchEvent& event);
