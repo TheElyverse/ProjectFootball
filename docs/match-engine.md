@@ -893,6 +893,18 @@ ball, his misjudgement, the threshold he judged it by and whether he comes. One
 is reported when he first judges a ball and one when he turns back;
 `MatchSimulation::sweepDiagnostics()` holds those of the last step.
 
+A `DuelDiagnostic` explains a move in a duel on the ball (see
+[duels](duels.md#duels-on-the-ball)): the `tick`, the `player`, his
+`opponent`, whether he is the `carrier`, every move he weighed with its
+utility (`options`) and the one he drew (`chosen`). A `DiveDiagnostic` explains
+a keeper's dive at a shot (see [shot stopping](goalkeeper.md#reacting-and-deciding)):
+the `shooter`, where he read the ball across and up his plane, every run he
+weighed with how far it left his body from that point (`runs`), the one he
+chose, his `tryMargin` and the `call` — `dive`, `leaveWide` or
+`leaveOutOfReach`. `duelDiagnostics()` and `diveDiagnostics()` hold those of
+the last step. Building them draws no random number: the systems decide the
+same with or without them.
+
 Diagnostics are off by default. `MatchSimulation::setCollectDiagnostics(true)`
 turns them on; `diagnostics()` then holds the diagnostics of the last step.
 `setDiagnosticsFilter()` narrows them to some `players` and a tick range

@@ -79,6 +79,13 @@ function matchSection(recording: Recording, frame: Frame): HTMLElement[] {
           ? "-"
           : `${frame.clock} (${frame.period ?? "-"}${frame.endsChanged === true ? ", ends changed" : ""})`,
       ],
+      ["score", `${frame.score.home}:${frame.score.away}`],
+      [
+        "set piece",
+        frame.setPiece === null
+          ? "-"
+          : `${frame.setPiece.side} ${frame.setPiece.kind}${frame.setPiece.indirect ? " (indirect)" : ""} by #${frame.setPiece.taker}`,
+      ],
       ["state hash", frame.stateHash],
       ["ball owner", player(frame.ball.owner)],
       ["last touch", player(frame.ball.lastTouch)],

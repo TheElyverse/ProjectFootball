@@ -40,16 +40,9 @@ using SimCore::Vec2;
   return index && state.players()[*index].side != side;
 }
 
-// The bisector of the angle the posts of the side's goal make as seen from
-// the ball: where it meets the goal line and the way it runs into the pitch.
-struct Bisector {
-  Vec2 foot;
-  Vec2 direction;
-};
+}  // namespace
 
-// The bisector meets the goal line where it divides the goal in the ratio of
-// the ball's distances to the posts.
-[[nodiscard]] Bisector goalBisector(const TeamSide side, const Vec2 ball, const Pitch& pitch) {
+Bisector goalBisector(const TeamSide side, const Vec2 ball, const Pitch& pitch) {
   const Goal goal = pitch.goal(ownGoalEnd(side));
   const Vec2 low = goal.postAtMinY();
   const Vec2 high = goal.postAtMaxY();
@@ -59,8 +52,6 @@ struct Bisector {
   const Vec2 foot = low + ((high - low) * split);
   return {.foot = foot, .direction = outward(ball - foot, intoPitch(side, pitch))};
 }
-
-}  // namespace
 
 void validate(const GoalkeeperConfig& config) {
   const bool valid =

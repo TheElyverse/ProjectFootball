@@ -86,7 +86,22 @@ struct SweepDecisionTrace {
   friend bool operator==(const SweepDecisionTrace&, const SweepDecisionTrace&) = default;
 };
 
-using TraceEntry = std::variant<PassDecisionTrace, ActionDecisionTrace, SweepDecisionTrace>;
+// A move of a player in a duel on the ball.
+struct DuelDecisionTrace {
+  SimMatch::DuelDiagnostic decision;
+
+  friend bool operator==(const DuelDecisionTrace&, const DuelDecisionTrace&) = default;
+};
+
+// A goalkeeper's dive at a shot, or his call to leave it.
+struct DiveDecisionTrace {
+  SimMatch::DiveDiagnostic decision;
+
+  friend bool operator==(const DiveDecisionTrace&, const DiveDecisionTrace&) = default;
+};
+
+using TraceEntry = std::variant<PassDecisionTrace, ActionDecisionTrace, SweepDecisionTrace,
+                                DuelDecisionTrace, DiveDecisionTrace>;
 
 // The limits of outcome attribution.
 struct TraceConfig {

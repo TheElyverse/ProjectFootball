@@ -16,7 +16,7 @@ namespace ElyverseFootball::SimReplay {
 
 // The version of the debug frame format written by this build; see
 // docs/tooling.md#debug-viewer.
-inline constexpr int kDebugFramesVersion = 5;
+inline constexpr int kDebugFramesVersion = 6;
 
 // Everything the debug viewer shows for one tick: the state after the step
 // that reached it, and what that step recorded. Tick 0 is the initial state,

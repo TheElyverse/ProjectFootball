@@ -466,6 +466,18 @@ std::string_view cardName(const Card card) noexcept {
   return "unknown";
 }
 
+std::string_view diveCallName(const DiveCall call) noexcept {
+  switch (call) {
+    case DiveCall::kDive:
+      return "dive";
+    case DiveCall::kLeaveWide:
+      return "leaveWide";
+    case DiveCall::kLeaveOutOfReach:
+      return "leaveOutOfReach";
+  }
+  return "unknown";
+}
+
 std::string_view substitutionRefusalName(const SubstitutionRefusal refusal) noexcept {
   switch (refusal) {
     case SubstitutionRefusal::kLimitReached:

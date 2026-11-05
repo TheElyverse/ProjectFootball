@@ -1,5 +1,6 @@
 #include <catch2/catch_test_macros.hpp>
 #include <cmath>
+#include <cstddef>
 #include <cstdint>
 #include <filesystem>
 #include <format>
@@ -318,4 +319,67 @@ TEST_CASE("Frames show a team's press with its roles", "[debugFrames]") {
     }
   }
   CHECK(pressed);
+}
+
+namespace {
+
+// The frames of a registered scenario's first ticks, as JSON.
+[[nodiscard]] nlohmann::json scenarioFrames(const std::string& scenario, const std::int64_t ticks) {
+  const auto* definition = ElyverseFootball::SimMatch::findScenario(scenario);
+  REQUIRE(definition != nullptr);
+  const auto made = definition->make(3);
+  REQUIRE(made.has_value());
+  return nlohmann::json::parse(toDebugFramesJson(record(*made, ticks)));
+}
+
+}  // namespace
+
+TEST_CASE("The header holds the goals and areas to scale", "[debugFrames]") {
+  using ElyverseFootball::SimMatch::GoalEnd;
+  const auto json = nlohmann::json::parse(toDebugFramesJson(record(setup(), 1)));
+  const auto& geometry = json.at("geometry");
+  REQUIRE(geometry.at("ends").size() == 2);
+  // The sandbox's markings, scaled to its 60 x 40 m pitch.
+  const Pitch pitch(60.0, 40.0);
+  const auto& far = geometry.at("ends").at(1);
+  CHECK(far.at("goalLineX") == 60.0);
+  CHECK(far.at("crossbar") == pitch.goal(GoalEnd::kMaxX).heightMeters);
+  // Positions to the millimetre, as every position in the frames.
+  const auto near = [](const nlohmann::json& value, const double expected) {
+    return std::abs(value.get<double>() - expected) <= 0.0005;
+  };
+  CHECK(near(far.at("posts").at(1).at(1), pitch.goal(GoalEnd::kMaxX).postAtMaxY().y));
+  CHECK(near(far.at("penaltyArea").at("min").at(0), pitch.penaltyArea(GoalEnd::kMaxX).min.x));
+  CHECK(near(far.at("penaltySpot").at(0), pitch.penaltySpot(GoalEnd::kMaxX).x));
+  CHECK(geometry.at("centerCircleRadius") == pitch.markings().centerCircleRadiusMeters);
+}
+
+TEST_CASE("Frames show a set piece's places and the keepers' bisectors", "[debugFrames]") {
+  const auto json = scenarioFrames("corner", 30);
+  const auto& frame = json.at("frames").at(5);
+  const auto& setPiece = frame.at("setPiece");
+  REQUIRE(setPiece.is_object());
+  CHECK(setPiece.at("kind") == "corner");
+  CHECK(setPiece.at("side") == "home");
+  CHECK(setPiece.at("places").size() >= 5);
+  // Both sides play a tactic: both keepers stand on their bisector.
+  REQUIRE(frame.at("keepers").size() == 2);
+  CHECK(frame.at("keepers").at(0).contains("onLine"));
+  CHECK(json.at("frames").at(0).at("setPiece").is_null());
+}
+
+TEST_CASE("A decision lists the shots its player weighed", "[debugFrames]") {
+  const auto json = scenarioFrames("clear-chance", 120);
+  bool shot = false;
+  for (const auto& frame : json.at("frames")) {
+    for (const auto& decision : frame.at("decisions")) {
+      if (decision.at("outcome") == "shot") {
+        REQUIRE(decision.at("chosenShot").is_number());
+        REQUIRE(decision.at("shots").size() > decision.at("chosenShot").get<std::size_t>());
+        CHECK(decision.at("shots").at(0).contains("goalChance"));
+        shot = true;
+      }
+    }
+  }
+  REQUIRE(shot);
 }

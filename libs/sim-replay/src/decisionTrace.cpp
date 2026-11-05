@@ -1,8 +1,10 @@
 #include "decisionTrace.hpp"
 
 #include <algorithm>
+#include <cmath>
 #include <cstddef>
 #include <format>
+#include <limits>
 #include <string>
 #include <utility>
 #include <variant>
@@ -32,8 +34,9 @@ using SimMatch::MatchEvent;
           .believedMetersOff = std::nullopt};
 }
 
+// Signed, to two decimals; what rounds to zero reads "+0.00", never "-0.00".
 [[nodiscard]] std::string signedNumber(const double value) {
-  return std::format("{:+.2f}", value);
+  return std::format("{:+.2f}", std::abs(value) < 0.005 ? 0.0 : value);
 }
 
 // "#7" for a player, "-" for nobody.
@@ -279,6 +282,59 @@ using SimMatch::MatchEvent;
                             signedNumber(call.threshold));
 }
 
+// A duel move (docs/duels.md#duels-on-the-ball): the move he drew, its
+// utility, every move he weighed with its own, and whether he drew the best.
+[[nodiscard]] std::string duelLine(const DuelDecisionTrace& trace) {
+  const SimMatch::DuelDiagnostic& decision = trace.decision;
+  std::string line = std::format("t={} #{} ", decision.tick.value(), decision.player.value());
+  if (!decision.chosen || *decision.chosen >= decision.options.size()) {
+    return line + "no duel move";
+  }
+  const SimMatch::DuelOption& chosen = decision.options.at(*decision.chosen);
+  std::string weighed;
+  double best = chosen.utility;
+  for (const SimMatch::DuelOption& option : decision.options) {
+    weighed += std::format("{}{} {:.2f}", weighed.empty() ? "" : " ",
+                           SimMatch::duelMoveName(option.move), option.utility);
+    best = std::max(best, option.utility);
+  }
+  return line + std::format("{} in the duel {} #{} (utility {:.2f}: {}; {} options) because {}",
+                            SimMatch::duelMoveName(chosen.move),
+                            decision.carrier ? "against" : "with", decision.opponent.value(),
+                            chosen.utility, weighed, decision.options.size(),
+                            chosen.utility >= best ? "best" : "drawn");
+}
+
+// A keeper's dive (docs/goalkeeper.md#reacting-and-deciding): where he read
+// the shot, the run he chose and how close it got him, against his margin.
+[[nodiscard]] std::string diveLine(const DiveDecisionTrace& trace) {
+  const SimMatch::DiveDiagnostic& decision = trace.decision;
+  std::string line = std::format("t={} #{} ", decision.tick.value(), decision.player.value());
+  const std::string read = std::format("read {} m across, {:.2f} m up",
+                                       signedNumber(decision.readAcross), decision.readUp);
+  double closest = std::numeric_limits<double>::infinity();
+  for (const SimMatch::DiveRun& run : decision.runs) {
+    closest = std::min(closest, run.gap);
+  }
+  if (decision.call == SimMatch::DiveCall::kLeaveWide) {
+    return line + std::format("leaves #{}'s shot ({}) because {}", decision.shooter.value(), read,
+                              SimMatch::diveCallName(decision.call));
+  }
+  if (!decision.chosen || *decision.chosen >= decision.runs.size()) {
+    return line + std::format(
+                      "leaves #{}'s shot (closest {:.2f} m, beyond {:.2f} m; {}; {} runs) "
+                      "because {}",
+                      decision.shooter.value(), closest, decision.tryMargin, read,
+                      decision.runs.size(), SimMatch::diveCallName(decision.call));
+  }
+  const SimMatch::DiveRun& run = decision.runs.at(*decision.chosen);
+  return line + std::format(
+                    "dives at #{}'s shot after a run of {} m (gap {:.2f} m, within {:.2f} m; "
+                    "{}; {} runs) because {}",
+                    decision.shooter.value(), signedNumber(run.feet), run.gap, decision.tryMargin,
+                    read, decision.runs.size(), SimMatch::diveCallName(decision.call));
+}
+
 }  // namespace
 
 std::string_view failureCauseName(const FailureCause cause) noexcept {
@@ -320,6 +376,12 @@ void DecisionTracer::recordStep(const SimMatch::MatchSimulation& simulation) {
   }
   for (const SimMatch::SweepDiagnostic& sweep : simulation.sweepDiagnostics()) {
     entries_.emplace_back(SweepDecisionTrace{.decision = sweep});
+  }
+  for (const SimMatch::DuelDiagnostic& duel : simulation.duelDiagnostics()) {
+    entries_.emplace_back(DuelDecisionTrace{.decision = duel});
+  }
+  for (const SimMatch::DiveDiagnostic& dive : simulation.diveDiagnostics()) {
+    entries_.emplace_back(DiveDecisionTrace{.decision = dive});
   }
   // Diagnostics before events: the pass-decision system runs before the
   // duel system in the standard pipeline, so a carrier can decide a pass
@@ -459,6 +521,10 @@ std::string formatTrace(const std::span<const TraceEntry> entries) {
             return passLine(trace);
           } else if constexpr (std::is_same_v<Trace, ActionDecisionTrace>) {
             return actionLine(trace);
+          } else if constexpr (std::is_same_v<Trace, DuelDecisionTrace>) {
+            return duelLine(trace);
+          } else if constexpr (std::is_same_v<Trace, DiveDecisionTrace>) {
+            return diveLine(trace);
           } else {
             return sweepLine(trace);
           }

@@ -743,4 +743,67 @@ struct SweepDiagnostic {
   friend bool operator==(const SweepDiagnostic&, const SweepDiagnostic&) = default;
 };
 
+// One move a player in a duel weighed, and its utility
+// (docs/duels.md#duels-on-the-ball).
+struct DuelOption {
+  DuelMove move = DuelMove::kShield;
+  double utility = 0.0;
+
+  friend bool operator==(const DuelOption&, const DuelOption&) = default;
+};
+
+// Why a player in a duel moved as he did: the carrier's shield, turn or burst,
+// the defender's jockey or commit, each with its utility, and the one he drew.
+// Like DecisionDiagnostic, debug output only.
+struct DuelDiagnostic {
+  SimCore::SimTick tick;
+  SimCore::PlayerId player;
+  SimCore::PlayerId opponent;
+  // Whether he is the carrier; the defender otherwise.
+  bool carrier = false;
+  std::vector<DuelOption> options;
+  std::optional<std::size_t> chosen;
+
+  friend bool operator==(const DuelDiagnostic&, const DuelDiagnostic&) = default;
+};
+
+// What a keeper facing a shot did (docs/goalkeeper.md#reacting-and-deciding).
+enum class DiveCall : std::uint8_t {
+  kDive,
+  // He read it going clearly wide.
+  kLeaveWide,
+  // Not even his best plan got him within tryMargin() of it.
+  kLeaveOutOfReach,
+};
+
+// "dive", "leaveWide", "leaveOutOfReach"; "unknown" outside the enumerators.
+[[nodiscard]] std::string_view diveCallName(DiveCall call) noexcept;
+
+// One run across his plane a keeper weighed: how far, and how far his body
+// would still be from the point he read when the ball got there.
+struct DiveRun {
+  double feet = 0.0;  // m
+  double gap = 0.0;   // m
+
+  friend bool operator==(const DiveRun&, const DiveRun&) = default;
+};
+
+// Why a keeper facing a shot dived as he did, or left it: the shot's touch,
+// where he read it across and up his plane, every run he weighed -- the
+// closest wins, the longest of equally close ones --, the margin he goes
+// within, and the call. Like DecisionDiagnostic, debug output only.
+struct DiveDiagnostic {
+  SimCore::SimTick tick;
+  SimCore::PlayerId player;
+  SimCore::PlayerId shooter;
+  double readAcross = 0.0;  // m
+  double readUp = 0.0;      // m
+  std::vector<DiveRun> runs;
+  std::optional<std::size_t> chosen;
+  double tryMargin = 0.0;  // m
+  DiveCall call = DiveCall::kDive;
+
+  friend bool operator==(const DiveDiagnostic&, const DiveDiagnostic&) = default;
+};
+
 }  // namespace ElyverseFootball::SimMatch

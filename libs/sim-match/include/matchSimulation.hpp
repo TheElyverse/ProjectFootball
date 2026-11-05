@@ -83,6 +83,8 @@ class MatchStepContext {
   void diagnose(DecisionDiagnostic diagnostic) const;
   void diagnose(ActionDiagnostic diagnostic) const;
   void diagnose(SweepDiagnostic diagnostic) const;
+  void diagnose(DuelDiagnostic diagnostic) const;
+  void diagnose(DiveDiagnostic diagnostic) const;
 
  private:
   friend class MatchSimulation;
@@ -92,6 +94,8 @@ class MatchStepContext {
     std::vector<DecisionDiagnostic>* decisions = nullptr;
     std::vector<ActionDiagnostic>* actions = nullptr;
     std::vector<SweepDiagnostic>* sweeps = nullptr;
+    std::vector<DuelDiagnostic>* duels = nullptr;
+    std::vector<DiveDiagnostic>* dives = nullptr;
     const DiagnosticsFilter* filter = nullptr;
   };
 
@@ -240,6 +244,13 @@ class MatchSimulation {
   [[nodiscard]] std::span<const SweepDiagnostic> sweepDiagnostics() const noexcept {
     return sweepDiagnostics_;
   }
+  // The duel and dive diagnostics of the last successful step, likewise.
+  [[nodiscard]] std::span<const DuelDiagnostic> duelDiagnostics() const noexcept {
+    return duelDiagnostics_;
+  }
+  [[nodiscard]] std::span<const DiveDiagnostic> diveDiagnostics() const noexcept {
+    return diveDiagnostics_;
+  }
 
   [[nodiscard]] SimCore::SimTick tick() const noexcept { return clock_.tick(); }
   [[nodiscard]] double elapsedSeconds() const noexcept { return clock_.elapsedSeconds(); }
@@ -280,10 +291,14 @@ class MatchSimulation {
   std::vector<DecisionDiagnostic> stepDiagnostics_;
   std::vector<ActionDiagnostic> stepActionDiagnostics_;
   std::vector<SweepDiagnostic> stepSweepDiagnostics_;
+  std::vector<DuelDiagnostic> stepDuelDiagnostics_;
+  std::vector<DiveDiagnostic> stepDiveDiagnostics_;
   std::vector<MatchEvent> events_;
   std::vector<DecisionDiagnostic> diagnostics_;
   std::vector<ActionDiagnostic> actionDiagnostics_;
   std::vector<SweepDiagnostic> sweepDiagnostics_;
+  std::vector<DuelDiagnostic> duelDiagnostics_;
+  std::vector<DiveDiagnostic> diveDiagnostics_;
   bool collectDiagnostics_ = false;
   DiagnosticsFilter diagnosticsFilter_;
 };

@@ -202,7 +202,8 @@ Vec2 bodyAt(const KeeperDive& dive, const double seconds, const PlayerAttributes
 std::optional<KeeperDive> decideDive(const MatchState& state, const std::size_t keeperIndex,
                                      const SimCore::SimTick now, const ShotStoppingConfig& config,
                                      const BallPhysics& physics,
-                                     SimCore::RandomNumberGenerator& random) {
+                                     SimCore::RandomNumberGenerator& random,
+                                     DiveDiagnostic* const diagnostic) {
   const BallState& ball = state.ball();
   const auto standing = standingKeeper(state, keeperIndex, ball, now, config);
   if (!standing) {
@@ -224,6 +225,18 @@ std::optional<KeeperDive> decideDive(const MatchState& state, const std::size_t 
   const PlanePoint seen = planePoint(passage->ball, *standing);
   const PlanePoint read{.across = seen.across + acrossError,
                         .up = std::max(0.0, seen.up + upError)};
+  const double margin = tryMargin(attributes.keeperAnticipation, config);
+  if (diagnostic != nullptr) {
+    *diagnostic = {.tick = now,
+                   .player = keeper.playerId,
+                   .shooter = standing->touchedBy,
+                   .readAcross = read.across,
+                   .readUp = read.up,
+                   .runs = {},
+                   .chosen = std::nullopt,
+                   .tryMargin = margin,
+                   .call = DiveCall::kLeaveWide};
+  }
 
   // He leaves a ball he reads going clearly wide. Misread across his plane,
   // its way shifts by that much to its left, and so along the goal line by
@@ -237,6 +250,7 @@ std::optional<KeeperDive> decideDive(const MatchState& state, const std::size_t 
                     crossing->height + upError) > config.wideMargin) {
     return leave;
   }
+  std::size_t bestStep = 0;
 
   // He runs as far toward the point as time allows and dives the rest: of
   // every run, the one that gets his body closest to it by the time the ball
@@ -251,14 +265,23 @@ std::optional<KeeperDive> decideDive(const MatchState& state, const std::size_t 
     const double feet = feetAt(plan, passage->seconds, attributes);
     const PlanePoint hands = handsAt(plan, passage->seconds, attributes, config);
     const double gap = std::max(0.0, distanceToBody(feet, hands, read) - config.bodyReach);
+    if (diagnostic != nullptr) {
+      diagnostic->runs.push_back({.feet = plan.feet, .gap = gap});
+    }
     if (gap <= bestGap) {
       bestGap = gap;
+      bestStep = static_cast<std::size_t>(step);
       best = plan;
       best.landSeconds = passage->seconds;
       best.recoverySeconds = recoverySeconds(stretchOf(feet, hands, config), attributes, config);
     }
   }
-  return bestGap > tryMargin(attributes.keeperAnticipation, config) ? leave : best;
+  const bool goes = bestGap <= margin;
+  if (diagnostic != nullptr) {
+    diagnostic->chosen = goes ? std::optional(bestStep) : std::nullopt;
+    diagnostic->call = goes ? DiveCall::kDive : DiveCall::kLeaveOutOfReach;
+  }
+  return goes ? best : leave;
 }
 
 std::optional<KeeperDive> standingKeeper(const MatchState& state, const std::size_t keeperIndex,
@@ -407,10 +430,16 @@ MatchSystem makeShotStoppingSystem(const ShotStoppingRules& rules) {
             if (since < reactionSeconds(attributes.keeperReflexes, config)) {
               return;
             }
-            if (const auto dive =
-                    decideDive(current, *keeper, context.tick(), config, physics,
-                               context.random(SimCore::RandomNumberGeneratorDomain::kAi))) {
+            const bool diagnosed = context.collectsDiagnostics(current.players()[*keeper].playerId);
+            DiveDiagnostic diagnostic;
+            const auto dive = decideDive(current, *keeper, context.tick(), config, physics,
+                                         context.random(SimCore::RandomNumberGeneratorDomain::kAi),
+                                         diagnosed ? &diagnostic : nullptr);
+            if (dive) {
               next.tactical(*keeper).dive = dive;
+              if (diagnosed) {
+                context.diagnose(std::move(diagnostic));
+              }
             }
           }};
 }

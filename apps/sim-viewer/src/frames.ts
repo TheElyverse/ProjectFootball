@@ -3,7 +3,7 @@
 // simulates, so nothing it does can change a match.
 
 export const FRAMES_FORMAT = "elyverse-debug-frames";
-export const FRAMES_VERSION = 5;
+export const FRAMES_VERSION = 6;
 
 // [x, y] in meters; x along the pitch length, y across it.
 export type Vec2 = readonly [number, number];
@@ -317,7 +317,40 @@ export interface Decision {
   readonly reason: string;
   readonly target: Vec2 | null;
   readonly candidates: readonly PassCandidate[];
+  // Every zone of the goal he weighed, and the index of the one he shot at.
+  readonly shots: readonly ShotOption[];
+  readonly chosenShot: number | null;
   readonly observations: readonly Observation[];
+}
+
+// A shot a player weighed (docs/on-ball.md#the-aiming-grid).
+export interface ShotOption {
+  readonly target: Vec2;
+  readonly height: number;
+  readonly type: string;
+  readonly goalChance: number;
+  readonly utility: number;
+  readonly rejection: string;
+}
+
+// The set piece being set up (docs/set-pieces.md): where everyone with a
+// place in it goes.
+export interface SetPieceFrame {
+  readonly kind: string;
+  readonly side: TeamSide;
+  readonly taker: number;
+  readonly spot: Vec2;
+  readonly indirect: boolean;
+  readonly places: readonly { readonly player: number; readonly target: Vec2 }[];
+}
+
+// A keeper on the bisector of his posts' angle from the ball
+// (docs/goalkeeper.md#where-he-stands): where it meets his goal line, and where
+// on it he wants to be.
+export interface KeeperFrame {
+  readonly player: number;
+  readonly onLine: Vec2;
+  readonly target: Vec2;
 }
 
 export interface Frame {
@@ -332,6 +365,9 @@ export interface Frame {
   readonly endsChanged?: boolean;
   readonly ball: BallFrame;
   readonly pendingPass: PendingPass | null;
+  readonly score: { readonly home: number; readonly away: number };
+  readonly setPiece: SetPieceFrame | null;
+  readonly keepers: readonly KeeperFrame[];
   readonly players: readonly PlayerFrame[];
     readonly events: readonly MatchEvent[];
   readonly decisions: readonly Decision[];
@@ -360,8 +396,29 @@ export interface Recording {
     readonly laneBoundaries: readonly number[];
     readonly thirdBoundaries: readonly number[];
   };
+  // The markings drawn to scale: each end's goal, areas and penalty spot.
+  readonly geometry: PitchGeometry;
   readonly players: readonly PlayerInfo[];
   readonly frames: readonly Frame[];
+}
+
+export interface PitchArea {
+  readonly min: Vec2;
+  readonly max: Vec2;
+}
+
+export interface GoalEndGeometry {
+  readonly goalLineX: number;
+  readonly posts: readonly [Vec2, Vec2];
+  readonly crossbar: number;
+  readonly penaltyArea: PitchArea;
+  readonly goalArea: PitchArea;
+  readonly penaltySpot: Vec2;
+}
+
+export interface PitchGeometry {
+  readonly ends: readonly GoalEndGeometry[];
+  readonly centerCircleRadius: number;
 }
 
 function isObject(value: unknown): value is Record<string, unknown> {
@@ -556,4 +613,33 @@ export function describeEvent(event: MatchEvent): string {
       // A newer core may record events this viewer does not know yet.
       return (event as { readonly type: string }).type;
   }
+}
+
+// The frames worth stepping to: a shot, a save, a goal and a set piece taken
+// (docs/tooling.md#debug-viewer), in order.
+const MOMENTS: ReadonlySet<string> = new Set([
+  "shotAttempted",
+  "saveAttempted",
+  "goalScored",
+  "setPieceTaken",
+]);
+
+export function isMoment(frame: Frame): boolean {
+  return frame.events.some((event) => MOMENTS.has((event as { readonly type: string }).type));
+}
+
+// The next frame after `from` -- or before it, for a negative direction --
+// with a moment, or `from` itself if there is none.
+export function nextMoment(recording: Recording, from: number, direction: 1 | -1): number {
+  for (
+    let index = from + direction;
+    index >= 0 && index < recording.frames.length;
+    index += direction
+  ) {
+    const frame = recording.frames[index];
+    if (frame !== undefined && isMoment(frame)) {
+      return index;
+    }
+  }
+  return from;
 }

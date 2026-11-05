@@ -84,9 +84,22 @@ function drawPitch(
   context.setLineDash([]);
   context.strokeRect(pitch.left, pitch.top, pitch.width, pitch.height);
   line(context, viewport, [length / 2, 0], [length / 2, width]);
-  // Decoration only: the simulation has no center circle rule yet.
-  circle(context, viewport, [length / 2, width / 2], viewport.pixels(Math.min(width, length) / 8));
+  const { ends, centerCircleRadius } = recording.geometry;
+  circle(context, viewport, [length / 2, width / 2], viewport.pixels(centerCircleRadius));
   context.stroke();
+  for (const end of ends) {
+    for (const area of [end.penaltyArea, end.goalArea]) {
+      const rect = viewport.rectToCanvas(area.min, area.max);
+      context.strokeRect(rect.left, rect.top, rect.width, rect.height);
+    }
+    circle(context, viewport, end.penaltySpot, 2);
+    context.fillStyle = COLORS.lines;
+    context.fill();
+    // The goal: its mouth between the posts, drawn thick on the goal line.
+    context.lineWidth = 5;
+    line(context, viewport, end.posts[0], end.posts[1]);
+    context.lineWidth = 2;
+  }
 }
 
 function drawTarget(
@@ -189,6 +202,23 @@ function drawDecision(
     line(context, viewport, origin.position, candidate.target);
   });
   context.setLineDash([]);
+  // The zones of the goal he weighed: a mark each, the one he shot at joined
+  // to where he shot from.
+  latest.decision.shots.forEach((shot, index) => {
+    const chosen = latest.decision.chosenShot === index;
+    context.fillStyle = chosen
+      ? COLORS.chosenPass
+      : shot.rejection === "valid"
+        ? COLORS.validPass
+        : COLORS.rejectedPass;
+    circle(context, viewport, shot.target, chosen ? 5 : 3);
+    context.fill();
+    if (chosen) {
+      context.strokeStyle = COLORS.chosenPass;
+      context.lineWidth = 3;
+      line(context, viewport, origin.position, shot.target);
+    }
+  });
 }
 
 function drawPlayer(

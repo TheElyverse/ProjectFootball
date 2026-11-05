@@ -3,6 +3,8 @@
 #include <cstdint>
 #include <optional>
 #include <set>
+#include <string>
+#include <tuple>
 #include <utility>
 #include <variant>
 #include <vector>
@@ -457,6 +459,53 @@ TEST_CASE("Collecting diagnostics changes nothing in the match", "[matchEvents]"
   };
 
   REQUIRE(run(true) == run(false));
+}
+
+TEST_CASE("Collecting duel and dive diagnostics changes nothing, and they tell what was done",
+          "[matchEvents]") {
+  // A duel on the ball, and a shot the keeper faces.
+  for (const char* scenario : {"duel-ball-kept", "clear-chance"}) {
+    CAPTURE(scenario);
+    const auto* definition = ElyverseFootball::SimMatch::findScenario(scenario);
+    REQUIRE(definition != nullptr);
+    const auto setup = definition->make(3);
+    REQUIRE(setup.has_value());
+    const auto run = [&setup](const bool diagnostics) {
+      MatchSimulation simulation = startMatch(*setup);
+      simulation.setCollectDiagnostics(diagnostics);
+      std::vector<std::uint64_t> hashes;
+      std::size_t duels = 0;
+      std::size_t dives = 0;
+      for (int step = 0; step < 150; ++step) {
+        REQUIRE(simulation.step().has_value());
+        hashes.push_back(hashMatchState(simulation.state()));
+        duels += simulation.duelDiagnostics().size();
+        for (const auto& dive : simulation.diveDiagnostics()) {
+          ++dives;
+          // The run he chose is the one he makes.
+          const auto keeper =
+              ElyverseFootball::SimMatch::findPlayerIndex(simulation.state(), dive.player);
+          REQUIRE(keeper.has_value());
+          const auto& made = simulation.state().tactical(keeper.value_or(0)).dive;
+          REQUIRE(made.has_value());
+          if (dive.call == ElyverseFootball::SimMatch::DiveCall::kDive) {
+            REQUIRE(dive.chosen.has_value());
+            REQUIRE(dive.runs.at(dive.chosen.value_or(0)).feet ==
+                    made.value_or(ElyverseFootball::SimMatch::KeeperDive{}).feet);
+          } else if (dive.call == ElyverseFootball::SimMatch::DiveCall::kLeaveWide) {
+            REQUIRE(dive.runs.empty());
+          }
+        }
+      }
+      return std::tuple(hashes, duels, dives);
+    };
+    const auto [hashes, duels, dives] = run(true);
+    const auto [quietHashes, quietDuels, quietDives] = run(false);
+    REQUIRE(hashes == quietHashes);
+    // Each scenario shows what it is for.
+    REQUIRE((std::string(scenario) == "duel-ball-kept" ? duels : dives) > 0);
+    REQUIRE(quietDuels + quietDives == 0);
+  }
 }
 
 TEST_CASE("A diagnostics filter keeps the chosen players and ticks only", "[matchEvents]") {

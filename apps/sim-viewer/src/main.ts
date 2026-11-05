@@ -1,4 +1,4 @@
-import { parseRecording, type Recording } from "./frames.js";
+import { nextMoment, parseRecording, type Recording } from "./frames.js";
 import { playerAt, Viewport } from "./geometry.js";
 import { renderPanel } from "./panel.js";
 import { Playback, SPEEDS } from "./playback.js";
@@ -36,6 +36,8 @@ const overlayBoxes = {
   regions: required("overlay-regions", HTMLInputElement),
   shape: required("overlay-shape", HTMLInputElement),
   press: required("overlay-press", HTMLInputElement),
+  setPiece: required("overlay-set-piece", HTMLInputElement),
+  keepers: required("overlay-keepers", HTMLInputElement),
 };
 
 const context2d = canvas.getContext("2d");
@@ -101,6 +103,8 @@ function draw(): void {
       regions: overlayBoxes.regions.checked,
       shape: overlayBoxes.shape.checked,
       press: overlayBoxes.press.checked,
+      setPiece: overlayBoxes.setPiece.checked,
+      keepers: overlayBoxes.keepers.checked,
     },
   });
   renderPanel(panel, recording, playback.index, selectedPlayer);
@@ -186,6 +190,7 @@ canvas.addEventListener("click", (event) => {
 document.addEventListener("keydown", (event) => {
   if (
     playback === null ||
+    recording === null ||
     event.target instanceof HTMLInputElement ||
     event.target instanceof HTMLSelectElement
   ) {
@@ -204,6 +209,18 @@ document.addEventListener("keydown", (event) => {
       break;
     case "Escape":
       selectedPlayer = null;
+      break;
+    // The next or previous shot, save, goal or set piece, paused there to
+    // step through it.
+    case "n":
+    case "N":
+    case "p":
+    case "P":
+      if (event.ctrlKey || event.metaKey || event.altKey) {
+        return;
+      }
+      playback.pause();
+      playback.seek(nextMoment(recording, playback.index, event.key.toLowerCase() === "n" ? 1 : -1));
       break;
     default:
       return;
