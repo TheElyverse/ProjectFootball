@@ -41,6 +41,7 @@ TEST_CASE("deriveSeed matches golden vectors for master seed 7", "[rng][random]"
   REQUIRE(deriveSeed(master, RandomNumberGeneratorDomain::kGeneration) == 16616101746815609346ULL);
   REQUIRE(deriveSeed(master, RandomNumberGeneratorDomain::kMarket) == 10753165928301472203ULL);
   REQUIRE(deriveSeed(master, RandomNumberGeneratorDomain::kAi) == 8346079845500723674ULL);
+  REQUIRE(deriveSeed(master, RandomNumberGeneratorDomain::kCognition) == 4601199455465548305ULL);
 }
 
 TEST_CASE("deriveSeed matches golden vectors for boundary master seeds", "[rng][random]") {

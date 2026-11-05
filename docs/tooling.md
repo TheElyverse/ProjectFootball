@@ -30,8 +30,8 @@ file.
 
 ```json
 {
-  "schemaVersion": 13,
-  "coreVersion": "0.29.0",
+  "schemaVersion": 14,
+  "coreVersion": "0.30.0",
   "createdAt": "2026-09-24T10:00:00Z",
   "seed": "18446744073709551615",
   "gameTime": 300,
@@ -136,7 +136,7 @@ complete file.
 
 | Field           | JSON type | Meaning                                                       |
 |-----------------|-----------|---------------------------------------------------------------|
-| `schemaVersion` | number    | Version of this format. Currently `13`.                       |
+| `schemaVersion` | number    | Version of this format. Currently `14`.                       |
 | `coreVersion`   | string    | The `sim-core` version that recorded the match.               |
 | `createdAt`     | string    | Creation time in UTC, `%Y-%m-%dT%H:%M:%SZ`. Metadata only.    |
 | `seed`          | string    | Unsigned 64-bit master seed, in decimal.                      |
@@ -234,7 +234,7 @@ path, for example `initialState.players[3].position.x: expected a number`.
 |-----------------------------|------------------------------------------------------------------------|
 | `kIoError`                  | the file cannot be read or written                                     |
 | `kMalformed`                | not JSON, a missing or mistyped field, commands out of order           |
-| `kUnsupportedSchemaVersion` | a `schemaVersion` other than 13                                        |
+| `kUnsupportedSchemaVersion` | a `schemaVersion` other than 14                                        |
 | `kIncompatibleCoreVersion`  | recorded with another `coreVersion`                                    |
 | `kInvalidSetup`             | an invalid initial state, command or checkpoint list                   |
 | `kSimulationFailed`         | a step of the playback failed                                          |
@@ -303,6 +303,7 @@ record the scenario again with the same seed.
 | 11      | The decisions gain `stuckSeconds`, `clearTouchlineMargin` and `clearGoalLineMargin` ([pass decisions](on-ball.md#without-a-valid-option)), the defensive configuration `idleSeconds` and `idlePressRadius` ([pressing](team-tactics.md#a-carrier-who-stands-on-the-ball)). |
 | 12      | Players gain `ballControl` and `dribbling`, the ball `carryTouch`, the ball physics `minCarrySpeedFactor` and `maxCarrySpeedFactor`, and the decisions their `carrying` block ([ball carrying](on-ball.md#ball-carrying)). |
 | 13      | The configuration's `challenge` block becomes its `duels` block ([duels](duels.md#duels-on-the-ball)). |
+| 14      | Players gain `decisionMaking`, and the decisions `skillTemperatureSpread` and `maxMisjudgement` ([decision-making](on-ball.md#decision-making)). |
 
 ## Decision trace
 
@@ -358,6 +359,9 @@ t=0 #1 kicks long to #5 (utility 1.24: completion +0.86 progression +0.42 pressu
   come for a ball (`sweeps`) or not (`stays home`) gives both arrivals, his
   misjudgement and the head start he needed instead
   ([goalkeeper](goalkeeper.md#positioning-and-sweeping)).
+- **Misjudged estimates**: a poor decider's judged interception risk, goal,
+  save or block chance follows the estimate it differs from, as in
+  `estimated risk 0.64, judged 0.31` ([decision-making](on-ball.md#decision-making)).
 - **No shot**: when he did not shoot, why: the best shot lost the choice, or
   even the best zone of the goal was not on — `too far`, `goal unseen`,
   `too narrow`, `blocked`, `unlikely` or `not worth it`, with its goal chance
@@ -381,7 +385,8 @@ An intercepted pass is attributed to one stage of the decision pipeline
 | Cause | When |
 |---|---|
 | `perception` | the passer had not seen the interceptor — no observation of at least the scoring's `minConfidence` — or believed him more than `perceptionErrorMeters` (3 m) from where he really was when he decided |
-| `decision` | he saw him and still chose a pass with an estimated interception risk of at least `riskyDecision` (0.5) |
+| `judgement` | he saw him and estimated the pass's interception risk at least `riskyDecision` (0.5), but as a poor decider [misjudged](on-ball.md#decision-making) it below |
+| `decision` | he saw him and still chose a pass whose interception risk, as he judged it, was at least `riskyDecision` |
 | `execution` | he saw him and judged the pass safe: the kick itself — direction and speed error, pressure on the passer — let it fail |
 
 The limits are `TraceConfig`; they classify, they do not change the match.
@@ -517,7 +522,7 @@ values:
 {
   "format": "elyverse-debug-frames",
   "version": 4,
-  "coreVersion": "0.29.0",
+  "coreVersion": "0.30.0",
   "scenario": "m0-acceptance",
   "seed": "42",
   "ticksPerSecond": 30,
@@ -561,7 +566,7 @@ values:
           "candidates": [
             {
               "receiver": 7, "target": [40, 15], "distance": 12.1, "speed": 9.6,
-              "receiverConfidence": 1, "interceptionRisk": 0.02, "completion": 0.98,
+              "receiverConfidence": 1, "interceptionRisk": 0.02, "judgedInterceptionRisk": 0.02, "completion": 0.98,
               "progression": 0.12, "receiverPressure": 0.1, "utility": 1.02, "rejection": "valid"
             }
           ],
@@ -611,7 +616,9 @@ values:
   `buildUp`, ... as in [tactics](tactics.md#tactic-model). The viewer shows an event type it
   does not know by its name. A decision's `outcome` is `passed`, `shot` or
   `noValidOption`, `chosen` indexes `candidates` (null for a shot), and `rejection` is `valid` or
-  the reason a candidate cannot be played.
+  the reason a candidate cannot be played. A candidate's `completion`, `utility` and
+  `rejection` follow its `judgedInterceptionRisk`, which differs from its
+  `interceptionRisk` only for a poor decider ([decision-making](on-ball.md#decision-making)).
 
 A change that breaks existing readers raises `version`; the viewer rejects
 versions it does not know. New events and fields need no new version: the

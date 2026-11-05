@@ -383,6 +383,7 @@ void addEventFields(Json& json, const SimMatch::GoalScored& event) {
   json["speed"] = rounded(candidate.speed);
   json["receiverConfidence"] = rounded(candidate.receiverConfidence);
   json["interceptionRisk"] = rounded(candidate.interceptionRisk);
+  json["judgedInterceptionRisk"] = rounded(candidate.judgedInterceptionRisk);
   json["completion"] = rounded(candidate.completion);
   json["progression"] = rounded(candidate.progression);
   json["receiverPressure"] = rounded(candidate.receiverPressure);

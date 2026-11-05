@@ -14,6 +14,8 @@ enum class RandomNumberGeneratorDomain : std::uint8_t {
   kGeneration,
   kMarket,
   kAi,
+  // How players misjudge what they estimate (docs/on-ball.md#decision-making).
+  kCognition,
 };
 
 // Deterministically derives a per-domain seed from a master seed, so a single

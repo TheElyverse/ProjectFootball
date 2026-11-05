@@ -69,7 +69,7 @@ TEST_CASE("Equal states hash equally", "[matchStateHash]") {
 TEST_CASE("The kickoff hash is pinned", "[matchStateHash]") {
   // Changes when the fixture, a state field or the hash encoding changes;
   // each of those invalidates recorded replays, so update it deliberately.
-  REQUIRE(hashOf(kickoffSpec()) == 0x29bde0458969d424ULL);
+  REQUIRE(hashOf(kickoffSpec()) == 0x22561e610cab932aULL);
 }
 
 // Guards against a field that is added to the state but forgotten here.
@@ -108,6 +108,7 @@ TEST_CASE("Every field of the state changes the hash", "[matchStateHash]") {
       {"strength", [](auto& spec) { spec.players.at(2).attributes.strength = 0.9; }},
       {"ball control", [](auto& spec) { spec.players.at(2).attributes.ballControl = 0.9; }},
       {"dribbling", [](auto& spec) { spec.players.at(2).attributes.dribbling = 0.9; }},
+      {"decision making", [](auto& spec) { spec.players.at(2).attributes.decisionMaking = 0.9; }},
       {"score home", [](auto& spec) { spec.score.home = 1; }},
       {"score away", [](auto& spec) { spec.score.away = 1; }},
       {"target", [](auto& spec) { spec.players.at(9).target = Vec2{}; }},

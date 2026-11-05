@@ -4,6 +4,7 @@
 #include <optional>
 #include <span>
 #include <string_view>
+#include <vector>
 
 #include "carrying.hpp"
 #include "distribution.hpp"
@@ -21,9 +22,16 @@ struct DecisionConfig {
   int intervalTicks = 6;
   // A player keeps a ball he has just taken at least this long.
   double minHoldSeconds = 0.5;
-  // Softmax temperature over utility: lower picks the best option more often,
-  // higher spreads the choice.
+  // Softmax temperature over utility for an average decider: lower picks the
+  // best option more often, higher spreads the choice.
   double temperature = 0.15;
+  // How a player's decisionMaking d shapes his choice
+  // (docs/on-ball.md#decision-making): his temperature is temperature times
+  // 1 + skillTemperatureSpread · (d0 - d) / d0, for the default d0, and below
+  // d0 he misjudges every estimate by a triangular error of half-width
+  // maxMisjudgement · (1 - d / d0).
+  double skillTemperatureSpread = 0.75;
+  double maxMisjudgement = 0.3;
   PassScoringConfig scoring;
   ShotScoringConfig shooting;
   // How the goalkeeper distributes the ball (docs/goalkeeper.md#distribution).
@@ -76,6 +84,29 @@ struct OnBallChoice {
                                                        double temperature,
                                                        SimCore::RandomNumberGenerator& random);
 
+// The softmax temperature of a player of this decisionMaking
+// (docs/on-ball.md#decision-making): the configured temperature for the
+// default, lower for a better decider, higher for a worse one.
+[[nodiscard]] double choiceTemperature(const DecisionConfig& config,
+                                       double decisionMaking) noexcept;
+
+// The half-width of a player's misjudgement of his estimates: 0 at or above
+// the default decisionMaking, maxMisjudgement for the worst decider.
+[[nodiscard]] double misjudgementWidth(const DecisionConfig& config,
+                                       double decisionMaking) noexcept;
+
+// Adds a triangular error of half-width `width` to what he estimates -- the
+// interception risk of every pass valid or rejected only as kUnlikely, one
+// error each to the block, save and goal chances of all shots his position
+// allows -- clamps it to [0, 1], scores the candidates again with it
+// (judgePassCandidate(), judgeShotCandidate()) and orders them anew
+// (docs/on-ball.md#decision-making). One triangular draw from random per such
+// pass, in list order, then three for the shots if his position allows one;
+// none at all for a width of 0.
+void misjudgeOptions(std::vector<PassCandidate>& passes, std::vector<ShotCandidate>& shots,
+                     double width, const PassScoringConfig& passScoring,
+                     const ShotScoringConfig& shotScoring, SimCore::RandomNumberGenerator& random);
+
 // Scoring adjusted to how much risk a carrier's tactic accepts, passingRisk in
 // [0, 1] (docs/on-ball.md#pass-decisions): progression counts (0.5 + risk)
 // times as much, interception risk (1.5 - risk) times, and the completion a
@@ -119,8 +150,11 @@ inline constexpr std::string_view kPassDecisionSystemName = "pass decision";
 //      balls (generateLongBallCandidates()), biased by his tactic's
 //      directness (directnessBias()), and from his hands throws no farther
 //      than the distribution's throwRange (docs/goalkeeper.md#distribution).
-//   4. He picks one of the valid passes, the best valid shot and the valid
-//      carries with chooseByUtility(), drawing from the kAi random stream,
+//   4. A poor decider misjudges his passes and shots (misjudgeOptions(),
+//      drawing from the kCognition random stream). He picks one of the valid
+//      passes, the best valid shot and the valid carries with
+//      chooseByUtility() at his choiceTemperature(), drawing from the kAi
+//      random stream,
 //      and writes it as his pending action -- the ball system plays it in
 //      the next step. A turn, carry or dribble also starts or continues his
 //      run (CarryRun) and sends him toward his touch; holding the ball stops
@@ -141,7 +175,8 @@ inline constexpr std::string_view kPassDecisionSystemName = "pass decision";
 // and run (CarryRun) only; a carrier who acts ends his scan. Throws
 // std::invalid_argument for an interval below one tick, a negative or
 // non-finite hold time, stuck time or margin, a temperature that is not
-// positive and finite, or invalid scoring or distribution
+// positive and finite, a skillTemperatureSpread outside [0, 1) or a
+// maxMisjudgement outside [0, 1], or invalid scoring or distribution
 // (validate(PassScoringConfig), validate(ShotScoringConfig),
 // validate(CarryScoringConfig), validate(DistributionConfig)).
 [[nodiscard]] MatchSystem makePassDecisionSystem(const DecisionConfig& config,

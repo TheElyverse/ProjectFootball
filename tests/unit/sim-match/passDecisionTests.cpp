@@ -13,6 +13,7 @@
 #include "choicePolicy.hpp"
 #include "kickoffScenario.hpp"
 #include "matchCommand.hpp"
+#include "matchEvents.hpp"
 #include "matchSetup.hpp"
 #include "matchSimulation.hpp"
 #include "matchState.hpp"
@@ -21,21 +22,29 @@
 #include "passDecision.hpp"
 #include "random.hpp"
 #include "scenarios.hpp"
+#include "shotCandidates.hpp"
+#include "stableHash.hpp"
 #include "vec2.hpp"
 
 using ElyverseFootball::SimCore::PlayerId;
 using ElyverseFootball::SimCore::RandomNumberGenerator;
 using ElyverseFootball::SimCore::SimTick;
+using ElyverseFootball::SimCore::StableHasher;
 using ElyverseFootball::SimCore::Vec2;
 using ElyverseFootball::SimMatch::activeCarry;
 using ElyverseFootball::SimMatch::activeScan;
+using ElyverseFootball::SimMatch::addEvent;
 using ElyverseFootball::SimMatch::CarryCandidate;
 using ElyverseFootball::SimMatch::CarryKind;
+using ElyverseFootball::SimMatch::choiceTemperature;
 using ElyverseFootball::SimMatch::chooseOnBall;
 using ElyverseFootball::SimMatch::DecisionConfig;
+using ElyverseFootball::SimMatch::DecisionDiagnostic;
 using ElyverseFootball::SimMatch::DecisionOutcome;
+using ElyverseFootball::SimMatch::findScenario;
 using ElyverseFootball::SimMatch::GiveBallCommand;
 using ElyverseFootball::SimMatch::hashMatchState;
+using ElyverseFootball::SimMatch::kDefaultDecisionMaking;
 using ElyverseFootball::SimMatch::lookDirection;
 using ElyverseFootball::SimMatch::makePassDecisionSystem;
 using ElyverseFootball::SimMatch::makeSevenASideKickoff;
@@ -44,15 +53,19 @@ using ElyverseFootball::SimMatch::MatchSetup;
 using ElyverseFootball::SimMatch::MatchSimulation;
 using ElyverseFootball::SimMatch::MatchState;
 using ElyverseFootball::SimMatch::MatchStateSpec;
+using ElyverseFootball::SimMatch::misjudgementWidth;
+using ElyverseFootball::SimMatch::misjudgeOptions;
 using ElyverseFootball::SimMatch::OnBallChoice;
 using ElyverseFootball::SimMatch::PassCandidate;
 using ElyverseFootball::SimMatch::PassCandidateRules;
+using ElyverseFootball::SimMatch::passContributions;
 using ElyverseFootball::SimMatch::PassIntent;
 using ElyverseFootball::SimMatch::PassRejection;
 using ElyverseFootball::SimMatch::PassScoringConfig;
 using ElyverseFootball::SimMatch::Pitch;
 using ElyverseFootball::SimMatch::PlayerMatchState;
 using ElyverseFootball::SimMatch::ShotCandidate;
+using ElyverseFootball::SimMatch::shotContributions;
 using ElyverseFootball::SimMatch::ShotRejection;
 using ElyverseFootball::SimMatch::ShotScoringConfig;
 using ElyverseFootball::SimMatch::shotScoringForRisk;
@@ -529,4 +542,193 @@ TEST_CASE("A carrier decides as soon as he has his touched ball back", "[passDec
     }
   }
   REQUIRE(decisions >= 3);
+}
+
+TEST_CASE("Decision-making scales the softmax temperature around the default",
+          "[passDecision][decisionMaking]") {
+  const DecisionConfig config;
+  REQUIRE(choiceTemperature(config, kDefaultDecisionMaking) == config.temperature);
+  REQUIRE(choiceTemperature(config, 1.0) == config.temperature * 0.25);
+  REQUIRE(choiceTemperature(config, 0.0) == config.temperature * 1.75);
+  REQUIRE(misjudgementWidth(config, 1.0) == 0.0);
+  REQUIRE(misjudgementWidth(config, kDefaultDecisionMaking) == 0.0);
+  REQUIRE(misjudgementWidth(config, 0.25) == config.maxMisjudgement * 0.5);
+  REQUIRE(misjudgementWidth(config, 0.0) == config.maxMisjudgement);
+}
+
+TEST_CASE("A better decider picks the best of two close options more reliably",
+          "[passDecision][decisionMaking]") {
+  // Two passes 0.1 apart: the share of the better one grows with decisionMaking.
+  const std::vector candidates{option(PlayerId(2), 1.0), option(PlayerId(3), 0.9)};
+  const auto bestShare = [&candidates](const double decisionMaking) {
+    int best = 0;
+    constexpr int kDraws = 2000;
+    for (std::uint64_t seed = 0; seed < kDraws; ++seed) {
+      RandomNumberGenerator random(seed);
+      const auto chosen =
+          chooseOnBall(candidates, {}, choiceTemperature(DecisionConfig{}, decisionMaking), random);
+      best += chosen && chosen->index == 0 ? 1 : 0;
+    }
+    return static_cast<double>(best) / kDraws;
+  };
+  const double good = bestShare(1.0);
+  const double average = bestShare(0.5);
+  const double poor = bestShare(0.0);
+  CAPTURE(good, average, poor);
+  // 1 / (1 + e^(-0.1 / T)) for T = 0.0375, 0.15 and 0.2625: 0.94, 0.66, 0.59.
+  REQUIRE(good > 0.9);
+  REQUIRE(average > 0.63);
+  REQUIRE(average < 0.69);
+  REQUIRE(poor < average - 0.03);
+}
+
+TEST_CASE("A good decider misjudges nothing and draws nothing", "[passDecision][decisionMaking]") {
+  PassCandidate pass = option(PlayerId(2), 1.0);
+  pass.interceptionRisk = 0.4;
+  pass.judgedInterceptionRisk = 0.4;
+  std::vector passes{pass};
+  std::vector<ShotCandidate> shots{shotOption(1.0)};
+  RandomNumberGenerator random(5);
+  const std::vector<ShotCandidate> before = shots;
+  misjudgeOptions(passes, shots, 0.0, PassScoringConfig{}, ShotScoringConfig{}, random);
+  REQUIRE(passes.front() == pass);
+  REQUIRE(shots == before);
+  REQUIRE(random.nextU64() == RandomNumberGenerator(5).nextU64());
+}
+
+TEST_CASE("A poor decider misjudges his estimates within his width and keeps them",
+          "[passDecision][decisionMaking]") {
+  const PassScoringConfig passScoring;
+  const ShotScoringConfig shotScoring;
+  PassCandidate pass = option(PlayerId(2), 0.0);
+  pass.receiverConfidence = 1.0;
+  pass.interceptionRisk = 0.4;
+  PassCandidate tooFar = option(PlayerId(3), 0.0, PassRejection::kTooFar);
+  tooFar.interceptionRisk = 0.2;
+  tooFar.judgedInterceptionRisk = 0.2;
+  ShotCandidate shot = shotOption(0.0);
+  shot.blockRisk = 0.1;
+  shot.saveRisk = 0.3;
+  shot.goalChance = 0.5;
+  ShotCandidate otherZone = shot;
+  otherZone.column = 1;
+  otherZone.goalChance = 0.45;
+  constexpr double kWidth = 0.3;
+  bool misjudged = false;
+  for (std::uint64_t seed = 0; seed < 200; ++seed) {
+    std::vector passes{pass, tooFar};
+    std::vector shots{shot, otherZone};
+    RandomNumberGenerator random(seed);
+    misjudgeOptions(passes, shots, kWidth, passScoring, shotScoring, random);
+    for (const PassCandidate& judged : passes) {
+      if (judged.receiver == PlayerId(3)) {
+        // Rejected for its distance: nothing to judge.
+        REQUIRE(judged == tooFar);
+        continue;
+      }
+      REQUIRE(judged.interceptionRisk == 0.4);
+      REQUIRE(std::abs(judged.judgedInterceptionRisk - 0.4) < kWidth);
+      REQUIRE(judged.completion == 1.0 - judged.judgedInterceptionRisk);
+      REQUIRE(judged.utility == passContributions(judged, passScoring).total());
+      REQUIRE(judged.isValid() == (judged.completion >= passScoring.minCompletion));
+      misjudged = misjudged || judged.judgedInterceptionRisk != 0.4;
+    }
+    // One misjudgement of the situation shifts every zone alike.
+    const auto shiftOf = [](const ShotCandidate& judged) {
+      return judged.judgedGoalChance - judged.goalChance;
+    };
+    REQUIRE(std::abs(shiftOf(shots.front()) - shiftOf(shots.back())) < 1e-12);
+    for (const ShotCandidate& judged : shots) {
+      REQUIRE(std::abs(judged.judgedGoalChance - judged.goalChance) < kWidth);
+      REQUIRE(std::abs(judged.judgedSaveRisk - 0.3) < kWidth);
+      REQUIRE(judged.judgedBlockRisk >= 0.0);
+      REQUIRE(judged.judgedBlockRisk < 0.1 + kWidth);
+      REQUIRE(judged.secondBallChance ==
+              shotScoring.reboundShare * (judged.judgedBlockRisk + judged.judgedSaveRisk));
+      REQUIRE(judged.utility == shotContributions(judged, shotScoring).total());
+    }
+    // Valid candidates still come first.
+    REQUIRE((passes.front().isValid() || !passes.back().isValid()));
+  }
+  REQUIRE(misjudged);
+}
+
+TEST_CASE("A position that allows no shot leaves the shots unjudged",
+          "[passDecision][decisionMaking]") {
+  std::vector<PassCandidate> passes;
+  const std::vector shots{shotOption(0.0, ShotRejection::kGoalUnseen),
+                          shotOption(0.0, ShotRejection::kGoalUnseen)};
+  std::vector judged = shots;
+  RandomNumberGenerator random(5);
+  misjudgeOptions(passes, judged, 0.3, PassScoringConfig{}, ShotScoringConfig{}, random);
+  REQUIRE(judged == shots);
+  REQUIRE(random.nextU64() == RandomNumberGenerator(5).nextU64());
+}
+
+TEST_CASE("The pass decision system reads decisionMaking and misjudges from its own stream",
+          "[passDecision][decisionMaking]") {
+  // The clear chance, player 1 at a decisionMaking of `skill`, with `config`.
+  const auto played = [](const double skill, const DecisionConfig& config) {
+    auto setup = findScenario("clear-chance")->make(3);
+    REQUIRE(setup.has_value());
+    const MatchState& initial = setup->initialState;
+    MatchStateSpec spec{.pitch = initial.pitch(),
+                        .players = {initial.players().begin(), initial.players().end()},
+                        .ball = initial.ball(),
+                        .playersPerSide = initial.playersPerSide(),
+                        .score = initial.score()};
+    REQUIRE(spec.players.front().playerId == PlayerId(1));
+    spec.players.front().attributes.decisionMaking = skill;
+    auto state = MatchState::create(spec, initial.tactics());
+    REQUIRE(state.has_value());
+    setup->initialState = *std::move(state);
+    setup->config.decisions = config;
+    MatchSimulation simulation = startMatch(*setup);
+    simulation.setCollectDiagnostics(true);
+    std::optional<DecisionDiagnostic> first;
+    StableHasher events;
+    for (int tick = 0; tick < 60; ++tick) {
+      REQUIRE(simulation.step().has_value());
+      for (const auto& event : simulation.events()) {
+        addEvent(events, event);
+      }
+      for (const DecisionDiagnostic& decision : simulation.diagnostics()) {
+        if (!first && decision.player == PlayerId(1)) {
+          first = decision;
+        }
+      }
+    }
+    REQUIRE(first.has_value());
+    return std::pair{events.value(), first.value_or(DecisionDiagnostic{})};
+  };
+  // Without spread or misjudgement the skill changes nothing: the kAi stream
+  // sees the same single draw, and nothing else draws from it.
+  DecisionConfig flat;
+  flat.skillTemperatureSpread = 0.0;
+  flat.maxMisjudgement = 0.0;
+  REQUIRE(played(0.0, flat).first == played(0.5, flat).first);
+  // With the defaults the worst decider misjudges his shot.
+  const DecisionDiagnostic poor = played(0.0, DecisionConfig{}).second;
+  REQUIRE_FALSE(poor.shots.empty());
+  REQUIRE(poor.shots.front().judgedGoalChance != poor.shots.front().goalChance);
+  const DecisionDiagnostic average = played(0.5, DecisionConfig{}).second;
+  REQUIRE(average.shots.front().judgedGoalChance == average.shots.front().goalChance);
+}
+
+TEST_CASE("The decision system rejects an invalid decision-making spread",
+          "[passDecision][decisionMaking]") {
+  const auto rejects = [](const auto& change) {
+    DecisionConfig config;
+    change(config);
+    return throwsInvalidArgument(
+        [&config] { (void)makePassDecisionSystem(config, PassCandidateRules{}); });
+  };
+  REQUIRE_FALSE(rejects([](DecisionConfig&) {}));
+  REQUIRE_FALSE(rejects([](DecisionConfig& config) { config.skillTemperatureSpread = 0.0; }));
+  REQUIRE(rejects([](DecisionConfig& config) { config.skillTemperatureSpread = 1.0; }));
+  REQUIRE(rejects([](DecisionConfig& config) { config.skillTemperatureSpread = -0.1; }));
+  REQUIRE(rejects([](DecisionConfig& config) { config.maxMisjudgement = 1.5; }));
+  REQUIRE(rejects([](DecisionConfig& config) {
+    config.maxMisjudgement = std::numeric_limits<double>::quiet_NaN();
+  }));
 }

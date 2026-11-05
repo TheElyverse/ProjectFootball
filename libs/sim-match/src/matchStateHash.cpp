@@ -47,6 +47,7 @@ void addPlayer(StableHasher& hasher, const PlayerMatchState& player) noexcept {
   hasher.addDouble(player.attributes.strength);
   hasher.addDouble(player.attributes.ballControl);
   hasher.addDouble(player.attributes.dribbling);
+  hasher.addDouble(player.attributes.decisionMaking);
   addOptionalVec2(hasher, player.target);
   addVec2(hasher, player.facing);
 }

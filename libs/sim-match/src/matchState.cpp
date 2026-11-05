@@ -157,6 +157,7 @@ void appendAttributeErrors(const std::size_t index, const PlayerMatchState& play
   appendShareError(attributes.strength, "strength");
   appendShareError(attributes.ballControl, "ball control");
   appendShareError(attributes.dribbling, "dribbling");
+  appendShareError(attributes.decisionMaking, "decision making");
   if (attributes.strongFoot != Foot::kLeft && attributes.strongFoot != Foot::kRight) {
     errors.push_back({.code = MatchStateErrorCode::kInvalidPlayerAttributes,
                       .message = describePlayer(index, player) +

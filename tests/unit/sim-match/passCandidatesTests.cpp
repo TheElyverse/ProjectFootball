@@ -211,7 +211,7 @@ TEST_CASE("A utility splits into weighted contributions", "[passCandidates]") {
   candidate.completion = 0.8;
   candidate.progression = 0.25;
   candidate.receiverPressure = 0.5;
-  candidate.interceptionRisk = 0.2;
+  candidate.judgedInterceptionRisk = 0.2;
   const PassScoringConfig scoring;
   const auto parts = passContributions(candidate, scoring);
   REQUIRE(parts.completion == scoring.completionWeight * 0.8);
@@ -221,7 +221,7 @@ TEST_CASE("A utility splits into weighted contributions", "[passCandidates]") {
   REQUIRE(dominantContribution(parts) == "completion");
 
   candidate.completion = 0.1;
-  candidate.interceptionRisk = 0.9;
+  candidate.judgedInterceptionRisk = 0.9;
   REQUIRE(dominantContribution(passContributions(candidate, scoring)) == "risk");
 }
 

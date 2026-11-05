@@ -9,12 +9,14 @@
 #include <cstdint>
 #include <optional>
 #include <string_view>
+#include <utility>
 #include <variant>
 
 #include "ids.hpp"
 #include "matchEvents.hpp"
 #include "matchSetup.hpp"
 #include "matchSimulation.hpp"
+#include "matchState.hpp"
 #include "passing.hpp"
 #include "scenarios.hpp"
 #include "shotCandidate.hpp"
@@ -26,6 +28,8 @@ using ElyverseFootball::SimMatch::DiagnosticsFilter;
 using ElyverseFootball::SimMatch::findScenario;
 using ElyverseFootball::SimMatch::LooseBallRecovered;
 using ElyverseFootball::SimMatch::MatchSimulation;
+using ElyverseFootball::SimMatch::MatchState;
+using ElyverseFootball::SimMatch::MatchStateSpec;
 using ElyverseFootball::SimMatch::PassConfig;
 using ElyverseFootball::SimMatch::PassIntercepted;
 using ElyverseFootball::SimMatch::PassReceived;
@@ -50,12 +54,26 @@ struct FirstDecision {
   double shotSpeed = 0.0;
 };
 
-[[nodiscard]] FirstDecision firstDecision(const std::string_view scenario,
-                                          const std::uint64_t seed) {
+// The scenario with player 1 of this decisionMaking, the default if empty
+// (docs/on-ball.md#decision-making).
+[[nodiscard]] FirstDecision firstDecision(const std::string_view scenario, const std::uint64_t seed,
+                                          const std::optional<double> decisionMaking = {}) {
   const auto* definition = findScenario(scenario);
   REQUIRE(definition != nullptr);
   auto setup = definition->make(seed);
   REQUIRE(setup.has_value());
+  if (decisionMaking) {
+    const MatchState& initial = setup->initialState;
+    MatchStateSpec spec{.pitch = initial.pitch(),
+                        .players = {initial.players().begin(), initial.players().end()},
+                        .ball = initial.ball(),
+                        .playersPerSide = initial.playersPerSide(),
+                        .score = initial.score()};
+    spec.players.front().attributes.decisionMaking = *decisionMaking;
+    auto state = MatchState::create(spec, initial.tactics());
+    REQUIRE(state.has_value());
+    setup->initialState = *std::move(state);
+  }
   MatchSimulation simulation = startMatch(*setup);
   simulation.setCollectDiagnostics(true);
   simulation.setDiagnosticsFilter(
@@ -100,6 +118,32 @@ TEST_CASE("Shots: a clear chance is taken", "[acceptance][shots]") {
   REQUIRE(shots >= 90);
   // Struck at the speed it was judged at, harder than any pass.
   REQUIRE(fastest > PassConfig{}.maxSpeed);
+}
+
+TEST_CASE("Shots: decision-making shapes how surely a clear chance is taken",
+          "[acceptance][shots]") {
+  // How often player 1, of this decisionMaking, shoots first.
+  const auto shotsOf = [](const double decisionMaking) {
+    int shots = 0;
+    for (std::uint64_t seed = 1; seed <= kSeeds; ++seed) {
+      const FirstDecision first = firstDecision("clear-chance", seed, decisionMaking);
+      if (first.decision && first.decision->outcome == DecisionOutcome::kShot) {
+        ++shots;
+      }
+    }
+    return shots;
+  };
+  const int best = shotsOf(1.0);
+  const int average = shotsOf(0.5);
+  const int worst = shotsOf(0.0);
+  CAPTURE(best, average, worst);
+  REQUIRE(best >= 98);
+  REQUIRE(average >= 90);
+  REQUIRE(worst > static_cast<int>(kSeeds / 2));
+  // So clear a chance leaves little room: the better decider shoots at least
+  // as often (the gradient on a closer choice: tests/unit/sim-match/passDecisionTests.cpp).
+  REQUIRE(best >= average);
+  REQUIRE(average >= worst);
 }
 
 TEST_CASE("Shots: a hopeless angle is passed from", "[acceptance][shots]") {

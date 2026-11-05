@@ -24,9 +24,9 @@ using SimCore::RandomNumberGenerator;
 using SimCore::RandomNumberGeneratorDomain;
 
 // MatchRandomStreams is indexed by domain value, so it must list every domain
-// in declaration order. A domain added after kAi fails this assertion instead
+// in declaration order. A domain added after kCognition fails this assertion instead
 // of silently sharing a stream.
-static_assert(static_cast<std::size_t>(RandomNumberGeneratorDomain::kAi) + 1 ==
+static_assert(static_cast<std::size_t>(RandomNumberGeneratorDomain::kCognition) + 1 ==
               std::tuple_size_v<MatchRandomStreams>);
 
 [[nodiscard]] MatchRandomStreams makeRandomStreams(const std::uint64_t seed) noexcept {
@@ -36,6 +36,7 @@ static_assert(static_cast<std::size_t>(RandomNumberGeneratorDomain::kAi) + 1 ==
       RandomNumberGenerator(SimCore::deriveSeed(seed, RandomNumberGeneratorDomain::kGeneration)),
       RandomNumberGenerator(SimCore::deriveSeed(seed, RandomNumberGeneratorDomain::kMarket)),
       RandomNumberGenerator(SimCore::deriveSeed(seed, RandomNumberGeneratorDomain::kAi)),
+      RandomNumberGenerator(SimCore::deriveSeed(seed, RandomNumberGeneratorDomain::kCognition)),
   };
 }
 

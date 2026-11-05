@@ -66,19 +66,19 @@ TEST_CASE("Documents that are not JSON objects are rejected", "[replayJson]") {
 }
 
 TEST_CASE("Other schema versions are rejected with the version found", "[replayJson]") {
-  requireRejected(validJsonWith("\"schemaVersion\": 13", "\"schemaVersion\": 1"),
+  requireRejected(validJsonWith("\"schemaVersion\": 14", "\"schemaVersion\": 1"),
                   ReplayErrorCode::kUnsupportedSchemaVersion,
                   "schema version 1 holds replay metadata only");
   // Older playable versions name the way to a current file.
-  for (const char* version : {"2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12"}) {
+  for (const char* version : {"2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13"}) {
     requireRejected(
-        validJsonWith("\"schemaVersion\": 13", std::string("\"schemaVersion\": ") + version),
+        validJsonWith("\"schemaVersion\": 14", std::string("\"schemaVersion\": ") + version),
         ReplayErrorCode::kUnsupportedSchemaVersion,
         std::string("schema version ") + version +
-            " is no longer supported, expected 13; record the scenario again");
+            " is no longer supported, expected 14; record the scenario again");
   }
-  requireRejected(validJsonWith("\"schemaVersion\": 13", "\"schemaVersion\": 14"),
-                  ReplayErrorCode::kUnsupportedSchemaVersion, "unsupported schema version 14");
+  requireRejected(validJsonWith("\"schemaVersion\": 14", "\"schemaVersion\": 15"),
+                  ReplayErrorCode::kUnsupportedSchemaVersion, "unsupported schema version 15");
 }
 
 TEST_CASE("A replay from another core version is rejected", "[replayJson]") {
@@ -288,6 +288,26 @@ TEST_CASE("How players carry the ball is read from the initial state and the con
   REQUIRE(patient->setup.config.decisions.carrying.turnSeconds == 0.7);
   requireRejected(validJsonWith("\"minCarrySpeedFactor\"", "\"minCarrySpeedFactors\""), kMalformed,
                   "config.ball.minCarrySpeedFactor: missing");
+}
+
+TEST_CASE("How players decide is read from the initial state and the config", "[replayJson]") {
+  const auto poor =
+      parseReplayJson(validJsonWith("\"decisionMaking\": 0.5", "\"decisionMaking\": 0.2"));
+  REQUIRE(poor.has_value());
+  REQUIRE(poor->setup.initialState.players()[0].attributes.decisionMaking == 0.2);
+  requireRejected(validJsonWith("\"decisionMaking\": 0.5", "\"decisionMaking\": 2.0"),
+                  ReplayErrorCode::kInvalidSetup, "decision making 2");
+
+  const auto spread = parseReplayJson(
+      validJsonWith("\"skillTemperatureSpread\": 0.75", "\"skillTemperatureSpread\": 0.5"));
+  REQUIRE(spread.has_value());
+  REQUIRE(spread->setup.config.decisions.skillTemperatureSpread == 0.5);
+  const auto misjudgement =
+      parseReplayJson(validJsonWith("\"maxMisjudgement\": 0.3", "\"maxMisjudgement\": 0.1"));
+  REQUIRE(misjudgement.has_value());
+  REQUIRE(misjudgement->setup.config.decisions.maxMisjudgement == 0.1);
+  requireRejected(validJsonWith("\"maxMisjudgement\"", "\"maxMisjudgements\""), kMalformed,
+                  "config.decisions.maxMisjudgement: missing");
 }
 
 TEST_CASE("Tactics survive a round trip through the replay format", "[replayJson]") {
