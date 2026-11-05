@@ -2,15 +2,19 @@
   "format": "elyverse-tactic",
   "version": 4,
   "name": "pressing",
-  "description": "Hunts the ball high: a high line and short block that presses on every trigger with several players and attacks quickly after a regain.",
+  "description": "Hunts the ball high: a high line and short 4-3-3 block that presses on every trigger with several players and attacks quickly after a regain.",
   "slots": [
     { "position": { "depth": 0.06, "width": 0.5 }, "role": "goalkeeper" },
-    { "position": { "depth": 0.3, "width": 0.3 }, "role": "centreBack" },
-    { "position": { "depth": 0.3, "width": 0.7 }, "role": "centreBack" },
-    { "position": { "depth": 0.45, "width": 0.5 }, "role": "centralMidfielder" },
-    { "position": { "depth": 0.62, "width": 0.15 }, "role": "winger" },
-    { "position": { "depth": 0.62, "width": 0.85 }, "role": "winger" },
-    { "position": { "depth": 0.75, "width": 0.5 }, "role": "striker" }
+    { "position": { "depth": 0.32, "width": 0.12 }, "role": "fullBack" },
+    { "position": { "depth": 0.3, "width": 0.38 }, "role": "centreBack" },
+    { "position": { "depth": 0.3, "width": 0.62 }, "role": "centreBack" },
+    { "position": { "depth": 0.32, "width": 0.88 }, "role": "fullBack" },
+    { "position": { "depth": 0.48, "width": 0.3 }, "role": "centralMidfielder" },
+    { "position": { "depth": 0.44, "width": 0.5 }, "role": "holdingMidfielder" },
+    { "position": { "depth": 0.48, "width": 0.7 }, "role": "centralMidfielder" },
+    { "position": { "depth": 0.64, "width": 0.15 }, "role": "winger" },
+    { "position": { "depth": 0.76, "width": 0.5 }, "role": "striker" },
+    { "position": { "depth": 0.64, "width": 0.85 }, "role": "winger" }
   ],
   "principles": {
     "pressingLine": 0.4,

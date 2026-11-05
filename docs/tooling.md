@@ -865,60 +865,59 @@ of both sides with their intervals, and the mean and slowest match time.
 
 **In CI**, the `style-benchmark` job builds the `ci-release` preset and runs
 `ctest -L benchmark`: `tests/benchmark/p2StyleBenchmark.cmake` plays the round
-robin of the three [tactical identities](tactics.md#tactical-identities), thirty
-six-minute matches per pairing with seed 1 and one sampled replay per pairing.
-It must finish without an invalid value within 5 s per match and 450 s for
-all 270 (about 55 s locally at the time of writing), every sampled replay must
-reproduce, and the styles must separate where their identities promise:
+robin of the three [tactical identities](tactics.md#tactical-identities),
+eleven a side on the standard pitch, twenty six-minute matches per pairing with
+seed 1 and one sampled replay per pairing. It must finish without an invalid
+value within 5 s per match and 450 s for all 180 together — the sum of their
+times, not the elapsed time (a sum of about 120 s locally at the time of
+writing), every sampled replay must reproduce, and the
+styles must separate where their identities promise:
 
 | Metric                  | Separation                              |
 |-------------------------|-----------------------------------------|
 | `regains`               | pressing above possession and counter   |
 | `regainsAttackingThird` | pressing above counter                  |
-| `ppda`                  | counter above pressing — pressing allows fewer passes per defensive action |
+| `ppda`                  | counter above pressing and possession — the deep block allows the most passes per defensive action |
 
-These hold for base seeds 1 to 5. Thirty matches per pairing are needed:
-pressing's attacking-third regains stay clearly above counter's, about two a
-match -- forty matches separate them for every seed tried -- but a separation
-needs the two 95 % intervals apart, and since players
-[curl and chip](on-ball.md#shot-types) their shots and
-[block](duels.md#tackles-and-blocks) them, eight, twelve or twenty matches no
-longer do it for seed 1. Earlier, six were too few once
-carriers [looked](players.md#perception) for the goal. Two separations are
-not asked for because the reduced run does not show them for every seed:
-possession's PPDA about a tenth above pressing's (thirty matches separate
-them), and pressing's attacking-third regains above possession's (since a goal
-leads to a [kickoff](match-engine.md#the-kickoff) instead of a goal kick).
+These hold for base seeds 1 to 5. **Since the identities play eleven a side**
+the styles separate far more clearly than on the seven-a-side sandbox, where
+thirty matches per pairing were needed for pressing's attacking-third regains
+over counter's: on the full pitch twenty suffice for every separation above,
+and counter's PPDA now also separates from possession's. Two separations are
+not asked for because twenty matches do not show them for every seed:
+possession's PPDA above pressing's (seed 4 misses it) and pressing's
+attacking-third regains above possession's (seed 5).
 
 Two guardrails also apply:
 
 - **Shots.** Every side of every pairing shoots between 0.5 and 40 times per
   six-minute match on average, so a change cannot stop the shooting or turn the
-  sandbox into a shooting gallery. At the time of writing the range is 3.3 to
-  13.7, possession against counter's deep block the fewest
+  pitch into a shooting gallery. At the time of writing the range is 1.3 to
+  7.0 -- 0.7 at worst over seeds 1 to 5 -- on the full pitch, possession against
+  counter's deep block the fewest
   ([shot decisions](on-ball.md#shot-decisions)).
-- **Ownership.** No player owns the ball longer than 15 s at a time
+- **Ownership.** No player owns the ball longer than 20 s at a time
   (`longestOwnershipSeconds`, [match analytics](#match-analytics)). A carrier
   without an option once kept it for 318 s; now he
   [looks round](on-ball.md#without-a-valid-option), a carrier standing on the
   ball [is gone at](team-tactics.md#a-carrier-who-stands-on-the-ball), and a
   carrier who carries it about
-  [gets stuck](on-ball.md#holding-on-and-getting-stuck); the longest is
-  10.4 s.
+  [gets stuck](on-ball.md#holding-on-and-getting-stuck); the longest was
+  10.4 s seven a side. Eleven a side, on the longer pitch, it is 13.2 s with
+  seed 1 and 17.4 s at worst over seeds 1 to 5, so the bound rose from 15 s.
 
 The test is registered for Release builds only; in Debug it would take minutes.
 
 **The full run** is twenty 90-minute matches per pairing, the command above.
-Its results at the time of writing (core 0.18.0) are in
+Its results at the time of writing (core 0.34.0, eleven a side) are in
 [tactical identities](tactics.md#over-whole-matches).
 
 ### P2 performance budget
 
-A 90-minute seven-a-side match with the standard systems, restarts on and two
-P2 tactics must simulate in **under 10 seconds** on one core of a CI-class
-machine, Release build. At the time of writing a pressing-against-counter match
-takes about 5.8 s (2-core cloud container, GCC 13): headroom for the P3
-systems. `--max-seconds-per-match 10` checks it.
+Since the P2 tactics play eleven a side, a 90-minute match has the budget of
+the [eleven-a-side match](match-engine.md#performance): under 45 s, which the
+Release-only `eleven-a-side-budget` test checks. A 90-minute seven-a-side match
+of the seven-a-side presets took about 5.8 s (2-core cloud container, GCC 13).
 
 Debug builds are around ten times slower; the smoke test therefore plays two
 one-minute matches only.

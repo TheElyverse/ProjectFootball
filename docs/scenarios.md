@@ -411,7 +411,11 @@ and runs.
 ## Golden scenarios
 
 The P2 golden scenarios are short, hand-placed seven-a-side situations in which
-one tactical behaviour must show. Each is a [scenario](#scenario-catalogue) in
+one tactical behaviour must show. They stay seven a side when the tactical
+identities move to eleven: each plays the seven-a-side reference tactic or a
+pressing tactic of its own built from it (`goldenPressingTactic()`), not the
+identity files, so it still isolates the behaviour it was written for on a
+pitch small enough to read. Each is a [scenario](#scenario-catalogue) in
 the catalog — versioned like every fixture, and runnable and watchable with
 `sim-cli`. `tests/acceptance/goldenScenarioTests.cpp` asserts its behaviour
 through events and decision diagnostics over twenty fixed seeds. CI runs them

@@ -320,6 +320,7 @@ required one does.
 | `data/tactics/possession.json` | keeps the ball, counterpresses ([tactical identities](#tactical-identities)) |
 | `data/tactics/counter.json`   | deep block, vertical after a regain                  |
 | `data/tactics/pressing.json`  | high line, presses on every trigger                  |
+| `data/tactics/possession-seven.json`, `counter-seven.json`, `pressing-seven.json` | the seven-a-side presets of the three identities: the same principles and phases on seven slots, for seven-a-side scenarios |
 
 `tests/unit/sim-tactics/tacticFilesTests.cpp` loads every file in
 `data/tactics/`, checks that each is named after its tactic, and that
@@ -327,18 +328,21 @@ required one does.
 
 ## Tactical identities
 
-Three tactics under `data/tactics/` give the sandbox recognisable styles:
-`possession`, `counter` and `pressing`. They use the same seven-a-side
+Three tactics under `data/tactics/` give the match recognisable styles:
+`possession`, `counter` and `pressing`, eleven a side. They use the same
 [model](#tactic-model) and [file format](#tactic-file-format) as
-`reference.json` and differ **only in data**: no system knows their names, and a
-new style is a new file.
+`reference-eleven.json` and differ **only in data**: no system knows their
+names, and a new style is a new file. Their seven-a-side presets,
+`possession-seven`, `counter-seven` and `pressing-seven`, keep the same
+principles and phases on seven slots for the short scenarios that are seven a
+side.
 
 ### Intent and parameters
 
 | | possession | counter | pressing |
 |---|---|---|---|
 | Intent | keep the ball, circulate safely, counterpress hard on a sloppy loss | defend deep and compact, strike quickly and vertically after a regain | hunt the ball high, with several players, on every trigger |
-| Shape | wide 1-2-1-3, wingers on the touchlines | narrow 1-2-1-2-1 with inside forwards | high 1-2-1-3 with a central midfielder |
+| Shape | wide 4-3-3, wingers on the touchlines (seven a side 1-2-1-3) | low, narrow 4-4-1-1 with two holding midfielders and inside forwards (1-2-1-2-1) | high 4-3-3, short block (1-2-1-3 with a central midfielder) |
 | `pressingLine` | 0.55 | 0.85 (rarely presses) | 0.4 (presses early) |
 | Pressing triggers | poor first touch, back pass | none | all five |
 | `lineHeight` out of possession | 0.35–0.4 | 0.15 | 0.4–0.45 |
@@ -373,13 +377,13 @@ setup.
 `tests/acceptance/tacticalIdentityTests.cpp` checks what makes each style
 recognisable, over fixed seeds:
 
-- **Pressing wins the ball back higher.** Over sixty one-minute tactic matches
-  against the reference tactic, pressing regains the ball more often than
-  counter, and at least one and a half times as often in the opponent's half
-  (at the time of writing 315 regains, 139 of them high, against 192 and 58).
-  Twenty matches were too few: with the goalkeeper's own model they fell below
-  the ratio by chance.
-- **Counter plays forward after a regain.** A hand-placed moment: home's holding
+- **Pressing wins the ball back higher.** Over sixty one-minute eleven-a-side
+  tactic matches against the eleven-a-side reference tactic, pressing regains
+  the ball more often than counter, and at least one and a half times as often
+  in the opponent's half (at the time of writing 361 regains, 265 of them high,
+  against 146 and 106).
+- **Counter plays forward after a regain.** A hand-placed seven-a-side moment,
+  with the seven-a-side presets: home's holding
   midfielder has just won the ball in midfield, the striker ahead of him with a
   defender near the lane, the centre backs behind him free. In its attacking
   transition, counter's first action — a pass, a carry or a dribble
@@ -388,49 +392,53 @@ recognisable, over fixed seeds:
   of writing 14 against 4).
 
 `tacticFilesTests.cpp` also pins the direction in which the files differ, such
-as pressing's lower pressing line and counter's deeper block, so an edit cannot
-quietly flatten an identity.
+as pressing's lower pressing line and counter's deeper block, for the
+eleven-a-side identities and their seven-a-side presets alike, so an edit
+cannot quietly flatten an identity.
 
 ### Over whole matches
 
 The [style benchmark](tooling.md#a-round-robin-of-styles) plays every pairing
-of the three identities. The full run — twenty 90-minute matches per pairing,
-seed 1, restarts on, core 0.18.0, 180 matches — gives per style, over its 120
-matches home and away, mean and 95 % interval:
+of the three identities. The full run — twenty 90-minute eleven-a-side matches
+per pairing on the standard pitch, seed 1, restarts on, core 0.34.0, 180
+matches — gives per style, over its 120 matches home and away, mean and 95 %
+interval:
 
 | Metric                  | possession            | counter              | pressing               |
 |-------------------------|-----------------------|----------------------|------------------------|
-| possession share        | 0.50 [0.47, 0.53]     | 0.44 [0.39, 0.48]    | **0.57** [0.55, 0.58]  |
-| passes                  | 1052 [986, 1118]      | **626** [551, 701]   | 1396 [1341, 1450]      |
-| pass completion         | 0.67 [0.66, 0.68]     | 0.68 [0.67, 0.70]    | **0.63** [0.62, 0.63]  |
-| mean pass length (m)    | **12.4** [12.3, 12.5] | 12.0 [11.8, 12.1]    | 11.5 [11.4, 11.5]      |
-| progressive passes      | 157 [144, 169]        | **77** [67, 87]      | 192 [180, 204]         |
-| regains                 | 387 [357, 417]        | **228** [196, 261]   | **557** [531, 584]     |
-| regains, attacking third| 89 [83, 95]           | 42 [37, 47]          | **179** [171, 188]     |
-| presses                 | 379 [358, 400]        | **0**                | **1083** [1040, 1126]  |
-| PPDA                    | 2.88 [2.80, 2.96]     | **3.95** [3.76, 4.13]| **2.36** [2.32, 2.40]  |
-| pitch control share     | 0.52 [0.52, 0.53]     | **0.45** [0.44, 0.47]| 0.52 [0.51, 0.53]      |
-| ball in attacking third | 0.29 [0.26, 0.33]     | 0.33 [0.28, 0.38]    | **0.40** [0.37, 0.43]  |
+| possession share        | 0.53 [0.53, 0.54]     | 0.45 [0.44, 0.45]    | 0.52 [0.51, 0.53]      |
+| passes                  | 1095 [1068, 1122]     | **870** [842, 898]   | 1133 [1112, 1155]      |
+| pass completion         | 0.70 [0.69, 0.71]     | 0.71 [0.69, 0.72]    | **0.67** [0.66, 0.68]  |
+| mean pass length (m)    | 16.8 [16.7, 16.9]     | 16.9 [16.8, 17.0]    | **15.3** [15.2, 15.5]  |
+| progressive passes      | 212 [203, 220]        | **135** [130, 140]   | 217 [211, 223]         |
+| regains                 | 395 [382, 408]        | **306** [295, 317]   | **453** [443, 463]     |
+| regains, attacking third| 78 [76, 81]           | **50** [46, 53]      | **108** [104, 111]     |
+| presses                 | 473 [463, 482]        | **0**                | **909** [896, 923]     |
+| PPDA                    | 2.94 [2.88, 3.00]     | **5.76** [5.53, 5.98]| **2.46** [2.43, 2.49]  |
+| pitch control share     | 0.53 [0.53, 0.54]     | **0.44** [0.43, 0.45]| 0.52 [0.52, 0.53]      |
+| ball in attacking third | **0.20** [0.19, 0.20] | 0.24 [0.22, 0.26]    | 0.24 [0.23, 0.24]      |
+| shots                   | 45 [42, 47]           | 38 [36, 40]          | **71** [68, 74]        |
 
-Every pair of styles separates — non-overlapping intervals — on at least twelve
-metrics:
+Pressing and counter separate — non-overlapping intervals — on 18 metrics,
+possession and counter on 16, possession and pressing on 12:
 
-- **Pressing** presses about three times as often as possession, wins the ball
-  back most often and twice as often as possession in the attacking third, and
-  allows the fewest passes per defensive action. Winning it high, it has the
-  most of the ball and the ball most in the attacking third. It pays with the
-  lowest pass completion.
-- **Counter** never presses, allows the most passes per defensive action,
+- **Pressing** presses about twice as often as possession, wins the ball back
+  most often and in the attacking third most of all, allows the fewest passes
+  per defensive action and shoots the most. It pays with the lowest pass
+  completion and the shortest passes.
+- **Counter** never presses, allows by far the most passes per defensive action,
   controls the least of the pitch and plays the fewest passes; still, the ball
-  spends as much time in its attacking third as in possession's.
-- **Possession** plays the longest passes, a safe passing game, and presses
-  moderately through its counterpress.
+  spends as much time in its attacking third as in pressing's.
+- **Possession** has about as much of the ball as pressing, slightly more on
+  average, and the ball spends the least time in its attacking third: it
+  circulates deep.
 
-At core 0.18.0, two things were not there yet: possession did not own the most
-of the ball — pressing won it back so often that it had more — and counter's
-directness showed in few, completed passes rather than fast progression, since
-players could not yet dribble or play a through pass into a run. Both depend on
-match mechanics, not on the tactic files.
+**What moved with eleven a side**, against the seven-a-side run at core 0.18.0:
+pressing no longer clearly has the most of the ball — on the full pitch a press
+covers less of it, so pressing regains about a fifth less and its share falls
+back to possession's. Counter's PPDA rises from about 4 to almost 6, its
+deep block giving the opponent more room; passes get longer everywhere, as the
+pitch does. The seven-a-side presets play as before.
 
 ### What this is not
 

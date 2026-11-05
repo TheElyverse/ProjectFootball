@@ -69,7 +69,7 @@ constexpr std::uint64_t kRegainSeeds = 60;
 }
 
 // Where home won the ball back over one-minute tactic matches against the
-// reference tactic, one per seed.
+// eleven-a-side reference tactic, one per seed.
 struct RegainTally {
   int regains = 0;
   // Regains in the opponent's half.
@@ -79,7 +79,7 @@ struct RegainTally {
 [[nodiscard]] RegainTally homeRegains(const std::string& home) {
   RegainTally tally;
   for (std::uint64_t seed = 1; seed <= kRegainSeeds; ++seed) {
-    auto setup = makeTacticMatch({.home = preset(home), .away = preset("reference")}, seed);
+    auto setup = makeTacticMatch({.home = preset(home), .away = preset("reference-eleven")}, seed);
     REQUIRE(setup.has_value());
     MatchSimulation simulation = startMatch(*setup);
     while (simulation.tick() < SimTick(1800)) {
@@ -215,16 +215,18 @@ TEST_CASE("P2: the pressing tactic wins the ball back more often and higher up",
   const RegainTally pressing = homeRegains("pressing");
   const RegainTally counter = homeRegains("counter");
   CAPTURE(pressing.regains, pressing.highRegains, counter.regains, counter.highRegains);
-  // Sixty minutes each; at the time of writing 440 regains, 273 of them in
-  // the opponent's half, against 220 and 151.
+  // Sixty minutes each, eleven a side against the eleven-a-side reference; at
+  // the time of writing 361 regains, 265 of them in the opponent's half,
+  // against 146 and 106.
   REQUIRE(pressing.regains > counter.regains);
   REQUIRE(pressing.highRegains > counter.highRegains * 3 / 2);
 }
 
 TEST_CASE("P2: the counter tactic plays forward straight after a regain",
           "[acceptance][p2][identities]") {
-  const int counter = forwardFirstPasses("counter");
-  const int possession = forwardFirstPasses("possession");
+  // The hand-placed moment is seven a side: the seven-a-side presets.
+  const int counter = forwardFirstPasses("counter-seven");
+  const int possession = forwardFirstPasses("possession-seven");
   CAPTURE(counter, possession);
   // Out of twenty; at the time of writing 14 against 4.
   REQUIRE(counter >= possession + 8);
