@@ -52,6 +52,7 @@ using ElyverseFootball::SimMatch::RestartConfig;
 using ElyverseFootball::SimMatch::RestartKind;
 using ElyverseFootball::SimMatch::RestartPlan;
 using ElyverseFootball::SimMatch::RestartTaken;
+using ElyverseFootball::SimMatch::SetPiece;
 using ElyverseFootball::SimMatch::TeamSide;
 
 namespace {
@@ -298,8 +299,8 @@ TEST_CASE("A player on an out-of-play ball does not receive it before the restar
   REQUIRE(possessionChanges == 0);
   // A throw-in for away, the ball dead on the line until 3 throws it.
   REQUIRE_FALSE(simulation.state().ball().owner.has_value());
-  REQUIRE(simulation.state().setPiece().has_value());
-  REQUIRE(simulation.state().setPiece()->taker == PlayerId(3));
+  REQUIRE(simulation.state().setPiece().transform(
+              [](const SetPiece& piece) { return piece.taker; }) == PlayerId(3));
 }
 
 TEST_CASE("A restart gets a taker who stumbled in a duel up again", "[restart]") {
@@ -320,8 +321,8 @@ TEST_CASE("A restart gets a taker who stumbled in a duel up again", "[restart]")
        .systems = {down, makeRestartSystem({.restarts = RestartConfig{.enabled = true}})},
        .commands = {}});
   REQUIRE(simulation.step().has_value());
-  REQUIRE(simulation.state().setPiece().has_value());
-  REQUIRE(simulation.state().setPiece()->taker == PlayerId(3));
+  REQUIRE(simulation.state().setPiece().transform(
+              [](const SetPiece& piece) { return piece.taker; }) == PlayerId(3));
   REQUIRE_FALSE(simulation.state().tactical(2).stumbledUntil.has_value());
 }
 
