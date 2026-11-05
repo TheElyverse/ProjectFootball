@@ -39,7 +39,11 @@ struct CliOptions {
   std::string scenario = "kickoff";
   // Empty means the CLI picks a random master seed and reports it.
   std::optional<std::uint64_t> seed;
+  // Runs stop at full time if they get there first.
   std::int64_t ticks = kDefaultTicks;
+  // The match duration in real minutes (docs/match-clock.md); empty keeps the
+  // scenario's. With it and without --ticks, the run lasts to full time.
+  std::optional<double> durationMinutes;
   std::string replayOut = "replay.json";
   // Where to write debug frames for the web viewer; empty writes none.
   std::string framesOut;
@@ -61,8 +65,9 @@ struct CliOptions {
 };
 
 inline constexpr std::string_view kUsage =
-    "usage: sim-cli [--scenario <name>] [--seed <u64>] [--ticks <n>] [--replay-out <path>] "
-    "[--frames-out <path>] [--stats-out <path>] [--checkpoint-interval <n>] [--tui]\n"
+    "usage: sim-cli [--scenario <name>] [--seed <u64>] [--ticks <n>] [--duration <minutes>]\n"
+    "               [--replay-out <path>] [--frames-out <path>] [--stats-out <path>]\n"
+    "               [--checkpoint-interval <n>] [--tui]\n"
     "       sim-cli [--home-tactic <tactic.json>] [--away-tactic <tactic.json>] [run options]\n"
     "       sim-cli --play <replay.json> [--trace <trace.txt> [--trace-players <id,id,...>]\n"
     "               [--trace-from <tick>] [--trace-to <tick>]] [--tui]\n"

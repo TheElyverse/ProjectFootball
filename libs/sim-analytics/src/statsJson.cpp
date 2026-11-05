@@ -24,6 +24,8 @@ using Json = nlohmann::ordered_json;
   json["progressivePasses"] = stats.progressivePasses;
   json["completedProgressivePasses"] = stats.completedProgressivePasses;
   json["shots"] = stats.shots;
+  json["goals"] = stats.goals;
+  json["points"] = stats.points ? Json(*stats.points) : Json(nullptr);
   json["turnovers"] = stats.turnovers;
   json["regains"] = stats.regains;
   json["regainsByThird"] = {
@@ -46,6 +48,8 @@ std::string toStatsJson(const MatchStats& stats) {
   json["version"] = kStatsFormatVersion;
   json["ticks"] = stats.ticks;
   json["seconds"] = stats.seconds;
+  json["finished"] = stats.finished;
+  json["score"] = {{"home", stats.home.goals}, {"away", stats.away.goals}};
   json["home"] = teamJson(stats.home);
   json["away"] = teamJson(stats.away);
   return json.dump(2) + "\n";

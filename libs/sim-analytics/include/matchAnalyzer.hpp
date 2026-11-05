@@ -72,6 +72,7 @@ class MatchAnalyzer {
     std::int64_t longestOwnershipTicks = 0;
     int passes = 0;
     int shots = 0;
+    int goals = 0;
     int completedPasses = 0;
     double passMeters = 0.0;
     int progressivePasses = 0;
@@ -119,6 +120,8 @@ class MatchAnalyzer {
   std::optional<SimMatch::TeamSide> ownerSide_;
   SimCore::SimTick ownerSince_;
   std::optional<PendingPass> pendingPass_;
+  // Whether the second half has ended.
+  bool finished_ = false;
   int samples_ = 0;
 };
 

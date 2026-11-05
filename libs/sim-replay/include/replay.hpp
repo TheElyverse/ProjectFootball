@@ -117,8 +117,9 @@ class ReplayRecorder {
   SimCore::StableHasher events_;
 };
 
-// Runs the setup with the standard systems up to finalTick and records the
-// replay. Fails with the step error if a step fails.
+// Runs the setup with the standard systems up to finalTick, or to full time if
+// it comes first (docs/match-clock.md#full-time), and records the replay. Fails with the step error
+// if a step fails.
 [[nodiscard]] std::expected<Replay, SimMatch::MatchStepError> recordMatch(
     const SimMatch::MatchSetup& setup, SimCore::SimTick finalTick, int checkpointIntervalTicks,
     std::string createdAt);

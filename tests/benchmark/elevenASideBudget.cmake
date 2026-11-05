@@ -11,7 +11,7 @@ file(MAKE_DIRECTORY "${TEST_OUTPUT_DIR}")
 set(replay "${TEST_OUTPUT_DIR}/eleven-a-side.json")
 string(TIMESTAMP started "%s" UTC)
 execute_process(
-        COMMAND "${SIM_CLI}" --scenario tactic-match-eleven --seed 1 --ticks 162000
+        COMMAND "${SIM_CLI}" --scenario tactic-match-eleven --seed 1 --duration 90
         --replay-out "${replay}"
         RESULT_VARIABLE result OUTPUT_VARIABLE output ERROR_VARIABLE error
         TIMEOUT 600

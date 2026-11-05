@@ -5,11 +5,17 @@
 #include <cmath>
 #include <cstdint>
 #include <limits>
+#include <optional>
 #include <stdexcept>
 #include <string>
+#include <utility>
+#include <vector>
 
 #include "fitness.hpp"
+#include "kickoffScenario.hpp"
 #include "matchClock.hpp"
+#include "matchSetup.hpp"
+#include "matchSimulation.hpp"
 #include "matchState.hpp"
 #include "restartKind.hpp"
 #include "simTime.hpp"
@@ -199,4 +205,60 @@ TEST_CASE("An invalid fitness configuration is rejected", "[fitness]") {
   FitnessConfig loss;
   loss.fullMatchSpeedLoss = 1.0;
   REQUIRE_THROWS_AS(validate(loss), std::invalid_argument);
+}
+
+TEST_CASE("A match has a result only at full time", "[matchClock]") {
+  using ElyverseFootball::SimMatch::GoalRecord;
+  using ElyverseFootball::SimMatch::makeMatchSystems;
+  using ElyverseFootball::SimMatch::makeSevenASideKickoff;
+  using ElyverseFootball::SimMatch::MatchConfig;
+  using ElyverseFootball::SimMatch::MatchResult;
+  using ElyverseFootball::SimMatch::matchResult;
+  using ElyverseFootball::SimMatch::MatchSimulation;
+  using ElyverseFootball::SimMatch::MatchState;
+  using ElyverseFootball::SimMatch::MatchStateWriter;
+  using ElyverseFootball::SimMatch::MatchStepContext;
+  using ElyverseFootball::SimMatch::MatchSystem;
+  using ElyverseFootball::SimMatch::Pitch;
+  using ElyverseFootball::SimMatch::Score;
+  using ElyverseFootball::SimMatch::TeamSide;
+  // A match of a second, home scoring `goals` in its first step.
+  const auto played = [](const int goals) {
+    const auto kickoff = makeSevenASideKickoff(Pitch(60.0, 40.0));
+    REQUIRE(kickoff.has_value());
+    MatchConfig config;
+    config.clock.durationMinutes = 1.0 / 60.0;
+    std::vector<MatchSystem> systems{
+        {.name = "goals",
+         .update =
+             [goals, scorer = kickoff->players()[6].playerId](const MatchStepContext& context,
+                                                              const MatchState& /*current*/,
+                                                              MatchStateWriter& next) {
+               if (context.tick() == SimTick(0)) {
+                 for (int goal = 0; goal < goals; ++goal) {
+                   next.addGoal(GoalRecord{
+                       .side = TeamSide::kHome, .scorer = scorer, .tick = context.tick()});
+                 }
+               }
+             },
+         .intervalTicks = 1,
+         .phaseTicks = 0}};
+    for (MatchSystem& system : makeMatchSystems(config)) {
+      systems.push_back(std::move(system));
+    }
+    MatchSimulation simulation({.initialState = *kickoff,
+                                .seed = 1,
+                                .ticksPerSecond = config.ticksPerSecond,
+                                .systems = std::move(systems),
+                                .commands = {}});
+    REQUIRE(simulation.step().has_value());
+    REQUIRE_FALSE(matchResult(simulation.state()).has_value());
+    while (!matchResult(simulation.state()) && simulation.tick() < SimTick(100)) {
+      REQUIRE(simulation.step().has_value());
+    }
+    return matchResult(simulation.state());
+  };
+  REQUIRE(played(0) == MatchResult{.score = {}, .winner = std::nullopt});
+  REQUIRE(played(2) ==
+          MatchResult{.score = Score{.home = 2, .away = 0}, .winner = TeamSide::kHome});
 }

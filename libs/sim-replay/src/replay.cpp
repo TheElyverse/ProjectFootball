@@ -6,6 +6,7 @@
 #include <string>
 #include <utility>
 
+#include "matchClock.hpp"
 #include "matchEvents.hpp"
 #include "matchStateHash.hpp"
 #include "stableHash.hpp"
@@ -160,7 +161,7 @@ std::expected<Replay, SimMatch::MatchStepError> recordMatch(const SimMatch::Matc
                                                             std::string createdAt) {
   MatchSimulation simulation = SimMatch::startMatch(setup);
   ReplayRecorder recorder(setup, checkpointIntervalTicks);
-  while (simulation.tick() < finalTick) {
+  while (simulation.tick() < finalTick && !SimMatch::matchResult(simulation.state())) {
     if (auto stepped = simulation.step(); !stepped) {
       return std::unexpected(std::move(stepped.error()));
     }

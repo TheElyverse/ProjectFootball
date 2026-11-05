@@ -398,6 +398,10 @@ cannot quietly flatten an identity.
 
 ### Over whole matches
 
+The table below was measured before matches ran to full time
+([match clock](match-clock.md)): 90 minutes of ticks without halves, so no
+goals or points; a rerun will add them.
+
 The [style benchmark](tooling.md#a-round-robin-of-styles) plays every pairing
 of the three identities. The full run — twenty 90-minute eleven-a-side matches
 per pairing on the standard pitch, seed 1, restarts on, core 0.34.0, 180

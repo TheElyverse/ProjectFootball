@@ -90,6 +90,10 @@ void MatchAnalyzer::observeStep(const std::span<const SimMatch::MatchEvent> even
       if (const auto side = sideOf(shot->shooter)) {
         ++tally(*side).shots;
       }
+    } else if (const auto* goal = std::get_if<SimMatch::GoalScored>(&event)) {
+      ++tally(goal->side).goals;
+    } else if (const auto* ended = std::get_if<SimMatch::PeriodEnded>(&event)) {
+      finished_ = finished_ || ended->period == SimMatch::MatchPeriod::kSecondHalf;
     } else if (const auto* intercepted = std::get_if<SimMatch::PassIntercepted>(&event)) {
       pendingPass_.reset();
       onDefensiveAction(intercepted->interceptor, intercepted->position);
@@ -110,6 +114,18 @@ void MatchAnalyzer::observeStep(const std::span<const SimMatch::MatchEvent> even
   }
 }
 
+namespace {
+
+// 3 for a win, 1 for a draw, 0 for a defeat.
+[[nodiscard]] int pointsOf(const int goals, const int against) noexcept {
+  if (goals == against) {
+    return 1;
+  }
+  return goals > against ? 3 : 0;
+}
+
+}  // namespace
+
 MatchStats MatchAnalyzer::finish(const SimCore::SimTick finalTick) const {
   std::array<std::int64_t, 2> possessed{sides_[0].possessionTicks, sides_[1].possessionTicks};
   if (possession_ && finalTick > possessionSince_) {
@@ -124,6 +140,7 @@ MatchStats MatchAnalyzer::finish(const SimCore::SimTick finalTick) const {
   return {.ticks = finalTick.value(),
           .seconds =
               static_cast<double>(finalTick.value()) / static_cast<double>(context_.ticksPerSecond),
+          .finished = finished_,
           .home = statsOf(TeamSide::kHome, possessed[0], possessed[0] + possessed[1], longest[0]),
           .away = statsOf(TeamSide::kAway, possessed[1], possessed[0] + possessed[1], longest[1])};
 }
@@ -172,6 +189,8 @@ TeamStats MatchAnalyzer::statsOf(const TeamSide side, const std::int64_t possess
       .progressivePasses = counts.progressivePasses,
       .completedProgressivePasses = counts.completedProgressivePasses,
       .shots = counts.shots,
+      .goals = counts.goals,
+      .points = finished_ ? std::optional(pointsOf(counts.goals, opponent.goals)) : std::nullopt,
       .turnovers = counts.turnovers,
       .regains = counts.regains,
       .regainsByThird = counts.regainsByThird,

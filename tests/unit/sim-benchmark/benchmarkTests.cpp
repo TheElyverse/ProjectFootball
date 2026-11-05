@@ -40,7 +40,8 @@ namespace {
   BenchmarkSpec benchmark{.home = *pressing, .away = *reference};
   benchmark.matches = 3;
   benchmark.baseSeed = 11;
-  benchmark.ticks = 600;
+  // Twenty seconds: 600 ticks and their added time.
+  benchmark.config.clock.durationMinutes = 1.0 / 3.0;
   benchmark.jobs = jobs;
   return benchmark;
 }
@@ -69,6 +70,8 @@ TEST_CASE("The results do not depend on how many matches run at once", "[benchma
 
   const auto document = nlohmann::json::parse(json);
   REQUIRE(document.at("format") == "elyverse-benchmark");
+  REQUIRE(document.at("version") == 2);
+  REQUIRE(document.at("minutes") == 1.0 / 3.0);
   REQUIRE(document.at("home").at("name") == "press");
   REQUIRE(document.at("baseSeed") == "11");
   REQUIRE(document.at("restarts") == true);
@@ -77,7 +80,8 @@ TEST_CASE("The results do not depend on how many matches run at once", "[benchma
     const auto& result = document.at("results").at(index);
     REQUIRE(result.at("index") == index);
     REQUIRE(result.at("seed") == std::to_string(matchSeed(11, static_cast<int>(index))));
-    REQUIRE(result.at("stats").at("ticks") == 600);
+    REQUIRE(result.at("stats").at("finished") == true);
+    REQUIRE(result.at("stats").at("ticks") > 600);
   }
   const auto& possession = document.at("summary").at("home").at("possessionShare");
   REQUIRE(possession.at("count") == 3);
@@ -92,7 +96,25 @@ TEST_CASE("A statistic that is not a finite number is named", "[benchmark]") {
   REQUIRE(firstInvalidStatistic(stats) == "away.ppda is nan");
 }
 
-TEST_CASE("A benchmark needs a match, a job and a tick", "[benchmark]") {
+TEST_CASE("Every match plays to full time and its outcome is counted", "[benchmark]") {
+  const BenchmarkSpec benchmark = spec(2);
+  const auto results = runBenchmark(benchmark);
+  REQUIRE(results.has_value());
+  int homeWins = 0;
+  int draws = 0;
+  for (const auto& result : *results) {
+    REQUIRE(result.stats.finished);
+    REQUIRE(result.stats.home.points.has_value());
+    homeWins += result.stats.home.goals > result.stats.away.goals ? 1 : 0;
+    draws += result.stats.home.goals == result.stats.away.goals ? 1 : 0;
+  }
+  const auto outcomes = nlohmann::json::parse(toBenchmarkJson(benchmark, *results)).at("outcomes");
+  REQUIRE(outcomes.at("homeWins") == homeWins);
+  REQUIRE(outcomes.at("draws") == draws);
+  REQUIRE(outcomes.at("awayWins") == benchmark.matches - homeWins - draws);
+}
+
+TEST_CASE("A benchmark needs a match, a job and a valid clock", "[benchmark]") {
   const auto runs = [](const BenchmarkSpec& benchmark) {
     const auto results = runBenchmark(benchmark);
     return results.has_value();
@@ -103,6 +125,9 @@ TEST_CASE("A benchmark needs a match, a job and a tick", "[benchmark]") {
   BenchmarkSpec idle = spec(1);
   idle.jobs = 0;
   REQUIRE_THROWS_AS(runs(idle), std::invalid_argument);
+  BenchmarkSpec timeless = spec(1);
+  timeless.config.clock.durationMinutes = 0.0;
+  REQUIRE_THROWS_AS(runs(timeless), std::invalid_argument);
 }
 
 TEST_CASE("A round robin plays every ordered pairing with its own seeds", "[benchmark]") {
@@ -111,7 +136,7 @@ TEST_CASE("A round robin plays every ordered pairing with its own seeds", "[benc
   roundRobin.styles = {base.home, base.away};
   roundRobin.matchesPerPairing = 2;
   roundRobin.baseSeed = 4;
-  roundRobin.ticks = 300;
+  roundRobin.config.clock.durationMinutes = 1.0 / 6.0;
   roundRobin.jobs = 2;
   const auto pairings = ElyverseFootball::Benchmark::runRoundRobin(roundRobin);
   REQUIRE(pairings.has_value());
