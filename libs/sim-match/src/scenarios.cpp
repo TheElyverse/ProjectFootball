@@ -51,6 +51,14 @@ constexpr double kPitchWidth = kSandboxWidthMeters;
   return makeTacticMatch({.home = *reference, .away = *reference}, seed);
 }
 
+[[nodiscard]] std::expected<MatchSetup, std::string> tacticMatchEleven(const std::uint64_t seed) {
+  auto reference = SimTactics::Tactic::create(SimTactics::referenceElevenASideTacticSpec());
+  if (!reference) {
+    return std::unexpected("invalid reference tactic: " + reference.error().front().message);
+  }
+  return makeTacticMatch({.home = *reference, .away = *reference}, seed);
+}
+
 [[nodiscard]] std::expected<MatchSetup, std::string> touchlineTrap(const std::uint64_t seed) {
   return makePressingTrap(seed, TrapSpot::kTouchline, 1.0);
 }
@@ -962,6 +970,10 @@ constexpr std::array kScenarios{
     ScenarioDefinition{.name = "tactic-match",
                        .description = "reference tactic against reference tactic, home kicks off",
                        .make = &tacticMatch},
+    ScenarioDefinition{.name = "tactic-match-eleven",
+                       .description = "the eleven-a-side reference tactic against itself on the "
+                                      "standard pitch, lined up for home's kickoff",
+                       .make = &tacticMatchEleven},
     ScenarioDefinition{.name = "transition-3v2",
                        .description = "home wins the ball in midfield, three attackers against "
                                       "two defenders",
@@ -1011,7 +1023,19 @@ std::span<const ScenarioDefinition> scenarios() noexcept {
 
 std::expected<MatchSetup, std::string> makeTacticMatch(TeamTactics tactics,
                                                        const std::uint64_t seed) {
-  auto fixture = makeSevenASideKickoff(Pitch(kPitchLength, kPitchWidth), {}, std::move(tactics));
+  // Eleven-a-side tactics play on the standard pitch, seven-a-side ones on
+  // the sandbox.
+  const auto slotsOf = [](const std::optional<SimTactics::Tactic>& tactic) {
+    return tactic ? tactic->slots().size() : SimTactics::kSevenASideSlots;
+  };
+  if (slotsOf(tactics.home) != slotsOf(tactics.away)) {
+    return std::unexpected("invalid tactic match: the tactics are for different squad sizes");
+  }
+  auto fixture =
+      slotsOf(tactics.home) == SimTactics::kElevenASideSlots
+          ? makeElevenASideKickoff(Pitch(kStandardLengthMeters, kStandardWidthMeters), {},
+                                   std::move(tactics))
+          : makeSevenASideKickoff(Pitch(kPitchLength, kPitchWidth), {}, std::move(tactics));
   if (!fixture) {
     return std::unexpected("invalid tactic match: " + fixture.error().front().message);
   }

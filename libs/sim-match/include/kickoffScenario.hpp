@@ -31,4 +31,10 @@ namespace ElyverseFootball::SimMatch {
 [[nodiscard]] std::expected<MatchState, std::vector<MatchStateError>> makeSevenASideKickoff(
     const Pitch& pitch, SimCore::Vec2 ballVelocity = {}, TeamTactics tactics = {});
 
+// The same fixture for eleven-a-side (docs/match-engine.md#the-eleven-a-side-kickoff-fixture):
+// a 4-4-2 in each half, ids 1..11 for home and 12..22 for away, made for the
+// standard pitch but fitting any.
+[[nodiscard]] std::expected<MatchState, std::vector<MatchStateError>> makeElevenASideKickoff(
+    const Pitch& pitch, SimCore::Vec2 ballVelocity = {}, TeamTactics tactics = {});
+
 }  // namespace ElyverseFootball::SimMatch

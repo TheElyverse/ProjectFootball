@@ -4,6 +4,7 @@
 #include <limits>
 #include <optional>
 #include <set>
+#include <utility>
 #include <vector>
 
 #include "kickoffScenario.hpp"
@@ -162,4 +163,48 @@ TEST_CASE("The kickoff fixture rejects a non-finite ball velocity", "[kickoff]")
   REQUIRE_FALSE(state.has_value());
   REQUIRE(state.error().size() == 1);
   REQUIRE(state.error().front().code == MatchStateErrorCode::kNonFiniteBallVelocity);
+}
+
+// Guards the documented eleven-a-side layout (docs/match-engine.md, "The
+// eleven-a-side kickoff fixture") the same way.
+TEST_CASE("The eleven-a-side kickoff fixture places a 4-4-2 in each half", "[kickoff]") {
+  using ElyverseFootball::SimMatch::makeElevenASideKickoff;
+  constexpr std::array<std::pair<double, double>, 11> kFractions{{{0.04, 0.50},
+                                                                  {0.18, 0.12},
+                                                                  {0.16, 0.38},
+                                                                  {0.16, 0.62},
+                                                                  {0.18, 0.88},
+                                                                  {0.32, 0.12},
+                                                                  {0.30, 0.38},
+                                                                  {0.30, 0.62},
+                                                                  {0.32, 0.88},
+                                                                  {0.44, 0.40},
+                                                                  {0.47, 0.55}}};
+  for (const Pitch& pitch :
+       {Pitch(105.0, 68.0), Pitch(kLengthMeters, kWidthMeters), Pitch(0.001, 0.001)}) {
+    CAPTURE(pitch.lengthMeters());
+    const auto state = makeElevenASideKickoff(pitch);
+    REQUIRE(state.has_value());
+    REQUIRE(state->playersPerSide() == 11);
+    REQUIRE(state->players().size() == 22);
+    REQUIRE(checkStartingPositions(*state).empty());
+    for (std::size_t index = 0; index < kFractions.size(); ++index) {
+      CAPTURE(index);
+      const PlayerMatchState& home = state->players()[index];
+      const PlayerMatchState& away = state->players()[index + 11];
+      const auto [length, width] = kFractions.at(index);
+      REQUIRE(home.playerId == PlayerId(static_cast<PlayerId::ValueType>(index + 1)));
+      REQUIRE(away.playerId == PlayerId(static_cast<PlayerId::ValueType>(index + 12)));
+      REQUIRE(home.position ==
+              Vec2{.x = length * pitch.lengthMeters(), .y = width * pitch.widthMeters()});
+      REQUIRE(away.position == Vec2{.x = pitch.lengthMeters() - (length * pitch.lengthMeters()),
+                                    .y = width * pitch.widthMeters()});
+      REQUIRE(home.position.x < pitch.lengthMeters() / 2.0);
+      REQUIRE(away.position.x > pitch.lengthMeters() / 2.0);
+      REQUIRE(home.facing == Vec2{.x = 1.0, .y = 0.0});
+      REQUIRE(away.facing == Vec2{.x = -1.0, .y = 0.0});
+    }
+    REQUIRE(state->ball().position ==
+            Vec2{.x = pitch.lengthMeters() / 2.0, .y = pitch.widthMeters() / 2.0});
+  }
 }

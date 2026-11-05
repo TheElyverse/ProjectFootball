@@ -78,10 +78,11 @@ void validateResponsibilities(const std::size_t slotIndex, const TacticSlot& slo
 }
 
 void validateSlots(const std::vector<TacticSlot>& slots, ErrorList& errors) {
-  if (slots.size() != kSlotsPerTactic) {
-    errors.add(
-        TacticErrorCode::kWrongSlotCount, "slots",
-        std::format("has {} slots, a seven-a-side tactic needs {}", slots.size(), kSlotsPerTactic));
+  if (!isSupportedSlotCount(slots.size())) {
+    errors.add(TacticErrorCode::kWrongSlotCount, "slots",
+               std::format("has {} slots, a tactic needs {} for seven-a-side or {} for "
+                           "eleven-a-side",
+                           slots.size(), kSevenASideSlots, kElevenASideSlots));
   }
   std::size_t goalkeepers = 0;
   for (std::size_t index = 0; index < slots.size(); ++index) {

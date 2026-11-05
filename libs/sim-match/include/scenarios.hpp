@@ -29,14 +29,15 @@ struct ScenarioDefinition {
 // The scenario with this name, or nullptr.
 [[nodiscard]] const ScenarioDefinition* findScenario(std::string_view name) noexcept;
 
-// A seven-a-side match between two tactics: the players of the kickoff fixture
-// on the sandbox pitch with the sides' tactics, lined up for a kickoff by home
+// A match between two tactics: the players of the kickoff fixture with the
+// sides' tactics -- seven a side on the sandbox pitch, or eleven a side on the
+// standard pitch for eleven-slot tactics --, lined up for a kickoff by home
 // (lineUpForKickoff(), docs/match-engine.md#restarts), the standard
-// configuration, and home's taker -- the striker of a preset, player 7 -- given
-// the ball at kickoff. Any two tactics that fit seven a side can face each
-// other; a side without a tactic is scripted and lines up from the fixture's
-// layout. The "tactic-match" scenario is this fixture with the reference tactic
-// on both sides.
+// configuration, and home's taker -- the striker of a preset -- given the ball
+// at kickoff. Two tactics for different squad sizes cannot face each other; a
+// side without a tactic is scripted, plays seven a side and lines up from the
+// fixture's layout. The "tactic-match" and "tactic-match-eleven" scenarios are
+// this fixture with the reference tactics on both sides.
 [[nodiscard]] std::expected<MatchSetup, std::string> makeTacticMatch(TeamTactics tactics,
                                                                      std::uint64_t seed);
 

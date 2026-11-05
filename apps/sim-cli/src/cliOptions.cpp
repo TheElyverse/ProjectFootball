@@ -220,12 +220,16 @@ std::expected<CliOptions, std::string> parseCliOptions(const std::span<char* con
         "--replay-out, --frames-out, --stats-out or a tactic");
   }
   if (!options.homeTactic.empty() || !options.awayTactic.empty()) {
-    if (scenarioGiven && options.scenario != kTacticMatchScenario) {
+    if (scenarioGiven && options.scenario != kTacticMatchScenario &&
+        options.scenario != kElevenASideTacticMatchScenario) {
       return std::unexpected("--home-tactic and --away-tactic only apply to --scenario " +
-                             std::string(kTacticMatchScenario) + ", got --scenario " +
+                             std::string(kTacticMatchScenario) + " or " +
+                             std::string(kElevenASideTacticMatchScenario) + ", got --scenario " +
                              options.scenario);
     }
-    options.scenario = kTacticMatchScenario;
+    if (!scenarioGiven) {
+      options.scenario = kTacticMatchScenario;
+    }
   }
   if (!options.framesOut.empty() && options.ticks > kMaxFrameTicks) {
     return std::unexpected("--frames-out records at most " + std::to_string(kMaxFrameTicks) +

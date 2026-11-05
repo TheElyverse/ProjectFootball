@@ -11,7 +11,7 @@
 #include "tacticalPhase.hpp"
 
 using ElyverseFootball::SimTactics::kAllPhases;
-using ElyverseFootball::SimTactics::kSlotsPerTactic;
+using ElyverseFootball::SimTactics::kSevenASideSlots;
 using ElyverseFootball::SimTactics::phaseIndex;
 using ElyverseFootball::SimTactics::PressingTrigger;
 using ElyverseFootball::SimTactics::referenceTacticSpec;
@@ -47,7 +47,7 @@ TEST_CASE("The reference tactic is valid", "[tactic]") {
   REQUIRE(tactic.has_value());
   REQUIRE(tactic->name() == "reference");
   REQUIRE_FALSE(tactic->description().empty());
-  REQUIRE(tactic->slots().size() == kSlotsPerTactic);
+  REQUIRE(tactic->slots().size() == kSevenASideSlots);
   REQUIRE(tactic->spec() == referenceTacticSpec());
 }
 
@@ -63,13 +63,13 @@ TEST_CASE("A tactic answers per slot and per phase", "[tactic]") {
   REQUIRE(tactic->responsibilityWeight(0, Responsibility::kGuardGoal) == 1.0);
   REQUIRE(tactic->responsibilityWeight(0, Responsibility::kProvideWidth) == 0.0);
   REQUIRE(tactic->responsibilityWeight(4, Responsibility::kRunInBehind) == 0.5);
-  REQUIRE_THROWS_AS(tactic->responsibilityWeight(kSlotsPerTactic, Responsibility::kCover),
+  REQUIRE_THROWS_AS(tactic->responsibilityWeight(kSevenASideSlots, Responsibility::kCover),
                     std::out_of_range);
   REQUIRE(tactic->pressesOn(PressingTrigger::kBackPass));
   REQUIRE_FALSE(tactic->pressesOn(PressingTrigger::kSlowPass));
 }
 
-TEST_CASE("A tactic needs a name and seven slots", "[tactic]") {
+TEST_CASE("A tactic needs a name and seven or eleven slots", "[tactic]") {
   auto unnamed = referenceTacticSpec();
   unnamed.name.clear();
   const auto nameError = onlyErrorOf(unnamed);
@@ -81,7 +81,8 @@ TEST_CASE("A tactic needs a name and seven slots", "[tactic]") {
   const auto slotError = onlyErrorOf(missing);
   REQUIRE(slotError.code == TacticErrorCode::kWrongSlotCount);
   REQUIRE(slotError.field == "slots");
-  REQUIRE(slotError.message == "has 6 slots, a seven-a-side tactic needs 7");
+  REQUIRE(slotError.message ==
+          "has 6 slots, a tactic needs 7 for seven-a-side or 11 for eleven-a-side");
 }
 
 TEST_CASE("Shape positions must lie on the pitch", "[tactic]") {
