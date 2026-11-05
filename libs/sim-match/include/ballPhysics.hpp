@@ -52,14 +52,19 @@ inline constexpr double kDefaultSpinDecay = 0.4;  // 1/s
 // ball a bounce leaves at a standstill.
 inline constexpr double kDefaultRestingVerticalSpeed = 0.25;  // m/s
 
+// How sharply sidespin curves a flying ball: the curvature of its path, in
+// radians per meter, per radian per second of sidespin. A curled shot at 40
+// rad/s bends along a circle of about 31 m radius, some 1.6 m off its chord
+// over 20 m (docs/ball.md#curve).
+inline constexpr double kDefaultMagnusCurvature = 0.0008;
 // A football's radius, which turns spin at the moment of a bounce into speed
 // along the ground: the contact point of a ball spinning at ω moves at ω · r.
 inline constexpr double kBallRadius = 0.11;  // m
 
 // The physical constants of the ball model (docs/ball.md#ball-movement). The
 // rolling deceleration and gravity must be positive and finite, the carry
-// distance, the drag, the spin decay and the resting speed finite and not
-// negative, the three shares between 0 and 1, and the carry speed factors
+// distance, the drag, the spin decay, the Magnus curvature and the resting
+// speed finite and not negative, the three shares between 0 and 1, and the carry speed factors
 // above 0 and at most 1, the minimum no greater than the maximum.
 struct BallPhysics {
   double rollingDeceleration = kDefaultRollingDeceleration;
@@ -73,6 +78,7 @@ struct BallPhysics {
   double restingVerticalSpeed = kDefaultRestingVerticalSpeed;
   double minCarrySpeedFactor = kDefaultMinCarrySpeedFactor;
   double maxCarrySpeedFactor = kDefaultMaxCarrySpeedFactor;
+  double magnusCurvature = kDefaultMagnusCurvature;
 
   friend bool operator==(const BallPhysics&, const BallPhysics&) = default;
 };
@@ -85,6 +91,33 @@ void validate(const BallPhysics& physics);
 // off the ground, or it is on it and moving up or down. A ball that has just
 // been lifted off the turf is in flight before it has gained any height.
 [[nodiscard]] bool isInFlight(const BallState& ball) noexcept;
+
+// Where a path of constant curvature leads: `length` meters on from a start
+// heading along the unit `direction`, turning left by `curvature` radians per
+// meter -- right for a negative one --, how far it is from the start and
+// where it heads. A curvature of 0 is the straight line, direction · length
+// exactly (docs/ball.md#curve).
+struct ArcStep {
+  SimCore::Vec2 offset;
+  SimCore::Vec2 direction;
+};
+
+[[nodiscard]] ArcStep alongArc(SimCore::Vec2 direction, double length, double curvature) noexcept;
+
+// How to send a ball from `from` to `toward` along a path of constant curvature:
+// the direction it leaves along -- off the straight line by half the angle
+// the path turns --, the length of the path and the curvature it takes. A
+// curvature that would turn the path by more than a sixth of a circle is
+// eased to that, and 0, or from and toward the same point, is the straight line
+// (docs/ball.md#curve).
+struct ArcAim {
+  SimCore::Vec2 direction;
+  double length = 0.0;
+  double curvature = 0.0;
+};
+
+[[nodiscard]] ArcAim aimAlongArc(SimCore::Vec2 from, SimCore::Vec2 toward,
+                                 double curvature) noexcept;
 
 // Distance a ball rolling at this speed covers before it stops, in meters.
 [[nodiscard]] double rollingDistance(double speed, const BallPhysics& physics) noexcept;
@@ -148,6 +181,14 @@ struct Launch {
 // positive.
 [[nodiscard]] std::optional<double> flightSpeed(double distance, double seconds,
                                                 const BallPhysics& physics) noexcept;
+
+// The seconds a flight leaving at `speed` along the ground needs to cover
+// `distance` along it against the drag: the inverse of the span flownFor()
+// covers, -ln(1 - k·d/v) / k, summed as a series; d / v without drag.
+// Infinite where the drag stops it short; 0 for a distance that is not
+// positive.
+[[nodiscard]] double flightSeconds(double distance, double speed,
+                                   const BallPhysics& physics) noexcept;
 
 // One tick of a free ball as described in docs/ball.md#ball-movement.
 //

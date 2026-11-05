@@ -403,6 +403,62 @@ constexpr Side kClearChanceAway{{{.x = 59.5, .y = 20.0, .facingX = -1.0},
   return againstKeeper(seed, kHome, kAway);
 }
 
+// The setup with player 1 deciding after two perception updates rather than
+// half a second, before anyone has moved far (docs/on-ball.md#pass-decisions).
+[[nodiscard]] std::expected<MatchSetup, std::string> decidingEarly(
+    std::expected<MatchSetup, std::string> setup) {
+  if (setup) {
+    setup->config.decisions.minHoldSeconds = 0.2;
+  }
+  return setup;
+}
+
+// A shooter of perfect technique, who curls the ball as far as anyone can.
+constexpr PlayerAttributes kCurler{.shotTechnique = 1.0};
+
+// Player 1, of perfect technique, sixteen meters out to the right of the goal
+// as he faces it, away players 9, 10 and 11 in a wall 9.15 m in front of him,
+// square to his line to the goal's centre and covering its near side; the
+// keeper on his line toward the far post (docs/scenarios.md#the-shot-scenarios).
+[[nodiscard]] std::expected<MatchSetup, std::string> curlAroundWall(const std::uint64_t seed) {
+  constexpr Side kHome{{{.x = 44.0, .y = 15.0, .facingX = 1.0, .attributes = kCurler},
+                        kHomeBehind[0],
+                        kHomeBehind[1],
+                        kHomeBehind[2],
+                        kHomeBehind[3],
+                        kHomeBehind[4],
+                        kHomeBehind[5]}};
+  constexpr Side kAway{{{.x = 59.5, .y = 20.8, .facingX = -1.0},
+                        {.x = 52.93, .y = 17.09, .facingX = -1.0},
+                        {.x = 52.73, .y = 17.73, .facingX = -1.0},
+                        {.x = 52.53, .y = 18.37, .facingX = -1.0},
+                        {.x = 25.0, .y = 26.0, .facingX = -1.0},
+                        {.x = 20.0, .y = 20.0, .facingX = -1.0},
+                        {.x = 35.0, .y = 32.0, .facingX = -1.0}}};
+  return decidingEarly(againstKeeper(seed, kHome, kAway));
+}
+
+// Player 1 sixteen meters out in front of the goal, the keeper eight meters
+// off his line, every other away player behind player 1
+// (docs/scenarios.md#the-shot-scenarios).
+[[nodiscard]] std::expected<MatchSetup, std::string> chipAdvancedKeeper(const std::uint64_t seed) {
+  constexpr Side kHome{{{.x = 44.0, .y = 20.0, .facingX = 1.0},
+                        kHomeBehind[0],
+                        kHomeBehind[1],
+                        kHomeBehind[2],
+                        kHomeBehind[3],
+                        kHomeBehind[4],
+                        kHomeBehind[5]}};
+  return decidingEarly(againstKeeper(seed, kHome,
+                                     {{{.x = 52.0, .y = 20.0, .facingX = -1.0},
+                                       kClearChanceAway[1],
+                                       kClearChanceAway[2],
+                                       kClearChanceAway[3],
+                                       kClearChanceAway[4],
+                                       kClearChanceAway[5],
+                                       kClearChanceAway[6]}}));
+}
+
 // ---------------------------------------------------------------------------
 // Goalkeeper scenarios (docs/goalkeeper.md#positioning-and-sweeping): away
 // keeps goal with the reference tactic, its keeper player 8 a perfect judge of
@@ -767,6 +823,15 @@ constexpr std::array kScenarios{
                        .description = "home player 1 twelve meters out, a defender in the way, a "
                                       "teammate free",
                        .make = &blockedLane},
+    ScenarioDefinition{.name = "curl-around-wall",
+                       .description = "home player 1 sixteen meters out, a wall of three in front "
+                                      "of him, curls the ball around it",
+                       .make = &curlAroundWall},
+    ScenarioDefinition{.name = "chip-advanced-keeper",
+                       .description =
+                           "home player 1 sixteen meters out, the keeper eight meters off "
+                           "his line, chips him",
+                       .make = &chipAdvancedKeeper},
     ScenarioDefinition{.name = "keeper-arc",
                        .description = "home player 1 carries the ball across in front of away's "
                                       "goal, the keeper moves with it",

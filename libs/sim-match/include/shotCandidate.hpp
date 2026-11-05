@@ -4,6 +4,7 @@
 #include <cstdint>
 #include <string_view>
 
+#include "shotType.hpp"
 #include "vec2.hpp"
 
 namespace ElyverseFootball::SimMatch {
@@ -22,8 +23,22 @@ struct ShotScoringConfig {
   // The aiming grid over the goal: columns across, rows up.
   int zoneColumns = 7;
   int zoneRows = 5;
-  // How fast a shot leaves the foot.
-  double shotSpeed = 25.0;  // m/s
+  // How fast a driven, a curled and a chipped shot leave the foot
+  // (docs/on-ball.md#shot-types).
+  double shotSpeed = 25.0;     // m/s
+  double curledSpeed = 20.0;   // m/s
+  double chippedSpeed = 12.0;  // m/s
+  // The sidespin a player of perfect technique curls a shot with; his
+  // shotTechnique scales it.
+  double curlSpin = 60.0;  // rad/s
+  // How far a strike's spin and pace stray for a player of average
+  // technique, as the strike's (ShotConfig): they widen the spread of a curl
+  // and a chip (docs/on-ball.md#shot-types).
+  double spinError = 15.0;  // rad/s
+  double speedError = 0.05;
+  // The steepest a ball leaves the foot, as the strike's (ShotConfig): a chip
+  // that would need to rise steeper cannot get there.
+  double maxLaunchSlope = 1.0;
   // How far to either side the keeper reaches in a dive, at the height of
   // his feet, and how high he reaches straight up. His reach is the ellipse
   // with these half-axes.
@@ -76,6 +91,7 @@ struct ShotScoringConfig {
 // Why a shot cannot be taken; kValid if it can.
 enum class ShotRejection : std::uint8_t {
   kValid,
+  // Farther than maxShotDistance, or for a chip farther than he can chip it.
   kTooFar,
   // He cannot see the goal's center: he is facing away from it.
   kGoalUnseen,
@@ -95,15 +111,21 @@ enum class ShotRejection : std::uint8_t {
          rejection != ShotRejection::kTooNarrow;
 }
 
-// One shooting option as the shooter sees it: a zone of the goal, the point
-// he aims at in it, and every score component, so that a decision can be
-// explained. The probabilities follow the shot's spread over the goal's
-// zones: where it may end up, and what becomes of it there.
+// One shooting option as the shooter sees it: a zone of the goal, how he
+// strikes the ball at it, the point he aims at in it, and every score component, so that a decision
+// can be explained. The probabilities follow the shot's spread over the goal's zones: where it may
+// end up, and what becomes of it there.
 struct ShotCandidate {
   // The zone of the aiming grid, counted from the post at the lower pitch y
   // and from the ground.
   std::size_t column = 0;
   std::size_t row = 0;
+  // How he strikes it: the type, the speed it leaves the foot at, and for a
+  // curled shot the curvature of its path in radians per meter, positive
+  // bending left (docs/on-ball.md#shot-types).
+  ShotType type = ShotType::kDriven;
+  double speed = 0.0;
+  double curvature = 0.0;
   // Where he aims: a point on the goal line, and a height above the ground.
   SimCore::Vec2 target;
   double height = 0.0;

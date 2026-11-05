@@ -214,6 +214,8 @@ void addPendingAction(StableHasher& hasher, const PendingAction& action) noexcep
     addVec2(hasher, shot->target);
     hasher.addDouble(shot->height);
     hasher.addDouble(shot->speed);
+    hasher.addByte(static_cast<std::uint8_t>(shot->type));
+    hasher.addDouble(shot->curvature);
   }
   if (const auto* carry = std::get_if<CarryIntent>(&action)) {
     hasher.addU64(carry->carrier.value());
@@ -240,6 +242,7 @@ std::uint64_t hashMatchState(const MatchState& state) noexcept {
   hasher.addDouble(state.ball().height);
   hasher.addDouble(state.ball().verticalVelocity);
   hasher.addDouble(state.ball().spin);
+  hasher.addDouble(state.ball().sideSpin);
   hasher.addBool(state.ball().owner.has_value());
   hasher.addU64(state.ball().owner.value_or(SimCore::PlayerId::invalid()).value());
   hasher.addBool(state.ball().held);

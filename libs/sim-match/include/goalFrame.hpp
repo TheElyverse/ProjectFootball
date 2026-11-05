@@ -51,18 +51,20 @@ struct WoodworkHit {
                                                          const WoodworkConfig& config,
                                                          double seconds) noexcept;
 
-// When a free ball has travelled this far along the ground if nothing stops
-// it, and the ball at that moment. It follows ballAfter(), which knows no
-// pitch boundary. Empty for a ball that stops short; the ball itself for a
-// distance that is not positive.
+// When a free ball reaches a vertical plane if nothing stops it, and the ball
+// at that moment: the plane through `origin` square to the unit `normal`,
+// which points the way the ball crosses it. It follows ballAfter() -- curve
+// included -- which knows no pitch boundary. Empty for a ball that stops
+// short; the ball itself for one already on or beyond the plane.
 struct BallPassage {
   double seconds = 0.0;
   BallState ball;
 };
 
-[[nodiscard]] std::optional<BallPassage> predictBallPassage(const BallState& ball,
-                                                            const BallPhysics& physics,
-                                                            double meters) noexcept;
+[[nodiscard]] std::optional<BallPassage> predictPlanePassage(const BallState& ball,
+                                                             const BallPhysics& physics,
+                                                             SimCore::Vec2 origin,
+                                                             SimCore::Vec2 normal) noexcept;
 
 // Where a free ball crosses a goal line if nothing stops it: the pitch y and
 // the height it crosses at.
@@ -71,8 +73,8 @@ struct GoalLineCrossing {
   double height = 0.0;
 };
 
-// Empty for a ball that is not moving toward that goal line or stops short
-// of it.
+// Empty for a ball that stops short of that goal line, and for one without
+// sidespin that is not moving toward it.
 [[nodiscard]] std::optional<GoalLineCrossing> predictGoalLineCrossing(const BallState& ball,
                                                                       const BallPhysics& physics,
                                                                       const Pitch& pitch,

@@ -210,7 +210,9 @@ std::optional<KeeperDive> decideDive(const MatchState& state, const std::size_t 
   }
   // The plane is square to the ball's way, so the ball is this far from it.
   const double ahead = (standing->origin - ball.position).dot(standing->normal);
-  const auto passage = ahead > 0.0 ? predictBallPassage(ball, physics, ahead) : std::nullopt;
+  const auto passage = ahead > 0.0
+                           ? predictPlanePassage(ball, physics, standing->origin, standing->normal)
+                           : std::nullopt;
   if (!passage) {
     return std::nullopt;
   }
@@ -296,7 +298,7 @@ std::optional<BallPassage> findPlanePassage(const BallState& ball, const KeeperD
   if ((ballAfter(ball, physics, seconds).position - dive.origin).dot(dive.normal) < 0.0) {
     return std::nullopt;
   }
-  auto passage = predictBallPassage(ball, physics, ahead / toward);
+  auto passage = predictPlanePassage(ball, physics, dive.origin, dive.normal);
   if (passage && passage->seconds > seconds) {
     passage.reset();
   }
@@ -375,6 +377,7 @@ SaveTouch executeSave(const BallState& ball, const KeeperDive& dive, const doubl
   touch.ball.verticalVelocity =
       std::clamp(touch.ball.verticalVelocity, -kMaxBallSpeed, kMaxBallSpeed);
   touch.ball.spin = 0.0;
+  touch.ball.sideSpin = 0.0;
   return touch;
 }
 

@@ -28,6 +28,8 @@ one.
 | `goal-kickoff` | the clear chance with tactics and restarts, the kickoff after the goal ([restarts](match-engine.md#the-kickoff)) |
 | `hopeless-angle` | home player 1 on the goal line wide of the post, a teammate free |
 | `blocked-lane` | home player 1 twelve meters out, a defender in the way, a teammate free |
+| `curl-around-wall` | home player 1 sixteen meters out, a wall of three in front of him, curls the ball around it ([shot types](on-ball.md#shot-types)) |
+| `chip-advanced-keeper` | home player 1 sixteen meters out, the keeper eight meters off his line, chips him |
 | `keeper-arc` | home player 1 carries the ball across in front of away's goal, the keeper moves with it ([goalkeeper](goalkeeper.md#positioning-and-sweeping)) |
 | `keeper-sweep-claim` | a through ball in behind away's line, the keeper first to it |
 | `keeper-sweep-leave` | a through ball in behind away's line, home's striker first to it |
@@ -169,6 +171,15 @@ players wait in their own half.
   edge of the area.
 - **`blocked-lane`**: player 1 twelve meters out, away player 9 two meters in
   front of him, square in the way; teammate 2 free to his left.
+- **`curl-around-wall`**: player 1, of perfect technique, sixteen meters out to
+  the right of the goal as he faces it; away players 9 to 11 stand in a wall
+  9.15 m in front of him, square to his line to the goal's centre and covering
+  its near side, the keeper on his line toward the far post.
+- **`chip-advanced-keeper`**: player 1 sixteen meters out in front of the goal,
+  the keeper eight meters off his line, every other away player behind player 1.
+
+Both decide after two perception updates (`minHoldSeconds` 0.2 s) rather than
+half a second, before the wall or the keeper has moved far.
 
 - **`goal-kickoff`**: the clear chance with a
   [kickoff](match-engine.md#the-kickoff) after it. Both sides play the reference
@@ -186,7 +197,11 @@ players wait in their own half.
 each of 100 seeds. At the clear chance he shoots at least 90 times. From the
 hopeless angle every shot is `too narrow` and he always passes. Past the blocked
 lane he passes more often than he shoots, with the middle of the goal at least
-half blocked in at least 90 seeds. The clear chance is also followed to its end:
+half blocked in at least 90 seeds. At the wall every driven shot is `blocked`,
+the best shot is curled, at least 90 seeds curl it and at most 20 shots come
+off the wall. Against the advanced keeper the best shot is a chip, more often
+saved driven, at least 90 seeds chip him and at least 30 score. Both replay
+with the same events. The clear chance is also followed to its end:
 the first shot is a goal in 55 to 90 of the seeds
 ([shooting](on-ball.md#shooting)).
 

@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <array>
 #include <cmath>
+#include <limits>
 #include <ranges>
 #include <span>
 #include <stdexcept>
@@ -23,6 +24,11 @@ using SimCore::Vec2;
 // for any tick: the search is exact rather than approximate, and its cost is
 // fixed, which is what a replay needs.
 inline constexpr int kLandingIterations = 64;
+
+// At most this many terms of the series flightSeconds() sums: the last bit for
+// the flights a shot or a pass takes, within about 1e-9 for one that needs
+// 99 % of the distance drag lets it go, coarser beyond.
+inline constexpr int kFlightSecondsTerms = 400;
 
 // How often predictBallLanding() may double its horizon before it gives up.
 // One second doubled twenty times is longer than a week; only a ball without
@@ -95,8 +101,23 @@ inline constexpr double kDragSeriesCutoff = 0.5;
   return alternatingSeries(kCoefficients, x);
 }
 
+// A vector turned by an angle in radians, counterclockwise -- to the left
+// of it -- for a positive one.
+[[nodiscard]] Vec2 turnedBy(const Vec2 vector, const double angle) noexcept {
+  const auto [sine, cosine] = SimCore::stableSineCosine(angle);
+  return {.x = (vector.x * cosine) - (vector.y * sine),
+          .y = (vector.x * sine) + (vector.y * cosine)};
+}
+
+// The curvature of a flying ball's path for its sidespin (docs/ball.md#curve).
+[[nodiscard]] double flightCurvature(const BallState& ball, const BallPhysics& physics) noexcept {
+  return physics.magnusCurvature * ball.sideSpin;
+}
+
 // The ball `seconds` into its flight, in closed form: gravity and a linear air
-// drag. Horizontal speed decays as e^{-k·t}; the vertical velocity approaches
+// drag, and a path that curves along a circle for its sidespin (alongArc()),
+// which stays as it is in flight. Horizontal speed decays as e^{-k·t}; the
+// vertical velocity approaches
 // the terminal speed g / k from wherever it starts, and the height is the
 // integral of that. Spin dies away the same exponential way.
 //
@@ -117,8 +138,18 @@ inline constexpr double kDragSeriesCutoff = 0.5;
   const double drop = physics.gravity * seconds * seconds * dragDropFactor(drag);
   BallState flown = ball;
   flown.spin = ball.spin * SimCore::stableExp(-physics.spinDecay * seconds);
-  flown.position = ball.position + (ball.velocity * span);
-  flown.velocity = ball.velocity * decay;
+  const double curvature = flightCurvature(ball, physics);
+  const double speed = ball.velocity.length();
+  if (curvature == 0.0 || speed == 0.0) {
+    flown.position = ball.position + (ball.velocity * span);
+    flown.velocity = ball.velocity * decay;
+  } else {
+    // Along a circle: the speed decays as on a straight line, and the path
+    // turns by the same angle per meter however fast the ball goes.
+    const ArcStep arc = alongArc(ball.velocity * (1.0 / speed), speed * span, curvature);
+    flown.position = ball.position + arc.offset;
+    flown.velocity = arc.direction * (speed * decay);
+  }
   flown.height = ball.height + (ball.verticalVelocity * span) - drop;
   flown.verticalVelocity = (ball.verticalVelocity * decay) - (physics.gravity * span);
   return flown;
@@ -160,6 +191,7 @@ inline constexpr double kDragSeriesCutoff = 0.5;
     after.velocity = direction * std::clamp(driven, 0.0, kMaxBallSpeed);
   }
   after.spin = landed.spin * (1.0 - physics.spinTransfer);
+  after.sideSpin = landed.sideSpin * (1.0 - physics.spinTransfer);
   return after;
 }
 
@@ -210,6 +242,7 @@ inline constexpr double kDragSeriesCutoff = 0.5;
   stopped.height = 0.0;
   stopped.verticalVelocity = 0.0;
   stopped.spin = 0.0;
+  stopped.sideSpin = 0.0;
   return {.ball = stopped, .seconds = seconds * fraction};
 }
 
@@ -258,16 +291,52 @@ void validate(const BallPhysics& physics) {
       isFiniteNonNegative(physics.carryDistance) && isFiniteNonNegative(physics.airDrag) &&
       isFiniteNonNegative(physics.spinDecay) && isFiniteNonNegative(physics.restingVerticalSpeed) &&
       isShare(physics.bounceRestitution) && isShare(physics.bounceGrip) &&
-      isShare(physics.spinTransfer) && physics.minCarrySpeedFactor > 0.0 &&
+      isShare(physics.spinTransfer) && isFiniteNonNegative(physics.magnusCurvature) &&
+      physics.minCarrySpeedFactor > 0.0 &&
       physics.minCarrySpeedFactor <= physics.maxCarrySpeedFactor &&
       physics.maxCarrySpeedFactor <= 1.0;
   if (!valid) {
     throw std::invalid_argument(
         "ball physics: rolling deceleration and gravity must be positive and finite, carry "
-        "distance, air drag, spin decay and resting vertical speed finite and not negative, "
+        "distance, air drag, spin decay, Magnus curvature and resting vertical speed finite and "
+        "not negative, "
         "bounce restitution, bounce grip and spin transfer between 0 and 1, and the carry speed "
         "factors above 0 and at most 1, the minimum no greater than the maximum");
   }
+}
+
+ArcStep alongArc(const Vec2 direction, const double length, const double curvature) noexcept {
+  if (curvature == 0.0) {
+    return {.offset = direction * length, .direction = direction};
+  }
+  const Vec2 left{.x = -direction.y, .y = direction.x};
+  // Everything from the half angle: sin θ = 2·s·c, and 1 - cos θ = 2·s²,
+  // which does not cancel for a small angle.
+  const auto [halfSine, halfCosine] = SimCore::stableSineCosine(curvature * length / 2.0);
+  const double sine = 2.0 * halfSine * halfCosine;
+  const double versine = 2.0 * halfSine * halfSine;
+  return {.offset = (direction * (sine / curvature)) + (left * (versine / curvature)),
+          .direction = (direction * (1.0 - versine)) + (left * sine)};
+}
+
+ArcAim aimAlongArc(const Vec2 from, const Vec2 toward, const double curvature) noexcept {
+  const Vec2 chord = toward - from;
+  const double distance = chord.length();
+  if (curvature == 0.0 || distance == 0.0) {
+    return {.direction = SimCore::unitOr(chord, {.x = 1.0, .y = 0.0}),
+            .length = distance,
+            .curvature = 0.0};
+  }
+  // A chord c of a circle of curvature k subtends 2·asin(k·c / 2); at most a
+  // sixth of a circle, k·c / 2 = 1/2.
+  const double limit = 1.0 / distance;
+  const double eased = std::clamp(curvature, -limit, limit);
+  const double halfChord = eased * distance / 2.0;
+  const double turn =
+      2.0 * SimCore::stableArcTangent(halfChord / std::sqrt(1.0 - (halfChord * halfChord)));
+  return {.direction = turnedBy(chord * (1.0 / distance), -turn / 2.0),
+          .length = turn / eased,
+          .curvature = eased};
 }
 
 bool isInFlight(const BallState& ball) noexcept {
@@ -382,6 +451,37 @@ std::optional<double> flightSpeed(const double distance, const double seconds,
     return std::nullopt;
   }
   return distance / (seconds * dragSpanFactor(physics.airDrag * seconds));
+}
+
+double flightSeconds(const double distance, const double speed,
+                     const BallPhysics& physics) noexcept {
+  if (!(distance > 0.0)) {
+    return 0.0;
+  }
+  // -ln(1 - x) for x = k·d/v, as 2·atanh(y) = 2·(y + y³/3 + y⁵/5 + ...) with
+  // y = x / (2 - x), which converges far faster than the series in x: a few
+  // terms for a shot, at most kFlightSecondsTerms for x near 1. A flight that
+  // would need x >= 1 never gets there.
+  const double share = physics.airDrag * distance / speed;
+  if (!(share < 1.0)) {
+    return std::numeric_limits<double>::infinity();
+  }
+  if (share == 0.0) {
+    return distance / speed;
+  }
+  const double odd = share / (2.0 - share);
+  const double square = odd * odd;
+  double power = odd;
+  double sum = odd;
+  for (int term = 1; term < kFlightSecondsTerms; ++term) {
+    power *= square;
+    const double next = sum + (power / static_cast<double>((2 * term) + 1));
+    if (next == sum) {
+      break;
+    }
+    sum = next;
+  }
+  return 2.0 * sum / physics.airDrag;
 }
 
 BallStep stepFreeBallTimed(const BallState& ball, const BallPhysics& physics, const Pitch& pitch,

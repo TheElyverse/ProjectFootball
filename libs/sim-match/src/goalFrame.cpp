@@ -86,6 +86,7 @@ struct Flight {
   after.velocity = ball.velocity + (normal.plane * push);
   after.verticalVelocity = ball.verticalVelocity + (normal.up * push);
   after.spin = 0.0;
+  after.sideSpin = 0.0;
   return after;
 }
 
@@ -244,22 +245,38 @@ std::optional<WoodworkHit> findWoodworkHit(const BallState& ball, const BallPhys
   return first;
 }
 
-std::optional<BallPassage> predictBallPassage(const BallState& ball, const BallPhysics& physics,
-                                              const double meters) noexcept {
-  if (meters <= 0.0) {
+std::optional<BallPassage> predictPlanePassage(const BallState& ball, const BallPhysics& physics,
+                                               const Vec2 origin, const Vec2 normal) noexcept {
+  // How far beyond the plane the ball is this long on: it approaches it
+  // along its path and keeps doing so until it crosses -- a curled shot turns
+  // by a sixth of a circle at most on its way to its aim (executeShot()) --,
+  // so bisection finds the moment.
+  const auto beyond = [&](const double moment) {
+    return (ballAfter(ball, physics, moment).position - origin).dot(normal);
+  };
+  if (beyond(0.0) >= 0.0) {
     return BallPassage{.seconds = 0.0, .ball = ball};
   }
-  Flight flight{.ball = ball, .physics = physics, .seconds = kCrossingHorizonSeconds};
-  for (int step = 0; step < kMaxHorizonDoublings && flight.travelled(flight.seconds) < meters &&
-                     !flight.after(flight.seconds).isAtRest();
+  double horizon = kCrossingHorizonSeconds;
+  for (int step = 0; step < kMaxHorizonDoublings && beyond(horizon) < 0.0 &&
+                     !ballAfter(ball, physics, horizon).isAtRest();
        ++step) {
-    flight.seconds *= 2.0;
+    horizon *= 2.0;
   }
-  if (flight.travelled(flight.seconds) < meters) {
+  if (beyond(horizon) < 0.0) {
     return std::nullopt;
   }
-  const double seconds = flight.secondsToTravel(meters);
-  return BallPassage{.seconds = seconds, .ball = flight.after(seconds)};
+  double low = 0.0;
+  double high = horizon;
+  for (int step = 0; step < kSearchIterations; ++step) {
+    const double middle = low + ((high - low) / 2.0);
+    if (beyond(middle) < 0.0) {
+      low = middle;
+    } else {
+      high = middle;
+    }
+  }
+  return BallPassage{.seconds = high, .ball = ballAfter(ball, physics, high)};
 }
 
 std::optional<GoalLineCrossing> predictGoalLineCrossing(const BallState& ball,
@@ -268,10 +285,13 @@ std::optional<GoalLineCrossing> predictGoalLineCrossing(const BallState& ball,
                                                         const GoalEnd end) noexcept {
   const double speed = ball.velocity.length();
   const double towardLine = pitch.goalLineX(end) - ball.position.x;
-  if (speed <= 0.0 || towardLine * ball.velocity.x <= 0.0) {
+  // A ball that curls may leave away from the line and still bend onto it.
+  if (speed <= 0.0 || (ball.sideSpin == 0.0 && towardLine * ball.velocity.x <= 0.0)) {
     return std::nullopt;
   }
-  const auto crossing = predictBallPassage(ball, physics, towardLine / (ball.velocity.x / speed));
+  const auto crossing =
+      predictPlanePassage(ball, physics, {.x = pitch.goalLineX(end), .y = ball.position.y},
+                          {.x = towardLine > 0.0 ? 1.0 : -1.0, .y = 0.0});
   if (!crossing) {
     return std::nullopt;
   }

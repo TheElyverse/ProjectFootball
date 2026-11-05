@@ -234,6 +234,27 @@ TEST_CASE("A ball's crossing of the goal line is predicted from its flight", "[g
   REQUIRE_THAT(slow.value_or(GoalLineCrossing{}).y, WithinAbs(20.0, 1e-9));
 }
 
+TEST_CASE("A curling ball's crossing of the goal line follows its curve", "[goalFrame][curve]") {
+  BallState ball = ballAt({.x = 40.0, .y = 20.0}, {.x = 22.0, .y = 0.0},
+                          {.height = 0.0, .verticalVelocity = 3.0});
+  ball.sideSpin = 50.0;
+  const auto crossing = predictGoalLineCrossing(ball, BallPhysics{}, pitch(), GoalEnd::kMaxX);
+  REQUIRE(crossing.has_value());
+  // Stepped until it reaches the line, the ball crosses where predicted:
+  // curled left, well beyond the straight line's y = 20.
+  BallState moved = ball;
+  BallState before = ball;
+  while (moved.position.x < 60.0 && !moved.isAtRest()) {
+    before = moved;
+    moved = ballAfter(moved, BallPhysics{}, 1.0 / 600.0);
+  }
+  const double crossedY =
+      before.position.y + ((moved.position.y - before.position.y) * (60.0 - before.position.x) /
+                           (moved.position.x - before.position.x));
+  REQUIRE_THAT(crossing.value_or(GoalLineCrossing{}).y, WithinAbs(crossedY, 1e-3));
+  REQUIRE(crossing.value_or(GoalLineCrossing{}).y > 21.0);
+}
+
 TEST_CASE("A ball that never reaches the goal line crosses nowhere", "[goalFrame]") {
   const BallPhysics physics;
   // Moving away, at rest, and too slow to roll ten meters.

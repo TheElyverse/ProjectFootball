@@ -113,17 +113,33 @@ ShotStrike executeShot(const ShotIntent& intent, const Vec2 from, const PlayerMa
   // The aim is a point on the goal line, so it strays along that line.
   strike.target = {.x = intent.target.x, .y = intent.target.y + across};
   strike.height = std::max(0.0, intent.height + upward);
-  const Vec2 offset = strike.target - from;
+  // Only a flight curves: a curl struck along the grass rolls straight at its
+  // target.
+  const bool curled =
+      intent.type == ShotType::kCurled && physics.magnusCurvature > 0.0 && strike.height > 0.0;
+  const ArcAim aim = aimAlongArc(from, strike.target, curled ? intent.curvature : 0.0);
   const double slope = config.maxLaunchSlope * intent.speed;
   // Aimed at the grass, or below it, the ball is struck along it and rolls.
-  const Launch launch{.speed = intent.speed, .distance = offset.length(), .height = strike.height};
+  const Launch launch{.speed = intent.speed, .distance = aim.length, .height = strike.height};
   const double lift =
       strike.height > 0.0 ? launchVerticalVelocity(launch, physics).value_or(slope) : 0.0;
-  strike.velocity =
-      unitOr(offset, shooter.facing) * std::min(intent.speed * strength, kMaxBallSpeed);
+  strike.velocity = (aim.length > 0.0 ? aim.direction : shooter.facing) *
+                    std::min(intent.speed * strength, kMaxBallSpeed);
   strike.verticalVelocity = std::min(std::min(lift, slope) * strength, kMaxBallSpeed);
-  strike.spin = std::clamp((config.topspin * shooter.attributes.shotTechnique) + spinOff,
-                           -kMaxBallSpin, kMaxBallSpin);
+  const double skill = shooter.attributes.shotTechnique;
+  double spin = (config.topspin * skill) + spinOff;
+  if (intent.type == ShotType::kChipped) {
+    spin = (-config.chipBackspin * skill) + spinOff;
+  }
+  if (curled) {
+    spin = 0.0;
+    // However badly struck, it bends no sharper than the sharpest arc to its
+    // point (aimAlongArc()): it curls in, it does not loop.
+    const double sharpest = std::min(kMaxBallSpin, 1.0 / (aim.length * physics.magnusCurvature));
+    strike.sideSpin =
+        std::clamp((aim.curvature / physics.magnusCurvature) + spinOff, -sharpest, sharpest);
+  }
+  strike.spin = std::clamp(spin, -kMaxBallSpin, kMaxBallSpin);
   return strike;
 }
 
@@ -145,6 +161,7 @@ Deflection deflectShot(const BallState& ball, const ShotConfig& config,
   deflection.ball.verticalVelocity =
       std::clamp((ball.verticalVelocity * kept) + lift, -kMaxBallSpeed, kMaxBallSpeed);
   deflection.ball.spin = 0.0;
+  deflection.ball.sideSpin = 0.0;
   return deflection;
 }
 

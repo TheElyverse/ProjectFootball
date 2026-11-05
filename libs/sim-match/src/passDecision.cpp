@@ -186,8 +186,7 @@ struct ScanStep {
                                                     const ScanStep& step,
                                                     const std::span<const PassCandidate> passes,
                                                     const std::span<const ShotCandidate> shots,
-                                                    const std::span<const CarryCandidate> carries,
-                                                    const double shotSpeed) {
+                                                    const std::span<const CarryCandidate> carries) {
   if (step.reason == OnBallReason::kForcedClear) {
     return PassIntent{.passer = carrier,
                       .target = step.target.value_or(SimCore::Vec2{}),
@@ -200,8 +199,12 @@ struct ScanStep {
   }
   if (chosen->outcome == DecisionOutcome::kShot) {
     const ShotCandidate& shot = shots[chosen->index];
-    return ShotIntent{
-        .shooter = carrier, .target = shot.target, .height = shot.height, .speed = shotSpeed};
+    return ShotIntent{.shooter = carrier,
+                      .target = shot.target,
+                      .height = shot.height,
+                      .speed = shot.speed,
+                      .type = shot.type,
+                      .curvature = shot.curvature};
   }
   if (chosen->outcome == DecisionOutcome::kHeld) {
     return std::nullopt;
@@ -449,8 +452,7 @@ void decideOnBall(const MatchStepContext& context, const MatchState& current,
   const ScanStep step = lookAround(context, current, carrier, options, chosen);
   next.tactical(carrier).scan = step.scan;
   const std::optional<PendingAction> action =
-      actionOf(player, chosen, step, options.passes, options.shots, options.carries,
-               options.rules.shots.scoring.shotSpeed);
+      actionOf(player, chosen, step, options.passes, options.shots, options.carries);
   std::optional<SimCore::Vec2> target = step.target;
   if (const CarryCandidate* touch = touchOf(chosen, options.carries)) {
     const CarryCandidate& carry = *touch;

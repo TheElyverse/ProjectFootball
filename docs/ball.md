@@ -31,6 +31,7 @@ reaches it ([reception](#reception-interceptions-and-loose-balls)).
 | `height`           | m     | how far above the grass it is                        |
 | `verticalVelocity` | m/s   | how fast it rises; negative while it falls           |
 | `spin`             | rad/s | topspin, or backspin when negative                   |
+| `sideSpin`         | rad/s | spin about the vertical axis: curls a flying ball left of its travel, right when negative |
 
 A ball with no height and no vertical velocity lies or rolls on the grass.
 `isAtRest()` holds when it does not move at all. The difference matters: a ball
@@ -38,9 +39,9 @@ at the top of its flight has no velocity in the pitch plane either, and is in
 play. `isInFlight(ball)` is the counterpart; it is true for a ball just lifted
 off the turf, before it has any height.
 
-Spin is one signed number, not a vector: top- and backspin about the horizontal
-axis across the direction of travel. Sidespin, and with it a curving flight, is
-not modelled ([what this is not](#what-this-is-not)).
+Spin is two signed numbers, not a vector: top- and backspin about the horizontal
+axis across the direction of travel, which acts when the ball bounces, and
+sidespin about the vertical axis, which [curves](#curve) its flight.
 
 ### Constants
 
@@ -59,10 +60,11 @@ All are part of `MatchConfig` and so of every
 | `spinTransfer`         | 0.2      | share of its spin a bounce spends driving the ball on       |
 | `spinDecay`            | 0.4 1/s  | fraction of its spin a flying ball loses per second         |
 | `restingVerticalSpeed` | 0.25 m/s | a bounce no faster than this leaves the ball down              |
+| `magnusCurvature`      | 0.0008   | curvature of a flying ball's path, in rad/m, per rad/s of sidespin |
 
 Rolling deceleration and gravity must be positive and finite; carry distance,
-drag, spin decay and resting speed finite and not negative; the three shares
-between 0 and 1.
+drag, spin decay, Magnus curvature and resting speed finite and not negative;
+the three shares between 0 and 1.
 
 ### Rolling
 
@@ -108,6 +110,42 @@ Neither divides by the drag. Below `x = 0.5` both come from their Taylor
 series. `φ₁(0) = 1` and `φ₂(0) = ½` give the plain parabola, so one formula
 covers no drag, a tiny drag and a real one.
 
+### Curve
+
+Sidespin bends a flying ball's path along a circle: the Magnus force pushes it
+square to its travel, in proportion to spin and speed, so the path turns by the
+same angle per meter however fast the ball goes. Its curvature is
+`magnusCurvature · sideSpin` (`flightCurvature()`), positive turning left. A
+curled shot at 40 rad/s bends along a circle of about 31 m radius, some 1.6 m
+off its chord over 20 m.
+
+The speed decays along the path exactly as on a straight line, so the path's
+length over a span is the straight flight's distance, and `alongArc()` turns it
+into the point and the direction it reaches:
+
+```
+offset    = d · sin(θ)/k + l · 2·sin²(θ/2)/k        θ = k · s
+direction = d · cos(θ) + l · sin(θ)
+```
+
+for curvature `k`, the path's length `s`, the starting direction `d` and `l`,
+`d` turned left. `2·sin²(θ/2)` stands for `1 − cos(θ)`, which would cancel for a
+small angle, and curvature 0 is the straight line bit for bit. The sine and
+cosine are `SimCore::stableSineCosine()` ([stable math](match-engine.md#stable-math)),
+so a curving flight is closed-form, tick-rate independent and bit-identical on
+every platform like any other.
+
+Sidespin stays as it is in flight: a constant curvature is what keeps the path a
+circle and the solution closed. A bounce keeps `1 − spinTransfer` of it; a ball
+rolls straight, and whatever plays or stops the ball otherwise -- a player who
+takes it, a pass, touch or header, a body, the woodwork, the keeper, the pitch
+boundary -- takes it all.
+
+`aimAlongArc(from, to, curvature)` is the other way round: the direction to
+strike a ball so its arc reaches a point — off the straight line by half the
+angle the path turns — and the arc's length. It eases a curvature that would
+turn the path by more than a sixth of a circle to that.
+
 ### Bounce
 
 Where the flight reaches the ground within a tick, the ball bounces:
@@ -133,7 +171,7 @@ resolved per tick; after that the ball is left down.
 
 `predictBallLanding(ball, physics)` says where and when a flying ball comes down
 and how high it gets on the way, without stepping the match: the same bisection
-over the closed-form flight, bracketed by doubling a one-second horizon. It is
+over the closed-form flight, curve included, bracketed by doubling a one-second horizon. It is
 empty for a ball on the ground and for a ball without gravity, which never comes
 down. Chasers use it through [reception](#reception-interceptions-and-loose-balls),
 the goalkeeper too when he decides whether to come for a ball
@@ -154,9 +192,11 @@ crossbar is a goal; on the way, posts and crossbar can turn it away
 ([shooting](on-ball.md#shooting)). A ball rolling along or resting on a line is
 on the pitch (`Pitch::contains()` includes the edges) and keeps rolling.
 
-A free ball always travels along a straight line in the pitch plane: drag acts
-along its travel, and a bounce only scales its speed. One crossing point
-therefore describes a whole tick, however often the ball bounces in it.
+Within a tick a free ball travels along a straight line in the pitch plane, or
+for a curling one along so little of its circle -- a few centimeters off the
+chord at most -- that the chord stands for it: drag acts along its travel, and a
+bounce only scales its speed. One crossing point therefore describes a whole
+tick, however often the ball bounces in it.
 
 Such a ball travels only part of the tick; `stepFreeBallTimed()` reports that
 part, the fraction of the way to the line.
@@ -174,15 +214,15 @@ like any invalid state.
 
 ### What this is not
 
-Only a [shot](on-ball.md#shooting) and a goalkeeper's long ball
+Only a [shot](on-ball.md#shooting) -- [curled](on-ball.md#shot-types) with
+sidespin or not -- and a goalkeeper's long ball
 ([goalkeeper distribution](goalkeeper.md#distribution)) lift the ball. Every
 other pass is a ground pass and leaves the foot without height, vertical
 velocity or spin. Crosses and outfield lofted passes will fill the third
 dimension further. Who wins a high ball is decided in the air
 ([aerial duels](duels.md#aerial-duels-and-headers)).
 
-- No sidespin and no curve yet, although `sim-core` has the bit-identical
-  trigonometry to turn a velocity ([stable math](match-engine.md#stable-math)).
+- Sidespin does not decay in flight, and a rolling ball does not curve.
 - Players perceive the ball's position on the pitch, not its height.
 - No air resistance while rolling, no wind.
 - The ball hits only grass, goal frame and, as a shot, a body.

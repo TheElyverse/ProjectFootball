@@ -219,6 +219,8 @@ struct ShotAttempted {
   // there (goalOpening()).
   double distance = 0.0;
   double opening = 0.0;
+  // How he struck it (docs/on-ball.md#shot-types).
+  ShotType type = ShotType::kDriven;
 
   friend bool operator==(const ShotAttempted&, const ShotAttempted&) = default;
 };

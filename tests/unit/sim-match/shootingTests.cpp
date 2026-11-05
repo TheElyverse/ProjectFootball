@@ -9,6 +9,7 @@
 #include <vector>
 
 #include "ballPhysics.hpp"
+#include "goalFrame.hpp"
 #include "ids.hpp"
 #include "matchFixtures.hpp"
 #include "matchSimulation.hpp"
@@ -33,6 +34,8 @@ using ElyverseFootball::SimMatch::Deflection;
 using ElyverseFootball::SimMatch::deflectShot;
 using ElyverseFootball::SimMatch::executeShot;
 using ElyverseFootball::SimMatch::Foot;
+using ElyverseFootball::SimMatch::GoalEnd;
+using ElyverseFootball::SimMatch::GoalLineCrossing;
 using ElyverseFootball::SimMatch::MatchSimulation;
 using ElyverseFootball::SimMatch::MatchState;
 using ElyverseFootball::SimMatch::MatchStateWriter;
@@ -40,6 +43,7 @@ using ElyverseFootball::SimMatch::MatchStepContext;
 using ElyverseFootball::SimMatch::PassConfig;
 using ElyverseFootball::SimMatch::Pitch;
 using ElyverseFootball::SimMatch::PlayerMatchState;
+using ElyverseFootball::SimMatch::predictGoalLineCrossing;
 using ElyverseFootball::SimMatch::ReceptionRecord;
 using ElyverseFootball::SimMatch::ShotConditions;
 using ElyverseFootball::SimMatch::shotConditions;
@@ -47,6 +51,7 @@ using ElyverseFootball::SimMatch::ShotConfig;
 using ElyverseFootball::SimMatch::shotErrorFactor;
 using ElyverseFootball::SimMatch::ShotIntent;
 using ElyverseFootball::SimMatch::ShotStrike;
+using ElyverseFootball::SimMatch::ShotType;
 using ElyverseFootball::SimMatch::skillErrorFactor;
 using ElyverseFootball::SimMatch::TeamSide;
 using ElyverseFootball::TestSupport::playerAt;
@@ -137,6 +142,71 @@ TEST_CASE("An exact shot arrives at the aimed point and height", "[shooting]") {
     REQUIRE_THAT(arrived.position.y, WithinAbs(21.5, 1e-9));
     REQUIRE_THAT(arrived.height, WithinAbs(height, 1e-9));
   }
+}
+
+TEST_CASE("An exact curled shot bends onto the aimed point", "[shooting][curve]") {
+  for (const double curvature : {0.03, -0.03}) {
+    CAPTURE(curvature);
+    ShotIntent intent = shotAt({.x = 60.0, .y = 21.5}, 1.0);
+    intent.speed = 20.0;
+    intent.type = ShotType::kCurled;
+    intent.curvature = curvature;
+    const ShotStrike strike = strikeOf(intent, exact());
+    // The sidespin of its curvature, no topspin, and it leaves off the
+    // straight line to the side it bends away from.
+    REQUIRE_THAT(strike.sideSpin, WithinAbs(curvature / BallPhysics{}.magnusCurvature, 1e-9));
+    REQUIRE(strike.spin == 0.0);
+    const Vec2 chord = intent.target - kFrom;
+    const double side = (chord.x * strike.velocity.y) - (chord.y * strike.velocity.x);
+    REQUIRE(side * curvature < 0.0);
+
+    BallState ball{.position = kFrom,
+                   .velocity = strike.velocity,
+                   .owner = std::nullopt,
+                   .lastTouch = std::nullopt};
+    ball.verticalVelocity = strike.verticalVelocity;
+    ball.sideSpin = strike.sideSpin;
+    const auto crossing =
+        predictGoalLineCrossing(ball, BallPhysics{}, Pitch(60.0, 40.0), GoalEnd::kMaxX);
+    REQUIRE(crossing.has_value());
+    REQUIRE_THAT(crossing.value_or(GoalLineCrossing{}).y, WithinAbs(21.5, 1e-6));
+    REQUIRE_THAT(crossing.value_or(GoalLineCrossing{}).height, WithinAbs(1.0, 1e-6));
+  }
+}
+
+TEST_CASE("An exact chip crosses the goal line at the height it was aimed at",
+          "[shooting][curve]") {
+  // From 16 m at 12 m/s: as steep as the launch slope allows and no steeper.
+  const Vec2 from{.x = 44.0, .y = 20.0};
+  ShotIntent chip = shotAt({.x = 60.0, .y = 20.0}, 0.5);
+  chip.speed = 12.0;
+  chip.type = ShotType::kChipped;
+  RandomNumberGenerator random(1);
+  const ShotStrike strike = executeShot(chip, from, playerAt(1, TeamSide::kHome, from), 1.0,
+                                        exact(), BallPhysics{}, random);
+  REQUIRE(strike.verticalVelocity < ShotConfig{}.maxLaunchSlope * chip.speed);
+  BallState ball{.position = from,
+                 .velocity = strike.velocity,
+                 .owner = std::nullopt,
+                 .lastTouch = std::nullopt};
+  ball.verticalVelocity = strike.verticalVelocity;
+  const auto crossing =
+      predictGoalLineCrossing(ball, BallPhysics{}, Pitch(60.0, 40.0), GoalEnd::kMaxX);
+  REQUIRE(crossing.has_value());
+  REQUIRE_THAT(crossing.value_or(GoalLineCrossing{}).height, WithinAbs(0.5, 1e-6));
+}
+
+TEST_CASE("A chip carries the backspin of the shooter's technique", "[shooting]") {
+  PlayerMatchState shooter = playerAt(1, TeamSide::kHome, kFrom);
+  shooter.attributes.shotTechnique = 1.0;
+  ShotIntent chip = shotAt({.x = 60.0, .y = 20.0}, 1.5);
+  chip.speed = 12.0;
+  chip.type = ShotType::kChipped;
+  const ShotStrike strike = strikeOf(chip, exact(), {.shooter = shooter});
+  REQUIRE(strike.spin == -ShotConfig{}.chipBackspin);
+  REQUIRE(strike.sideSpin == 0.0);
+  // Slow along the ground, so it has to rise high to get there.
+  REQUIRE(strike.verticalVelocity > 6.0);
 }
 
 TEST_CASE("A shot aimed at the grass or below it rolls", "[shooting]") {

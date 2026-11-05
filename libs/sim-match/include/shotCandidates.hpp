@@ -17,8 +17,8 @@ namespace ElyverseFootball::SimMatch {
 // Throws std::invalid_argument unless the confidence, opening, share and
 // chance limits lie in [0, 1] -- the opening in [0, 2] --, the grid has at
 // least two columns and one row and at most kMaxShotZones on either side,
-// the distances, speed, reaches, margin, spreads and radius are positive
-// and finite, the pressure spread and frame margin finite and not negative,
+// the distances, speeds, reaches, margin, spreads and radius are positive
+// and finite, the curl spin, pressure spread and frame margin finite and not negative,
 // and the weights finite, not negative and at most kMaxScoringWeight
 // (passCandidates.hpp). Scores then stay finite, so candidates sort and the
 // softmax works.
@@ -61,16 +61,18 @@ struct ShotCandidateRules {
 };
 
 // One candidate per zone of the aiming grid over the goal the shooter at
-// shooterIndex attacks, scored only from his memory: the opponents he
+// shooterIndex attacks and per shot type -- driven, curled left and right as
+// far as his technique curls it, chipped (docs/on-ball.md#shot-types) --,
+// scored only from his memory: the opponents he
 // remembers with at least minConfidence, at their estimated positions and
 // velocities. His side's goalkeeper -- by the tactic's slot, which the squad
 // knows -- saves, everyone else blocks; an opponent he does not remember
 // does neither. His own accuracy he knows.
 //
 // A shot from too far or at too narrow a goal is not scored: every zone
-// carries that rejection. Ordered valid candidates first by descending
-// utility, then the rest; ties by column, then row. Deterministic: the same
-// state gives the same list.
+// carries that rejection, as does a chip that would have to rise steeper than
+// maxLaunchSlope to get there. Ordered by orderShotCandidates().
+// Deterministic: the same state gives the same list.
 [[nodiscard]] std::vector<ShotCandidate> generateShotCandidates(const MatchState& state,
                                                                 std::size_t shooterIndex,
                                                                 SimCore::StepTime time,
@@ -87,12 +89,13 @@ struct ShotChances {
 
 // Scores a candidate whose position allows a shot with the chances as the
 // shooter judges them (docs/on-ball.md#decision-making): sets the judged
-// chances, the second ball, utility and rejection.
+// chances, the second ball and utility, and the rejection unless it is one of
+// the position (isScored()).
 void judgeShotCandidate(ShotCandidate& candidate, const ShotChances& judged,
                         const ShotScoringConfig& scoring) noexcept;
 
 // Puts valid candidates first by descending utility, then the rest; ties by
-// column, then row.
+// column, row, type, then curvature, the left curl first.
 void orderShotCandidates(std::vector<ShotCandidate>& candidates);
 
 }  // namespace ElyverseFootball::SimMatch
