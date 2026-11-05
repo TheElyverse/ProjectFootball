@@ -146,6 +146,8 @@ std::string_view restartKindName(const RestartKind kind) noexcept {
       return "corner";
     case RestartKind::kKickoff:
       return "kickoff";
+    case RestartKind::kFreeKick:
+      return "freeKick";
   }
   return "unknown";
 }
@@ -231,6 +233,56 @@ SimCore::Vec2 kickoffFacing(const TeamSide side) noexcept {
   return {.x = attackingDirection(side), .y = 0.0};
 }
 
+bool awardFreeKick(const MatchStepContext& context, const MatchState& current,
+                   MatchStateWriter& next, const TeamSide side, const SimCore::Vec2 spot,
+                   const BallPhysics& physics, const MatchClockConfig& clock) {
+  const auto taker = takerOf(current, side, false, spot);
+  if (!taker) {
+    return false;
+  }
+  const PlayerMatchState& player = current.players()[*taker];
+  context.record(RestartTaken{.tick = context.tick(),
+                              .kind = RestartKind::kFreeKick,
+                              .player = player.playerId,
+                              .position = spot});
+  if (next.ball().owner != player.playerId) {
+    context.record(PossessionChanged{
+        .tick = context.tick(), .previousOwner = next.ball().owner, .newOwner = player.playerId});
+  }
+  next.addLostSeconds(lostSeconds(RestartKind::kFreeKick, clock));
+  // A shot still open was stopped by the whistle.
+  if (const auto& shot = next.lastShot(); shot && !shot->resolved) {
+    ShotRecord resolved = *shot;
+    resolved.resolved = true;
+    next.setLastShot(resolved);
+    context.record(ShotResolved{.tick = context.tick(),
+                                .shooter = shot->shooter,
+                                .shotTick = shot->tick,
+                                .outcome = ShotOutcome::kBlocked});
+  }
+  // Play has stopped: nobody plays on what he meant to.
+  for (std::size_t index = 0; index < current.players().size(); ++index) {
+    next.setPendingAction(index, std::nullopt);
+  }
+  next.setBallOwner(player.playerId);
+  next.setBallHeld(false);
+  next.setBallTouch(std::nullopt);
+  next.setBallLastTouch(BallTouch{.playerId = player.playerId, .tick = context.tick()});
+  next.setBallVelocity({});
+  next.setBallHeight(0.0);
+  next.setBallVerticalVelocity(0.0);
+  next.setBallSpin(0.0);
+  next.setBallSideSpin(0.0);
+  next.tactical(*taker).handsReleased.reset();
+  next.tactical(*taker).stumbledUntil.reset();
+  next.tactical(*taker).dive.reset();
+  next.tactical(*taker).carry.reset();
+  const SimCore::Vec2 facing = kickoffFacing(side);
+  placeTaker(next, *taker, player, current.pitch().clamp(spot - (facing * physics.carryDistance)),
+             facing, physics, current.pitch());
+  return true;
+}
+
 void takeKickoffLineUp(const MatchState& current, const KickoffLineUp& lineUp,
                        MatchStateWriter& next) {
   next.setBallPosition(current.pitch().center());
@@ -243,8 +295,11 @@ void takeKickoffLineUp(const MatchState& current, const KickoffLineUp& lineUp,
     next.perception(index) = {};
     next.tactical(index) = {};
   }
-  // Pitch control from where they stood before would outlive them.
+  // Pitch control from where they stood before would outlive them, and so
+  // would the play the offside rule watched.
   next.setPitchControl(std::nullopt);
+  next.setOffside(std::nullopt);
+  next.setOffsideExemption(std::nullopt);
   for (const TeamSide side : {TeamSide::kHome, TeamSide::kAway}) {
     next.setPress(side, std::nullopt);
     next.setChaser(side, std::nullopt);
@@ -277,6 +332,9 @@ MatchSystem makeRestartSystem(const RestartRules& rules) {
                                           .player = taker.playerId,
                                           .position = spot});
               next.addLostSeconds(lostSeconds(plan.kind, clock));
+              next.setOffside(std::nullopt);
+              next.setOffsideExemption(
+                  BallTouch{.playerId = taker.playerId, .tick = context.tick()});
               context.record(PossessionChanged{.tick = context.tick(),
                                                .previousOwner = current.ball().owner,
                                                .newOwner = taker.playerId});
@@ -308,6 +366,12 @@ MatchSystem makeRestartSystem(const RestartRules& rules) {
                                                         ? current.pitch().center()
                                                         : current.ball().position});
             next.addLostSeconds(lostSeconds(plan->kind, clock));
+            // No offside from a throw-in, a goal kick or a corner.
+            next.setOffside(std::nullopt);
+            next.setOffsideExemption(
+                plan->kind == RestartKind::kKickoff
+                    ? std::nullopt
+                    : std::optional(BallTouch{.playerId = taker.playerId, .tick = context.tick()}));
             context.record(PossessionChanged{
                 .tick = context.tick(), .previousOwner = std::nullopt, .newOwner = taker.playerId});
             next.setBallOwner(taker.playerId);

@@ -228,6 +228,14 @@ export type MatchEvent = { readonly tick: number } & (
       readonly phase: string;
     }
   | { readonly type: "periodEnded"; readonly period: string; readonly addedMinutes: number }
+  | {
+      readonly type: "offsideCalled";
+      readonly side: string;
+      readonly player: number;
+      readonly passer: number;
+      readonly lineX: number;
+      readonly position: Vec2;
+    }
 );
 
 export interface PassCandidate {
@@ -489,6 +497,8 @@ export function describeEvent(event: MatchEvent): string {
       return `home controls ${Math.round(event.homeShare * 100)}% of the pitch`;
     case "periodEnded":
       return `end of ${event.period} (+${event.addedMinutes})`;
+    case "offsideCalled":
+      return `#${event.player} offside from #${event.passer}'s pass`;
     default:
       // A newer core may record events this viewer does not know yet.
       return (event as { readonly type: string }).type;

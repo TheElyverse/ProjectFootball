@@ -286,6 +286,20 @@ struct MatchClock {
   friend bool operator==(const MatchClock&, const MatchClock&) = default;
 };
 
+// A play the offside rule watches (docs/match-engine.md#offside): who of
+// `side` played the ball when, the offside line then as a depth from that
+// side's goal line, and the players of the side who stood in an offside
+// position, one bit per index in MatchState::players().
+struct OffsideWatch {
+  TeamSide side = TeamSide::kHome;
+  SimCore::PlayerId passer;
+  SimCore::SimTick tick;
+  double line = 0.0;
+  std::uint64_t offsidePlayers = 0;
+
+  friend bool operator==(const OffsideWatch&, const OffsideWatch&) = default;
+};
+
 // The goals each side has scored.
 struct Score {
   int home = 0;
@@ -555,6 +569,12 @@ class MatchState {
   [[nodiscard]] const std::optional<GoalRecord>& lastGoal() const noexcept { return lastGoal_; }
   // A new state stands at the start of the first half.
   [[nodiscard]] const MatchClock& clock() const noexcept { return clock_; }
+  // The play the offside rule watches, if any, and the touch -- a throw-in's,
+  // a goal kick's or a corner's -- whose next play is free of it.
+  [[nodiscard]] const std::optional<OffsideWatch>& offside() const noexcept { return offside_; }
+  [[nodiscard]] const std::optional<BallTouch>& offsideExemption() const noexcept {
+    return offsideExemption_;
+  }
 
   // The last pass kicked, the last shot taken and the last reception of a
   // free ball; empty in every state created from a spec, until the ball
@@ -644,6 +664,8 @@ class MatchState {
   Score score_;
   std::optional<GoalRecord> lastGoal_;
   MatchClock clock_;
+  std::optional<OffsideWatch> offside_;
+  std::optional<BallTouch> offsideExemption_;
   TeamPossession possession_;
   // Home, away.
   std::array<std::optional<TeamPhase>, 2> phases_;
@@ -660,7 +682,7 @@ class MatchState {
 // velocities, movement targets, facings, fitness, perception memories, the ball's
 // height, vertical velocity and spin, who owns and
 // last touched the ball, the players' pending actions, the last pass and shot and reception, the
-// score, the match clock, team possession and phases, the
+// score, the match clock, the offside watch, team possession and phases, the
 // pitch-control grid, the chasers, presses and players' tactical states,
 // nothing else. Squad, ids, sides,
 // attributes, player order and the pitch have no setter, so a system cannot break those invariants
@@ -740,6 +762,10 @@ class MatchStateWriter {
   void setClock(const MatchClock& clock) noexcept { state_->clock_ = clock; }
   // Adds real seconds of play lost to a stoppage to the period's lost time.
   void addLostSeconds(const double seconds) noexcept { state_->clock_.lostSeconds += seconds; }
+  void setOffside(const std::optional<OffsideWatch>& watch) noexcept { state_->offside_ = watch; }
+  void setOffsideExemption(const std::optional<BallTouch>& touch) noexcept {
+    state_->offsideExemption_ = touch;
+  }
   // Counts a goal for the record's side and keeps the record as the last
   // goal; throws std::invalid_argument for a scorer not in the state.
   void addGoal(const GoalRecord& goal);

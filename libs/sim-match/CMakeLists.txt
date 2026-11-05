@@ -18,6 +18,7 @@ add_library(sim-match STATIC
         src/passing.cpp
         src/reception.cpp
         src/restart.cpp
+        src/offside.cpp
         src/pursuit.cpp
         src/passCandidates.cpp
         src/shotCandidates.cpp

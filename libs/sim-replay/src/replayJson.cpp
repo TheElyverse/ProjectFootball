@@ -919,6 +919,7 @@ void fieldsOf(Visitor& visit, SimMatch::MatchClockConfig& clock) {
   visit.number("goalKickLostSeconds", clock.goalKickLostSeconds);
   visit.number("cornerLostSeconds", clock.cornerLostSeconds);
   visit.number("kickoffLostSeconds", clock.kickoffLostSeconds);
+  visit.number("freeKickLostSeconds", clock.freeKickLostSeconds);
 }
 
 template <typename Visitor>
@@ -927,6 +928,12 @@ void fieldsOf(Visitor& visit, SimMatch::FitnessConfig& fitness) {
   visit.number("sprintSeconds", fitness.sprintSeconds);
   visit.number("recoverySeconds", fitness.recoverySeconds);
   visit.number("fullMatchSpeedLoss", fitness.fullMatchSpeedLoss);
+}
+
+template <typename Visitor>
+void fieldsOf(Visitor& visit, SimMatch::OffsideConfig& offside) {
+  visit.boolean("enabled", offside.enabled);
+  visit.number("levelMeters", offside.levelMeters);
 }
 
 template <typename Visitor>
@@ -953,6 +960,7 @@ void fieldsOf(Visitor& visit, MatchConfig& config) {
   visit.object("aerial", config.aerial);
   visit.object("clock", config.clock);
   visit.object("fitness", config.fitness);
+  visit.object("offside", config.offside);
 }
 
 // Writes the fields it visits into a JSON object.

@@ -7,6 +7,7 @@
 #include "ballPhysics.hpp"
 #include "crossCandidate.hpp"
 #include "matchState.hpp"
+#include "offside.hpp"
 #include "passing.hpp"
 #include "perception.hpp"
 #include "reception.hpp"
@@ -57,6 +58,7 @@ struct CrossCandidateRules {
   PassConfig passing;
   PerceptionConfig perception;
   ReceptionConfig reception;
+  OffsideConfig offside = {};
 };
 
 // The crosses of the player on the ball at carrierIndex

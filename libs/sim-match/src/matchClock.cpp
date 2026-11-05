@@ -37,7 +37,8 @@ void validate(const MatchClockConfig& config, const int ticksPerSecond) {
                      isFiniteNonNegative(config.throwInLostSeconds) &&
                      isFiniteNonNegative(config.goalKickLostSeconds) &&
                      isFiniteNonNegative(config.cornerLostSeconds) &&
-                     isFiniteNonNegative(config.kickoffLostSeconds);
+                     isFiniteNonNegative(config.kickoffLostSeconds) &&
+                     isFiniteNonNegative(config.freeKickLostSeconds);
   if (!valid) {
     throw std::invalid_argument("match clock: invalid configuration");
   }
@@ -57,6 +58,8 @@ double lostSeconds(const RestartKind kind, const MatchClockConfig& config) noexc
       return config.cornerLostSeconds;
     case RestartKind::kKickoff:
       return config.kickoffLostSeconds;
+    case RestartKind::kFreeKick:
+      return config.freeKickLostSeconds;
   }
   return 0.0;
 }

@@ -295,6 +295,20 @@ struct GoalScored {
   friend bool operator==(const GoalScored&, const GoalScored&) = default;
 };
 
+// An offside (docs/match-engine.md#offside): `player` of `side`, in an offside
+// position when `passer` played the ball, became involved at `position`;
+// lineX is the offside line then, in pitch x.
+struct OffsideCalled {
+  SimCore::SimTick tick;
+  TeamSide side = TeamSide::kHome;
+  SimCore::PlayerId player;
+  SimCore::PlayerId passer;
+  double lineX = 0.0;
+  SimCore::Vec2 position;
+
+  friend bool operator==(const OffsideCalled&, const OffsideCalled&) = default;
+};
+
 // The referee ended a half (docs/match-clock.md): the period that ended, and
 // the added time he had announced for it.
 struct PeriodEnded {
@@ -497,7 +511,7 @@ using MatchEvent =
                  TacticChanged, PitchControlSampled, RestartTaken, ShotAttempted, ShotDeflected,
                  ShotHitWoodwork, ShotResolved, GoalScored, SaveAttempted, AerialContest,
                  DribbleAttempted, DribbleEnded, DuelStarted, DuelEnded, TackleAttempted,
-                 CrossAttempted, PeriodEnded>;
+                 CrossAttempted, PeriodEnded, OffsideCalled>;
 
 // "pass attempted", "pass received", ... for logs and diagnostics.
 [[nodiscard]] std::string_view eventName(const MatchEvent& event);

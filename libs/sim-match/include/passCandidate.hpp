@@ -45,6 +45,9 @@ enum class PassRejection : std::uint8_t {
   kTooFar,
   kOutOfReach,
   kUnlikely,
+  // The carrier believes him in an offside position
+  // (docs/on-ball.md#valid-candidates).
+  kOffside,
 };
 
 [[nodiscard]] std::string_view passRejectionName(PassRejection rejection) noexcept;

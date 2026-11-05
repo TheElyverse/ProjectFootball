@@ -24,7 +24,7 @@ set(behaviour
         ballMovement carrying defensiveActions desiredRegion distribution duel offBallActions
         crossCandidates matchClockSystem passCandidates passDecision perception pitchControl
         playerMovement
-        pursuit restart
+        offside pursuit restart
         shotCandidates shotStopping tacticalMovement tacticalPhases teamPressing)
 # Configuration and fixtures that put whole matches together.
 set(setup goldenScenarios kickoffScenario matchSetup scenarios)

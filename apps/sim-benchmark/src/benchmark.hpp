@@ -14,8 +14,10 @@
 
 namespace ElyverseFootball::Benchmark {
 
-// The standard configuration with restarts on -- over whole matches, a ball
-// waiting on the line would blur every statistic -- and ten-minute matches.
+// The standard configuration with restarts and offside on -- over whole
+// matches, a ball waiting on the line would blur every statistic, and
+// attackers standing beyond the last defender would play a different game --
+// and ten-minute matches.
 [[nodiscard]] SimMatch::MatchConfig benchmarkConfig();
 
 // A series of tactic matches between two tactics

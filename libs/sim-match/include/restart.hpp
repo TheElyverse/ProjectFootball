@@ -74,10 +74,22 @@ struct KickoffLineUp {
 // The unit vector a side faces at a kickoff: toward the goal it attacks.
 [[nodiscard]] SimCore::Vec2 kickoffFacing(TeamSide side) noexcept;
 
+// An indirect free kick for `side` at `spot` (docs/match-engine.md#offside):
+// its player nearest the spot, ties to the lower index, stands behind the ball
+// at rest, facing the goal he attacks, the ball at his feet. Records
+// RestartTaken and, if the ball was someone else's, PossessionChanged, and
+// resolves a shot still open as kBlocked with ShotResolved; adds its
+// lostSeconds() to the clock and clears every pending action. False, and
+// nothing changed, if the side has no player.
+bool awardFreeKick(const MatchStepContext& context, const MatchState& current,
+                   MatchStateWriter& next, TeamSide side, SimCore::Vec2 spot,
+                   const BallPhysics& physics, const MatchClockConfig& clock);
+
 // Puts both sides into the line-up, at rest and facing the goal they attack,
 // the ball on the centre spot, and starts them as at the beginning of a match:
 // without movement targets, pending actions, memories, tactical states,
-// presses, chasers or pitch control. Who owns the ball is the caller's.
+// presses, chasers, pitch control or a play the offside rule watches. Who owns
+// the ball is the caller's.
 void takeKickoffLineUp(const MatchState& current, const KickoffLineUp& lineUp,
                        MatchStateWriter& next);
 
@@ -101,7 +113,8 @@ struct RestartRules {
 // player planRestart() names, at his feet, and records RestartTaken -- at the
 // centre spot for a kickoff, otherwise where the ball left the pitch -- and
 // PossessionChanged. Either restart adds its lostSeconds() to the clock's lost
-// time. For a throw-in and a corner nobody is moved: the restart
+// time, ends the play the offside rule watched, and frees the taker's next play
+// of offside unless it is a kickoff. For a throw-in and a corner nobody is moved: the restart
 // only settles who plays on. For a goal kick the taker stands behind the
 // ball on goalKickSpot(), at rest and facing the goal he attacks, the ball at
 // his feet. For a kickoff both sides are

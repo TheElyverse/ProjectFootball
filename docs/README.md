@@ -14,7 +14,7 @@ exists in code, one area each.
 
 - [Match engine](match-engine.md): pitch geometry, the validated match state,
   the fixed-timestep loop with its commands and systems, events and decision
-  diagnostics, and restarts.
+  diagnostics, restarts and offside.
 - [Match clock](match-clock.md): halves, the duration and its ninety-minute
   clock, added time, full time and the result.
 - [Players](players.md): player movement, fitness, perception, and the spatial

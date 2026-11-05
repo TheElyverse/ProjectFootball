@@ -12,10 +12,12 @@ enum class RestartKind : std::uint8_t {
   kGoalKick,
   kCorner,
   kKickoff,
+  // An indirect free kick, after an offside (docs/match-engine.md#offside).
+  kFreeKick,
 };
 
-// "throwIn", "goalKick", "corner", "kickoff"; "unknown" outside the
-// enumerators.
+// "throwIn", "goalKick", "corner", "kickoff", "freeKick"; "unknown" outside
+// the enumerators.
 [[nodiscard]] std::string_view restartKindName(RestartKind kind) noexcept;
 
 // Simplified restarts (docs/match-engine.md#restarts): opt-in, so matches

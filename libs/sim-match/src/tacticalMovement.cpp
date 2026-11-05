@@ -239,6 +239,41 @@ void updateAction(const MatchStepContext& context, const MatchState& current,
   }
 }
 
+// How far short of the offside line he believes an attacker holds his target.
+inline constexpr double kOnsideMargin = 0.5;  // m
+
+// With offside enabled, an attacker's target kOnsideMargin short of the offside
+// line he believes, if it was deeper (docs/team-tactics.md#staying-onside),
+// unless he runs in behind from twice that margin onside: the run that beats a
+// line.
+[[nodiscard]] SimCore::Vec2 onsideTarget(const MatchStepContext& context, const MatchState& current,
+                                         const std::size_t index,
+                                         const TacticalMovementRules& rules,
+                                         const PlayerTacticalState& tactical,
+                                         const SimCore::Vec2 target) {
+  const PlayerMatchState& player = current.players()[index];
+  const auto owner = current.ball().owner;
+  const auto ownerIndex = owner ? findPlayerIndex(current, *owner) : std::nullopt;
+  if (!rules.offside.enabled || !ownerIndex || current.players()[*ownerIndex].side != player.side) {
+    return target;
+  }
+  const Pitch& pitch = current.pitch();
+  const double line =
+      believedOffsideLine(player.side,
+                          rememberedPlayers(current, index, context.time(), rules.perception,
+                                            rules.positioning.minConfidence),
+                          current.ball().position, pitch);
+  // Clearly onside, with room for the line to step up, he may run in behind; once
+  // held back he waits a step short of the line instead of hovering across it.
+  const bool runningInBehind =
+      tactical.action && tactical.action->type == ActionType::kRunInBehind &&
+      depthOf(player.side, player.position, pitch) < line - (2.0 * kOnsideMargin);
+  if (runningInBehind || depthOf(player.side, target, pitch) <= line - kOnsideMargin) {
+    return target;
+  }
+  return {.x = xAtDepth(player.side, line - kOnsideMargin, pitch), .y = target.y};
+}
+
 }  // namespace
 
 MatchSystem makeTacticalMovementSystem(const TacticalMovementRules& rules) {
@@ -274,6 +309,7 @@ MatchSystem makeTacticalMovementSystem(const TacticalMovementRules& rules) {
                     if (tactical.action && tactical.action->type != ActionType::kHoldPosition) {
                       target = tactical.action->target;
                     }
+                    target = onsideTarget(context, current, index, rules, tactical, target);
                   }
                   next.setPlayerTarget(index, target);
                 }

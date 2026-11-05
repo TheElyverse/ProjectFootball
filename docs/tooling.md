@@ -26,12 +26,12 @@ directory); `--play` plays one back. The file is written before the terminal
 interface opens, so a run rejected by argument or terminal validation leaves no
 file.
 
-### Schema version 19
+### Schema version 20
 
 ```json
 {
-  "schemaVersion": 19,
-  "coreVersion": "0.35.0",
+  "schemaVersion": 20,
+  "coreVersion": "0.36.0",
   "createdAt": "2026-09-24T10:00:00Z",
   "seed": "18446744073709551615",
   "gameTime": 300,
@@ -64,7 +64,8 @@ file.
     "shotStopping": { "...": "..." },
     "aerial": { "...": "..." },
     "clock": { "durationMinutes": 90.0, "throwInLostSeconds": 4.0, "...": "..." },
-    "fitness": { "sprintSpeedShare": 0.85, "...": "..." }
+    "fitness": { "sprintSpeedShare": 0.85, "...": "..." },
+    "offside": { "enabled": false, "levelMeters": 0.1 }
   },
   "initialState": {
     "pitch": { "length": 60.0, "width": 40.0 },
@@ -313,6 +314,7 @@ record the scenario again with the same seed.
 | 17      | The decisions gain their `crossing` block ([crossing](on-ball.md#crossing)). |
 | 18      | Tactics are files of tactic format version 4, which may hold eleven slots ([tactics](tactics.md#tactic-file-format)). |
 | 19      | Players gain `fitness` (`sprintReserve`, `playedTicks`, `topSpeedShare`), and the configuration its `clock` and `fitness` blocks ([match clock](match-clock.md), [fitness](players.md#fitness)). |
+| 20      | The configuration gains its `offside` block and the clock its `freeKickLostSeconds` ([offside](match-engine.md#offside)). |
 
 ## Decision trace
 
@@ -662,7 +664,8 @@ ball's `sideSpin` and the `shotType` of `shotAttempted`
 ([tackles and blocks](duels.md#tackles-and-blocks)); the event `crossAttempted`
 ([crossing](on-ball.md#crossing)); every frame's `clock` (as `formatClock()`
 shows it), `period` and `endsChanged`, and the event `periodEnded`
-([match clock](match-clock.md)). From the second half on the viewer turns the
+([match clock](match-clock.md)); the event `offsideCalled`
+([offside](match-engine.md#offside)). From the second half on the viewer turns the
 pitch round the centre spot, as the teams have changed ends. Without a `look` the
 viewer draws the vision cone along the facing.
 
@@ -736,6 +739,7 @@ frame: from its own goal line toward the one it attacks.
 | `progressivePasses`, `completedProgressivePasses` | `PassAttempted`, `PassReceived` | passes whose target is at least `progressiveMeters` (10 m) deeper than their origin, and those received |
 | `shots` | `ShotAttempted` | shots taken ([shot decisions](on-ball.md#shot-decisions)); what became of them is in the [shooting](on-ball.md#shooting) events, which the statistics do not read yet |
 | `goals` | `GoalScored` | goals scored, own goals of the opponent included: the side's score |
+| `offsides` | `OffsideCalled` | offsides the side's players were caught in ([offside](match-engine.md#offside)) |
 | `points` | `GoalScored`, `PeriodEnded` | 3 for a win, 1 for a draw, 0 for a defeat once the second half has ended ([full time](match-clock.md#full-time)); empty before |
 | `turnovers`, `regains` | `PossessionChanged` | the ball's owner changes from one side to the other; the first owner of the match is neither |
 | `regainsByThird` | `PassIntercepted`, `BallWon`, `LooseBallRecovered` | regains by the third of their position; a regain without such an event in its step, a command giving the ball away for instance, is counted in `regains` only |
@@ -841,9 +845,9 @@ determinism check.
 ### The matches
 
 Every match is the [tactic match](scenarios.md#the-tactic-match): the kickoff
-fixture with the two tactics, the standard systems and
-[restarts](match-engine.md#restarts) on (a ball waiting on the line would blur
-every statistic). Match `i` plays with seed `matchSeed(base, i)`, SplitMix64 of
+fixture with the two tactics, the standard systems,
+[restarts](match-engine.md#restarts) (a ball waiting on the line would blur
+every statistic) and [offside](match-engine.md#offside) on. Match `i` plays with seed `matchSeed(base, i)`, SplitMix64 of
 the base seed advanced by `i + 1` steps: neighbouring matches get unrelated
 seeds, and a seed depends only on base seed and index, not on how many matches
 run or in which order. `sim-cli --home-tactic ... --away-tactic ... --seed <its
@@ -926,8 +930,10 @@ Two guardrails also apply:
   ball [is gone at](team-tactics.md#a-carrier-who-stands-on-the-ball), and a
   carrier who carries it about
   [gets stuck](on-ball.md#holding-on-and-getting-stuck); the longest was
-  10.4 s seven a side. Eleven a side, on the longer pitch, it is 14.3 s with
-  seed 1 and 17.4 s at worst over seeds 1 to 5, so the bound rose from 15 s.
+  10.4 s seven a side. Eleven a side, on the longer pitch, it was 14.3 s with
+  seed 1 and 17.4 s at worst over seeds 1 to 5, so the bound rose from 15 s;
+  since attackers keep to the [offside line](match-engine.md#offside) it is
+  13.3 s with seed 1 and 17.5 s at worst.
 
 The test is registered for Release builds only; in Debug it would take minutes.
 

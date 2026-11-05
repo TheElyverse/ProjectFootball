@@ -146,7 +146,10 @@ struct ScanStep {
   const SimCore::SimTick since = active != nullptr ? active->since : context.tick();
   const double stuck = context.time().secondsSince(since);
   if (stuck >= config.stuckSeconds) {
-    if (const auto best = bestPass(passes, [](const PassCandidate&) { return true; })) {
+    // Any pass he can play, but none the rule would call back.
+    if (const auto best = bestPass(passes, [](const PassCandidate& candidate) {
+          return candidate.rejection != PassRejection::kOffside;
+        })) {
       return {.reason = OnBallReason::kForcedRejected, .chosen = best};
     }
     // His longest kick: the speed along the ground a flight needs grows in
@@ -667,7 +670,8 @@ MatchSystem makePassDecisionSystem(const DecisionConfig& config, const PassCandi
                                  .ball = rules.ball,
                                  .passing = rules.passing,
                                  .perception = rules.perception,
-                                 .reception = rules.reception}};
+                                 .reception = rules.reception,
+                                 .offside = rules.offside}};
   onBall.passes.scoring = config.scoring;
   return {
       .name = std::string(kPassDecisionSystemName),

@@ -39,6 +39,8 @@ struct TeamStats {
   // Shots taken, and goals scored, own goals of the opponent included.
   int shots = 0;
   int goals = 0;
+  // Offsides the side's players were caught in.
+  int offsides = 0;
   // 3 for a win, 1 for a draw, 0 for a defeat; empty for a match that did not
   // reach full time.
   std::optional<int> points;

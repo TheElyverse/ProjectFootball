@@ -201,6 +201,15 @@ void addFields(StableHasher& hasher, const GoalScored& event) noexcept {
   hasher.addI64(event.score.away);
 }
 
+void addFields(StableHasher& hasher, const OffsideCalled& event) noexcept {
+  hasher.addU64(static_cast<std::uint64_t>(event.side));
+  hasher.addU64(event.player.value());
+  hasher.addU64(event.passer.value());
+  hasher.addDouble(event.lineX);
+  hasher.addDouble(event.position.x);
+  hasher.addDouble(event.position.y);
+}
+
 void addFields(StableHasher& hasher, const PeriodEnded& event) noexcept {
   hasher.addU64(static_cast<std::uint64_t>(event.period));
   hasher.addI64(event.addedMinutes);
@@ -461,6 +470,9 @@ std::string_view eventName(const MatchEvent& event) {
     }
     std::string_view operator()(const PeriodEnded& /*event*/) const noexcept {
       return "period ended";
+    }
+    std::string_view operator()(const OffsideCalled& /*event*/) const noexcept {
+      return "offside called";
     }
   };
   return std::visit(Names{}, event);

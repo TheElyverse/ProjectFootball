@@ -8,6 +8,7 @@
 #include "ballPhysics.hpp"
 #include "ids.hpp"
 #include "matchState.hpp"
+#include "offside.hpp"
 #include "passCandidate.hpp"
 #include "passing.hpp"
 #include "perception.hpp"
@@ -61,6 +62,7 @@ struct PassCandidateRules {
   PassConfig passing;
   PerceptionConfig perception;
   ReceptionConfig reception;
+  OffsideConfig offside = {};
 };
 
 // Every teammate the carrier at carrierIndex remembers with at least
@@ -68,7 +70,9 @@ struct PassCandidateRules {
 // receiver's estimated position, and the estimated positions and velocities
 // of the opponents he remembers. Opponents he does not remember do not
 // count, however close they really are. Squad membership -- who is a
-// teammate -- is known; positions are not.
+// teammate -- is known; positions are not. With offside enabled, a receiver
+// he believes in an offside position -- against believedOffsideLine() of the
+// opponents he remembers and the ball -- is rejected as kOffside.
 //
 // Ordered by orderPassCandidates(). Deterministic: the same state gives the
 // same list.
