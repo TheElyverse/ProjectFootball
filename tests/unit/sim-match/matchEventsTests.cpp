@@ -404,7 +404,8 @@ TEST_CASE("Decision diagnostics explain every decision", "[matchEvents]") {
 
   int passes = 0;
   int carries = 0;
-  for (int step = 0; step < 300; ++step) {
+  // Until both kinds of decision came up, within a minute.
+  for (int step = 0; step < 1800 && (passes < 2 || carries < 1); ++step) {
     REQUIRE(simulation.step().has_value());
     for (const DecisionDiagnostic& diagnostic : simulation.diagnostics()) {
       REQUIRE(diagnostic.tick == SimTick(simulation.tick().value() - 1));

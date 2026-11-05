@@ -395,7 +395,12 @@ TEST_CASE("A near corner is easier to reach than the far one", "[shotStopping]")
 }
 
 TEST_CASE("A low ball is easier to reach than the top corner", "[shotStopping]") {
-  const ShotStoppingConfig config;
+  // Slower hands and a narrower body than the default keeper's, so the
+  // corner's reach shows at these distances.
+  ShotStoppingConfig config;
+  config.readyHeight = 1.4;
+  config.diveSpeed = 6.0;
+  config.bodyReach = 0.5;
   REQUIRE(secondsToTouch({.across = 2.5, .up = 0.3}, config).has_value());
   // As far across, under the crossbar: his reach narrows the higher he goes.
   REQUIRE_FALSE(secondsToTouch({.across = 2.5, .up = 2.3}, config).has_value());
@@ -573,6 +578,12 @@ TEST_CASE("A shot from distance into the corner is reached after a run", "[shotS
   const auto saveFrom = [](const Vec2 shooter) {
     Chance chance;
     chance.shooter = shooter;
+    // A keeper with slower hands and a narrower body than the default, whom
+    // the shot beats from 16 m.
+    chance.saves.readError = 0.8;
+    chance.saves.readyHeight = 1.4;
+    chance.saves.diveSpeed = 6.0;
+    chance.saves.bodyReach = 0.5;
     MatchSimulation simulation =
         shotMatch(chance, shotAt(goal().postAtMaxY() - Vec2{.x = 0.0, .y = 0.3}, 0.0, 24.0));
     std::optional<KeeperDive> dive;

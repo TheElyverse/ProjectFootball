@@ -200,10 +200,11 @@ TEST_CASE("A possession change starts a transition for both teams", "[tacticalPh
 }
 
 TEST_CASE("Phases follow a match: kickoff, turnover, transition, press", "[tacticalPhases]") {
-  // Home's forward (player 7) kicks off; at tick 60 away's goalkeeper
-  // (player 8) gets the ball deep in his own half.
-  MatchSimulation simulation = matchOf(kickoff(), {give(0, 7), give(60, 8)});
-  const std::vector<PhaseChanged> changes = runPhases(simulation, 300);
+  // Home's forward (player 7) kicks off; at tick 40, before home's first pass
+  // can go astray, away's goalkeeper (player 8) gets the ball deep in his own
+  // half.
+  MatchSimulation simulation = matchOf(kickoff(), {give(0, 7), give(40, 8)});
+  const std::vector<PhaseChanged> changes = runPhases(simulation, 200);
 
   using enum TacticalPhase;
   const std::vector<PhaseChanged> expected{
@@ -218,29 +219,29 @@ TEST_CASE("Phases follow a match: kickoff, turnover, transition, press", "[tacti
        .previous = std::nullopt,
        .phase = kDefensiveBlock},
       // The turnover: both teams in transition for four seconds.
-      {.tick = SimTick(60),
+      {.tick = SimTick(40),
        .side = TeamSide::kHome,
        .previous = kProgression,
        .phase = kDefensiveTransition},
-      {.tick = SimTick(60),
+      {.tick = SimTick(40),
        .side = TeamSide::kAway,
        .previous = kDefensiveBlock,
        .phase = kAttackingTransition},
       // Then away builds up from its goal, and home presses it there.
-      {.tick = SimTick(180),
+      {.tick = SimTick(160),
        .side = TeamSide::kHome,
        .previous = kDefensiveTransition,
        .phase = kPressing},
-      {.tick = SimTick(180),
+      {.tick = SimTick(160),
        .side = TeamSide::kAway,
        .previous = kAttackingTransition,
        .phase = kBuildUp},
   };
   REQUIRE(changes == expected);
   REQUIRE(simulation.state().phase(TeamSide::kHome) ==
-          TeamPhase{.phase = kPressing, .since = SimTick(180)});
+          TeamPhase{.phase = kPressing, .since = SimTick(160)});
   REQUIRE(simulation.state().possession() ==
-          TeamPossession{.team = TeamSide::kAway, .since = SimTick(60), .fromOpponent = true});
+          TeamPossession{.team = TeamSide::kAway, .since = SimTick(40), .fromOpponent = true});
 }
 
 TEST_CASE("A scripted side has no phase", "[tacticalPhases]") {

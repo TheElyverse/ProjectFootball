@@ -35,7 +35,7 @@ struct DuelConfig {
   // must land to meet it, and how wide the carrier's body is.
   double tackleReach = 1.8;  // m
   double footRadius = 0.3;   // m
-  double bodyRadius = 0.35;  // m
+  double bodyRadius = 0.3;   // m
   // How far from his aim a defender square on his feet lands his foot at
   // most: the half-width of a triangular spread, widened by 2 - balance.
   double footError = 0.3;  // m
@@ -43,10 +43,10 @@ struct DuelConfig {
   // share from minHold at a ballControl of 0 to maxHold at 1. A foot that
   // meets it better wins it cleanly, one that meets it better than half of
   // that knocks it loose, a worse one he keeps it from.
-  double minHold = 0.3;
-  double maxHold = 0.9;
+  double minHold = 0.4;
+  double maxHold = 0.95;
   // How fast a ball knocked loose leaves the foot.
-  double looseSpeed = 5.0;  // m/s
+  double looseSpeed = 18.0;  // m/s
   // Balance: bodies this close push each other, each losing up to
   // shovePerSecond -- half of it against an equally strong opponent, all of
   // it against one stronger by half the scale or more --; a lunge costs
@@ -66,7 +66,7 @@ struct DuelConfig {
   double turnWeight = 0.4;
   double accelerateWeight = 0.6;
   double jockeyWeight = 0.3;
-  double commitWeight = 1.0;
+  double commitWeight = 1.6;
   double decisionTemperature = 0.2;
 
   friend bool operator==(const DuelConfig&, const DuelConfig&) = default;

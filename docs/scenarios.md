@@ -103,7 +103,7 @@ The [carry scenarios](#the-carry-scenarios) switch it on.
   the ball on from player to player.
 - **`intercepted-pass`**: player 1 stands at (20, 20) facing the away goal. His
   only visible teammate is player 2, 20 m ahead at (40, 20); the others stand
-  behind him, out of sight. Away player 8 waits at (34, 25.8), 5.8 m off the
+  behind him, out of sight. Away player 8 waits at (34, 26.0), 6.0 m off the
   lane: close enough that the pass barely stays valid (completion just above
   `minCompletion`), far enough that player 1 plays it. Player 8 goes after the
   ball and, for most seeds, takes it. This checks that the risk estimate means
@@ -190,13 +190,14 @@ half a second, before the wall or the keeper has moved far.
 - **`goal-kickoff`**: the clear chance with a
   [kickoff](match-engine.md#the-kickoff) after it. Both sides play the reference
   tactic — home's with its slots in the order its players stand, so player 1 is
-  the striker and player 7 the keeper — and restarts are on. With seeds 2 to 5
-  and 8, player 1 scores within the first second; in the next step both sides
+  the striker and player 7 the keeper — and restarts are on. With seeds 1, 7
+  and 8, for example, player 1 scores within the first second and a half,
+  after his `minHoldSeconds`; in the next step both sides
   stand in their formations in their own halves, and away's striker, player 14,
   has the ball on the centre spot:
 
   ```sh
-  ./build/debug/apps/sim-cli/sim-cli --scenario goal-kickoff --seed 2 --ticks 300 --frames-out frames.json
+  ./build/debug/apps/sim-cli/sim-cli --scenario goal-kickoff --seed 1 --ticks 300 --frames-out frames.json
   ```
 
 `tests/acceptance/shotScenarioTests.cpp` looks at player 1's first decision in
@@ -244,7 +245,7 @@ a tactic. They show the
 
 - **`keeper-arc`**: home player 1 starts on the touchline 27 m in front of
   away's goal with the ball and carries it to the other touchline, beyond the
-  25 m a shot is considered from. So that only the ball moves the keeper, the
+  keeper's `threatRange` (25 m). So that only the ball moves the keeper, the
   carrier holds the ball for a minute (`decisions.minHoldSeconds`), and away's
   outfield players neither press, mark nor track (`defensive.pressRadius`,
   `markRadius` and `trackRadius` of 0.1 m).
@@ -335,7 +336,7 @@ likely to be cut out. Neither side has a tactic; everyone else stands still.
 `carry-into-space` his first decision is a carry, he touches the ball on at
 least three times, never loses it, and has it at least ten meters up the pitch
 after four seconds. Over twenty seeds, in `dribble-past-defender` he dribbles at
-player 8 in at least ten, every dribble ends, and at least half of his attempts
+player 8 in at least seven, every dribble ends, and at least half of his attempts
 beat him, with the ball beyond the defender. Both run alike every time.
 
 ### The duel scenarios
@@ -417,10 +418,11 @@ scenarios above and the [P2 style benchmark](tooling.md#p2-acceptance).
 **In the suite** (`tests/acceptance/p3AcceptanceTests.cpp`, Debug):
 
 - pressing against counter, possession against pressing and counter against
-  possession, seeds 1 and 2, six-minute matches: every step valid, no
+  possession, seeds 1 and 2, ten-minute matches: every step valid, no
   non-finite value, full time reached within `maxMatchTicks()`, and the test
-  fails at the first stretch of 30 s without the ball changing owner or of 25 s
-  with the ball dead for a set piece (11.2 s and 8 s at most when measured).
+  fails at the first stretch of 60 s without the ball changing owner or with
+  the ball dead for a set piece — a corner's or a free kick's setup of 35 s and
+  its wait of 10 s, with room.
   Over the six matches every kind of set piece is taken — kickoffs, throw-ins,
   corners, goal kicks and free kicks — and offside is called; fouls are rare in
   matches this short, and the Release run checks them;
@@ -432,13 +434,13 @@ job's `ctest -L benchmark`): the round robin of the three identities, one whole
 90-minute match per pairing with seed 1, every rule on, one sampled replay per
 pairing. It must finish within 45 s per match and 300 s for the nine together —
 the sum of their times —, every match must reach full time without a player
-owning the ball longer than 20 s at a time (9 to 12 s measured), every sampled
+owning the ball longer than 20 s at a time (8 to 13 s measured), every sampled
 replay must reproduce, each style's mean per match over its six sides must
 fall inside the bands below — every side with a value —, and pressing must
-commit at least 1.5 fouls and catch at least 2 offsides a match, so that a rule
-that stops being called fails although the other styles' bands start at 0. At
-the time of writing the nine matches took 14.5 s each on average, 15.9 s at
-most and 130 s together; the test took 386 s, most of it the nine replays,
+commit at least 8 fouls and catch at least 1 offside a match, so that a rule
+that stops being called fails although the offsides band starts at 0. At
+the time of writing the nine matches took 11.4 s each on average, 12.0 s at
+most and 103 s together; the test took 317 s, most of it the nine replays,
 each recorded and played back one after the other.
 
 **The full run** for local use plays twenty matches per pairing and five seeds,
@@ -453,37 +455,101 @@ for seed in 1 2 3 4 5; do
 done
 ```
 
-**The guardrails.** The bands guard the measured baseline: they fail a change
-that stops the shooting, the passing or a rule, or that floods the match with
-them, not one that only shifts the balance. They are set from the reduced run
-over seeds 1 to 5 — each style's mean per match over its six sides —, with room
-of about half the measured value below and above, since six sides are few.
-Real football's values per side and match are given for comparison: the
-baseline is not calibrated to them yet, and where it is far off the band says
-so rather than hiding it.
+**The guardrails.** The bands guard the calibrated baseline: they fail a
+change that stops the shooting, the passing or a rule, or that floods the match
+with them, not one that only shifts the balance. They are set from the reduced
+run over seeds 1 to 5 — each style's mean per match over its six sides —, with
+room of about half the measured value below and above, since six sides are
+few. Real football's values per side and match are given for comparison.
 
 | Metric | Band | Measured, seeds 1–5 | Real football | Reasoning |
 |---|---|---|---|---|
-| `goals` | 5 – 55 | 11.2 – 36.3 | about 1.4 | far too many: keepers and defenders do not stop enough of the chances, which `chanceQuality` puts at a third to a half of the goals scored; the band only keeps scoring from vanishing or exploding |
-| `shots` | 14 – 125 | 28.5 – 82.0 | about 12 | too many for the same reason; pressing shoots most, as its identity promises |
-| `passCompletion` | 0.60 – 0.80 | 0.67 – 0.73 | about 0.80 | close; the narrow band holds the passing game where it is |
-| `possessionShare` | 0.35 – 0.65 | 0.44 – 0.55 | 0.3 – 0.7 | plausible; possession has the most, counter the least. It guards little: shares sum to 1 per match, and the mirror pairing holds two of a style's six sides at 0.5 |
-| `fouls` | 0 – 15, pressing at least 1.5 | 0.0 – 8.2 | about 11 | too few: fouls come from lunges only ([fouls](fouls.md#where-fouls-come-from)); counter's deep block commits almost none, so only pressing's floor shows the rule is called |
-| `offsides` | 0 – 15, pressing at least 2 | 0.3 – 9.7 | about 2 | pressing's high line catches many; plausible for the others |
-| `corners` | 0.5 – 9 | 1.3 – 5.5 | about 5 | plausible |
-| `throwIns` | 0.5 – 8 | 1.8 – 4.8 | about 20 | far too few: the ball rarely leaves the pitch over the touchline |
-| `goalKicks` | 1.5 – 16 | 3.3 – 10.3 | about 7 | plausible |
-| `freeKicks` | 0.5 – 16 | 1.3 – 10.5 | about 12 | the fouls' and offsides' free kicks; too few with the fouls |
+| `goals` | 0.2 – 6 | 0.5 – 3.8 | about 1.4 | 2.1 over all styles; possession and pressing score most (2.9 and 2.6 a match), counter least (0.9) |
+| `shots` | 2 – 21 | 3.3 – 13.3 | about 12 | 8.5 over all styles, too few; pressing shoots most, as its identity promises, counter least |
+| `passCompletion` | 0.68 – 0.88 | 0.75 – 0.80 | about 0.80 | real |
+| `possessionShare` | 0.30 – 0.70 | 0.39 – 0.57 | 0.3 – 0.7 | plausible; possession and pressing have the most, counter the least. It guards little: shares sum to 1 per match, and the mirror pairing holds two of a style's six sides at 0.5 |
+| `fouls` | 1 – 24, pressing at least 8 | 2.3 – 19.2 | about 11 | 10.2 over all styles; pressing's lunges commit the most, counter's deep block few |
+| `offsides` | 0 – 5, pressing at least 1 | 0.3 – 4.0 | about 2 | pressing's high line catches the most |
+| `corners` | 0.6 – 7 | 1.2 – 4.0 | about 5 | 2.4 over all styles, too few: few crosses, and shots are rarely turned behind |
+| `throwIns` | 6 – 30 | 12.8 – 23.8 | about 20 | 17.8 over all styles |
+| `goalKicks` | 1.8 – 13 | 4.7 – 9.5 | about 7 | 6.2 over all styles |
+| `freeKicks` | 2 – 22 | 4.0 – 16.0 | about 12 | the fouls' and offsides' free kicks |
 | `penalties` | 0 – 1 | 0.0 – 0.2 | about 0.15 | plausible |
+
+**The calibration** (#232) brought the baseline there from 22 goals, 47 shots,
+2.4 fouls and 2.5 throw-ins a side — measured over 27 matches, three seeds of
+the round robin, per side and match:
+
+| Metric | Before | After | Real football |
+|---|---|---|---|
+| goals | 22 | 1.8 | 1.4 |
+| shots, on target | 47, – | 8.8, 4.6 | 12, 4.5 |
+| saves | – | 2.9 | 3 |
+| passes, completion | 1300, 0.69 | 590, 0.77 | about 480, 0.80 |
+| fouls, offsides, free kicks | 2.4, –, – | 10.6, 2.1, 11.7 | 11, 2, 12 |
+| corners, throw-ins, goal kicks | –, 2.5, – | 2.7, 18.4, 6.0 | 5, 20, 7 |
+
+Most of it came from flaws, not from turning numbers:
+
+- A presser within a metre of the carrier took every pass and touch off his
+  foot the moment it was played, even standing behind him: a ball that leaves a
+  player is no contact now ([reception](ball.md#reception-interceptions-and-loose-balls)).
+  Half the passes under close pressure went that way, and the turnovers fed
+  three times real football's possessions with chances.
+- The passer judged a presser's reach by his arrival time less the control
+  radius at full speed, so a presser a metre away still needed a fifth of a
+  second: he judged three in four such passes safe where half arrived
+  ([interception risk](on-ball.md#pass-candidates)).
+- A forward beside the keeper took his punt off his foot: nobody may stop the
+  keeper releasing the ball now (Law 12, [goalkeeper](goalkeeper.md#positioning-and-sweeping)).
+- The keeper stood high whenever his side had the ball and was caught 10 m off
+  his line by a turnover and a long shot ([where he stands](goalkeeper.md#where-he-stands)).
+- Receivers stood free in the box: near their goal the defenders now pick up
+  the men about the ball ([defensive shape](team-tactics.md#defensive-shape)).
+- The ball hardly left the pitch: defenders pressed near their goal now
+  [clear](on-ball.md#clearances) it, outfield players kick
+  [long](on-ball.md#long-balls) from their own half, a pass an opponent only
+  stretches for comes off him
+  ([reception](ball.md#reception-interceptions-and-loose-balls)), as does one too
+  fast to take, and a mistimed header glances a cross on
+  ([the header](duels.md#the-header)).
+
+The rest is set to real football's rates: the strike strays more in open play
+than the shooter judges, a penalty is placed, a cross errs less than a shot
+([the strike](on-ball.md#the-strike)); the keeper reads and reaches better
+([shot stopping](goalkeeper.md#shot-stopping)); a carrier keeps a new ball 1.2 s,
+and a defender lunges more readily and knocks the ball loose harder
+([duels](duels.md#duels-on-the-ball)). Set pieces take real football's time to
+set up ([the delivery](set-pieces.md#the-delivery)), so the ball is dead about
+a third of the match; with the livelier duels, clearances, long balls and
+blocks the match has real football's fouls per minute of play and about nine
+in ten of its throw-ins. The goalkeeper's `threatRange` stays at 25 m while shooters try
+from 28 m: tied to the shot range, a keeper on his line from 28 m blunted the
+pressing side's high regains.
+
+Still off: too few shots and corners — per minute of play about three
+quarters and half of real football's — and about a fifth too many passes.
+Both come from wing play: carriers cross a quarter as often as in real
+football, because nobody is in the box when they could — a runner sent there
+arrives after the winger has decided — and crosses are what headers, blocked
+crosses and many corners come of. More willingness to shoot or cross does not
+change it. Coordinated
+pressing now barely pays over a lone presser: about one standard error, from
+three before ([coordination pays](team-tactics.md#coordination-pays)) — the P2
+guard against it turning round, no longer evidence that it pays. The P2 identities hold
+([P2 acceptance](tooling.md#p2-acceptance)); two isolated tests switch the
+defenders' pick-up near their goal off, where it would blur what they measure:
+the coordinated press and the free kick's wall; the press also switches the
+clearances and shots from beyond 25 m off.
 
 The longest a player owns the ball is guarded by the
 [P2 style benchmark](tooling.md#p2-acceptance) (under 20 s; 9 to 12 s in whole
-matches). Calibrating the baseline to real football is work beyond P3: the
-bands are to be tightened as it moves.
+matches).
 
 **The performance budget** of a whole match with every rule is the
 [eleven-a-side budget](match-engine.md#performance): a 90-minute match took
-14.5 to 17 s on one core when measured, some 300 to 370 times real time.
+11.4 s on average and 12.0 s at most on one core when measured, some 450 to
+470 times real time.
 
 ### Scenarios are versioned
 

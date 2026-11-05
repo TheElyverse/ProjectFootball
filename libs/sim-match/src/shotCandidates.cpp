@@ -128,16 +128,17 @@ struct AxisAim {
   return *run + scoring.keeperDiveSeconds;
 }
 
-// Seconds an outfield player needs to get a body part to the ball at a point:
-// none if he already stands within reach of it -- a blocker in the way need
-// not move --, otherwise the run until he is.
+// Seconds an outfield player needs to get his body within blockRadius of the
+// ball at a point: none if he already stands there -- a blocker in the way
+// need not move --, otherwise the run until he is.
 [[nodiscard]] std::optional<double> blockSeconds(const PlayerMatchState& blocker, const Vec2 point,
                                                  const Pitch& pitch,
                                                  const ShotCandidateRules& rules) {
-  if ((point - blocker.position).length() <= rules.reception.controlRadius) {
+  const double radius = rules.scoring.blockRadius;
+  if ((point - blocker.position).length() <= radius) {
     return 0.0;
   }
-  return LaneReach::reachSeconds(blocker, point, pitch, rules.reception.controlRadius);
+  return LaneReach::reachSeconds(blocker, point, pitch, radius);
 }
 
 // How a shot of one type travels as the shooter imagines it: its speed, and
@@ -428,12 +429,13 @@ void validate(const ShotScoringConfig& config) {
       isPositiveFinite(config.shotSpeed) && isPositiveFinite(config.curledSpeed) &&
       isPositiveFinite(config.chippedSpeed) && isFiniteNonNegative(config.curlSpin) &&
       isPositiveFinite(config.keeperDiveReach) && isPositiveFinite(config.keeperJumpReach) &&
-      isPositiveFinite(config.keeperDiveSeconds) && isPositiveFinite(config.blockReach) &&
-      isPositiveFinite(config.blockMarginSeconds) && isPositiveFinite(config.saveMarginSeconds) &&
-      isPositiveFinite(config.spreadAtZero) && isFiniteNonNegative(config.spreadPerMeter) &&
-      isFiniteNonNegative(config.spinError) && isFiniteNonNegative(config.speedError) &&
-      isPositiveFinite(config.maxLaunchSlope) && isPositiveFinite(config.pressureRadius) &&
-      isFiniteNonNegative(config.pressureSpread) && isFiniteNonNegative(config.frameMargin) &&
+      isPositiveFinite(config.keeperDiveSeconds) && isPositiveFinite(config.blockRadius) &&
+      isPositiveFinite(config.blockReach) && isPositiveFinite(config.blockMarginSeconds) &&
+      isPositiveFinite(config.saveMarginSeconds) && isPositiveFinite(config.spreadAtZero) &&
+      isFiniteNonNegative(config.spreadPerMeter) && isFiniteNonNegative(config.spinError) &&
+      isFiniteNonNegative(config.speedError) && isPositiveFinite(config.maxLaunchSlope) &&
+      isPositiveFinite(config.pressureRadius) && isFiniteNonNegative(config.pressureSpread) &&
+      isFiniteNonNegative(config.frameMargin) &&
       isWithin(config.goalWeight, 0.0, kMaxScoringWeight) &&
       isWithin(config.secondBallWeight, 0.0, kMaxScoringWeight) &&
       isWithin(config.lossWeight, 0.0, kMaxScoringWeight);

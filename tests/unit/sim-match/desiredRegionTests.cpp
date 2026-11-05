@@ -313,8 +313,7 @@ TEST_CASE("Tactical movement rejects an invalid configuration", "[desiredRegion]
                                        .offBall = {},
                                        .defensive = {},
                                        .perception = {},
-                                       .goalkeeper = {},
-                                       .shotRange = 0.0});
+                                       .goalkeeper = {}});
   };
   PositioningConfig config;
   config.intervalTicks = 0;

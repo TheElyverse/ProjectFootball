@@ -80,8 +80,9 @@ struct PassCandidate {
   double receiverPressure = 0.0;
   double utility = 0.0;
   PassRejection rejection = PassRejection::kValid;
-  // Whether the ball goes through the air: a goalkeeper's long ball
-  // (docs/goalkeeper.md#distribution). Its interception risk is then the
+  // Whether the ball goes through the air: a long ball, a goalkeeper's or an
+  // outfield player's (docs/goalkeeper.md#distribution,
+  // docs/on-ball.md#long-balls). Its interception risk is then the
   // risk that an opponent wins it where it comes down.
   bool lofted = false;
 

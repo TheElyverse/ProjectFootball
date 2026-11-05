@@ -96,7 +96,7 @@ TEST_CASE("The goal-kickoff scenario scores and kicks off from the line-up", "[s
   using ElyverseFootball::SimMatch::RestartTaken;
   const ScenarioDefinition* scenario = findScenario("goal-kickoff");
   REQUIRE(scenario != nullptr);
-  const auto setup = scenario->make(2);
+  const auto setup = scenario->make(1);
   REQUIRE(setup.has_value());
   auto simulation = startMatch(*setup);
   bool scored = false;

@@ -99,6 +99,8 @@ namespace {
                                     const std::uint64_t seed = 5) {
   MatchConfig config;
   config.decisions.minHoldSeconds = 1.0e6;
+  // Nor does anyone take him on: the shape is measured, not who wins a duel.
+  config.duels.protectSeconds = 1.0e6;
   commands.insert(commands.begin(),
                   {.tick = SimTick(0), .command = GiveBallCommand{.playerId = PlayerId(8)}});
   MatchSimulation simulation = startMatch(MatchSetup{.initialState = std::move(state),

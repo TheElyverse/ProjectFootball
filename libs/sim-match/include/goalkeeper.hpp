@@ -18,12 +18,15 @@ namespace ElyverseFootball::SimMatch {
 struct GoalkeeperConfig {
   // Against a shot he stands this far off his goal line.
   double lineDepth = 1.5;  // m
+  // A ball someone has within this distance of his goal is one he could be
+  // beaten from: he is on his line (goalkeeperTarget()).
+  double threatRange = 25.0;  // m
   // Far from the ball he stands at this share of his defensive line's depth,
   // at most at the edge of his penalty area.
-  double highDepthShare = 0.5;
+  double highDepthShare = 0.4;
   // With his own side on the ball he stands at most at this share of that
   // depth: behind his defenders to be played back to, never level with them.
-  double possessionDepthShare = 0.5;
+  double possessionDepthShare = 0.4;
   // How far from his ideal place a keeper of keeperPositioning 0 may stand:
   // along his bisector, and across it. The spread shrinks with his skill and
   // is gone for a keeper of 1.
@@ -66,14 +69,15 @@ struct Bisector {
 // stands at highDepthShare of his defensive line's depth (capped at his
 // penalty area), against a shot at lineDepth, and between the two by the
 // ball's distance from his goal relative to his defensive line's. With his
-// own side on the ball that high depth shrinks by possessionDepthShare; an
-// opponent on the ball within shotRange of his goal puts him at lineDepth. He
+// own side on the ball that high depth shrinks by possessionDepthShare; anyone
+// on the ball within threatRange of his goal puts him at lineDepth, and a loose
+// ball leaves him higher by its distance alone. He
 // never stands beyond the ball, off the pitch, or wider than his posts by
 // more than he stands off his goal line. No
 // trigonometry. Throws std::invalid_argument for a player of a scripted side.
 [[nodiscard]] SimCore::Vec2 goalkeeperTarget(const MatchState& state, std::size_t playerIndex,
                                              SimTactics::TacticalPhase phase,
-                                             const GoalkeeperConfig& config, double shotRange);
+                                             const GoalkeeperConfig& config);
 
 // The goalkeeper's desired region: goalkeeperTarget() as its tactical target
 // and, as its centre, where he takes up his place -- the target off by a
@@ -82,7 +86,7 @@ struct Bisector {
 // draw, four in all, whatever his skill.
 [[nodiscard]] DesiredRegion goalkeeperRegion(const MatchState& state, std::size_t playerIndex,
                                              SimTactics::TacticalPhase phase,
-                                             const GoalkeeperConfig& config, double shotRange,
+                                             const GoalkeeperConfig& config,
                                              SimCore::RandomNumberGenerator& random);
 
 // The head start the keeper needs to come for a ball: cautiousMargin at

@@ -614,9 +614,8 @@ void addEventFields(Json& json, const SimMatch::PeriodEnded& event) {
     const Vec2 onLine = SimMatch::goalBisector(player.side, ball, state.pitch()).foot;
     json.push_back({{"player", player.playerId.value()},
                     {"onLine", vec2Json(onLine)},
-                    {"target", vec2Json(SimMatch::goalkeeperTarget(
-                                   state, index, phase->phase, config.goalkeeper,
-                                   config.decisions.shooting.maxShotDistance))}});
+                    {"target", vec2Json(SimMatch::goalkeeperTarget(state, index, phase->phase,
+                                                                   config.goalkeeper))}});
   }
   return json;
 }

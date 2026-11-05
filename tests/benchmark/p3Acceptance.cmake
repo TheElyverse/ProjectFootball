@@ -41,7 +41,7 @@ endif()
 
 # Every match plays to full time, and nobody stands on the ball or carries it
 # about for good over the 90 minutes: no player owns it longer than 20 s at a
-# time (9 to 12 s measured), as in the P2 style benchmark.
+# time (8 to 13 s measured), as in the P2 style benchmark.
 set(maxOwnershipSeconds 20)
 math(EXPR lastPairing "${pairings} - 1")
 foreach(index RANGE ${lastPairing})
@@ -64,23 +64,23 @@ foreach(index RANGE ${lastPairing})
 endforeach()
 
 # The guardrails: each style's mean per match, over its six sides of the round
-# robin, inside its band. The bands guard the measured baseline against a
-# change that breaks it, not against the numbers of real football, which the
-# baseline does not reach yet; docs/scenarios.md#p3-acceptance gives the
-# measurements, the reasoning for each band and real football's values.
+# robin, inside its band. The baseline is calibrated to real football (#232),
+# and the bands guard it against a change that breaks it;
+# docs/scenarios.md#p3-acceptance gives the measurements, the reasoning for
+# each band and real football's values.
 #
 #   metric          low   high   measured over seeds 1 to 5, all three styles
 set(bands
-        "goals          5     55"    # 11.2 to 36.3
-        "shots          14    125"   # 28.5 to 82.0
-        "passCompletion 0.60  0.80"  # 0.67 to 0.73
-        "possessionShare 0.35 0.65"  # 0.44 to 0.55
-        "fouls          0     15"    # 0.0 to 8.2
-        "offsides       0     15"    # 0.3 to 9.7
-        "corners        0.5   9"     # 1.3 to 5.5
-        "throwIns       0.5   8"     # 1.8 to 4.8
-        "goalKicks      1.5   16"    # 3.3 to 10.3
-        "freeKicks      0.5   16"    # 1.3 to 10.5
+        "goals          0.2   6"     # 0.5 to 3.8
+        "shots          2     21"    # 3.3 to 13.3
+        "passCompletion 0.68  0.88"  # 0.75 to 0.80
+        "possessionShare 0.30 0.70"  # 0.39 to 0.57
+        "fouls          1     24"    # 2.3 to 19.2
+        "offsides       0     5"     # 0.3 to 4.0
+        "corners        0.6   7"     # 1.2 to 4.0
+        "throwIns       6     30"    # 12.8 to 23.8
+        "goalKicks      1.8   13"    # 4.7 to 9.5
+        "freeKicks      2     22"    # 4.0 to 16.0
         "penalties      0     1")    # 0.0 to 0.2
 foreach(style IN ITEMS possession counter pressing)
     foreach(band IN LISTS bands)
@@ -102,11 +102,11 @@ foreach(style IN ITEMS possession counter pressing)
 endforeach()
 
 # The rules fire: pressing, which takes carriers on most and keeps the highest
-# line, commits fouls and catches opponents offside in every whole match (4.3 to
-# 8.2 fouls and 6.0 to 9.7 offsides per match measured over seeds 1 to 5), so a
-# rule that stops being called fails here although the other styles' bands
-# start at 0. Penalties are too rare in nine matches to need one.
-foreach(floor IN ITEMS "fouls 1.5" "offsides 2")
+# line, commits fouls and catches opponents offside in every whole match (13.5
+# to 19.2 fouls and 1.5 to 4.0 offsides per match measured over seeds 1 to 5),
+# so a rule that stops being called fails here although the offsides band
+# starts at 0. Penalties are too rare in nine matches to need one.
+foreach(floor IN ITEMS "fouls 8" "offsides 1")
     string(REGEX REPLACE " +" ";" fields "${floor}")
     list(GET fields 0 metric)
     list(GET fields 1 low)

@@ -502,6 +502,18 @@ defensive meanings:
 The choice uses `temperature` (0.2). `DefensiveConfig` is part of `MatchConfig`
 and of every replay.
 
+**Near the own goal.** There a defender picks up the men about the ball rather
+than hold his place. For marking, tracking and covering, the urgency weighs up
+to `1 + dangerUrgency` (5) times as much and the region up to
+`1 − dangerRegionRelief` (0.1) times as much, by the danger: how near the ball
+is to the own goal, times how near his region's centre is — each 1 at the goal
+and 0 at `dangerShare` (0.48) of the pitch's length, 50 m on the standard pitch.
+So the defenders tighten up about their box while the forwards, whose places
+are far from it, stay up for the counter; pressing the ball and blocking lanes
+are the [press's](#pressing), and a set piece's places the
+[set piece](set-pieces.md) system's. Without it, receivers in the box stood free
+and shots came at twice real football's rate.
+
 ### When defenders decide
 
 Defensive decisions follow the cadence of off-ball decisions: every 6 ticks within
@@ -664,14 +676,16 @@ press in progress is part of the state, `MatchState::press(side)`.
 
 #### Coordination pays
 
-`tests/acceptance/p2AcceptanceTests.cpp` plays a hundred one-minute matches
+`tests/acceptance/p2AcceptanceTests.cpp` plays two hundred one-minute matches
 against the reference tactic, restarts off so a ball out stays on the line,
 home pressing high on four triggers: once at
 intensity 0.25 (a lone presser), once at 1.0 (four players). The coordinated
-press wins the ball in a larger share of its presses, at least three points
-more: the lone presser leaves lanes open, and close teammates spoil the passes
-the carrier does play. At the time of writing the coordinated press regains the
-ball in 0.38 of its presses, the lone presser in 0.32. Ten matches were too few:
-the two shares differ by about three standard errors over a hundred, and a
-change as small as players tiring over the match
-([fitness](players.md#fitness)) turned ten seeds round.
+press wins the ball in a larger share of its presses, at least a point more:
+the lone presser leaves lanes open, and close teammates spoil the passes the
+carrier does play. At the time of writing the coordinated press regains the
+ball in 0.271 of its presses, the lone presser in 0.256 — about one standard
+error apart. The [calibration](scenarios.md#p3-acceptance) lowered both and
+narrowed the gap, from 0.38 against 0.32: a carrier keeps more balls a lone
+or a coordinated press goes for, and coordination now barely pays. The bar
+guards against it turning round, not that it pays much. The defenders' pick-up near their goal, the clearances and shots
+from beyond 25 m are off for it: each ends a press however many press.

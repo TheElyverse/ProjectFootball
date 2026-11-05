@@ -39,8 +39,9 @@ using ElyverseFootball::SimReplay::recordMatch;
 namespace {
 
 // How long each match lasts, in real minutes: long enough for every kind of
-// set piece to come up over the six.
-constexpr double kMinutes = 6.0;
+// set piece to come up over the six, corners at real football's rate and the
+// ball dead for real football's time.
+constexpr double kMinutes = 10.0;
 
 // A tactical identity from data/tactics.
 [[nodiscard]] ElyverseFootball::SimTactics::Tactic identity(const std::string& name) {
@@ -67,10 +68,11 @@ constexpr double kMinutes = 6.0;
 // NOLINTEND(bugprone-easily-swappable-parameters)
 
 // The longest the match may go without its ball changing owner, and lie dead
-// for a set piece, in real seconds: over these matches 11.2 s and 8 s at most
-// when measured (docs/scenarios.md#p3-acceptance).
-constexpr double kMaxWithoutOwnerChange = 30.0;
-constexpr double kMaxDeadBall = 25.0;
+// for a set piece, in real seconds: a set piece's setup time -- a corner's or
+// a free kick's 35 s at the longest -- and its wait of 10 s, with room
+// (docs/scenarios.md#p3-acceptance).
+constexpr double kMaxWithoutOwnerChange = 60.0;
+constexpr double kMaxDeadBall = 60.0;
 
 // What the rules and set pieces did in a match: how often each set piece was
 // taken, by kind name, and how many fouls and offsides were called.
@@ -167,6 +169,6 @@ TEST_CASE("P3: a whole match with every rule replays with identical hashes, pinn
   REQUIRE(playback->checkpointsVerified == replay->checkpoints.size());
   // Identical on every platform and compiler CI builds with; they change only
   // with the simulation's behaviour, the identities or the state layout.
-  CHECK(replay->checkpoints.back().stateHash == 0x5d3a387ce404e72aULL);
-  CHECK(replay->checkpoints.back().eventHash == 0xd5f20c0274a5363eULL);
+  CHECK(replay->checkpoints.back().stateHash == 0x7ffbf917a582f565ULL);
+  CHECK(replay->checkpoints.back().eventHash == 0xe1d06f0681420b8eULL);
 }

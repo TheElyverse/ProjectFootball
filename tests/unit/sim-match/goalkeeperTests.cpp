@@ -56,7 +56,8 @@ using ElyverseFootball::SimTactics::TacticalPhase;
 namespace {
 
 constexpr TacticalPhase kPhase = TacticalPhase::kDefensiveBlock;
-constexpr double kShotRange = 25.0;
+// The keeper's threatRange.
+constexpr double kShotRange = GoalkeeperConfig{}.threatRange;
 constexpr double kSecondsPerTick = 1.0 / 30.0;
 // Home's keeper is player 1 at index 0 and defends the goal at x = 0.
 constexpr std::size_t kKeeper = 0;
@@ -85,7 +86,7 @@ constexpr std::size_t kKeeper = 0;
 }
 
 [[nodiscard]] Vec2 target(const MatchState& state, const GoalkeeperConfig& config = {}) {
-  return goalkeeperTarget(state, kKeeper, kPhase, config, kShotRange);
+  return goalkeeperTarget(state, kKeeper, kPhase, config);
 }
 
 // How far a point lies from the line through `start` and `end`.
@@ -123,12 +124,12 @@ TEST_CASE("The keeper stands on the bisector of the angle the posts make", "[goa
 }
 
 TEST_CASE("Far from the ball the keeper stands at a share of his defensive line", "[goalkeeper]") {
-  const MatchState state = scene({.x = 45.0, .y = 20.0});
+  const MatchState state = scene({.x = 55.0, .y = 20.0});
   const GoalkeeperConfig config;
   const double line =
       defensiveLineDepth(state, ElyverseFootball::SimMatch::TeamSide::kHome, kPhase);
   const double area = state.pitch().penaltyArea(GoalEnd::kMinX).max.x;
-  REQUIRE(45.0 > line);
+  REQUIRE(55.0 > std::max(line, 2.0 * kShotRange));
   REQUIRE_THAT(target(state).x, WithinAbs(std::min(config.highDepthShare * line, area), 1e-9));
 }
 
@@ -143,18 +144,20 @@ TEST_CASE("The closer the ball, the nearer his line the keeper stands", "[goalke
   }
 }
 
-TEST_CASE("Against an opponent on the ball within shooting range he is on his line",
-          "[goalkeeper]") {
-  // Away's striker, player 14, on the ball 20 m out.
+TEST_CASE("With the ball within shooting range he is on his line, whoever has it", "[goalkeeper]") {
+  // Away's striker, player 14, on the ball 20 m out, then home's centre back,
+  // player 2: a pass there may be lost and shot before he gets back.
   const Vec2 ball{.x = 20.0, .y = 20.0};
-  REQUIRE_THAT(target(scene(ball, PlayerId(14))).x, WithinAbs(GoalkeeperConfig{}.lineDepth, 1e-9));
-  // Loose, the same ball leaves him higher.
+  for (const PlayerId owner : {PlayerId(14), PlayerId(2)}) {
+    REQUIRE_THAT(target(scene(ball, owner)).x, WithinAbs(GoalkeeperConfig{}.lineDepth, 1e-9));
+  }
+  // Loose, the same ball leaves him higher, ready to come for it.
   REQUIRE(target(scene(ball)).x > GoalkeeperConfig{}.lineDepth);
 }
 
 TEST_CASE("With his side on the ball the keeper stays behind his defenders", "[goalkeeper]") {
-  // Home's centre back, player 2, on the ball in the middle of the pitch.
-  const Vec2 ball{.x = 40.0, .y = 20.0};
+  // Home's centre back, player 2, on the ball far up the pitch.
+  const Vec2 ball{.x = 55.0, .y = 20.0};
   const double without = target(scene(ball)).x;
   const double with = target(scene(ball, PlayerId(2))).x;
   REQUIRE_THAT(with, WithinAbs(std::max(GoalkeeperConfig{}.lineDepth,
@@ -176,8 +179,8 @@ TEST_CASE("A keeper takes up his place as exactly as his positioning allows", "[
   const GoalkeeperConfig config;
   SECTION("a perfect keeper stands on his target") {
     RandomNumberGenerator random(7);
-    const auto region = goalkeeperRegion(scene(ball, std::nullopt, {}, 1.0), kKeeper, kPhase,
-                                         config, kShotRange, random);
+    const auto region =
+        goalkeeperRegion(scene(ball, std::nullopt, {}, 1.0), kKeeper, kPhase, config, random);
     REQUIRE(region.center == region.tacticalTarget);
   }
   SECTION("a poor one is off it, never by more than the spreads") {
@@ -185,7 +188,7 @@ TEST_CASE("A keeper takes up his place as exactly as his positioning allows", "[
     for (std::uint64_t seed = 1; seed <= 50; ++seed) {
       RandomNumberGenerator random(seed);
       const MatchState state = scene(ball, std::nullopt, {}, 0.0);
-      const auto region = goalkeeperRegion(state, kKeeper, kPhase, config, kShotRange, random);
+      const auto region = goalkeeperRegion(state, kKeeper, kPhase, config, random);
       const double miss = (region.center - region.tacticalTarget).length();
       REQUIRE(miss <= std::hypot(config.positionErrorAlong, config.positionErrorAcross) + 1e-9);
       off = off || miss > 0.1;
@@ -199,8 +202,8 @@ TEST_CASE("A keeper takes up his place as exactly as his positioning allows", "[
     RandomNumberGenerator first(3);
     RandomNumberGenerator second(3);
     const MatchState state = scene(ball, std::nullopt, {}, 0.3);
-    REQUIRE(goalkeeperRegion(state, kKeeper, kPhase, config, kShotRange, first) ==
-            goalkeeperRegion(state, kKeeper, kPhase, config, kShotRange, second));
+    REQUIRE(goalkeeperRegion(state, kKeeper, kPhase, config, first) ==
+            goalkeeperRegion(state, kKeeper, kPhase, config, second));
   }
 }
 
@@ -315,6 +318,7 @@ TEST_CASE("Goalkeeper configurations are validated", "[goalkeeper]") {
   const double nan = std::numeric_limits<double>::quiet_NaN();
   for (const auto& broken :
        std::vector<GoalkeeperConfig>{{.lineDepth = -1.0},
+                                     {.threatRange = 0.0},
                                      {.highDepthShare = 1.5},
                                      {.possessionDepthShare = -0.1},
                                      {.positionErrorAlong = nan},

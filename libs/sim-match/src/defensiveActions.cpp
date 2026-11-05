@@ -108,12 +108,26 @@ class DefensiveScorer {
                                                           .perception = rules_->perception});
     const auto& grid = state_->pitchControl();
     const double dangerousSpace = grid ? grid->controlAt(opponentOf(player().side), target) : 0.5;
+    // How near the ball is to the own goal, in [0, 1], times how near his
+    // place is: the defenders pick up the men about the ball, the forwards
+    // stay up for the counter. Only marking, tracking and cover -- pressing
+    // the ball is the press's (docs/team-tactics.md#pressing) -- and in open
+    // play only, a set piece's places being the set piece system's.
+    const double radius = config.dangerShare * state_->pitch().lengthMeters();
+    const auto nearGoal = [this, radius](const Vec2 point) {
+      return std::clamp(1.0 - (distanceBetween(point, ownGoal()) / radius), 0.0, 1.0);
+    };
+    const bool picksUp = type == ActionType::kMarkOpponent || type == ActionType::kTrackRunner ||
+                         type == ActionType::kCover;
+    const double danger = radius > 0.0 && picksUp && !state_->setPiece()
+                              ? nearGoal(state_->ball().position) * nearGoal(region_->center)
+                              : 0.0;
     const ActionScores scores{
         .responsibility = config.responsibilityWeight * responsibility,
-        .region = -config.regionWeight * penalty,
+        .region = -config.regionWeight * (1.0 - (config.dangerRegionRelief * danger)) * penalty,
         .space = config.spaceWeight * dangerousSpace,
         .lane = 0.0,
-        .urgency = config.urgencyWeight * urgency,
+        .urgency = config.urgencyWeight * (1.0 + (config.dangerUrgency * danger)) * urgency,
         .effort = -config.effortWeight *
                   (distanceBetween(player().position, target) / config.effortScale)};
     return {.type = type,
@@ -249,7 +263,9 @@ void validate(const DefensiveConfig& config) {
       isShare(config.holdResponsibility) && isPositiveFinite(config.temperature) &&
       isFiniteNonNegative(config.responsibilityWeight) &&
       isFiniteNonNegative(config.regionWeight) && isFiniteNonNegative(config.spaceWeight) &&
-      isFiniteNonNegative(config.urgencyWeight) && isFiniteNonNegative(config.effortWeight);
+      isFiniteNonNegative(config.urgencyWeight) && isFiniteNonNegative(config.effortWeight) &&
+      isShare(config.dangerShare) && isFiniteNonNegative(config.dangerUrgency) &&
+      config.dangerRegionRelief >= 0.0 && config.dangerRegionRelief <= 1.0;
   if (!valid) {
     throw std::invalid_argument("defensive decisions: invalid configuration");
   }

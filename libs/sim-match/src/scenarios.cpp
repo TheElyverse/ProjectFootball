@@ -241,7 +241,7 @@ constexpr double kCarryMarkDistance = 1.5;  // m
 }
 
 // Player 1's only visible teammate is player 2, 20 m ahead; the rest of the
-// home side stands behind him, out of sight. Away player 8 stands 5.8 m off
+// home side stands behind him, out of sight. Away player 8 stands 6.0 m off
 // the lane between them: the pass is risky but still valid, player 1 plays
 // it, and player 8 usually gets there first. The other away players wait far
 // beyond player 2.
@@ -253,7 +253,7 @@ constexpr double kCarryMarkDistance = 1.5;  // m
                         {.x = 3.0, .y = 15.0, .facingX = 1.0},
                         {.x = 3.0, .y = 25.0, .facingX = 1.0},
                         {.x = 2.0, .y = 20.0, .facingX = 1.0}}};
-  constexpr Side kAway{{{.x = 34.0, .y = 25.8, .facingX = -1.0},
+  constexpr Side kAway{{{.x = 34.0, .y = 26.0, .facingX = -1.0},
                         {.x = 58.0, .y = 5.0, .facingX = -1.0},
                         {.x = 58.0, .y = 35.0, .facingX = -1.0},
                         {.x = 57.0, .y = 15.0, .facingX = -1.0},

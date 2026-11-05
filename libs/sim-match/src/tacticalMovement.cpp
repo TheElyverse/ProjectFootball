@@ -217,7 +217,7 @@ namespace {
                                             const SimTactics::TacticalPhase phase,
                                             const TacticalMovementRules& rules) {
   if (isGoalkeeper(current, index)) {
-    return goalkeeperRegion(current, index, phase, rules.goalkeeper, rules.shotRange,
+    return goalkeeperRegion(current, index, phase, rules.goalkeeper,
                             context.random(SimCore::RandomNumberGeneratorDomain::kExecution));
   }
   return chooseDesiredRegion(current, index, phase, context.time(), rules.positioning,

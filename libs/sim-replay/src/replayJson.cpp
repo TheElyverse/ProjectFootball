@@ -539,6 +539,9 @@ void fieldsOf(Visitor& visit, SimMatch::PassConfig& passing) {
 template <typename Visitor>
 void fieldsOf(Visitor& visit, SimMatch::ReceptionConfig& reception) {
   visit.number("controlRadius", reception.controlRadius);
+  visit.number("cleanRadius", reception.cleanRadius);
+  visit.number("deflectSpeed", reception.deflectSpeed);
+  visit.number("blockSpeed", reception.blockSpeed);
   visit.number("reclaimDelaySeconds", reception.reclaimDelaySeconds);
   visit.number("controlHeight", reception.controlHeight);
   visit.number("handsRadius", reception.handsRadius);
@@ -584,6 +587,7 @@ void fieldsOf(Visitor& visit, SimMatch::ShotScoringConfig& shooting) {
   visit.number("keeperDiveReach", shooting.keeperDiveReach);
   visit.number("keeperJumpReach", shooting.keeperJumpReach);
   visit.number("keeperDiveSeconds", shooting.keeperDiveSeconds);
+  visit.number("blockRadius", shooting.blockRadius);
   visit.number("blockReach", shooting.blockReach);
   visit.number("blockMarginSeconds", shooting.blockMarginSeconds);
   visit.number("saveMarginSeconds", shooting.saveMarginSeconds);
@@ -694,9 +698,12 @@ void fieldsOf(Visitor& visit, SimMatch::DecisionConfig& decisions) {
   visit.object("scoring", decisions.scoring);
   visit.object("shooting", decisions.shooting);
   visit.object("distribution", decisions.distribution);
+  visit.boolean("longBalls", decisions.longBalls);
+  visit.number("longBallCost", decisions.longBallCost);
   visit.number("stuckSeconds", decisions.stuckSeconds);
   visit.number("clearTouchlineMargin", decisions.clearTouchlineMargin);
   visit.number("clearGoalLineMargin", decisions.clearGoalLineMargin);
+  visit.number("clearPressureRadius", decisions.clearPressureRadius);
   visit.object("carrying", decisions.carrying);
   visit.object("crossing", decisions.crossing);
 }
@@ -769,6 +776,9 @@ void fieldsOf(Visitor& visit, SimMatch::DefensiveConfig& defensive) {
   visit.number("spaceWeight", defensive.spaceWeight);
   visit.number("urgencyWeight", defensive.urgencyWeight);
   visit.number("effortWeight", defensive.effortWeight);
+  visit.number("dangerShare", defensive.dangerShare);
+  visit.number("dangerUrgency", defensive.dangerUrgency);
+  visit.number("dangerRegionRelief", defensive.dangerRegionRelief);
 }
 
 template <typename Visitor>
@@ -835,6 +845,8 @@ void fieldsOf(Visitor& visit, SimMatch::ShotConfig& shooting) {
   visit.number("balanceErrorFactor", shooting.balanceErrorFactor);
   visit.number("weakFootErrorFactor", shooting.weakFootErrorFactor);
   visit.number("unsettledErrorFactor", shooting.unsettledErrorFactor);
+  visit.number("placedErrorShare", shooting.placedErrorShare);
+  visit.number("crossErrorShare", shooting.crossErrorShare);
   visit.number("weakFootSide", shooting.weakFootSide);
   visit.number("unsettledSeconds", shooting.unsettledSeconds);
   visit.number("unsettledBallSpeed", shooting.unsettledBallSpeed);
@@ -859,6 +871,7 @@ void fieldsOf(Visitor& visit, SimMatch::WoodworkConfig& woodwork) {
 template <typename Visitor>
 void fieldsOf(Visitor& visit, SimMatch::GoalkeeperConfig& goalkeeper) {
   visit.number("lineDepth", goalkeeper.lineDepth);
+  visit.number("threatRange", goalkeeper.threatRange);
   visit.number("highDepthShare", goalkeeper.highDepthShare);
   visit.number("possessionDepthShare", goalkeeper.possessionDepthShare);
   visit.number("positionErrorAlong", goalkeeper.positionErrorAlong);
@@ -927,6 +940,7 @@ void fieldsOf(Visitor& visit, SimMatch::AerialConfig& aerial) {
   visit.number("directionError", aerial.directionError);
   visit.number("speedError", aerial.speedError);
   visit.number("mistimedErrorFactor", aerial.mistimedErrorFactor);
+  visit.number("glanceShare", aerial.glanceShare);
 }
 
 template <typename Visitor>

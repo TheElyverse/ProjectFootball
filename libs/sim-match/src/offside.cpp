@@ -68,10 +68,13 @@ inline constexpr std::size_t kMaxWatchedPlayers = 64;
   return watch;
 }
 
-// Whether the touch only deflected or parried a shot: no deliberate play.
+// Whether the touch only deflected or parried a shot, or deflected a pass at
+// full stretch: no deliberate play.
 [[nodiscard]] bool deflects(const MatchStateWriter& next, const BallTouch& touch) {
   const auto& shot = next.lastShot();
-  return shot && (shot->deflection == touch || shot->parry == touch);
+  const auto& pass = next.lastPass();
+  return (shot && (shot->deflection == touch || shot->parry == touch)) ||
+         (pass && pass->deflection == touch);
 }
 
 }  // namespace

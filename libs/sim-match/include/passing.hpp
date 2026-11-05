@@ -17,8 +17,8 @@ struct PassConfig {
   // The hardest ground pass a player can kick.
   double maxSpeed = 22.0;  // m/s
   // Execution error: the ball leaves the foot up to this far off line per
-  // meter along it, uniformly distributed -- 0.03 is about ±1.7 degrees.
-  double directionError = 0.03;
+  // meter along it, uniformly distributed -- 0.04 is about ±2.3 degrees.
+  double directionError = 0.04;
   // Execution error: the kick is up to this fraction harder or softer than
   // intended, uniformly distributed.
   double speedError = 0.05;

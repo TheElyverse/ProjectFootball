@@ -1,8 +1,8 @@
 // The shot scenarios (docs/on-ball.md#shot-decisions): player 1's first
 // decision on the ball, over many seeds, shoots at a clear chance, passes from
 // a hopeless angle, and mostly passes past a defender in the way. A shot
-// blocked as it is struck is a loose ball, not an intercepted pass, and a clear
-// chance is mostly scored (docs/on-ball.md#shooting).
+// blocked on its way is a loose ball, not an intercepted pass, and a clear
+// chance is scored about half the time (docs/on-ball.md#shooting).
 
 #include <algorithm>
 #include <catch2/catch_test_macros.hpp>
@@ -183,7 +183,7 @@ TEST_CASE("Shots: a blocked lane is mostly passed around", "[acceptance][shots]"
   REQUIRE(blocked >= 90);
 }
 
-TEST_CASE("Shots: a shot blocked as it is struck is a loose ball", "[acceptance][shots]") {
+TEST_CASE("Shots: a blocked shot is a loose ball", "[acceptance][shots]") {
   int blocked = 0;
   for (const std::string_view scenario : {"clear-chance", "blocked-lane"}) {
     const auto* definition = findScenario(scenario);
@@ -192,27 +192,29 @@ TEST_CASE("Shots: a shot blocked as it is struck is a loose ball", "[acceptance]
       auto setup = definition->make(seed);
       REQUIRE(setup.has_value());
       MatchSimulation simulation = startMatch(*setup);
+      bool flying = false;
       for (int tick = 0; tick < 5 * kTicks; ++tick) {
         REQUIRE(simulation.step().has_value());
-        bool shot = false;
+        bool resolved = false;
         for (const auto& event : simulation.events()) {
-          shot = shot || std::holds_alternative<ShotAttempted>(event);
-          if (shot) {
+          flying = flying || std::holds_alternative<ShotAttempted>(event);
+          resolved = resolved || std::holds_alternative<ShotResolved>(event);
+          if (flying) {
             REQUIRE_FALSE(std::holds_alternative<PassIntercepted>(event));
             REQUIRE_FALSE(std::holds_alternative<PassReceived>(event));
             blocked += std::holds_alternative<LooseBallRecovered>(event) ? 1 : 0;
           }
         }
+        flying = flying && !resolved;
       }
     }
   }
   CAPTURE(blocked);
-  // The keeper or the defender in the way takes some shots the tick they are
-  // struck.
+  // The keeper or the defender in the way takes some shots on their way.
   REQUIRE(blocked > 0);
 }
 
-TEST_CASE("Shots: a clear chance is mostly scored", "[acceptance][shots]") {
+TEST_CASE("Shots: a clear chance is scored about half the time", "[acceptance][shots]") {
   const auto* definition = findScenario("clear-chance");
   REQUIRE(definition != nullptr);
   int shots = 0;
@@ -248,10 +250,11 @@ TEST_CASE("Shots: a clear chance is mostly scored", "[acceptance][shots]") {
   }
   CAPTURE(shots, goals, onTarget, woodwork);
   REQUIRE(shots >= 90);
-  // Eight meters out with only the keeper to beat: an average finisher scores
-  // most of them, and execution makes him miss some. At the time of writing
-  // he scores 72 of 100 and hits the woodwork with 48.
-  REQUIRE(goals >= 55);
+  // Eight meters out with only the keeper to beat: real football turns about
+  // half of such big chances into goals, and execution makes him miss some.
+  // At the time of writing he scores 44 of 100, puts 81 on target and hits the
+  // woodwork with 18.
+  REQUIRE(goals >= 40);
   REQUIRE(goals <= 90);
   REQUIRE(onTarget >= goals);
 }

@@ -12,14 +12,12 @@ std::vector<MatchSystem> makeMatchSystems(const MatchConfig& config) {
   systems.push_back(makePressingSystem({.pressing = config.pressing,
                                         .perception = config.perception,
                                         .coverDistance = config.defensive.coverDistance}));
-  systems.push_back(
-      makeTacticalMovementSystem({.positioning = config.positioning,
-                                  .offBall = config.offBall,
-                                  .defensive = config.defensive,
-                                  .perception = config.perception,
-                                  .goalkeeper = config.goalkeeper,
-                                  .shotRange = config.decisions.shooting.maxShotDistance,
-                                  .offside = config.offside}));
+  systems.push_back(makeTacticalMovementSystem({.positioning = config.positioning,
+                                                .offBall = config.offBall,
+                                                .defensive = config.defensive,
+                                                .perception = config.perception,
+                                                .goalkeeper = config.goalkeeper,
+                                                .offside = config.offside}));
   // Only with the systems that award them: restarts, offside and fouls.
   if (config.restarts.enabled || config.offside.enabled || config.fouls.enabled) {
     systems.push_back(makeSetPieceSystem({.setPieces = config.setPieces,

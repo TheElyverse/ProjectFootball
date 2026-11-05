@@ -126,16 +126,22 @@ struct Lane {
 };
 
 // Seconds the player needs to come within `radius` of a point: his arrival
-// time less the radius covered at full speed. Empty if the point is off the
-// pitch.
+// time at the nearest point that close. Within it already -- the ball is his
+// the moment it gets there, as the reception rules have it -- the time to
+// spare is negative: the radius he has left, covered at full speed. Empty if
+// the point is off the pitch.
 [[nodiscard]] inline std::optional<double> reachSeconds(const PlayerMatchState& player,
                                                         const SimCore::Vec2 point,
                                                         const Pitch& pitch, const double radius) {
-  const auto arrival = estimateArrivalSeconds(player, point, pitch);
-  if (!arrival) {
+  if (!pitch.contains(point)) {
     return std::nullopt;
   }
-  return *arrival - (radius / player.attributes.maxSpeed);
+  const SimCore::Vec2 offset = player.position - point;
+  const double distance = offset.length();
+  if (distance <= radius) {
+    return -(radius - distance) / player.attributes.maxSpeed;
+  }
+  return estimateArrivalSeconds(player, pitch.clamp(point + (offset * (radius / distance))), pitch);
 }
 
 // A point of a lane where the players' reach is checked: where it is, how far

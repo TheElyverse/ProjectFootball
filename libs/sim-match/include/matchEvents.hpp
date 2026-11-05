@@ -654,7 +654,8 @@ enum class DecisionOutcome : std::uint8_t {
 // How a carrier came to his decision (docs/on-ball.md#pass-decisions): by
 // choosing among his valid options, the usual way, or -- without one -- by
 // looking for one on the first or the other side, or by playing the best
-// rejected pass or clearing the ball once he has looked for long enough.
+// rejected pass or clearing the ball once he has looked for long enough; or
+// pressed near his goal by clearing it at once (docs/on-ball.md#clearances).
 enum class OnBallReason : std::uint8_t {
   kChoice,
   kScanFirstSide,
