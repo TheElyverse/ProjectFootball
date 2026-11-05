@@ -47,7 +47,7 @@ TEST_CASE("Every metric of a side is named, in a fixed order", "[seriesSummary]"
   stats.regainsByThird = {1, 2, 3};
   stats.shots = 4;
   const auto metrics = metricsOf(stats);
-  REQUIRE(metrics.size() == 25);
+  REQUIRE(metrics.size() == 28);
   REQUIRE(metrics.at(0).name == "possessionShare");
   REQUIRE(metrics.at(1).value == 12.0);
   REQUIRE(metrics.at(3).name == "passCompletion");
@@ -60,8 +60,10 @@ TEST_CASE("Every metric of a side is named, in a fixed order", "[seriesSummary]"
   REQUIRE(metrics.at(19).name == "offsides");
   REQUIRE(metrics.at(20).name == "fouls");
   REQUIRE(metrics.at(22).name == "redCards");
-  REQUIRE(metrics.at(23).name == "points");
+  REQUIRE(metrics.at(23).name == "corners");
+  REQUIRE(metrics.at(25).name == "goalKicks");
+  REQUIRE(metrics.at(26).name == "points");
   // Empty before full time.
-  REQUIRE_FALSE(metrics.at(23).value.has_value());
-  REQUIRE(metrics.at(24).name == "longestOwnershipSeconds");
+  REQUIRE_FALSE(metrics.at(26).value.has_value());
+  REQUIRE(metrics.at(27).name == "longestOwnershipSeconds");
 }

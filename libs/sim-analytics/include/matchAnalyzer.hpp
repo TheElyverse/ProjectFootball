@@ -77,6 +77,9 @@ class MatchAnalyzer {
     int fouls = 0;
     int yellowCards = 0;
     int redCards = 0;
+    int corners = 0;
+    int throwIns = 0;
+    int goalKicks = 0;
     int completedPasses = 0;
     double passMeters = 0.0;
     int progressivePasses = 0;
@@ -101,6 +104,7 @@ class MatchAnalyzer {
   [[nodiscard]] std::optional<SimMatch::TeamSide> sideOf(SimCore::PlayerId player) const;
   [[nodiscard]] SideTally& tally(SimMatch::TeamSide side);
   void onFoul(const SimMatch::FoulCalled& foul);
+  void onSetPiece(const SimMatch::SetPieceTaken& setPiece);
   [[nodiscard]] double depthOf(SimMatch::TeamSide side, SimCore::Vec2 position) const noexcept;
   [[nodiscard]] PitchThird thirdOf(SimMatch::TeamSide side, SimCore::Vec2 position) const noexcept;
   [[nodiscard]] TeamStats statsOf(SimMatch::TeamSide side, std::int64_t possessedTicks,

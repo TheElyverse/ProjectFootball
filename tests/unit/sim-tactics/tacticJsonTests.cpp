@@ -1,7 +1,10 @@
 #include <catch2/catch_test_macros.hpp>
+#include <cstddef>
 #include <nlohmann/json.hpp>
+#include <optional>
 #include <string>
 #include <string_view>
+#include <vector>
 
 #include "referenceTactic.hpp"
 #include "tactic.hpp"
@@ -182,4 +185,44 @@ TEST_CASE("A missing file is an I/O error", "[tacticJson]") {
   REQUIRE_FALSE(tactic.has_value());
   REQUIRE(tactic.error().code == TacticFileErrorCode::kIoError);
   REQUIRE(tactic.error().message.starts_with("no/such/tactic.json: "));
+}
+
+TEST_CASE("Set piece plans load from their optional block", "[tacticJson][setPieces]") {
+  using ElyverseFootball::SimTactics::SetPieceDelivery;
+  using ElyverseFootball::SimTactics::SetPiecePlans;
+  Json document = referenceDocument();
+  SECTION("absent: the default plans") {
+    document.erase("setPieces");
+    const auto parsed = parseTacticJson(document.dump(), "plain.json");
+    REQUIRE(parsed.has_value());
+    REQUIRE(parsed->setPieces() == SetPiecePlans{});
+  }
+  SECTION("present: as written, a null taker left to the match") {
+    document["setPieces"]["corner"] = {
+        {"taker", 6}, {"delivery", "nearPost"}, {"runners", {5, 4}}, {"markers", {2, 3}}};
+    document["setPieces"]["throwIn"]["taker"] = nullptr;
+    const auto parsed = parseTacticJson(document.dump(), "plans.json");
+    REQUIRE(parsed.has_value());
+    const auto& corner = parsed->setPieces().corner;
+    REQUIRE(corner.taker == std::optional<std::size_t>(6));
+    REQUIRE(corner.delivery == SetPieceDelivery::kNearPost);
+    REQUIRE(corner.runners == std::vector<std::size_t>{5, 4});
+    REQUIRE(corner.markers == std::vector<std::size_t>{2, 3});
+    REQUIRE_FALSE(parsed->setPieces().throwIn.taker.has_value());
+    const auto again = parseTacticJson(toTacticJson(*parsed), "again.json");
+    REQUIRE(again.has_value());
+    REQUIRE(again.value_or(*parsed).setPieces() == parsed->setPieces());
+  }
+  SECTION("malformed") {
+    document["setPieces"]["corner"]["delivery"] = "toTheMoon";
+    const auto error = errorOf(document);
+    REQUIRE(error.code == TacticFileErrorCode::kMalformed);
+    REQUIRE(error.message ==
+            R"(test.json: setPieces.corner.delivery: unknown delivery "toTheMoon")");
+  }
+  SECTION("unknown kind") {
+    document["setPieces"]["penaltyKick"] = document["setPieces"]["corner"];
+    const auto error = errorOf(document);
+    REQUIRE(error.message == "test.json: setPieces.penaltyKick: unknown field");
+  }
 }

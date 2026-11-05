@@ -310,6 +310,20 @@ struct OffsideWatch {
   friend bool operator==(const OffsideWatch&, const OffsideWatch&) = default;
 };
 
+// A set piece being set up (docs/set-pieces.md): its kind -- a throw-in, a
+// corner, a goal kick or a kickoff --, the side taking it, its taker, where
+// the ball stands and when it was awarded. The ball is dead until the taker
+// plays it.
+struct SetPiece {
+  SimTactics::SetPieceKind kind = SimTactics::SetPieceKind::kThrowIn;
+  TeamSide side = TeamSide::kHome;
+  SimCore::PlayerId taker;
+  SimCore::Vec2 spot;
+  SimCore::SimTick awarded;
+
+  friend bool operator==(const SetPiece&, const SetPiece&) = default;
+};
+
 // The last foul a duel saw (docs/fouls.md): who committed it on whom, when,
 // and where the ball was. The foul system judges it in the step it happened.
 struct FoulRecord {
@@ -598,6 +612,7 @@ class MatchState {
     return offsideExemption_;
   }
   [[nodiscard]] const std::optional<FoulRecord>& lastFoul() const noexcept { return lastFoul_; }
+  [[nodiscard]] const std::optional<SetPiece>& setPiece() const noexcept { return setPiece_; }
 
   // The last pass kicked, the last shot taken and the last reception of a
   // free ball; empty in every state created from a spec, until the ball
@@ -690,6 +705,7 @@ class MatchState {
   std::optional<OffsideWatch> offside_;
   std::optional<BallTouch> offsideExemption_;
   std::optional<FoulRecord> lastFoul_;
+  std::optional<SetPiece> setPiece_;
   TeamPossession possession_;
   // Home, away.
   std::array<std::optional<TeamPhase>, 2> phases_;
@@ -790,7 +806,17 @@ class MatchStateWriter {
   void setOffsideExemption(const std::optional<BallTouch>& touch) noexcept {
     state_->offsideExemption_ = touch;
   }
+  [[nodiscard]] const std::optional<BallTouch>& offsideExemption() const noexcept {
+    return state_->offsideExemption_;
+  }
   void setLastFoul(const std::optional<FoulRecord>& foul) noexcept { state_->lastFoul_ = foul; }
+  // The set piece as this step has left it so far.
+  [[nodiscard]] const std::optional<SetPiece>& setPiece() const noexcept {
+    return state_->setPiece_;
+  }
+  void setSetPiece(const std::optional<SetPiece>& setPiece) noexcept {
+    state_->setPiece_ = setPiece;
+  }
   [[nodiscard]] const std::optional<FoulRecord>& lastFoul() const noexcept {
     return state_->lastFoul_;
   }

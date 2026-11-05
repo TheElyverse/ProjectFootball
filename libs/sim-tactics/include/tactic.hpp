@@ -10,6 +10,7 @@
 #include <vector>
 
 #include "responsibility.hpp"
+#include "setPiecePlan.hpp"
 #include "tacticalPhase.hpp"
 
 namespace ElyverseFootball::SimTactics {
@@ -138,6 +139,8 @@ struct TacticSpec {
   TeamPrinciples principles;
   // Indexed by phaseIndex().
   std::array<PhaseInstruction, kPhaseCount> phases{};
+  // How the side takes and defends set pieces (docs/set-pieces.md#plans).
+  SetPiecePlans setPieces = {};
 
   friend bool operator==(const TacticSpec&, const TacticSpec&) = default;
 };
@@ -155,6 +158,7 @@ enum class TacticErrorCode : std::uint8_t {
   kUnknownPressingTrigger,
   kDuplicatePressingTrigger,
   kContradictoryParameters,
+  kInvalidSetPiece,
 };
 
 // field names the offending value by its path, as a tactic file spells it --
@@ -183,6 +187,7 @@ class Tactic {
   [[nodiscard]] const std::string& description() const noexcept { return spec_.description; }
   [[nodiscard]] std::span<const TacticSlot> slots() const noexcept { return spec_.slots; }
   [[nodiscard]] const TeamPrinciples& principles() const noexcept { return spec_.principles; }
+  [[nodiscard]] const SetPiecePlans& setPieces() const noexcept { return spec_.setPieces; }
   // Throws std::out_of_range for a value outside the enumerators.
   [[nodiscard]] const PhaseInstruction& instruction(const TacticalPhase phase) const {
     return spec_.phases.at(phaseIndex(phase));

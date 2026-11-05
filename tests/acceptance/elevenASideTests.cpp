@@ -90,6 +90,6 @@ TEST_CASE("Eleven-a-side: the final hashes are pinned", "[acceptance][eleven]") 
   // Identical on every platform and compiler CI builds with; they change only
   // with the simulation's behaviour, the scenario or the state layout.
   const Replay replay = recorded();
-  CHECK(replay.checkpoints.back().stateHash == 0x6284346be14cc297ULL);
-  CHECK(replay.checkpoints.back().eventHash == 0xf1bd41d07bd96d87ULL);
+  CHECK(replay.checkpoints.back().stateHash == 0xb4fe6fb4d77f14f9ULL);
+  CHECK(replay.checkpoints.back().eventHash == 0x448508d1d4fc3e4cULL);
 }

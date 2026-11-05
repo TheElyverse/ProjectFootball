@@ -250,9 +250,61 @@ void checkFormat(const Field& root) {
   }
 }
 
+[[nodiscard]] std::size_t readSlotIndex(const Field& field) {
+  if (!field.json().is_number_unsigned()) {
+    field.fail("expected a slot index");
+  }
+  return field.json().get<std::size_t>();
+}
+
+[[nodiscard]] std::vector<std::size_t> readSlots(const Field& field) {
+  std::vector<std::size_t> slots;
+  for (const Field& slot : field.elements()) {
+    slots.push_back(readSlotIndex(slot));
+  }
+  return slots;
+}
+
+[[nodiscard]] SetPiecePlan readSetPiece(const Field& field) {
+  field.expectOnly({"taker", "delivery", "runners", "markers"});
+  const Field taker = field.member("taker");
+  return {.taker = taker.json().is_null() ? std::nullopt : std::optional(readSlotIndex(taker)),
+          .delivery = readName(field.member("delivery"), &parseSetPieceDelivery, "delivery"),
+          .runners = readSlots(field.member("runners")),
+          .markers = readSlots(field.member("markers"))};
+}
+
+// Without the block, the default plans.
+[[nodiscard]] SetPiecePlans readSetPieces(const Field& root) {
+  SetPiecePlans plans;
+  if (!root.has("setPieces")) {
+    return plans;
+  }
+  const Field field = root.member("setPieces");
+  field.expectOnly({"kickoff", "throwIn", "corner", "goalKick"});
+  for (const SetPieceKind kind : kAllSetPieceKinds) {
+    plans.of(kind) = readSetPiece(field.member(setPieceKindName(kind)));
+  }
+  return plans;
+}
+
+[[nodiscard]] Json setPiecesJson(const SetPiecePlans& plans) {
+  Json json = Json::object();
+  for (const SetPieceKind kind : kAllSetPieceKinds) {
+    const SetPiecePlan& plan = plans.of(kind);
+    json[std::string(setPieceKindName(kind))] = {
+        {"taker", plan.taker ? Json(*plan.taker) : Json(nullptr)},
+        {"delivery", setPieceDeliveryName(plan.delivery)},
+        {"runners", plan.runners},
+        {"markers", plan.markers}};
+  }
+  return json;
+}
+
 [[nodiscard]] TacticSpec readSpec(const Field& root) {
   checkFormat(root);
-  root.expectOnly({"format", "version", "name", "description", "slots", "principles", "phases"});
+  root.expectOnly(
+      {"format", "version", "name", "description", "slots", "principles", "phases", "setPieces"});
   TacticSpec spec{
       .name = root.member("name").string(),
       .description = root.has("description") ? root.member("description").string() : std::string(),
@@ -271,6 +323,7 @@ void checkFormat(const Field& root) {
   for (const TacticalPhase phase : kAllPhases) {
     spec.phases.at(phaseIndex(phase)) = readInstruction(phases.member(phaseName(phase)));
   }
+  spec.setPieces = readSetPieces(root);
   return spec;
 }
 
@@ -300,6 +353,7 @@ std::string toTacticJson(const Tactic& tactic) {
   for (const TacticalPhase phase : kAllPhases) {
     json["phases"][phaseName(phase)] = instructionJson(tactic.instruction(phase));
   }
+  json["setPieces"] = setPiecesJson(tactic.setPieces());
   return json.dump(2) + "\n";
 }
 

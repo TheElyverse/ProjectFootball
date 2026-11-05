@@ -239,6 +239,18 @@ void addPendingAction(StableHasher& hasher, const PendingAction& action) noexcep
 
 namespace {
 
+// A set piece being set up, if any.
+void addSetPiece(StableHasher& hasher, const std::optional<SetPiece>& setPiece) noexcept {
+  hasher.addBool(setPiece.has_value());
+  if (setPiece) {
+    hasher.addByte(static_cast<std::uint8_t>(setPiece->kind));
+    hasher.addU64(static_cast<std::uint64_t>(setPiece->side));
+    hasher.addU64(setPiece->taker.value());
+    addVec2(hasher, setPiece->spot);
+    hasher.addI64(setPiece->awarded.value());
+  }
+}
+
 // The play the offside rule watches and the touch free of it.
 void addOffside(StableHasher& hasher, const MatchState& state) noexcept {
   const auto& offside = state.offside();
@@ -345,6 +357,7 @@ std::uint64_t hashMatchState(const MatchState& state) noexcept {
   hasher.addBool(clock.addedMinutes.has_value());
   hasher.addI64(clock.addedMinutes.value_or(0));
   addOffside(hasher, state);
+  addSetPiece(hasher, state.setPiece());
   const auto& foul = state.lastFoul();
   hasher.addBool(foul.has_value());
   if (foul) {

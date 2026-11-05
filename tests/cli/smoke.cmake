@@ -37,7 +37,7 @@ string(JSON seedType TYPE "${contents}" seed)
 string(JSON gameTime GET "${contents}" gameTime)
 string(JSON schemaVersion GET "${contents}" schemaVersion)
 if(NOT seedType STREQUAL "STRING" OR NOT seed STREQUAL "42" OR NOT gameTime STREQUAL "300"
-        OR NOT schemaVersion STREQUAL "21")
+        OR NOT schemaVersion STREQUAL "22")
     message(FATAL_ERROR "Unexpected replay: ${contents}")
 endif()
 
@@ -179,7 +179,7 @@ expect_failure("same file" --ticks 1 --replay-out "${replay}" --stats-out "${rep
 # A whole match: with --duration and without --ticks the run lasts to full
 # time, and reports the clock, the score and the result (docs/match-clock.md).
 run_cli(--scenario tactic-match --seed 5 --duration 1 --replay-out "${replay}" --stats-out "${stats}")
-if(NOT result STREQUAL "0" OR NOT output MATCHES "clock: +90:00 \\(fullTime\\)\n"
+if(NOT result STREQUAL "0" OR NOT output MATCHES "clock: +90[^\n]* \\(fullTime\\)\n"
         OR NOT output MATCHES "score: +[0-9]+:[0-9]+\n"
         OR NOT output MATCHES "result: +(home wins|away wins|draw)\n")
     message(FATAL_ERROR "Whole match failed: ${result}: ${output}${error}")

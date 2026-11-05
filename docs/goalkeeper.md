@@ -561,9 +561,9 @@ kick height.
 A goal kick goes to the defending side's goalkeeper
 ([restarts](match-engine.md#restarts)). He takes it from his goal area: the ball lies on
 `goalKickSpot()`, the front edge of the goal area level with where the ball
-went out, but no wider than the goal area; he stands `carryDistance` behind it
-facing up the pitch, at rest. He has it at his feet and decides like after
-any other restart: ground passes or a long kick.
+went out, but no wider than the goal area. It is a [set piece](set-pieces.md):
+he walks behind the ball, his side takes its places, and he plays his side's
+goal kick plan — short to a centre back by default, or long.
 
 ### Diagnostics
 
@@ -609,7 +609,7 @@ keeper and which is 0 in the configuration.
 | `keeper-build-up`  | Home's keeper holds the ball at his goal, his tactic's directness 0.1; his centre backs stand wide and free; away, without a tactic, stands a meter in front of his holding midfielder, in the lane from the keeper, and a meter off his wingers and striker. | Over ten seeds he throws, along the ground, to a centre back, who receives it; his hands are barred from the throw until the centre back has it. |
 | `keeper-turned`    | `keeper-build-up` with the keeper facing his own goal, every option behind him. | Over ten seeds he turns up the pitch and throws to a centre back within five seconds. |
 | `keeper-long-kick` | Home's keeper has the ball at his feet, directness 0.5; away stands in the lanes to his centre backs and his holding midfielder, a forward four meters to his side, out of the way of a long ball, its last two defenders deep; his wingers and striker wait beyond the longest ground pass. | Over ten seeds he kicks long to a winger or the striker, the ball goes more than five meters up, and somebody gets to it. |
-| `goal-kick`        | Home player 1 plays the ball wide over away's goal line; restarts are on; away plays the reference tactic. | Over ten seeds away's keeper takes the goal kick, from `goalKickSpot()` in his goal area, the ball at his feet, and plays it from there. |
+| `goal-kick`        | Home player 1 plays the ball wide over away's goal line; restarts are on; away plays the reference tactic. | Over ten seeds away's keeper takes the goal kick, from `goalKickSpot()` in his goal area, as a set piece, and plays it from there. |
 
 `tests/acceptance/distributionScenarioTests.cpp` holds the scenario checks;
 `tests/unit/sim-match/distributionTests.cpp` that a long ball comes down on its

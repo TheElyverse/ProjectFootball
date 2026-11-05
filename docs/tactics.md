@@ -179,9 +179,10 @@ opponent's goal line.
 | `kUnknownPressingTrigger`        | a value outside the declared triggers                  |
 | `kDuplicatePressingTrigger`      | a trigger listed twice                                 |
 | `kContradictoryParameters`       | values fine alone that together describe no block      |
+| `kInvalidSetPiece`               | a [set piece plan](set-pieces.md#plans) names a slot that does not exist or twice in a list, gives a kickoff runners or markers, or a delivery its kind cannot have |
 
 Errors come in a fixed order: name, slots by index, principles, phases in the
-order of the table above.
+order of the table above, then the set piece plans by kind.
 
 ### Formation presets
 
@@ -262,8 +263,9 @@ each of the seven phases.
 | `slots[].responsibilities` | array | `{ "responsibility", "weight" }` entries          |
 | `principles`       | object | `pressingLine`, `pressingTriggers`, `positioning` weights, `goalkeeper.sweeping` and `goalkeeper.directness` |
 | `phases`           | object | one instruction per phase, keyed by phase name               |
+| `setPieces`        | object | optional; a plan per set piece, `kickoff`, `throwIn`, `corner`, `goalKick`: `taker` (a slot or `null`), `delivery`, `runners` and `markers` (slots) — see [set pieces](set-pieces.md#plans); without it, the default plans |
 
-Every field except `description` is required. A slot has `role` or
+Every field except `description` and `setPieces` is required. A slot has `role` or
 `responsibilities`, not both: a preset plus extra duties would hide what the slot
 holds. Names, values and ranges are the [model's](#tactic-model): phases
 (`buildUp`, `progression`, ...), responsibilities (`provideWidth`, ...), role

@@ -1,3 +1,4 @@
+#include <algorithm>
 #include <catch2/catch_test_macros.hpp>
 #include <stdexcept>
 #include <string>
@@ -21,7 +22,9 @@ using ElyverseFootball::SimCore::PlayerId;
 using ElyverseFootball::SimCore::SimTick;
 using ElyverseFootball::SimMatch::kBallMovementSystemName;
 using ElyverseFootball::SimMatch::kDuelSystemName;
+using ElyverseFootball::SimMatch::kFoulSystemName;
 using ElyverseFootball::SimMatch::kMatchClockSystemName;
+using ElyverseFootball::SimMatch::kOffsideSystemName;
 using ElyverseFootball::SimMatch::kPassDecisionSystemName;
 using ElyverseFootball::SimMatch::kPerceptionSystemName;
 using ElyverseFootball::SimMatch::kPhaseSystemName;
@@ -30,6 +33,7 @@ using ElyverseFootball::SimMatch::kPlayerMovementSystemName;
 using ElyverseFootball::SimMatch::kPressingSystemName;
 using ElyverseFootball::SimMatch::kPursuitSystemName;
 using ElyverseFootball::SimMatch::kRestartSystemName;
+using ElyverseFootball::SimMatch::kSetPieceSystemName;
 using ElyverseFootball::SimMatch::kShotStoppingSystemName;
 using ElyverseFootball::SimMatch::kTacticalMovementSystemName;
 using ElyverseFootball::SimMatch::makeMatchSystems;
@@ -58,28 +62,34 @@ namespace {
 }  // namespace
 
 TEST_CASE("The standard systems run in their documented order", "[matchSetup]") {
-  std::vector<std::string> names;
-  for (const MatchSystem& system : makeMatchSystems({})) {
-    names.push_back(system.name);
-  }
+  const auto namesOf = [](const MatchConfig& config) {
+    std::vector<std::string> names;
+    for (const MatchSystem& system : makeMatchSystems(config)) {
+      names.push_back(system.name);
+    }
+    return names;
+  };
+  MatchConfig rules;
+  rules.offside.enabled = true;
+  rules.fouls.enabled = true;
+  REQUIRE(namesOf(rules) ==
+          std::vector<std::string>{
+              std::string(kPerceptionSystemName), std::string(kPhaseSystemName),
+              std::string(kPitchControlSystemName), std::string(kPressingSystemName),
+              std::string(kTacticalMovementSystemName), std::string(kSetPieceSystemName),
+              std::string(kPursuitSystemName), std::string(kPassDecisionSystemName),
+              std::string(kDuelSystemName), std::string(kShotStoppingSystemName),
+              std::string(kPlayerMovementSystemName), std::string(kBallMovementSystemName),
+              std::string(kOffsideSystemName), std::string(kFoulSystemName),
+              std::string(kRestartSystemName), std::string(kMatchClockSystemName)});
 
-  REQUIRE(names == std::vector<std::string>{
-                       std::string(kPerceptionSystemName), std::string(kPhaseSystemName),
-                       std::string(kPitchControlSystemName), std::string(kPressingSystemName),
-                       std::string(kTacticalMovementSystemName), std::string(kPursuitSystemName),
-                       std::string(kPassDecisionSystemName), std::string(kDuelSystemName),
-                       std::string(kShotStoppingSystemName), std::string(kPlayerMovementSystemName),
-                       std::string(kBallMovementSystemName), std::string(kMatchClockSystemName)});
-
-  MatchConfig restarts;
-  restarts.restarts.enabled = true;
-  names.clear();
-  for (const MatchSystem& system : makeMatchSystems(restarts)) {
-    names.push_back(system.name);
-  }
-  REQUIRE(names.size() == 13);
-  REQUIRE(names[11] == kRestartSystemName);
-  REQUIRE(names[12] == kMatchClockSystemName);
+  // A scenario without restarts has no set pieces either.
+  MatchConfig sandbox;
+  sandbox.restarts.enabled = false;
+  const auto names = namesOf(sandbox);
+  REQUIRE(names.size() == 12);
+  REQUIRE(std::ranges::find(names, std::string(kSetPieceSystemName)) == names.end());
+  REQUIRE(std::ranges::find(names, std::string(kRestartSystemName)) == names.end());
 }
 
 TEST_CASE("startMatch runs the setup with the standard systems", "[matchSetup]") {

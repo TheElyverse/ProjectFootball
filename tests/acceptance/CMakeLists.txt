@@ -13,6 +13,7 @@ add_executable(sim-acceptance-tests
         crossScenarioTests.cpp
         elevenASideTests.cpp
         matchClockTests.cpp
+        setPieceScenarioTests.cpp
         matchResultTests.cpp
         offsideTests.cpp
 )

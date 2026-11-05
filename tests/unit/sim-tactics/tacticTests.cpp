@@ -232,3 +232,38 @@ TEST_CASE("Every broken rule is reported in a fixed order", "[tactic]") {
   REQUIRE(errors[2].field == "principles.pressingLine");
   REQUIRE(errors[3].field == "phases.buildUp.ballShift");
 }
+
+TEST_CASE("Set piece plans name slots that exist, once, and deliveries that fit",
+          "[tactic][setPieces]") {
+  using ElyverseFootball::SimTactics::SetPieceDelivery;
+  auto spec = referenceTacticSpec();
+  spec.setPieces.kickoff.runners = {3};
+  spec.setPieces.throwIn.taker = 11;
+  spec.setPieces.throwIn.delivery = SetPieceDelivery::kNearPost;
+  spec.setPieces.corner.delivery = SetPieceDelivery::kLong;
+  spec.setPieces.corner.runners = {4, 4};
+  spec.setPieces.goalKick.markers = {12};
+  const auto errors = errorsOf(spec);
+  REQUIRE(errors.size() == 6);
+  for (const TacticError& error : errors) {
+    REQUIRE(error.code == TacticErrorCode::kInvalidSetPiece);
+  }
+  REQUIRE(errors[0].field == "setPieces.kickoff");
+  REQUIRE(errors[1].field == "setPieces.throwIn.taker");
+  REQUIRE(errors[1].message == "slot 11 does not exist, the tactic has 7");
+  REQUIRE(errors[2].field == "setPieces.throwIn.delivery");
+  REQUIRE(errors[2].message == "a throwIn cannot aim at nearPost");
+  REQUIRE(errors[3].field == "setPieces.corner.delivery");
+  REQUIRE(errors[4].field == "setPieces.corner.runners");
+  REQUIRE(errors[4].message == "slot 4 does not exist or is named twice");
+  REQUIRE(errors[5].field == "setPieces.goalKick.markers");
+}
+
+TEST_CASE("Set piece plans come last among the errors", "[tactic][setPieces]") {
+  auto spec = referenceTacticSpec();
+  spec.setPieces.throwIn.taker = 11;
+  spec.principles.pressingLine = -0.1;
+  const auto errors = errorsOf(spec);
+  REQUIRE(errors.size() == 2);
+  REQUIRE(errors.back().code == TacticErrorCode::kInvalidSetPiece);
+}

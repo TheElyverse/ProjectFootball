@@ -71,11 +71,23 @@ TEST_CASE("Every part of a tactic changes its hash", "[tacticHash]") {
   SECTION("phase instruction") {
     spec.phases.at(phaseIndex(TacticalPhase::kDefensiveTransition)).runFrequency = 0.31;
   }
+  SECTION("set piece delivery") {
+    spec.setPieces.corner.delivery = ElyverseFootball::SimTactics::SetPieceDelivery::kNearPost;
+  }
+  SECTION("set piece taker") {
+    spec.setPieces.throwIn.taker = 3;
+  }
+  SECTION("set piece runners") {
+    spec.setPieces.corner.runners = {4, 5};
+  }
+  SECTION("set piece markers") {
+    spec.setPieces.corner.markers = {2};
+  }
   REQUIRE(hashOf(spec) != reference);
 }
 
 TEST_CASE("The reference tactic hash is pinned", "[tacticHash]") {
   // Changes when the reference tactic or the hash layout changes; both must
   // be deliberate, since replays record tactic hashes.
-  REQUIRE(hashOf(referenceTacticSpec()) == 0x4741c1e75f6412dfULL);
+  REQUIRE(hashOf(referenceTacticSpec()) == 0x7f38318a0aff9255ULL);
 }

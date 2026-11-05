@@ -80,6 +80,10 @@ constexpr std::array<TacticalPhase, 3> kThirds{TacticalPhase::kBuildUp, Tactical
 }  // namespace
 
 std::optional<TeamSide> teamOnTheBall(const MatchState& state) noexcept {
+  // A set piece is its side's ball while it is set up.
+  if (const auto& setPiece = state.setPiece()) {
+    return setPiece->side;
+  }
   const BallState& ball = state.ball();
   std::optional<SimCore::PlayerId> player = ball.owner;
   if (!player && ball.lastTouch) {

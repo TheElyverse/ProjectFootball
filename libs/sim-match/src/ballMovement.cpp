@@ -1203,6 +1203,10 @@ MatchSystem makeBallMovementSystem(const BallMovementRules& rules) {
   return {.name = std::string(kBallMovementSystemName),
           .update = [rules](const MatchStepContext& context, const MatchState& current,
                             MatchStateWriter& next) {
+            // A dead ball lies still and nobody plays it (docs/set-pieces.md).
+            if (next.setPiece()) {
+              return;
+            }
             const BallTick tick(rules, context, current, next);
             tick.moveBall();
             tick.forgetReleases();

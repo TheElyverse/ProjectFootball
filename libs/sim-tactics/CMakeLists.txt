@@ -4,6 +4,7 @@ add_library(sim-tactics STATIC
         src/rolePreset.cpp
         src/formation.cpp
         src/tactic.cpp
+        src/setPiecePlan.cpp
         src/referenceTactic.cpp
         src/tacticHash.cpp
         src/tacticJson.cpp

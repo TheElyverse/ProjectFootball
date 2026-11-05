@@ -201,6 +201,16 @@ void addFields(StableHasher& hasher, const GoalScored& event) noexcept {
   hasher.addI64(event.score.away);
 }
 
+void addFields(StableHasher& hasher, const SetPieceTaken& event) noexcept {
+  hasher.addByte(static_cast<std::uint8_t>(event.kind));
+  hasher.addU64(static_cast<std::uint64_t>(event.side));
+  hasher.addU64(event.taker.value());
+  hasher.addByte(static_cast<std::uint8_t>(event.delivery));
+  hasher.addDouble(event.target.x);
+  hasher.addDouble(event.target.y);
+  addPlayer(hasher, event.receiver);
+}
+
 void addFields(StableHasher& hasher, const FoulCalled& event) noexcept {
   hasher.addU64(static_cast<std::uint64_t>(event.side));
   hasher.addU64(event.offender.value());
@@ -514,6 +524,9 @@ std::string_view eventName(const MatchEvent& event) {
     }
     std::string_view operator()(const FoulCalled& /*event*/) const noexcept {
       return "foul called";
+    }
+    std::string_view operator()(const SetPieceTaken& /*event*/) const noexcept {
+      return "set piece taken";
     }
   };
   return std::visit(Names{}, event);

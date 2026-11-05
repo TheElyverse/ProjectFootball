@@ -393,6 +393,16 @@ void addEventFields(Json& json, const SimMatch::GoalScored& event) {
   json["score"] = {{"home", event.score.home}, {"away", event.score.away}};
 }
 
+void addEventFields(Json& json, const SimMatch::SetPieceTaken& event) {
+  json["type"] = "setPieceTaken";
+  json["kind"] = SimTactics::setPieceKindName(event.kind);
+  json["side"] = SimMatch::teamSideName(event.side);
+  json["taker"] = event.taker.value();
+  json["delivery"] = SimTactics::setPieceDeliveryName(event.delivery);
+  json["target"] = vec2Json(event.target);
+  json["receiver"] = idJson(event.receiver);
+}
+
 void addEventFields(Json& json, const SimMatch::FoulCalled& event) {
   json["type"] = "foulCalled";
   json["side"] = SimMatch::teamSideName(event.side);
